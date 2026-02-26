@@ -1,0 +1,55 @@
+{
+  "name": "@qontoctl/mcp",
+  "version": "0.0.0",
+  "description": "MCP server for Qonto API integration",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "license": "AGPL-3.0-only",
+  "author": "Alexey Pelykh (https://github.com/alexey-pelykh)",
+  "homepage": "https://github.com/alexey-pelykh/qontoctl/tree/main/packages/mcp",
+  "bugs": "https://github.com/alexey-pelykh/qontoctl/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/alexey-pelykh/qontoctl.git",
+    "directory": "packages/mcp"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js"
+    },
+    "./server": {
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js"
+    },
+    "./stdio": {
+      "types": "./dist/stdio.d.ts",
+      "import": "./dist/stdio.js"
+    }
+  },
+  "bin": {
+    "qontoctl-mcp": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run --passWithNoTests",
+    "lint": "eslint src/",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@qontoctl/core": "workspace:^",
+    "@modelcontextprotocol/sdk": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "name": "@qontoctl/cli",
+  "version": "0.0.0",
+  "description": "The complete CLI & MCP for Qonto",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "license": "AGPL-3.0-only",
+  "author": "Alexey Pelykh (https://github.com/alexey-pelykh)",
+  "homepage": "https://github.com/alexey-pelykh/qontoctl",
+  "bugs": "https://github.com/alexey-pelykh/qontoctl/issues",
+  "funding": "https://github.com/sponsors/alexey-pelykh",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/alexey-pelykh/qontoctl.git",
+    "directory": "packages/qontoctl"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/cli.d.ts",
+      "import": "./dist/cli.js"
+    }
+  },
+  "bin": {
+    "qontoctl": "./dist/cli.js"
+  },
+  "keywords": [
+    "qonto",
+    "banking",
+    "fintech",
+    "mcp",
+    "cli"
+  ],
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "prepack": "cp ../../README.md .",
+    "build": "tsc",
+    "test": "vitest run",
+    "lint": "eslint src/",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@qontoctl/core": "workspace:^",
+    "@qontoctl/mcp": "workspace:^",
+    "commander": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
