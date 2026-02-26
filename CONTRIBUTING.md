@@ -56,8 +56,9 @@ The repository is a pnpm monorepo with the following packages:
 | Package | Description |
 |---------|-------------|
 | `packages/core` | Qonto API client, authentication, and service layer |
-| `packages/mcp` | MCP server exposing Qonto tools |
-| `packages/qontoctl` | Umbrella package combining CLI and MCP (published as `@qontoctl/cli`) |
+| `packages/cli` | CLI commands and program definition (published as `@qontoctl/cli`) |
+| `packages/mcp` | MCP server exposing Qonto tools (published as `@qontoctl/mcp`) |
+| `packages/qontoctl` | Umbrella package combining CLI and MCP (published as `qontoctl`) |
 
 ### Conventions
 
