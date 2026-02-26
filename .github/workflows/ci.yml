@@ -36,3 +36,16 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+
+  ci-gate:
+    name: CI
+    if: always()
+    needs: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - run: |
+          if [[ "${{ needs.ci.result }}" != "success" ]]; then
+            echo "CI failed: ${{ needs.ci.result }}"
+            exit 1
+          fi
