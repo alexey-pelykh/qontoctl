@@ -1,0 +1,42 @@
+{
+  "name": "@qontoctl/core",
+  "version": "0.0.0",
+  "description": "Core library for Qonto API integration",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "license": "AGPL-3.0-only",
+  "author": "Alexey Pelykh (https://github.com/alexey-pelykh)",
+  "homepage": "https://github.com/alexey-pelykh/qontoctl/tree/main/packages/core",
+  "bugs": "https://github.com/alexey-pelykh/qontoctl/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/alexey-pelykh/qontoctl.git",
+    "directory": "packages/core"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run --passWithNoTests",
+    "lint": "eslint src/",
+    "dev": "tsc --watch"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "dependencies": {
+    "yaml": "catalog:"
+  }
+}
