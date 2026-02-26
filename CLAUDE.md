@@ -24,6 +24,20 @@ qontoctl/
     check-licenses.js             (SPDX license compliance)
 ```
 
+## Package Dependency Graph
+
+```
+core ← cli ← qontoctl (umbrella)
+core ← mcp ←┘
+core ← cli ← e2e (private, all packages)
+core ← mcp ←┘
+```
+
+- `core` has no internal dependencies (leaf package)
+- `cli` and `mcp` depend on `core`
+- `qontoctl` (umbrella) composes `cli` + `mcp`
+- `e2e` depends on all publishable packages
+
 ## Development Commands
 
 ```sh
@@ -55,11 +69,19 @@ ESLint enforces this via `eslint-plugin-header`.
 - Reference issues: `Fix transaction sync (#12)`
 - One logical change per commit
 
+### Formatting
+
+- Prettier with default configuration (no overrides)
+- EditorConfig: 2-space indent for `.ts`, `.js`, `.json`, `.yaml`/`.yml`; LF line endings; UTF-8
+- Max line length: 120 (EditorConfig)
+
 ### Dependencies
 
 - Production dependencies must have licenses compatible with AGPL-3.0-only
-- Use `catalog:` references in `pnpm-workspace.yaml` for version management
-- Pin GitHub Actions to commit SHAs
+- Allowed licenses: MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, 0BSD, BlueOak-1.0.0, Unlicense, CC0-1.0, CC-BY-3.0, CC-BY-4.0 (see `scripts/check-licenses.js`)
+- Use `workspace:^` for inter-package dependencies
+- Use `catalog:` references in `pnpm-workspace.yaml` for shared version management
+- Pin GitHub Actions to commit SHAs with version comments (e.g., `# v6.0.2`)
 
 ### Testing
 
@@ -72,3 +94,29 @@ ESLint enforces this via `eslint-plugin-header`.
 - Strict mode with `exactOptionalPropertyTypes` and `noUncheckedIndexedAccess`
 - Use `verbatimModuleSyntax` (explicit `type` imports)
 - All packages use `composite: true` with project references
+- ESLint uses `tseslint.configs.strict` (strict type-aware rules)
+
+### Package Exports
+
+Each package uses conditional exports with `types` + `import`:
+
+```json
+"exports": {
+  ".": {
+    "types": "./dist/index.d.ts",
+    "import": "./dist/index.js"
+  }
+}
+```
+
+### Local Files
+
+- `*.local.*` pattern is gitignored for developer-local configuration
+- `.mcp.json.local` for local MCP credentials
+
+## CI/CD
+
+- **CI**: Runs on push/PR to `main`; 3-OS matrix (ubuntu, macos, windows); builds, lints, license-checks, tests
+- **Release**: Triggered by GitHub Release publish; validates, stamps version from git tag, publishes to npm with provenance
+- **Setup**: Composite action at `.github/actions/setup/` (pnpm + Node.js 24 + frozen lockfile + Turbo cache)
+- Coverage uploaded to Codecov on ubuntu only
