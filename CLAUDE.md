@@ -65,8 +65,9 @@ ESLint enforces this via `eslint-plugin-header`.
 
 ### Commit Messages
 
-- Imperative mood: "Add feature" not "Added feature"
-- Reference issues: `Fix transaction sync (#12)`
+- Format: `(type) lowercase message` — e.g. `(feat) add transaction sync`
+- Types: `feat`, `fix`, `chore`, `docs`, `ci`, `refactor`, `test`
+- Reference issues: `(fix) resolve transaction sync (#12)`
 - One logical change per commit
 
 ### Formatting
