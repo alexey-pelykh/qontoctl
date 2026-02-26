@@ -8,6 +8,7 @@
   "include": ["src"],
   "exclude": ["**/*.e2e.test.ts"],
   "references": [
+    { "path": "../cli" },
     { "path": "../core" },
     { "path": "../mcp" }
   ]

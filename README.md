@@ -1,8 +1,8 @@
 # QontoCtl: The Complete CLI & MCP for Qonto
 
 [![CI](https://github.com/alexey-pelykh/qontoctl/actions/workflows/ci.yml/badge.svg)](https://github.com/alexey-pelykh/qontoctl/actions/workflows/ci.yml)
-[![npm version](https://img.shields.io/npm/v/@qontoctl/cli?logo=npm)](https://www.npmjs.com/package/@qontoctl/cli)
-[![npm downloads](https://img.shields.io/npm/dm/@qontoctl/cli?logo=npm)](https://www.npmjs.com/package/@qontoctl/cli)
+[![npm version](https://img.shields.io/npm/v/qontoctl?logo=npm)](https://www.npmjs.com/package/qontoctl)
+[![npm downloads](https://img.shields.io/npm/dm/qontoctl?logo=npm)](https://www.npmjs.com/package/qontoctl)
 [![GitHub Repo stars](https://img.shields.io/github/stars/alexey-pelykh/qontoctl?style=flat&logo=github)](https://github.com/alexey-pelykh/qontoctl)
 [![License](https://img.shields.io/github/license/alexey-pelykh/qontoctl)](LICENSE)
 
@@ -29,13 +29,13 @@ QontoCtl lets AI assistants (Claude, etc.) interact with Qonto through the [Mode
 ## Installation
 
 ```sh
-npm install -g @qontoctl/cli
+npm install -g qontoctl
 ```
 
 Or run directly with npx:
 
 ```sh
-npx @qontoctl/cli --help
+npx qontoctl --help
 ```
 
 Or install via Homebrew:
@@ -53,7 +53,7 @@ Add to your Claude Desktop configuration (`claude_desktop_config.json`):
     "mcpServers": {
         "qontoctl": {
             "command": "npx",
-            "args": ["@qontoctl/cli", "mcp"]
+            "args": ["qontoctl", "mcp"]
         }
     }
 }

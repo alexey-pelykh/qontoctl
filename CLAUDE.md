@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-**QontoCtl** is a CLI and MCP server for the [Qonto](https://qonto.com) banking API, published as `@qontoctl/cli` on npm.
+**QontoCtl** is a CLI and MCP server for the [Qonto](https://qonto.com) banking API, published as `qontoctl` on npm.
 
 - **License**: AGPL-3.0-only
 - **Runtime**: Node.js >= 24, ESM only
@@ -16,8 +16,9 @@
 qontoctl/
   packages/
     core/       → @qontoctl/core  (Qonto API client, auth, services)
+    cli/        → @qontoctl/cli   (CLI commands, program definition)
     mcp/        → @qontoctl/mcp   (MCP server)
-    qontoctl/   → @qontoctl/cli   (umbrella: CLI + MCP compose)
+    qontoctl/   → qontoctl        (umbrella: CLI + MCP compose)
     e2e/        → @qontoctl/e2e   (private, E2E tests)
   scripts/
     check-licenses.js             (SPDX license compliance)

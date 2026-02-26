@@ -7,7 +7,6 @@
   },
   "include": ["src"],
   "references": [
-    { "path": "../cli" },
-    { "path": "../mcp" }
+    { "path": "../core" }
   ]
 }

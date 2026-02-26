@@ -87,6 +87,28 @@ importers:
         specifier: 'catalog:'
         version: 4.0.18(@types/node@25.3.2)(yaml@2.8.2)
 
+  packages/cli:
+    dependencies:
+      '@qontoctl/core':
+        specifier: workspace:^
+        version: link:../core
+      commander:
+        specifier: 'catalog:'
+        version: 14.0.3
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.3.2
+      eslint:
+        specifier: 'catalog:'
+        version: 9.39.3
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.0.18(@types/node@25.3.2)(yaml@2.8.2)
+
   packages/core:
     dependencies:
       yaml:
@@ -108,6 +130,9 @@ importers:
 
   packages/e2e:
     dependencies:
+      '@qontoctl/cli':
+        specifier: workspace:^
+        version: link:../cli
       '@qontoctl/core':
         specifier: workspace:^
         version: link:../core
@@ -155,15 +180,12 @@ importers:
 
   packages/qontoctl:
     dependencies:
-      '@qontoctl/core':
+      '@qontoctl/cli':
         specifier: workspace:^
-        version: link:../core
+        version: link:../cli
       '@qontoctl/mcp':
         specifier: workspace:^
         version: link:../mcp
-      commander:
-        specifier: 'catalog:'
-        version: 14.0.3
     devDependencies:
       '@types/node':
         specifier: 'catalog:'

@@ -2,12 +2,16 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { describe, expect, it } from "vitest";
-import { Command } from "commander";
+import { createProgram } from "@qontoctl/cli";
 
 describe("qontoctl CLI", () => {
+  it("creates program with correct name", () => {
+    const program = createProgram();
+    expect(program.name()).toBe("qontoctl");
+  });
+
   it("registers mcp subcommand", () => {
-    const program = new Command();
-    program.name("qontoctl").version("0.0.0");
+    const program = createProgram();
 
     program
       .command("mcp")
