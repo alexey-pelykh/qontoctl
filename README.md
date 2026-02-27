@@ -100,6 +100,20 @@ oauth:
 
 OAuth takes precedence over API Key when tokens are valid. Expired tokens are refreshed automatically and written back to the source file.
 
+## Debug Mode
+
+The `--verbose` and `--debug` flags enable wire-level logging to stderr:
+
+```sh
+qontoctl --verbose transactions list   # request/response summaries
+qontoctl --debug transactions list     # full headers and response bodies
+```
+
+> **Security note:** `--debug` logs full API response bodies. Known sensitive fields
+> (IBAN, BIC, balance) are automatically redacted, but responses may still contain
+> other financial data. Do not use `--debug` in shared environments or pipe debug
+> output to files accessible by others.
+
 ## Disclaimer
 
 `qontoctl` is an **independent project** not affiliated with, endorsed by, or officially connected to **Qonto** or Qonto SAS.

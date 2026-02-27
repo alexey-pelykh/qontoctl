@@ -62,6 +62,35 @@ export interface HttpClientOptions {
 const DEFAULT_MAX_RETRIES = 5;
 const BASE_BACKOFF_MS = 1000;
 
+/**
+ * Field names redacted from debug log output to avoid leaking financial data.
+ */
+const SENSITIVE_FIELDS: ReadonlySet<string> = new Set([
+  "iban",
+  "bic",
+  "balance",
+  "balance_cents",
+  "authorized_balance",
+  "authorized_balance_cents",
+]);
+
+function redactSensitiveFields(value: unknown): unknown {
+  if (value === null || value === undefined) {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value.map((item: unknown) => redactSensitiveFields(item));
+  }
+  if (typeof value === "object") {
+    const result: Record<string, unknown> = {};
+    for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
+      result[key] = SENSITIVE_FIELDS.has(key) ? "[REDACTED]" : redactSensitiveFields(val);
+    }
+    return result;
+  }
+  return value;
+}
+
 function buildUserAgent(): string {
   return `QontoCtl/0.0.0 (Node.js/${process.versions.node}; ${process.platform})`;
 }
@@ -151,7 +180,7 @@ export class HttpClient {
       }
 
       const responseBody: unknown = await response.json();
-      this.logDebug(`Response body: ${JSON.stringify(responseBody)}`);
+      this.logDebug(`Response body: ${JSON.stringify(redactSensitiveFields(responseBody))}`);
       return responseBody as T;
     }
 

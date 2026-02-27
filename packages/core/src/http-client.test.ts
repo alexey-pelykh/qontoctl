@@ -595,6 +595,55 @@ describe("HttpClient", () => {
       expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining("content-type"));
     });
 
+    it("redacts sensitive fields in response body debug logs", async () => {
+      const responseData = {
+        organization: {
+          slug: "acme",
+          bank_accounts: [
+            {
+              id: "acc-1",
+              name: "Main",
+              iban: "FR7630001007941234567890185",
+              bic: "BNPAFRPPXXX",
+              balance: 12345.67,
+              balance_cents: 1234567,
+              authorized_balance: 10000.0,
+              authorized_balance_cents: 1000000,
+              currency: "EUR",
+            },
+          ],
+        },
+      };
+      fetchSpy.mockReturnValue(jsonResponse(responseData));
+      const logger = createMockLogger();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+        logger,
+      });
+
+      await client.get("/v2/organization");
+
+      const bodyLogCalls = logger.debug.mock.calls.filter(
+        (call: string[]) => typeof call[0] === "string" && call[0].includes("Response body"),
+      );
+      expect(bodyLogCalls.length).toBeGreaterThan(0);
+      const bodyLog = bodyLogCalls[0]?.[0] as string;
+      expect(bodyLog).not.toContain("FR7630001007941234567890185");
+      expect(bodyLog).not.toContain("BNPAFRPPXXX");
+      expect(bodyLog).not.toContain("12345.67");
+      expect(bodyLog).not.toContain("1234567");
+      expect(bodyLog).toContain('"iban":"[REDACTED]"');
+      expect(bodyLog).toContain('"bic":"[REDACTED]"');
+      expect(bodyLog).toContain('"balance":"[REDACTED]"');
+      expect(bodyLog).toContain('"balance_cents":"[REDACTED]"');
+      expect(bodyLog).toContain('"authorized_balance":"[REDACTED]"');
+      expect(bodyLog).toContain('"authorized_balance_cents":"[REDACTED]"');
+      // Non-sensitive fields are preserved
+      expect(bodyLog).toContain('"slug":"acme"');
+      expect(bodyLog).toContain('"currency":"EUR"');
+    });
+
     it("redacts Authorization header in debug logs", async () => {
       fetchSpy.mockReturnValue(jsonResponse({}));
       const logger = createMockLogger();
