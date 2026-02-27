@@ -37,6 +37,10 @@ export function registerTestCommand(parent: Command): void {
 async function testProfile(options: GlobalOptions): Promise<void> {
   let logger: HttpClientLogger | undefined;
   if (options.debug === true) {
+    console.error(
+      "Warning: Debug mode logs full API responses which may include financial data (IBANs, balances). " +
+        "Do not use in shared environments.",
+    );
     logger = {
       verbose: (msg: string) => console.error(`[verbose] ${msg}`),
       debug: (msg: string) => console.error(`[debug] ${msg}`),

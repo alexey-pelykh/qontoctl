@@ -115,6 +115,25 @@ describe("createClient", () => {
     expect(stderrSpy).toHaveBeenCalledWith("debug msg\n");
   });
 
+  it("emits a warning when --debug is set", async () => {
+    const options: GlobalOptions = { output: "table", debug: true };
+    await createClient(options);
+
+    expect(stderrSpy).toHaveBeenCalledWith(
+      expect.stringContaining("Debug mode logs full API responses"),
+    );
+  });
+
+  it("does not emit debug warning when only --verbose is set", async () => {
+    const options: GlobalOptions = { output: "table", verbose: true };
+    await createClient(options);
+
+    const calls = stderrSpy.mock.calls.map(
+      (call: [string]) => call[0],
+    ) as string[];
+    expect(calls.every((msg) => !msg.includes("Debug mode"))).toBe(true);
+  });
+
   it("creates a verbose-only logger when --verbose is set", async () => {
     const options: GlobalOptions = { output: "table", verbose: true };
     await createClient(options);

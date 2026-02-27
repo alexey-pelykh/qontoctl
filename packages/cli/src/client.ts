@@ -33,6 +33,10 @@ export async function createClient(
 
   let logger: HttpClientLogger | undefined;
   if (options.debug === true) {
+    process.stderr.write(
+      "Warning: Debug mode logs full API responses which may include financial data (IBANs, balances). " +
+        "Do not use in shared environments.\n",
+    );
     logger = {
       verbose: (msg) => process.stderr.write(`${msg}\n`),
       debug: (msg) => process.stderr.write(`${msg}\n`),
