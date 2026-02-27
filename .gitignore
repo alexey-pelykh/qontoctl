@@ -1,6 +1,8 @@
 ## Project-specific
 .qontoctl.yaml
 *.local.*
+build/
+.tmp/
 
 # Turbo
 .turbo/
