@@ -58,6 +58,19 @@ describe("HttpClient", () => {
       expect(init.method).toBe("GET");
     });
 
+    it("sends requests to sandbox base URL when configured", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ data: "ok" }));
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty-sandbox.staging.qonto.co",
+        authorization: "slug:secret",
+      });
+
+      await client.get("/v2/organizations");
+
+      const [url] = fetchSpy.mock.calls[0] as [URL];
+      expect(url.toString()).toBe("https://thirdparty-sandbox.staging.qonto.co/v2/organizations");
+    });
+
     it("strips trailing slashes from base URL", async () => {
       fetchSpy.mockReturnValue(jsonResponse({ data: "ok" }));
       const client = new TestableHttpClient({
@@ -383,6 +396,99 @@ describe("HttpClient", () => {
       expect(fetchSpy).toHaveBeenCalledTimes(3); // initial + 2 retries
     });
 
+    it("ignores non-numeric Retry-After header and uses exponential backoff", async () => {
+      const sleepCalls: number[] = [];
+
+      class TrackingSleepClient extends HttpClient {
+        protected override sleep(ms: number): Promise<void> {
+          sleepCalls.push(ms);
+          return Promise.resolve();
+        }
+      }
+
+      fetchSpy
+        .mockReturnValueOnce(
+          Promise.resolve(
+            new Response(null, {
+              status: 429,
+              headers: { "Retry-After": "not-a-number" },
+            }),
+          ),
+        )
+        .mockReturnValue(jsonResponse({ data: "ok" }));
+
+      const client = new TrackingSleepClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+      });
+
+      await client.get("/v2/organizations");
+
+      expect(sleepCalls[0]).toBe(1000);
+    });
+
+    it("ignores zero Retry-After header and uses exponential backoff", async () => {
+      const sleepCalls: number[] = [];
+
+      class TrackingSleepClient extends HttpClient {
+        protected override sleep(ms: number): Promise<void> {
+          sleepCalls.push(ms);
+          return Promise.resolve();
+        }
+      }
+
+      fetchSpy
+        .mockReturnValueOnce(
+          Promise.resolve(
+            new Response(null, {
+              status: 429,
+              headers: { "Retry-After": "0" },
+            }),
+          ),
+        )
+        .mockReturnValue(jsonResponse({ data: "ok" }));
+
+      const client = new TrackingSleepClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+      });
+
+      await client.get("/v2/organizations");
+
+      expect(sleepCalls[0]).toBe(1000);
+    });
+
+    it("ignores negative Retry-After header and uses exponential backoff", async () => {
+      const sleepCalls: number[] = [];
+
+      class TrackingSleepClient extends HttpClient {
+        protected override sleep(ms: number): Promise<void> {
+          sleepCalls.push(ms);
+          return Promise.resolve();
+        }
+      }
+
+      fetchSpy
+        .mockReturnValueOnce(
+          Promise.resolve(
+            new Response(null, {
+              status: 429,
+              headers: { "Retry-After": "-5" },
+            }),
+          ),
+        )
+        .mockReturnValue(jsonResponse({ data: "ok" }));
+
+      const client = new TrackingSleepClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+      });
+
+      await client.get("/v2/organizations");
+
+      expect(sleepCalls[0]).toBe(1000);
+    });
+
     it("uses exponential backoff when no Retry-After header", async () => {
       const sleepCalls: number[] = [];
 
@@ -411,7 +517,7 @@ describe("HttpClient", () => {
   });
 
   describe("logging", () => {
-    it("logs request and response in verbose mode", async () => {
+    it("logs request method and URL in verbose mode", async () => {
       fetchSpy.mockReturnValue(jsonResponse({ data: "ok" }));
       const logger = createMockLogger();
       const client = new TestableHttpClient({
@@ -422,8 +528,23 @@ describe("HttpClient", () => {
 
       await client.get("/v2/organizations");
 
-      expect(logger.verbose).toHaveBeenCalledWith(expect.stringContaining("GET"));
-      expect(logger.verbose).toHaveBeenCalledWith(expect.stringContaining("200"));
+      expect(logger.verbose).toHaveBeenCalledWith(
+        expect.stringContaining("GET https://thirdparty.qonto.com/v2/organizations"),
+      );
+    });
+
+    it("logs response status and timing in verbose mode", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ data: "ok" }));
+      const logger = createMockLogger();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+        logger,
+      });
+
+      await client.get("/v2/organizations");
+
+      expect(logger.verbose).toHaveBeenCalledWith(expect.stringMatching(/200.*\d+ms/));
     });
 
     it("logs request body and response body in debug mode", async () => {
@@ -438,7 +559,40 @@ describe("HttpClient", () => {
       await client.post("/v2/transfers", { amount: 100 });
 
       expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining("Request body"));
+      expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining('"amount":100'));
       expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining("Response body"));
+      expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining('"data":"ok"'));
+    });
+
+    it("logs request headers in debug mode", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({}));
+      const logger = createMockLogger();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+        logger,
+      });
+
+      await client.get("/v2/organizations");
+
+      expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining("Request headers"));
+      expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining("User-Agent"));
+      expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining("Accept"));
+    });
+
+    it("logs response headers in debug mode", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ data: "ok" }));
+      const logger = createMockLogger();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+        logger,
+      });
+
+      await client.get("/v2/organizations");
+
+      expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining("Response headers"));
+      expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining("content-type"));
     });
 
     it("redacts Authorization header in debug logs", async () => {
