@@ -2,16 +2,8 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { jsonResponse } from "@qontoctl/core/testing";
 import { createProgram } from "../../program.js";
-
-function jsonResponse(body: unknown): Promise<Response> {
-  return Promise.resolve(
-    new Response(JSON.stringify(body), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    }),
-  );
-}
 
 function makeMeta(overrides: Record<string, unknown> = {}) {
   return {

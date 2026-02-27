@@ -2,19 +2,9 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { HttpClient } from "@qontoctl/core";
-import { createServer } from "../server.js";
-
-function jsonResponse(body: unknown): Promise<Response> {
-  return Promise.resolve(
-    new Response(JSON.stringify(body), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    }),
-  );
-}
+import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { jsonResponse } from "@qontoctl/core/testing";
+import { connectInMemory } from "../testing/mcp-helpers.js";
 
 describe("membership MCP tools", () => {
   let fetchSpy: ReturnType<typeof vi.fn>;
@@ -23,21 +13,7 @@ describe("membership MCP tools", () => {
   beforeEach(async () => {
     fetchSpy = vi.fn();
     vi.stubGlobal("fetch", fetchSpy);
-
-    const httpClient = new HttpClient({
-      baseUrl: "https://thirdparty.qonto.com",
-      authorization: "slug:secret",
-    });
-
-    const server = createServer({ getClient: () => Promise.resolve(httpClient) });
-    const [clientTransport, serverTransport] =
-      InMemoryTransport.createLinkedPair();
-
-    mcpClient = new Client({ name: "test", version: "0.0.0" });
-    await Promise.all([
-      mcpClient.connect(clientTransport),
-      server.connect(serverTransport),
-    ]);
+    ({ mcpClient } = await connectInMemory(fetchSpy));
   });
 
   afterEach(() => {

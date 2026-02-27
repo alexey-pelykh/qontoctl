@@ -3,6 +3,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { Command } from "commander";
+import { jsonResponse } from "@qontoctl/core/testing";
 import { registerAccountCommands } from "./account.js";
 import type { PaginationMeta } from "../pagination.js";
 
@@ -37,15 +38,6 @@ function makeMeta(
     per_page: 100,
     ...overrides,
   };
-}
-
-function jsonResponse(body: unknown): Promise<Response> {
-  return Promise.resolve(
-    new Response(JSON.stringify(body), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    }),
-  );
 }
 
 function makeAccount(overrides: Record<string, unknown> = {}) {

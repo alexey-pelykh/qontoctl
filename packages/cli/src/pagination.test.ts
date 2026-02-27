@@ -3,6 +3,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { HttpClient } from "@qontoctl/core";
+import { jsonResponse } from "@qontoctl/core/testing";
 import { fetchPage, fetchAllPages, fetchPaginated } from "./pagination.js";
 import type { PaginationMeta } from "./pagination.js";
 
@@ -16,16 +17,6 @@ function makeMeta(overrides: Partial<PaginationMeta> = {}): PaginationMeta {
     per_page: 100,
     ...overrides,
   };
-}
-
-function jsonResponse(body: unknown, init?: ResponseInit): Promise<Response> {
-  return Promise.resolve(
-    new Response(JSON.stringify(body), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-      ...init,
-    }),
-  );
 }
 
 describe("pagination", () => {
