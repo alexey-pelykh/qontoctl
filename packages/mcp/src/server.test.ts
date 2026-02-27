@@ -56,4 +56,17 @@ describe("createServer", () => {
       expect(tool.description, `Tool ${name} should have a description`).toBeTruthy();
     }
   });
+
+  it("tool names follow entity_operation underscore convention", () => {
+    const server = createServer();
+    const registeredTools = (
+      server as unknown as { _registeredTools: Record<string, unknown> }
+    )._registeredTools;
+    const toolNames = Object.keys(registeredTools);
+
+    const pattern = /^[a-z]+_[a-z]+$/;
+    for (const name of toolNames) {
+      expect(name, `Tool "${name}" should match {entity}_{operation} pattern`).toMatch(pattern);
+    }
+  });
 });
