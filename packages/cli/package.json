@@ -28,6 +28,7 @@
     "dist"
   ],
   "scripts": {
+    "prepack": "cp ../../LICENSE .",
     "build": "tsc",
     "test": "vitest run",
     "lint": "eslint src/",

@@ -25,6 +25,7 @@
     "dist"
   ],
   "scripts": {
+    "prepack": "cp ../../LICENSE .",
     "build": "tsc",
     "test": "vitest run --passWithNoTests",
     "lint": "eslint src/",
