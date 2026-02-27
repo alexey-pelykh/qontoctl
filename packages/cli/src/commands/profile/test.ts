@@ -1,0 +1,97 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2026 Oleksii PELYKH
+
+import type { Command } from "commander";
+import {
+  type HttpClientLogger,
+  HttpClient,
+  resolveConfig,
+  buildApiKeyAuthorization,
+  ConfigError,
+  AuthError,
+  QontoApiError,
+  QontoRateLimitError,
+} from "@qontoctl/core";
+import type { GlobalOptions } from "../../options.js";
+
+const PRODUCTION_BASE_URL = "https://thirdparty.qonto.com";
+const SANDBOX_BASE_URL = "https://thirdparty-sandbox.staging.qonto.co";
+
+interface OrganizationResponse {
+  readonly organization: {
+    readonly name: string;
+    readonly slug: string;
+  };
+}
+
+/**
+ * Register the `profile test` subcommand.
+ */
+export function registerTestCommand(parent: Command): void {
+  parent
+    .command("test")
+    .description("test credentials via GET /v2/organization")
+    .action(async (_options: unknown, cmd: Command) => {
+      const globalOpts = cmd.optsWithGlobals<GlobalOptions>();
+      await testProfile(globalOpts);
+    });
+}
+
+async function testProfile(options: GlobalOptions): Promise<void> {
+  let logger: HttpClientLogger | undefined;
+  if (options.debug === true) {
+    logger = {
+      verbose: (msg: string) => console.error(`[verbose] ${msg}`),
+      debug: (msg: string) => console.error(`[debug] ${msg}`),
+    };
+  } else if (options.verbose === true) {
+    logger = {
+      verbose: (msg: string) => console.error(`[verbose] ${msg}`),
+      debug: () => {},
+    };
+  }
+
+  try {
+    const { config } = await resolveConfig({ profile: options.profile });
+
+    if (config.apiKey === undefined) {
+      console.error("Configuration error: no credentials found.");
+      process.exitCode = 1;
+      return;
+    }
+
+    const authorization = buildApiKeyAuthorization(config.apiKey);
+
+    const client = new HttpClient({
+      baseUrl: options.sandbox === true ? SANDBOX_BASE_URL : PRODUCTION_BASE_URL,
+      authorization,
+      logger,
+    });
+
+    const response = await client.get<OrganizationResponse>("/v2/organization");
+    const { name, slug } = response.organization;
+    console.log(`Success: connected to organization "${name}" (${slug})`);
+  } catch (error: unknown) {
+    if (error instanceof ConfigError) {
+      console.error(`Configuration error: ${error.message}`);
+      process.exitCode = 1;
+      return;
+    }
+    if (error instanceof AuthError) {
+      console.error(`Authentication failed: ${error.message}`);
+      process.exitCode = 1;
+      return;
+    }
+    if (error instanceof QontoApiError) {
+      console.error(`API error (${error.status}): ${error.message}`);
+      process.exitCode = 1;
+      return;
+    }
+    if (error instanceof QontoRateLimitError) {
+      console.error(`Rate limited: ${error.message}`);
+      process.exitCode = 1;
+      return;
+    }
+    throw error;
+  }
+}

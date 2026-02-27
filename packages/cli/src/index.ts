@@ -3,6 +3,8 @@
 
 export { createProgram } from "./program.js";
 
+export { registerProfileCommands } from "./commands/profile/index.js";
+
 export {
   OUTPUT_FORMATS,
   type GlobalOptions,
