@@ -88,6 +88,32 @@ describe("applyEnvOverlay", () => {
     });
   });
 
+  it("defaults secretKey to empty string when only organization_slug env var is set and no existing apiKey", () => {
+    const result = applyEnvOverlay(
+      {},
+      {
+        env: { QONTOCTL_ORGANIZATION_SLUG: "env-org" },
+      },
+    );
+    expect(result.apiKey).toEqual({
+      organizationSlug: "env-org",
+      secretKey: "",
+    });
+  });
+
+  it("defaults organizationSlug to empty string when only secret_key env var is set and no existing apiKey", () => {
+    const result = applyEnvOverlay(
+      {},
+      {
+        env: { QONTOCTL_SECRET_KEY: "env-secret" },
+      },
+    );
+    expect(result.apiKey).toEqual({
+      organizationSlug: "",
+      secretKey: "env-secret",
+    });
+  });
+
   it("env var overrides file value for one field only", () => {
     const config = {
       apiKey: { organizationSlug: "file-org", secretKey: "file-secret" },

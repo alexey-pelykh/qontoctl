@@ -187,6 +187,14 @@ describe("resolveConfig", () => {
     ).rejects.toThrow(/~\/\.qontoctl\/nonexistent\.yaml/);
   });
 
+  it("describes config path in error when file exists but has no api-key", async () => {
+    await writeFile(join(testDir, ".qontoctl.yaml"), "endpoint: https://example.com\n");
+
+    await expect(resolveConfig({ cwd: testDir, home: testHome, env: {} })).rejects.toThrow(
+      /Found config at .* but it contains no api-key credentials/,
+    );
+  });
+
   it("defaults endpoint to production URL", async () => {
     const result = await resolveConfig({
       cwd: testDir,
