@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { mkdir, readFile, writeFile, rm } from "node:fs/promises";
+import { mkdir, readFile, stat, writeFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
@@ -120,5 +120,31 @@ describe("profile add", () => {
 
     expect(consoleErrorSpy).toHaveBeenCalledWith("Secret key cannot be empty.");
     expect(process.exitCode).toBe(1);
+  });
+
+  it.skipIf(process.platform === "win32")("creates config directory with 0700 permissions", async () => {
+    mockQuestionResponses = ["my-org", "my-secret"];
+
+    const program = createProgram();
+    registerProfileCommands(program);
+    program.exitOverride();
+
+    await program.parseAsync(["profile", "add", "secure"], { from: "user" });
+
+    const dirStat = await stat(join(testHome, ".qontoctl"));
+    expect(dirStat.mode & 0o777).toBe(0o700);
+  });
+
+  it.skipIf(process.platform === "win32")("creates profile file with 0600 permissions", async () => {
+    mockQuestionResponses = ["my-org", "my-secret"];
+
+    const program = createProgram();
+    registerProfileCommands(program);
+    program.exitOverride();
+
+    await program.parseAsync(["profile", "add", "secure"], { from: "user" });
+
+    const fileStat = await stat(join(testHome, ".qontoctl", "secure.yaml"));
+    expect(fileStat.mode & 0o777).toBe(0o600);
   });
 });

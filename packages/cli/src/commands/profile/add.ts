@@ -64,10 +64,10 @@ async function addProfile(name: string): Promise<void> {
     };
 
     const dir = join(homedir(), CONFIG_DIR);
-    await mkdir(dir, { recursive: true });
+    await mkdir(dir, { recursive: true, mode: 0o700 });
 
     const path = join(dir, `${name}.yaml`);
-    await writeFile(path, stringifyYaml(config), "utf-8");
+    await writeFile(path, stringifyYaml(config), { encoding: "utf-8", mode: 0o600 });
 
     console.log(`Profile "${name}" created at ${path}`);
   } finally {
