@@ -73,8 +73,8 @@ Follow the project conventions documented in [CLAUDE.md](CLAUDE.md).
 
 ## Code of Conduct
 
-- Be respectful and constructive
-- Focus on the technical merits
+This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md).
+Please read it before participating.
 
 ## Questions?
 
