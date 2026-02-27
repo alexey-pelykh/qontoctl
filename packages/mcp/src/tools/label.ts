@@ -1,0 +1,89 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2026 Oleksii PELYKH
+
+import { z } from "zod";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { HttpClient, Label } from "@qontoctl/core";
+
+interface PaginatedLabelsResponse {
+  readonly labels: readonly Label[];
+  readonly meta: {
+    readonly current_page: number;
+    readonly next_page: number | null;
+    readonly prev_page: number | null;
+    readonly total_pages: number;
+    readonly total_count: number;
+    readonly per_page: number;
+  };
+}
+
+interface SingleLabelResponse {
+  readonly label: Label;
+}
+
+export function registerLabelTools(
+  server: McpServer,
+  getClient: () => Promise<HttpClient>,
+): void {
+  server.tool(
+    "label_list",
+    "List all labels in the organization",
+    {
+      page: z.number().int().positive().optional().describe("Page number"),
+      per_page: z
+        .number()
+        .int()
+        .positive()
+        .max(100)
+        .optional()
+        .describe("Items per page (max 100)"),
+    },
+    async ({ page, per_page }) => {
+      const client = await getClient();
+      const params: Record<string, string> = {};
+      if (page !== undefined) params["current_page"] = String(page);
+      if (per_page !== undefined) params["per_page"] = String(per_page);
+
+      const response = await client.get<PaginatedLabelsResponse>(
+        "/v2/labels",
+        Object.keys(params).length > 0 ? params : undefined,
+      );
+
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify(
+              { labels: response.labels, meta: response.meta },
+              null,
+              2,
+            ),
+          },
+        ],
+      };
+    },
+  );
+
+  server.tool(
+    "label_show",
+    "Show details of a specific label",
+    {
+      id: z.string().describe("Label ID (UUID)"),
+    },
+    async ({ id }) => {
+      const client = await getClient();
+      const response = await client.get<SingleLabelResponse>(
+        `/v2/labels/${id}`,
+      );
+
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify(response.label, null, 2),
+          },
+        ],
+      };
+    },
+  );
+}

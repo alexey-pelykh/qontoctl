@@ -29,4 +29,9 @@ export {
 
 export { createClient } from "./client.js";
 
+export {
+  createLabelCommand,
+  createMembershipCommand,
+} from "./commands/index.js";
+
 export { registerStatementCommands } from "./commands/index.js";

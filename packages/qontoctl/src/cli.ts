@@ -5,12 +5,16 @@
 import {
   createClient,
   createProgram,
+  createLabelCommand,
+  createMembershipCommand,
   registerStatementCommands,
 } from "@qontoctl/cli";
 import { runStdioServer } from "@qontoctl/mcp/stdio";
 
 const program = createProgram();
 
+program.addCommand(createLabelCommand());
+program.addCommand(createMembershipCommand());
 registerStatementCommands(program);
 
 program
