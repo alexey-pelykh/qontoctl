@@ -6,6 +6,7 @@ import { Option } from "commander";
 import { getTransaction } from "@qontoctl/core";
 import { createClient } from "../../client.js";
 import { formatOutput } from "../../formatters/index.js";
+import { addInheritableOptions, resolveGlobalOptions } from "../../inherited-options.js";
 import type { GlobalOptions } from "../../options.js";
 
 interface TransactionShowOptions extends GlobalOptions {
@@ -13,7 +14,7 @@ interface TransactionShowOptions extends GlobalOptions {
 }
 
 export function registerTransactionShowCommand(parent: Command): void {
-  parent
+  const show = parent
     .command("show <id>")
     .description("Show transaction details")
     .addOption(
@@ -22,13 +23,14 @@ export function registerTransactionShowCommand(parent: Command): void {
         "attachments",
         "vat_details",
       ]),
-    )
-    .action(async (id: string, _opts: unknown, cmd: Command) => {
-      const opts = cmd.optsWithGlobals<TransactionShowOptions>();
-      const client = await createClient(opts);
+    );
+  addInheritableOptions(show);
+  show.action(async (id: string, _opts: unknown, cmd: Command) => {
+    const opts = resolveGlobalOptions<TransactionShowOptions>(cmd);
+    const client = await createClient(opts);
 
-      const transaction = await getTransaction(client, id, opts.include);
+    const transaction = await getTransaction(client, id, opts.include);
 
-      process.stdout.write(formatOutput(transaction, opts.output) + "\n");
-    });
+    process.stdout.write(formatOutput(transaction, opts.output) + "\n");
+  });
 }

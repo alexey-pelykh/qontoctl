@@ -12,6 +12,7 @@ import {
   QontoApiError,
   QontoRateLimitError,
 } from "@qontoctl/core";
+import { addInheritableOptions, resolveGlobalOptions } from "../../inherited-options.js";
 import type { GlobalOptions } from "../../options.js";
 
 interface OrganizationResponse {
@@ -25,13 +26,12 @@ interface OrganizationResponse {
  * Register the `profile test` subcommand.
  */
 export function registerTestCommand(parent: Command): void {
-  parent
-    .command("test")
-    .description("test credentials via GET /v2/organization")
-    .action(async (_options: unknown, cmd: Command) => {
-      const globalOpts = cmd.optsWithGlobals<GlobalOptions>();
-      await testProfile(globalOpts);
-    });
+  const test = parent.command("test").description("test credentials via GET /v2/organization");
+  addInheritableOptions(test);
+  test.action(async (_options: unknown, cmd: Command) => {
+    const globalOpts = resolveGlobalOptions<GlobalOptions>(cmd);
+    await testProfile(globalOpts);
+  });
 }
 
 async function testProfile(options: GlobalOptions): Promise<void> {

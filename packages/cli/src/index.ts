@@ -22,6 +22,8 @@ export { createClient } from "./client.js";
 
 export { handleCliError } from "./error-handler.js";
 
+export { addInheritableOptions, resolveGlobalOptions } from "./inherited-options.js";
+
 export { createLabelCommand, createMembershipCommand } from "./commands/index.js";
 
 export { registerStatementCommands } from "./commands/index.js";
