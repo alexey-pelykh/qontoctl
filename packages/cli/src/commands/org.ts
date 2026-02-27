@@ -5,6 +5,7 @@ import type { Command } from "commander";
 import { getOrganization } from "@qontoctl/core";
 import { createClient } from "../client.js";
 import { formatOutput } from "../formatters/index.js";
+import { addInheritableOptions, resolveGlobalOptions } from "../inherited-options.js";
 import type { GlobalOptions } from "../options.js";
 
 /**
@@ -13,11 +14,10 @@ import type { GlobalOptions } from "../options.js";
 export function registerOrgCommands(program: Command): void {
   const org = program.command("org").description("Organization operations");
 
-  org
-    .command("show")
-    .description("Show organization details")
-    .action(async () => {
-      const opts = program.opts<GlobalOptions>();
+  const show = org.command("show").description("Show organization details");
+  addInheritableOptions(show);
+  show.action(async (_options: unknown, cmd: Command) => {
+      const opts = resolveGlobalOptions<GlobalOptions>(cmd);
       const client = await createClient(opts);
       const organization = await getOrganization(client);
 

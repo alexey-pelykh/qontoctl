@@ -3,6 +3,7 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import {
+  addInheritableOptions,
   createClient,
   createProgram,
   createLabelCommand,
@@ -10,6 +11,7 @@ import {
   handleCliError,
   registerProfileCommands,
   registerStatementCommands,
+  resolveGlobalOptions,
 } from "@qontoctl/cli";
 import { runStdioServer } from "@qontoctl/mcp/stdio";
 
@@ -20,14 +22,13 @@ program.addCommand(createMembershipCommand());
 registerProfileCommands(program);
 registerStatementCommands(program);
 
-program
-  .command("mcp")
-  .description("Start MCP server on stdio (for Claude Desktop, Cursor, etc.)")
-  .action(async () => {
-    await runStdioServer({
-      getClient: () => createClient(program.opts()),
-    });
+const mcpCommand = program.command("mcp").description("Start MCP server on stdio (for Claude Desktop, Cursor, etc.)");
+addInheritableOptions(mcpCommand);
+mcpCommand.action(async () => {
+  await runStdioServer({
+    getClient: () => createClient(resolveGlobalOptions(mcpCommand)),
   });
+});
 
 try {
   await program.parseAsync();

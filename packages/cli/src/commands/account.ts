@@ -6,6 +6,7 @@ import { getBankAccount } from "@qontoctl/core";
 import type { BankAccount } from "@qontoctl/core";
 import { createClient } from "../client.js";
 import { formatOutput } from "../formatters/index.js";
+import { addInheritableOptions, resolveGlobalOptions } from "../inherited-options.js";
 import { fetchPaginated } from "../pagination.js";
 import type { GlobalOptions, PaginationOptions } from "../options.js";
 
@@ -29,11 +30,10 @@ function toListRow(account: BankAccount): Record<string, unknown> {
 export function registerAccountCommands(program: Command): void {
   const account = program.command("account").description("Bank account operations");
 
-  account
-    .command("list")
-    .description("List bank accounts")
-    .action(async () => {
-      const opts = program.opts<GlobalOptions & PaginationOptions>();
+  const list = account.command("list").description("List bank accounts");
+  addInheritableOptions(list);
+  list.action(async (_options: unknown, cmd: Command) => {
+      const opts = resolveGlobalOptions<GlobalOptions & PaginationOptions>(cmd);
       const client = await createClient(opts);
 
       const result = await fetchPaginated<BankAccount>(client, "/v2/bank_accounts", "bank_accounts", opts);
@@ -44,12 +44,10 @@ export function registerAccountCommands(program: Command): void {
       process.stdout.write(output + "\n");
     });
 
-  account
-    .command("show")
-    .description("Show bank account details")
-    .argument("<id>", "Bank account ID")
-    .action(async (id: string) => {
-      const opts = program.opts<GlobalOptions>();
+  const show = account.command("show").description("Show bank account details").argument("<id>", "Bank account ID");
+  addInheritableOptions(show);
+  show.action(async (id: string, _options: unknown, cmd: Command) => {
+      const opts = resolveGlobalOptions<GlobalOptions>(cmd);
       const client = await createClient(opts);
       const bankAccount = await getBankAccount(client, id);
 

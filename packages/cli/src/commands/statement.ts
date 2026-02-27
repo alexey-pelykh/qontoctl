@@ -7,6 +7,7 @@ import { Command, Option } from "commander";
 import type { Statement } from "@qontoctl/core";
 import { createClient } from "../client.js";
 import { formatOutput } from "../formatters/index.js";
+import { addInheritableOptions, resolveGlobalOptions } from "../inherited-options.js";
 import type { GlobalOptions, PaginationOptions } from "../options.js";
 import { fetchPaginated } from "../pagination.js";
 
@@ -33,14 +34,15 @@ function formatStatementRow(s: Statement): Record<string, unknown> {
 export function registerStatementCommands(program: Command): void {
   const statement = program.command("statement").description("Manage bank statements");
 
-  statement
+  const list = statement
     .command("list")
     .description("List bank statements")
     .addOption(new Option("--bank-account <id>", "filter by bank account ID"))
     .addOption(new Option("--from <period>", "start period (MM-YYYY)"))
-    .addOption(new Option("--to <period>", "end period (MM-YYYY)"))
-    .action(async (commandOpts: StatementListOptions) => {
-      const globalOpts = program.opts<GlobalOptions & PaginationOptions>();
+    .addOption(new Option("--to <period>", "end period (MM-YYYY)"));
+  addInheritableOptions(list);
+  list.action(async (commandOpts: StatementListOptions, cmd: Command) => {
+      const globalOpts = resolveGlobalOptions<GlobalOptions & PaginationOptions>(cmd);
       const client = await createClient(globalOpts);
 
       const params: Record<string, string> = {};
@@ -63,12 +65,10 @@ export function registerStatementCommands(program: Command): void {
       }
     });
 
-  statement
-    .command("show")
-    .description("Show a bank statement")
-    .argument("<id>", "statement ID")
-    .action(async (id: string) => {
-      const globalOpts = program.opts<GlobalOptions>();
+  const show = statement.command("show").description("Show a bank statement").argument("<id>", "statement ID");
+  addInheritableOptions(show);
+  show.action(async (id: string, _options: unknown, cmd: Command) => {
+      const globalOpts = resolveGlobalOptions<GlobalOptions>(cmd);
       const client = await createClient(globalOpts);
 
       const response = await client.get<{ statement: Statement }>(`/v2/statements/${encodeURIComponent(id)}`);
@@ -80,13 +80,14 @@ export function registerStatementCommands(program: Command): void {
       }
     });
 
-  statement
+  const download = statement
     .command("download")
     .description("Download a statement PDF")
     .argument("<id>", "statement ID")
-    .addOption(new Option("--output-dir <path>", "directory to save the file (default: current directory)"))
-    .action(async (id: string, commandOpts: { outputDir?: string }) => {
-      const globalOpts = program.opts<GlobalOptions>();
+    .addOption(new Option("--output-dir <path>", "directory to save the file (default: current directory)"));
+  addInheritableOptions(download);
+  download.action(async (id: string, commandOpts: { outputDir?: string }, cmd: Command) => {
+      const globalOpts = resolveGlobalOptions<GlobalOptions>(cmd);
       const client = await createClient(globalOpts);
 
       const response = await client.get<{ statement: Statement }>(`/v2/statements/${encodeURIComponent(id)}`);

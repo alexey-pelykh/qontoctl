@@ -11,6 +11,7 @@ import {
 } from "@qontoctl/core";
 import { createClient } from "../../client.js";
 import { formatOutput } from "../../formatters/index.js";
+import { addInheritableOptions, resolveGlobalOptions } from "../../inherited-options.js";
 import type { GlobalOptions, PaginationOptions } from "../../options.js";
 import { fetchPaginated } from "../../pagination.js";
 
@@ -54,7 +55,7 @@ function buildParams(opts: TransactionListOptions): ListTransactionsParams {
 }
 
 export function registerTransactionListCommand(parent: Command): void {
-  parent
+  const list = parent
     .command("list")
     .description("List transactions")
     .addOption(new Option("--bank-account <id>", "filter by bank account ID"))
@@ -71,9 +72,10 @@ export function registerTransactionListCommand(parent: Command): void {
       ]),
     )
     .addOption(new Option("--with-attachments", "filter to transactions with attachments"))
-    .addOption(new Option("--sort-by <sort>", "sort order (e.g. settled_at:desc)"))
-    .action(async (_opts: unknown, cmd: Command) => {
-      const opts = cmd.optsWithGlobals<TransactionListOptions>();
+    .addOption(new Option("--sort-by <sort>", "sort order (e.g. settled_at:desc)"));
+  addInheritableOptions(list);
+  list.action(async (_opts: unknown, cmd: Command) => {
+      const opts = resolveGlobalOptions<TransactionListOptions>(cmd);
       const client = await createClient(opts);
 
       let params = buildParams(opts);
