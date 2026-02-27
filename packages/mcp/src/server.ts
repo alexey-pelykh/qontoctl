@@ -4,9 +4,12 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { HttpClient } from "@qontoctl/core";
 import {
+  registerAccountTools,
   registerLabelTools,
   registerMembershipTools,
+  registerOrgTools,
   registerStatementTools,
+  registerTransactionTools,
 } from "./tools/index.js";
 
 export interface CreateServerOptions {
@@ -20,9 +23,12 @@ export function createServer(options?: CreateServerOptions): McpServer {
   });
 
   if (options?.getClient !== undefined) {
+    registerAccountTools(server, options.getClient);
     registerLabelTools(server, options.getClient);
     registerMembershipTools(server, options.getClient);
+    registerOrgTools(server, options.getClient);
     registerStatementTools(server, options.getClient);
+    registerTransactionTools(server, options.getClient);
   }
 
   return server;
