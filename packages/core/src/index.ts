@@ -26,3 +26,5 @@ export type {
   LoadResult,
   ValidationResult,
 } from "./config/index.js";
+
+export { AuthError, buildApiKeyAuthorization } from "./auth/index.js";
