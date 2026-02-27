@@ -16,6 +16,7 @@
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
     "license-check": "node scripts/check-licenses.js",
+    "publish-check": "node scripts/check-publish-manifest.js",
     "dev": "turbo run dev"
   },
   "devDependencies": {
