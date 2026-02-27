@@ -4,9 +4,12 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { HttpClient } from "@qontoctl/core";
 import {
+  registerAccountTools,
   registerLabelTools,
   registerMembershipTools,
+  registerOrgTools,
   registerStatementTools,
+  registerTransactionTools,
 } from "./tools/index.js";
 
 export interface CreateServerOptions {
@@ -19,11 +22,18 @@ export function createServer(options?: CreateServerOptions): McpServer {
     version: "0.0.0",
   });
 
-  if (options?.getClient !== undefined) {
-    registerLabelTools(server, options.getClient);
-    registerMembershipTools(server, options.getClient);
-    registerStatementTools(server, options.getClient);
-  }
+  const getClient =
+    options?.getClient ??
+    (() => {
+      throw new Error("No credentials configured. Run 'qontoctl profile add' first.");
+    });
+
+  registerAccountTools(server, getClient);
+  registerLabelTools(server, getClient);
+  registerMembershipTools(server, getClient);
+  registerOrgTools(server, getClient);
+  registerStatementTools(server, getClient);
+  registerTransactionTools(server, getClient);
 
   return server;
 }
