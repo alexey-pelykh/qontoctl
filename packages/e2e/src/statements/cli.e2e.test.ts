@@ -6,34 +6,20 @@ import { existsSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { cliEnv, hasCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
-
-const hasSandboxCreds =
-  process.env["QONTOCTL_ORGANIZATION_SLUG"] !== undefined &&
-  process.env["QONTOCTL_SECRET_KEY"] !== undefined;
-
-/**
- * Build environment with sandbox credentials for CLI invocations.
- * Inherits the current process environment and ensures sandbox mode is on.
- */
-function sandboxEnv(): NodeJS.ProcessEnv {
-  return {
-    ...process.env,
-    QONTOCTL_SANDBOX: "true",
-  };
-}
 
 function listStatements(): Record<string, unknown>[] {
   const output = execFileSync(
     "node",
     [CLI_PATH, "statement", "list", "--no-paginate", "-o", "json"],
-    { encoding: "utf-8", env: sandboxEnv() },
+    { encoding: "utf-8", env: cliEnv() },
   );
   return JSON.parse(output) as Record<string, unknown>[];
 }
 
-describe.skipIf(!hasSandboxCreds)("statement CLI commands (e2e)", () => {
+describe.skipIf(!hasCredentials())("statement CLI commands (e2e)", () => {
   // -- statement list --
 
   describe("statement list", () => {
@@ -68,7 +54,7 @@ describe.skipIf(!hasSandboxCreds)("statement CLI commands (e2e)", () => {
           "-o",
           "json",
         ],
-        { encoding: "utf-8", env: sandboxEnv() },
+        { encoding: "utf-8", env: cliEnv() },
       );
       const filteredRows = JSON.parse(filteredOutput) as Record<string, unknown>[];
 
@@ -92,7 +78,7 @@ describe.skipIf(!hasSandboxCreds)("statement CLI commands (e2e)", () => {
           "-o",
           "json",
         ],
-        { encoding: "utf-8", env: sandboxEnv() },
+        { encoding: "utf-8", env: cliEnv() },
       );
 
       // The command should succeed; results may be empty if no statements in range
@@ -113,7 +99,7 @@ describe.skipIf(!hasSandboxCreds)("statement CLI commands (e2e)", () => {
       const showOutput = execFileSync(
         "node",
         [CLI_PATH, "statement", "show", statementId, "-o", "json"],
-        { encoding: "utf-8", env: sandboxEnv() },
+        { encoding: "utf-8", env: cliEnv() },
       );
       const showRows = JSON.parse(showOutput) as Record<string, unknown>[];
       expect(showRows).toHaveLength(1);
@@ -153,7 +139,7 @@ describe.skipIf(!hasSandboxCreds)("statement CLI commands (e2e)", () => {
       execFileSync(
         "node",
         [CLI_PATH, "statement", "download", statementId],
-        { encoding: "utf-8", env: sandboxEnv(), cwd: downloadDir },
+        { encoding: "utf-8", env: cliEnv(), cwd: downloadDir },
       );
 
       const downloadedFile = join(downloadDir, expectedFileName);
@@ -172,7 +158,7 @@ describe.skipIf(!hasSandboxCreds)("statement CLI commands (e2e)", () => {
       execFileSync(
         "node",
         [CLI_PATH, "statement", "download", statementId, "--output-dir", outputDir],
-        { encoding: "utf-8", env: sandboxEnv() },
+        { encoding: "utf-8", env: cliEnv() },
       );
 
       const downloadedFile = join(outputDir, expectedFileName);

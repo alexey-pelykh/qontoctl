@@ -4,29 +4,26 @@
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { cliEnv, hasCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(
   import.meta.dirname,
   "../../../qontoctl/dist/cli.js",
 );
 
-const hasCredentials =
-  process.env["QONTOCTL_ORGANIZATION_SLUG"] !== undefined &&
-  process.env["QONTOCTL_SECRET_KEY"] !== undefined;
-
 /**
- * Run the CLI with the given arguments, inheriting sandbox credentials
+ * Run the CLI with the given arguments, inheriting credentials
  * from the environment.
  */
 function cli(...args: string[]): string {
   return execFileSync("node", [CLI_PATH, ...args], {
     encoding: "utf-8",
-    env: { ...process.env, QONTOCTL_SANDBOX: "1" },
+    env: cliEnv(),
     timeout: 15_000,
   });
 }
 
-describe.skipIf(!hasCredentials)("membership commands (e2e)", () => {
+describe.skipIf(!hasCredentials())("membership commands (e2e)", () => {
   describe("membership list", () => {
     it("lists memberships with expected fields", () => {
       const output = cli("membership", "list");

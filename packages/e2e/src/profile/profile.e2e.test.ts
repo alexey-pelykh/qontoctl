@@ -13,6 +13,7 @@ import {
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { getCredentials, hasCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(
   import.meta.dirname,
@@ -306,15 +307,8 @@ describe("profile commands (e2e)", () => {
 // profile test — requires sandbox API access
 // ---------------------------------------------------------------------------
 
-function hasSandboxCredentials(): boolean {
-  return (
-    process.env["QONTOCTL_ORGANIZATION_SLUG"] !== undefined &&
-    process.env["QONTOCTL_SECRET_KEY"] !== undefined
-  );
-}
-
-describe.skipIf(!hasSandboxCredentials())(
-  "profile test (e2e, sandbox)",
+describe.skipIf(!hasCredentials())(
+  "profile test (e2e)",
   () => {
     let tempDir: string;
 
@@ -330,15 +324,11 @@ describe.skipIf(!hasSandboxCredentials())(
     //     When `profile test` is run,
     //     Then it calls GET /v2/organization and reports success with org name
     it("reports success with organization name for valid credentials", () => {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- guarded by hasSandboxCredentials()
-      const orgSlug = process.env["QONTOCTL_ORGANIZATION_SLUG"]!;
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- guarded by hasSandboxCredentials()
-      const secretKey = process.env["QONTOCTL_SECRET_KEY"]!;
+      const creds = getCredentials();
       const { stdout, exitCode } = cli(["profile", "test"], {
         env: homeEnv(tempDir, {
-          QONTOCTL_ORGANIZATION_SLUG: orgSlug,
-          QONTOCTL_SECRET_KEY: secretKey,
-          QONTOCTL_SANDBOX: "true",
+          QONTOCTL_ORGANIZATION_SLUG: creds.organizationSlug,
+          QONTOCTL_SECRET_KEY: creds.secretKey,
         }),
       });
       expect(exitCode).toBe(0);
@@ -353,7 +343,6 @@ describe.skipIf(!hasSandboxCredentials())(
         env: homeEnv(tempDir, {
           QONTOCTL_ORGANIZATION_SLUG: "invalid-org-slug",
           QONTOCTL_SECRET_KEY: "invalid-secret-key",
-          QONTOCTL_SANDBOX: "true",
         }),
       });
       expect(exitCode).not.toBe(0);

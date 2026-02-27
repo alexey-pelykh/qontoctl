@@ -10,6 +10,14 @@ function createMockClient() {
   return { get: vi.fn() } as unknown as HttpClient & { get: ReturnType<typeof vi.fn> };
 }
 
+const ORG_BODY = {
+  organization: {
+    slug: "test-org",
+    legal_name: "Test Org",
+    bank_accounts: [{ id: "auto-acc-1", main: true }],
+  },
+};
+
 describe("registerTransactionTools", () => {
   it("registers transaction_list and transaction_show tools", () => {
     const server = new McpServer({ name: "test", version: "0.0.0" });
@@ -58,7 +66,10 @@ describe("registerTransactionTools", () => {
   it("transaction_list passes pagination params as strings", async () => {
     const server = new McpServer({ name: "test", version: "0.0.0" });
     const mockClient = createMockClient();
-    mockClient.get.mockResolvedValue({ transactions: [], meta: {} });
+    mockClient.get.mockImplementation((path: string) => {
+      if (path === "/v2/organization") return Promise.resolve(ORG_BODY);
+      return Promise.resolve({ transactions: [], meta: {} });
+    });
     registerTransactionTools(server, () => Promise.resolve(mockClient));
 
     const tool = (
@@ -72,8 +83,34 @@ describe("registerTransactionTools", () => {
     } as never);
 
     expect(mockClient.get).toHaveBeenCalledWith("/v2/transactions", {
+      bank_account_id: "auto-acc-1",
       current_page: "2",
       per_page: "50",
+    });
+  });
+
+  it("transaction_list auto-resolves bank account from organization", async () => {
+    const server = new McpServer({ name: "test", version: "0.0.0" });
+    const mockClient = createMockClient();
+    mockClient.get.mockImplementation((path: string) => {
+      if (path === "/v2/organization") return Promise.resolve(ORG_BODY);
+      return Promise.resolve({
+        transactions: [{ id: "txn-1", amount: 42.0, side: "debit" }],
+        meta: { current_page: 1, total_pages: 1, total_count: 1 },
+      });
+    });
+    registerTransactionTools(server, () => Promise.resolve(mockClient));
+
+    const tool = (
+      server as unknown as {
+        _registeredTools: Record<string, { handler: (...args: unknown[]) => Promise<unknown> }>;
+      }
+    )._registeredTools["transaction_list"] as { handler: (...args: unknown[]) => Promise<unknown> };
+    await tool.handler({} as never);
+
+    expect(mockClient.get).toHaveBeenCalledWith("/v2/organization");
+    expect(mockClient.get).toHaveBeenCalledWith("/v2/transactions", {
+      bank_account_id: "auto-acc-1",
     });
   });
 

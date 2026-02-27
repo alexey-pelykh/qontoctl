@@ -4,30 +4,21 @@
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
+import { cliEnv, hasCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(
   import.meta.dirname,
   "../../../qontoctl/dist/cli.js",
 );
 
-function hasSandboxCredentials(): boolean {
-  return (
-    process.env["QONTOCTL_ORGANIZATION_SLUG"] !== undefined &&
-    process.env["QONTOCTL_SECRET_KEY"] !== undefined
-  );
-}
-
 function cli(args: string[]): string {
   return execFileSync("node", [CLI_PATH, ...args], {
     encoding: "utf-8",
-    env: {
-      ...process.env,
-      QONTOCTL_SANDBOX: "1",
-    },
+    env: cliEnv(),
   });
 }
 
-describe.skipIf(!hasSandboxCredentials())(
+describe.skipIf(!hasCredentials())(
   "organization & accounts CLI (e2e)",
   () => {
     let knownAccountId: string;

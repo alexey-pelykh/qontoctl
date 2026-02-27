@@ -7,6 +7,7 @@ import { join, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { cliEnv, hasCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
@@ -23,13 +24,6 @@ const EXPECTED_TOOLS = [
   "membership_list",
 ] as const;
 
-function hasSandboxCredentials(): boolean {
-  return (
-    process.env["QONTOCTL_ORGANIZATION_SLUG"] !== undefined &&
-    process.env["QONTOCTL_SECRET_KEY"] !== undefined
-  );
-}
-
 describe("MCP server via stdio (e2e)", () => {
   let client: Client;
   let transport: StdioClientTransport;
@@ -38,6 +32,7 @@ describe("MCP server via stdio (e2e)", () => {
     transport = new StdioClientTransport({
       command: "node",
       args: [CLI_PATH, "mcp"],
+      env: cliEnv(),
       stderr: "pipe",
     });
     client = new Client({ name: "e2e-test", version: "0.0.0" });
@@ -83,7 +78,7 @@ describe("MCP server via stdio (e2e)", () => {
     });
   });
 
-  describe.skipIf(!hasSandboxCredentials())("tool call with valid credentials", () => {
+  describe.skipIf(!hasCredentials())("tool call with valid credentials", () => {
     it("org_show returns organization data in MCP content format", async () => {
       const result = await client.callTool({ name: "org_show", arguments: {} });
 

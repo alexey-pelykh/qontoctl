@@ -5,12 +5,9 @@ import { resolve } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { cliEnv, hasCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
-
-function hasSandboxCredentials(): boolean {
-  return process.env["QONTOCTL_ORGANIZATION_SLUG"] !== undefined && process.env["QONTOCTL_SECRET_KEY"] !== undefined;
-}
 
 interface TransactionItem {
   readonly id: string;
@@ -32,7 +29,7 @@ interface TransactionListResponse {
   };
 }
 
-describe.skipIf(!hasSandboxCredentials())("transaction MCP tools (e2e)", () => {
+describe.skipIf(!hasCredentials())("transaction MCP tools (e2e)", () => {
   let client: Client;
   let transport: StdioClientTransport;
 
@@ -40,10 +37,7 @@ describe.skipIf(!hasSandboxCredentials())("transaction MCP tools (e2e)", () => {
     transport = new StdioClientTransport({
       command: "node",
       args: [CLI_PATH, "mcp"],
-      env: {
-        ...(process.env as Record<string, string>),
-        QONTOCTL_SANDBOX: "true",
-      },
+      env: cliEnv(),
       stderr: "pipe",
     });
 
@@ -133,7 +127,7 @@ describe.skipIf(!hasSandboxCredentials())("transaction MCP tools (e2e)", () => {
         name: "transaction_list",
         arguments: {
           settled_at_from: "2020-01-01",
-          settled_at_to: "2030-12-31",
+          settled_at_to: "2026-12-31",
         },
       });
 

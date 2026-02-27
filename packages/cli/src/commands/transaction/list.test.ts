@@ -25,6 +25,22 @@ function makeMeta(overrides: Record<string, unknown> = {}) {
   };
 }
 
+const ORG_BODY = {
+  organization: {
+    slug: "test-org",
+    legal_name: "Test Org",
+    bank_accounts: [{ id: "auto-acc-1", main: true }],
+  },
+};
+
+function findTransactionCallUrl(spy: ReturnType<typeof vi.fn>): URL {
+  const call = spy.mock.calls.find(
+    (c) => (c[0] as URL).pathname === "/v2/transactions",
+  );
+  expect(call, "expected a fetch call to /v2/transactions").toBeDefined();
+  return (call as unknown[])[0] as URL;
+}
+
 describe("transaction list command", () => {
   let fetchSpy: ReturnType<typeof vi.fn>;
   let writtenOutput: string[];
@@ -98,34 +114,49 @@ describe("transaction list command", () => {
   });
 
   it("passes status filter as array param", async () => {
-    fetchSpy.mockReturnValue(
-      jsonResponse({ transactions: [], meta: makeMeta() }),
-    );
+    fetchSpy.mockImplementation((input: URL) => {
+      if (input.pathname === "/v2/organization") return jsonResponse(ORG_BODY);
+      return jsonResponse({ transactions: [], meta: makeMeta() });
+    });
 
     await runCommand("--status", "pending", "completed");
 
-    const [url] = fetchSpy.mock.calls[0] as [URL];
-    expect(url.searchParams.getAll("status[]")).toEqual(["pending", "completed"]);
+    const txnUrl = findTransactionCallUrl(fetchSpy);
+    expect(txnUrl.searchParams.getAll("status[]")).toEqual(["pending", "completed"]);
   });
 
   it("passes with-attachments filter", async () => {
-    fetchSpy.mockReturnValue(
-      jsonResponse({ transactions: [], meta: makeMeta() }),
-    );
+    fetchSpy.mockImplementation((input: URL) => {
+      if (input.pathname === "/v2/organization") return jsonResponse(ORG_BODY);
+      return jsonResponse({ transactions: [], meta: makeMeta() });
+    });
 
     await runCommand("--with-attachments");
 
-    const [url] = fetchSpy.mock.calls[0] as [URL];
-    expect(url.searchParams.get("with_attachments")).toBe("true");
+    const txnUrl = findTransactionCallUrl(fetchSpy);
+    expect(txnUrl.searchParams.get("with_attachments")).toBe("true");
+  });
+
+  it("auto-resolves bank account from organization", async () => {
+    fetchSpy.mockImplementation((input: URL) => {
+      if (input.pathname === "/v2/organization") return jsonResponse(ORG_BODY);
+      return jsonResponse({ transactions: [], meta: makeMeta() });
+    });
+
+    await runCommand();
+
+    const txnUrl = findTransactionCallUrl(fetchSpy);
+    expect(txnUrl.searchParams.get("bank_account_id")).toBe("auto-acc-1");
   });
 
   it("outputs JSON when --output json", async () => {
     const txns = [
       { id: "txn-1", label: "Coffee", amount: 4.5, side: "debit" },
     ];
-    fetchSpy.mockReturnValue(
-      jsonResponse({ transactions: txns, meta: makeMeta({ total_count: 1 }) }),
-    );
+    fetchSpy.mockImplementation((input: URL) => {
+      if (input.pathname === "/v2/organization") return jsonResponse(ORG_BODY);
+      return jsonResponse({ transactions: txns, meta: makeMeta({ total_count: 1 }) });
+    });
 
     await runCommand("--output", "json");
 
@@ -148,12 +179,13 @@ describe("transaction list command", () => {
         extra_field: "should-not-appear",
       },
     ];
-    fetchSpy.mockReturnValue(
-      jsonResponse({
+    fetchSpy.mockImplementation((input: URL) => {
+      if (input.pathname === "/v2/organization") return jsonResponse(ORG_BODY);
+      return jsonResponse({
         transactions: txns,
         meta: makeMeta({ total_count: 1 }),
-      }),
-    );
+      });
+    });
 
     await runCommand("--output", "table");
 

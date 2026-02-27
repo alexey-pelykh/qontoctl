@@ -20,6 +20,7 @@
     "@qontoctl/cli": "workspace:^",
     "@qontoctl/core": "workspace:^",
     "@qontoctl/mcp": "workspace:^",
+    "yaml": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {

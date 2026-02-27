@@ -90,6 +90,26 @@ ESLint enforces this via `eslint-plugin-header`.
 - E2E tests: `*.e2e.test.ts` (require Qonto sandbox)
 - Coverage thresholds: statements 85%, branches 69%, functions 80%, lines 85%
 
+### E2E Testing
+
+**When to run:** After implementing or modifying code that touches Qonto API interactions, CLI commands, MCP tools, or any behavior covered by E2E tests — run E2E tests locally to validate before completing the task.
+
+**Credentials:** The repo contains `.qontoctl.yaml` (gitignored) with API key credentials. The config resolver picks this up from CWD automatically — no env var overrides needed.
+
+**Sandbox note:** The Qonto sandbox environment (`thirdparty-sandbox.staging.qonto.co`) is only for OAuth-based integrations. API key authentication uses the production endpoint (`thirdparty.qonto.com`) directly — there is no separate sandbox for API key auth. E2E tests run against production.
+
+**Running:**
+
+```sh
+pnpm test:e2e                       # Full E2E suite
+```
+
+- Turbo builds all packages before running tests (declared dependency)
+- Tests run sequentially (`--concurrency=1`) to avoid API race conditions
+- Per-test timeout: 30 seconds
+
+**What's covered:** organization/account listing, transactions (filtering, pagination), bank statements, labels (CRUD), memberships, MCP server initialization, and MCP tool invocations.
+
 ### TypeScript
 
 - Strict mode with `exactOptionalPropertyTypes` and `noUncheckedIndexedAccess`
