@@ -3,5 +3,12 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { createProgram } from "./program.js";
+import { handleCliError } from "./error-handler.js";
 
-createProgram().parse();
+const program = createProgram();
+
+try {
+  await program.parseAsync();
+} catch (error: unknown) {
+  handleCliError(error, program.opts()["debug"] === true);
+}

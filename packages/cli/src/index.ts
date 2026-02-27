@@ -31,6 +31,8 @@ export {
 
 export { createClient } from "./client.js";
 
+export { handleCliError } from "./error-handler.js";
+
 export {
   createLabelCommand,
   createMembershipCommand,
