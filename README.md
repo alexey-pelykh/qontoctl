@@ -15,11 +15,11 @@ This project is brought to you by [Alexey Pelykh](https://github.com/alexey-pely
 QontoCtl lets AI assistants (Claude, etc.) interact with Qonto through the [Model Context Protocol](https://modelcontextprotocol.io). It can:
 
 - **Organizations** — retrieve organization details and settings
+- **Accounts** — list and inspect bank accounts
 - **Transactions** — list, search, and filter bank transactions
+- **Bank Statements** — list, view, and download bank statements
 - **Labels** — manage transaction labels and categories
 - **Memberships** — view team members and permissions
-- **Invoices** — upload, list, and manage supplier invoices
-- **Attachments** — manage transaction attachments and receipts
 
 ## Prerequisites
 
@@ -38,10 +38,20 @@ Or run directly with npx:
 npx qontoctl --help
 ```
 
-Or install via Homebrew:
+## Quick Start
 
 ```sh
-brew install qontoctl/tap/qontoctl
+# 1. Install
+npm install -g qontoctl
+
+# 2. Create a profile with your Qonto API credentials
+qontoctl profile add mycompany
+
+# 3. Test the connection
+qontoctl profile test --profile mycompany
+
+# 4. List your accounts
+qontoctl account list --profile mycompany
 ```
 
 ## MCP Integration
@@ -141,10 +151,42 @@ Once configured, you can ask your AI assistant things like:
 
 ## CLI Usage
 
-```sh
-qontoctl --help
-qontoctl mcp    # Start MCP server on stdio
-```
+### Commands
+
+| Command                   | Description                             |
+| ------------------------- | --------------------------------------- |
+| `org show`                | Show organization details               |
+| `account list`            | List bank accounts                      |
+| `account show <id>`       | Show bank account details               |
+| `transaction list`        | List transactions (with filters)        |
+| `transaction show <id>`   | Show transaction details                |
+| `statement list`          | List bank statements                    |
+| `statement show <id>`     | Show bank statement details             |
+| `statement download <id>` | Download bank statement PDF             |
+| `label list`              | List labels                             |
+| `label show <id>`         | Show label details                      |
+| `membership list`         | List team memberships                   |
+| `profile add <name>`      | Create a named profile                  |
+| `profile list`            | List all profiles                       |
+| `profile show <name>`     | Show profile details (secrets redacted) |
+| `profile remove <name>`   | Remove a named profile                  |
+| `profile test`            | Test credentials                        |
+| `completion bash`         | Generate bash completions               |
+| `completion zsh`          | Generate zsh completions                |
+| `completion fish`         | Generate fish completions               |
+| `mcp`                     | Start MCP server on stdio               |
+
+### Global Options
+
+| Option                  | Description                                             |
+| ----------------------- | ------------------------------------------------------- |
+| `-p, --profile <name>`  | Configuration profile to use                            |
+| `-o, --output <format>` | Output format: `table` (default), `json`, `yaml`, `csv` |
+| `--page <number>`       | Fetch a specific page of results                        |
+| `--per-page <number>`   | Results per page                                        |
+| `--no-paginate`         | Disable auto-pagination                                 |
+| `--verbose`             | Enable verbose output                                   |
+| `--debug`               | Enable debug output (implies `--verbose`)               |
 
 ## Configuration
 
@@ -181,6 +223,19 @@ oauth:
 2. `~/.qontoctl/acme.yaml`
 
 OAuth takes precedence over API Key when tokens are valid. Expired tokens are refreshed automatically and written back to the source file.
+
+### Environment Variables
+
+Environment variables override file values. Without `--profile`:
+
+| Variable                     | Description                             |
+| ---------------------------- | --------------------------------------- |
+| `QONTOCTL_ORGANIZATION_SLUG` | Organization slug                       |
+| `QONTOCTL_SECRET_KEY`        | API secret key                          |
+| `QONTOCTL_ENDPOINT`          | Custom API endpoint                     |
+| `QONTOCTL_SANDBOX`           | Use sandbox (`1`/`true` or `0`/`false`) |
+
+With `--profile <name>`, prefix becomes `QONTOCTL_{NAME}_` (uppercased, hyphens replaced with underscores). For example, `--profile acme` reads `QONTOCTL_ACME_ORGANIZATION_SLUG`.
 
 ## Debug Mode
 
