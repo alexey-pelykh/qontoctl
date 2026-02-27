@@ -17,8 +17,8 @@
   },
   "exports": {
     ".": {
-      "types": "./dist/program.d.ts",
-      "import": "./dist/program.js"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     }
   },
   "bin": {
@@ -29,13 +29,14 @@
   ],
   "scripts": {
     "build": "tsc",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run",
     "lint": "eslint src/",
     "dev": "tsc --watch"
   },
   "dependencies": {
     "@qontoctl/core": "workspace:^",
-    "commander": "catalog:"
+    "commander": "catalog:",
+    "yaml": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",
