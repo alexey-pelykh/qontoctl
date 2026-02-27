@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import { basename, join, resolve } from "node:path";
+import { basename, join, resolve, sep } from "node:path";
 import { writeFile } from "node:fs/promises";
 import { Command, Option } from "commander";
 import type { Statement } from "@qontoctl/core";
@@ -130,7 +130,7 @@ export function registerStatementCommands(program: Command): void {
 
       const resolvedDir = resolve(outputDir);
       const resolvedPath = resolve(outputPath);
-      if (!resolvedPath.startsWith(resolvedDir + "/") && resolvedPath !== resolvedDir) {
+      if (!resolvedPath.startsWith(resolvedDir + sep) && resolvedPath !== resolvedDir) {
         throw new Error(`Refusing to write outside output directory: ${file.file_name}`);
       }
 
