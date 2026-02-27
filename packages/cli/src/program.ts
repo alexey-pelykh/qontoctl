@@ -4,6 +4,8 @@
 import { Command, Option } from "commander";
 import { registerCompletionCommand } from "./completions/index.js";
 import { registerTransactionCommands } from "./commands/transaction/index.js";
+import { registerOrgCommands } from "./commands/org.js";
+import { registerAccountCommands } from "./commands/account.js";
 import { OUTPUT_FORMATS } from "./options.js";
 
 export function createProgram(): Command {
@@ -46,6 +48,8 @@ export function createProgram(): Command {
 
   registerCompletionCommand(program);
   registerTransactionCommands(program);
+  registerOrgCommands(program);
+  registerAccountCommands(program);
 
   program.action(() => {
     program.outputHelp();

@@ -1,0 +1,30 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2026 Oleksii PELYKH
+
+/**
+ * A bank account as returned by the Qonto API.
+ */
+export interface BankAccount {
+  readonly id: string;
+  readonly name: string;
+  readonly status: string;
+  readonly main: boolean;
+  readonly organization_id: string;
+  readonly iban: string;
+  readonly bic: string;
+  readonly currency: string;
+  readonly balance: number;
+  readonly balance_cents: number;
+  readonly authorized_balance: number;
+  readonly authorized_balance_cents: number;
+  readonly slug: string;
+}
+
+/**
+ * Organization details as returned by `GET /v2/organization`.
+ */
+export interface Organization {
+  readonly slug: string;
+  readonly legal_name: string;
+  readonly bank_accounts: readonly BankAccount[];
+}
