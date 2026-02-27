@@ -11,13 +11,13 @@ import { runStdioServer } from "./stdio.js";
 
 await runStdioServer({
   getClient: async () => {
-    const { config } = await resolveConfig();
+    const { config, endpoint } = await resolveConfig();
     if (config.apiKey === undefined) {
       throw new Error("No API key credentials found in configuration");
     }
     const authorization = buildApiKeyAuthorization(config.apiKey);
     return new HttpClient({
-      baseUrl: "https://thirdparty.qonto.com",
+      baseUrl: endpoint,
       authorization,
     });
   },
