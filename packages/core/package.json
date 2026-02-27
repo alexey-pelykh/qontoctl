@@ -28,11 +28,13 @@
     "build": "tsc",
     "test": "vitest run --passWithNoTests",
     "lint": "eslint src/",
+    "docs": "typedoc",
     "dev": "tsc --watch"
   },
   "devDependencies": {
     "@types/node": "catalog:",
     "eslint": "catalog:",
+    "typedoc": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   },

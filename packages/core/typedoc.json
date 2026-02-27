@@ -1,0 +1,9 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["src/index.ts"],
+  "out": "../../build/gh-pages/api",
+  "name": "@qontoctl/core",
+  "readme": "none",
+  "excludePrivate": true,
+  "excludeInternal": true
+}
