@@ -98,6 +98,9 @@ importers:
       commander:
         specifier: 'catalog:'
         version: 14.0.3
+      yaml:
+        specifier: 'catalog:'
+        version: 2.8.2
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
