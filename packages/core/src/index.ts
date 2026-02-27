@@ -47,3 +47,8 @@ export type {
   TransactionLabel,
   ListTransactionsParams,
 } from "./transactions/index.js";
+
+export type { BankAccount, Organization } from "./api-types.js";
+
+export { getOrganization } from "./services/organization.js";
+export { getBankAccount } from "./services/bank-accounts.js";

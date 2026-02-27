@@ -27,6 +27,19 @@ describe("createProgram", () => {
     expect(program.name()).toBe("qontoctl");
   });
 
+  it("registers org and account subcommands", () => {
+    const program = createProgram();
+    const names = program.commands.map((c) => c.name());
+    expect(names).toContain("org");
+    expect(names).toContain("account");
+  });
+
+  it("registers completion subcommand", () => {
+    const program = createProgram();
+    const names = program.commands.map((c) => c.name());
+    expect(names).toContain("completion");
+  });
+
   describe("global options", () => {
     it("parses --profile option", () => {
       const program = parseGlobalOptions(["--profile", "work"]);
