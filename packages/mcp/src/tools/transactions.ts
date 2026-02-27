@@ -95,7 +95,7 @@ export function registerTransactionTools(
     },
     async ({ id }) =>
       withClient(getClient, async (client) => {
-        const response = await client.get<{ transaction: unknown }>(`/v2/transactions/${id}`);
+        const response = await client.get<{ transaction: unknown }>(`/v2/transactions/${encodeURIComponent(id)}`);
         return {
           content: [
             { type: "text" as const, text: JSON.stringify(response.transaction, null, 2) },

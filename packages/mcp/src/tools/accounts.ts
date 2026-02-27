@@ -33,7 +33,7 @@ export function registerAccountTools(
     },
     async ({ id }) =>
       withClient(getClient, async (client) => {
-        const response = await client.get<{ bank_account: unknown }>(`/v2/bank_accounts/${id}`);
+        const response = await client.get<{ bank_account: unknown }>(`/v2/bank_accounts/${encodeURIComponent(id)}`);
         return {
           content: [
             { type: "text" as const, text: JSON.stringify(response.bank_account, null, 2) },
