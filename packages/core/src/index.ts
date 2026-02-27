@@ -9,3 +9,20 @@ export {
   type HttpClientOptions,
   type QontoApiErrorEntry,
 } from "./http-client.js";
+
+export {
+  resolveConfig,
+  ConfigError,
+  loadConfigFile,
+  validateConfig,
+  applyEnvOverlay,
+} from "./config/index.js";
+
+export type {
+  ApiKeyCredentials,
+  QontoctlConfig,
+  ConfigResult,
+  ResolveOptions,
+  LoadResult,
+  ValidationResult,
+} from "./config/index.js";
