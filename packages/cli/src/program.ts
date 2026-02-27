@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
+import { createRequire } from "node:module";
 import { Command, Option } from "commander";
 import { registerCompletionCommand } from "./completions/index.js";
 import { registerTransactionCommands } from "./commands/transaction/index.js";
@@ -8,13 +9,16 @@ import { registerOrgCommands } from "./commands/org.js";
 import { registerAccountCommands } from "./commands/account.js";
 import { OUTPUT_FORMATS } from "./options.js";
 
+const require = createRequire(import.meta.url);
+const packageJson = require("../package.json") as { version: string };
+
 export function createProgram(): Command {
   const program = new Command();
 
   program
     .name("qontoctl")
     .description("The complete CLI & MCP for Qonto")
-    .version("0.0.0");
+    .version(packageJson.version);
 
   program
     .addOption(

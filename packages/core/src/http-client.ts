@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+const packageJson = require("../package.json") as { version: string };
+
 /**
  * Logger interface for HTTP client wire logging.
  */
@@ -92,7 +97,7 @@ function redactSensitiveFields(value: unknown): unknown {
 }
 
 function buildUserAgent(): string {
-  return `QontoCtl/0.0.0 (Node.js/${process.versions.node}; ${process.platform})`;
+  return `QontoCtl/${packageJson.version} (Node.js/${process.versions.node}; ${process.platform})`;
 }
 
 /**
