@@ -37,7 +37,7 @@
     "dist"
   ],
   "scripts": {
-    "prepack": "cp ../../README.md .",
+    "prepack": "cp ../../README.md ../../LICENSE .",
     "build": "tsc",
     "test": "vitest run",
     "lint": "eslint src/",
