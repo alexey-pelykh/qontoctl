@@ -44,7 +44,14 @@ Or install via Homebrew:
 brew install qontoctl/tap/qontoctl
 ```
 
-## Usage with Claude Desktop
+## MCP Integration
+
+QontoCtl implements the [Model Context Protocol](https://modelcontextprotocol.io) (MCP), letting AI assistants interact with your Qonto account through natural language.
+
+### MCP Client Configuration
+
+<details>
+<summary><b>Claude Desktop</b></summary>
 
 Add to your Claude Desktop configuration (`claude_desktop_config.json`):
 
@@ -58,6 +65,79 @@ Add to your Claude Desktop configuration (`claude_desktop_config.json`):
     }
 }
 ```
+
+</details>
+
+<details>
+<summary><b>Claude Code</b></summary>
+
+```sh
+claude mcp add qontoctl -- npx qontoctl mcp
+```
+
+</details>
+
+<details>
+<summary><b>Cursor</b></summary>
+
+Add to `.cursor/mcp.json` in your project root:
+
+```json
+{
+    "mcpServers": {
+        "qontoctl": {
+            "command": "npx",
+            "args": ["qontoctl", "mcp"]
+        }
+    }
+}
+```
+
+</details>
+
+<details>
+<summary><b>Windsurf</b></summary>
+
+Add to `~/.codeium/windsurf/mcp_config.json`:
+
+```json
+{
+    "mcpServers": {
+        "qontoctl": {
+            "command": "npx",
+            "args": ["qontoctl", "mcp"]
+        }
+    }
+}
+```
+
+</details>
+
+### Available MCP Tools
+
+| Tool               | Description                                                                                           |
+| ------------------ | ----------------------------------------------------------------------------------------------------- |
+| `org_show`         | Show organization details including name, slug, and bank accounts                                     |
+| `account_list`     | List all bank accounts for the organization                                                           |
+| `account_show`     | Show details of a specific bank account                                                               |
+| `transaction_list` | List transactions for a bank account with optional filters (status, date range, side, operation type) |
+| `transaction_show` | Show details of a specific transaction                                                                |
+| `label_list`       | List all labels in the organization                                                                   |
+| `label_show`       | Show details of a specific label                                                                      |
+| `statement_list`   | List bank statements with optional filters (account, period)                                          |
+| `statement_show`   | Show details of a specific bank statement                                                             |
+| `membership_list`  | List all memberships in the organization                                                              |
+
+### Example Prompts
+
+Once configured, you can ask your AI assistant things like:
+
+- "Show my Qonto account balances"
+- "List recent transactions over 1000 EUR"
+- "What were last month's card payments?"
+- "Show all team members in my organization"
+- "List bank statements for January 2026"
+- "Create a summary of this week's debits"
 
 ## CLI Usage
 
