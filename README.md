@@ -124,4 +124,17 @@ Qonto is a trademark of Qonto SAS.
 
 ## License
 
-[AGPL-3.0-only](LICENSE) — For commercial licensing, contact the maintainer.
+[AGPL-3.0-only](LICENSE)
+
+### What AGPL means for you
+
+- **Using qontoctl as a CLI tool or MCP server** does not make your code AGPL-licensed.
+  Running the tool, scripting around it, or connecting it to your applications is normal
+  use — no license obligations arise.
+- **Using `@qontoctl/core` as a library** (importing it into your code) means your combined
+  work is covered by AGPL-3.0. If you distribute that combined work, you must make its
+  source available under AGPL-compatible terms.
+- **Modifying and distributing qontoctl itself** requires you to share your changes under
+  AGPL-3.0.
+- **Commercial licensing** is available if AGPL does not fit your use case — contact the
+  maintainer.
