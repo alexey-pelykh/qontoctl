@@ -19,7 +19,7 @@ export function generateZshCompletion(program: Command): string {
   lines.push("  _arguments -s -S \\");
   for (let i = 0; i < rootArgSpecs.length; i++) {
     const trailing = i < rootArgSpecs.length - 1 ? " \\" : "";
-    lines.push(`    ${rootArgSpecs[i]}${trailing}`);
+    lines.push(`    ${rootArgSpecs[i] ?? ""}${trailing}`);
   }
   lines.push("");
 
@@ -49,13 +49,13 @@ export function generateZshCompletion(program: Command): string {
         lines.push("          _arguments -s -S \\");
         for (let i = 0; i < allSpecs.length; i++) {
           const trailing = i < allSpecs.length - 1 ? " \\" : "";
-          lines.push(`            ${allSpecs[i]}${trailing}`);
+          lines.push(`            ${allSpecs[i] ?? ""}${trailing}`);
         }
       } else if (cmdOptSpecs.length > 0) {
         lines.push("          _arguments -s -S \\");
         for (let i = 0; i < cmdOptSpecs.length; i++) {
           const trailing = i < cmdOptSpecs.length - 1 ? " \\" : "";
-          lines.push(`            ${cmdOptSpecs[i]}${trailing}`);
+          lines.push(`            ${cmdOptSpecs[i] ?? ""}${trailing}`);
         }
       }
       lines.push("          ;;");

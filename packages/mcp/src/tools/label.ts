@@ -23,12 +23,14 @@ interface SingleLabelResponse {
 }
 
 export function registerLabelTools(server: McpServer, getClient: () => Promise<HttpClient>): void {
-  server.tool(
+  server.registerTool(
     "label_list",
-    "List all labels in the organization",
     {
-      page: z.number().int().positive().optional().describe("Page number"),
-      per_page: z.number().int().positive().max(100).optional().describe("Items per page (max 100)"),
+      description: "List all labels in the organization",
+      inputSchema: {
+        page: z.number().int().positive().optional().describe("Page number"),
+        per_page: z.number().int().positive().max(100).optional().describe("Items per page (max 100)"),
+      },
     },
     async ({ page, per_page }) =>
       withClient(getClient, async (client) => {
@@ -52,11 +54,13 @@ export function registerLabelTools(server: McpServer, getClient: () => Promise<H
       }),
   );
 
-  server.tool(
+  server.registerTool(
     "label_show",
-    "Show details of a specific label",
     {
-      id: z.string().describe("Label ID (UUID)"),
+      description: "Show details of a specific label",
+      inputSchema: {
+        id: z.string().describe("Label ID (UUID)"),
+      },
     },
     async ({ id }) =>
       withClient(getClient, async (client) => {

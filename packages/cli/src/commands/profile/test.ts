@@ -42,12 +42,18 @@ async function testProfile(options: GlobalOptions): Promise<void> {
         "Do not use in shared environments.",
     );
     logger = {
-      verbose: (msg: string) => console.error(`[verbose] ${msg}`),
-      debug: (msg: string) => console.error(`[debug] ${msg}`),
+      verbose: (msg: string) => {
+        console.error(`[verbose] ${msg}`);
+      },
+      debug: (msg: string) => {
+        console.error(`[debug] ${msg}`);
+      },
     };
   } else if (options.verbose === true) {
     logger = {
-      verbose: (msg: string) => console.error(`[verbose] ${msg}`),
+      verbose: (msg: string) => {
+        console.error(`[verbose] ${msg}`);
+      },
       debug: () => {},
     };
   }

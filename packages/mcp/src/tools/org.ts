@@ -6,12 +6,15 @@ import type { HttpClient } from "@qontoctl/core";
 import { withClient } from "../errors.js";
 
 export function registerOrgTools(server: McpServer, getClient: () => Promise<HttpClient>): void {
-  server.tool("org_show", "Show organization details including name, slug, and bank accounts", {}, async () =>
-    withClient(getClient, async (client) => {
-      const response = await client.get<{ organization: unknown }>("/v2/organization");
-      return {
-        content: [{ type: "text" as const, text: JSON.stringify(response.organization, null, 2) }],
-      };
-    }),
+  server.registerTool(
+    "org_show",
+    { description: "Show organization details including name, slug, and bank accounts" },
+    async () =>
+      withClient(getClient, async (client) => {
+        const response = await client.get<{ organization: unknown }>("/v2/organization");
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify(response.organization, null, 2) }],
+        };
+      }),
   );
 }

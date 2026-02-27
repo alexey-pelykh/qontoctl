@@ -40,7 +40,7 @@ export function registerStatementCommands(program: Command): void {
     .addOption(new Option("--from <period>", "start period (MM-YYYY)"))
     .addOption(new Option("--to <period>", "end period (MM-YYYY)"))
     .action(async (commandOpts: StatementListOptions) => {
-      const globalOpts = program.opts() as GlobalOptions & PaginationOptions;
+      const globalOpts = program.opts<GlobalOptions & PaginationOptions>();
       const client = await createClient(globalOpts);
 
       const params: Record<string, string> = {};
@@ -68,7 +68,7 @@ export function registerStatementCommands(program: Command): void {
     .description("Show a bank statement")
     .argument("<id>", "statement ID")
     .action(async (id: string) => {
-      const globalOpts = program.opts() as GlobalOptions;
+      const globalOpts = program.opts<GlobalOptions>();
       const client = await createClient(globalOpts);
 
       const response = await client.get<{ statement: Statement }>(`/v2/statements/${encodeURIComponent(id)}`);
@@ -86,7 +86,7 @@ export function registerStatementCommands(program: Command): void {
     .argument("<id>", "statement ID")
     .addOption(new Option("--output-dir <path>", "directory to save the file (default: current directory)"))
     .action(async (id: string, commandOpts: { outputDir?: string }) => {
-      const globalOpts = program.opts() as GlobalOptions;
+      const globalOpts = program.opts<GlobalOptions>();
       const client = await createClient(globalOpts);
 
       const response = await client.get<{ statement: Statement }>(`/v2/statements/${encodeURIComponent(id)}`);

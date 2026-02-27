@@ -12,10 +12,13 @@ function toCsvValue(value: unknown): string {
   if (value === null || value === undefined) {
     return "";
   }
+  if (typeof value === "string") {
+    return escapeCsvField(value);
+  }
   if (typeof value === "object") {
     return escapeCsvField(JSON.stringify(value));
   }
-  return escapeCsvField(String(value));
+  return escapeCsvField(String(value as number | boolean | bigint));
 }
 
 /**

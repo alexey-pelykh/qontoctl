@@ -5,10 +5,13 @@ function toDisplayValue(value: unknown): string {
   if (value === null || value === undefined) {
     return "";
   }
+  if (typeof value === "string") {
+    return value;
+  }
   if (typeof value === "object") {
     return JSON.stringify(value);
   }
-  return String(value);
+  return String(value as number | boolean | bigint);
 }
 
 /**
@@ -34,7 +37,7 @@ export function formatTable(rows: readonly Record<string, unknown>[]): string {
 
   const header = columns.map((col, i) => col.padEnd(widths[i] ?? 0)).join("  ");
   const separator = widths.map((w) => "-".repeat(w)).join("  ");
-  const body = cells.map((row) => row.map((cell, i) => (cell ?? "").padEnd(widths[i] ?? 0)).join("  "));
+  const body = cells.map((row) => row.map((cell, i) => cell.padEnd(widths[i] ?? 0)).join("  "));
 
   return [header, separator, ...body].join("\n");
 }

@@ -115,7 +115,7 @@ pnpm test:e2e                       # Full E2E suite
 - Strict mode with `exactOptionalPropertyTypes` and `noUncheckedIndexedAccess`
 - Use `verbatimModuleSyntax` (explicit `type` imports)
 - All packages use `composite: true` with project references
-- ESLint uses `tseslint.configs.strict` (strict type-aware rules)
+- ESLint uses `tseslint.configs.strictTypeChecked` (strict type-aware rules)
 
 ### Package Exports
 
