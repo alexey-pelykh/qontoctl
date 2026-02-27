@@ -31,7 +31,7 @@ export function registerLabelTools(
     },
     async ({ id }) =>
       withClient(getClient, async (client) => {
-        const response = await client.get<{ label: unknown }>(`/v2/labels/${id}`);
+        const response = await client.get<{ label: unknown }>(`/v2/labels/${encodeURIComponent(id)}`);
         return {
           content: [{ type: "text" as const, text: JSON.stringify(response.label, null, 2) }],
         };

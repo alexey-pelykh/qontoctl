@@ -75,7 +75,7 @@ export function registerStatementTools(
     },
     async ({ id }) =>
       withClient(getClient, async (client) => {
-        const response = await client.get<{ statement: unknown }>(`/v2/statements/${id}`);
+        const response = await client.get<{ statement: unknown }>(`/v2/statements/${encodeURIComponent(id)}`);
         return {
           content: [
             { type: "text" as const, text: JSON.stringify(response.statement, null, 2) },

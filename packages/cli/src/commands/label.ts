@@ -41,7 +41,7 @@ export function createLabelCommand(): Command {
       const opts = label.optsWithGlobals<GlobalOptions>();
       const client = await createClient(opts);
 
-      const response = await client.get<{ label: Label }>(`/v2/labels/${id}`);
+      const response = await client.get<{ label: Label }>(`/v2/labels/${encodeURIComponent(id)}`);
       const l = response.label;
 
       const row = {

@@ -73,7 +73,7 @@ export function registerLabelTools(
     async ({ id }) => {
       const client = await getClient();
       const response = await client.get<SingleLabelResponse>(
-        `/v2/labels/${id}`,
+        `/v2/labels/${encodeURIComponent(id)}`,
       );
 
       return {
