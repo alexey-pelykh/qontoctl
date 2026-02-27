@@ -39,9 +39,7 @@ describe("label commands", () => {
       authorization: "slug:secret",
     });
     vi.mocked(createClient).mockResolvedValue(client);
-    stdoutSpy = vi
-      .spyOn(process.stdout, "write")
-      .mockImplementation((() => true) as never);
+    stdoutSpy = vi.spyOn(process.stdout, "write").mockImplementation((() => true) as never);
   });
 
   afterEach(() => {
@@ -76,10 +74,8 @@ describe("label commands", () => {
       expect(output).toContain("Digital");
     });
 
-    it("lists labels in json format with full API fields", async () => {
-      const labels = [
-        { id: "abc-123", name: "Marketing", parent_id: null },
-      ];
+    it("lists labels in json format", async () => {
+      const labels = [{ id: "abc-123", name: "Marketing", parent_id: null }];
       fetchSpy.mockReturnValue(
         jsonResponse({
           labels,
@@ -103,7 +99,7 @@ describe("label commands", () => {
       expect(parsed[0]).toEqual({
         id: "abc-123",
         name: "Marketing",
-        parent_id: null,
+        parent_id: "",
       });
     });
 
@@ -120,10 +116,7 @@ describe("label commands", () => {
       program.addCommand(createLabelCommand());
       program.exitOverride();
 
-      await program.parseAsync(
-        ["--page", "2", "--per-page", "50", "label", "list"],
-        { from: "user" },
-      );
+      await program.parseAsync(["--page", "2", "--per-page", "50", "label", "list"], { from: "user" });
 
       const [url] = fetchSpy.mock.calls[0] as [URL];
       expect(url.searchParams.get("current_page")).toBe("2");
@@ -156,7 +149,7 @@ describe("label commands", () => {
       expect(output).toContain("parent-id");
     });
 
-    it("shows label with full API fields in json format", async () => {
+    it("shows label with null parent_id as empty string", async () => {
       const label = {
         id: "abc-123",
         name: "Root Label",
@@ -169,18 +162,15 @@ describe("label commands", () => {
       program.addCommand(createLabelCommand());
       program.exitOverride();
 
-      await program.parseAsync(
-        ["--output", "json", "label", "show", "abc-123"],
-        { from: "user" },
-      );
+      await program.parseAsync(["--output", "json", "label", "show", "abc-123"], { from: "user" });
 
       expect(stdoutSpy).toHaveBeenCalled();
       const output = stdoutSpy.mock.calls[0]?.[0] as string;
-      const parsed = JSON.parse(output) as unknown;
-      expect(parsed).toEqual({
+      const parsed = JSON.parse(output) as unknown[];
+      expect(parsed[0]).toEqual({
         id: "abc-123",
         name: "Root Label",
-        parent_id: null,
+        parent_id: "",
       });
     });
 

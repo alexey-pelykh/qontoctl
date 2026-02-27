@@ -78,10 +78,7 @@ describe("statement commands", () => {
       program.option("--no-paginate", "");
       registerStatementCommands(program);
 
-      await program.parseAsync(
-        ["statement", "list", "--no-paginate", "-o", "json"],
-        { from: "user" },
-      );
+      await program.parseAsync(["statement", "list", "--no-paginate", "-o", "json"], { from: "user" });
 
       expect(fetchSpy).toHaveBeenCalled();
       expect(stdoutSpy).toHaveBeenCalled();
@@ -101,23 +98,11 @@ describe("statement commands", () => {
       program.option("--no-paginate", "");
       registerStatementCommands(program);
 
-      await program.parseAsync(
-        [
-          "statement",
-          "list",
-          "--bank-account",
-          "acct-123",
-          "--no-paginate",
-          "-o",
-          "json",
-        ],
-        { from: "user" },
-      );
+      await program.parseAsync(["statement", "list", "--bank-account", "acct-123", "--no-paginate", "-o", "json"], {
+        from: "user",
+      });
 
-      const callArgs = fetchSpy.mock.calls[0] as [
-        string,
-        Record<string, string>,
-      ];
+      const callArgs = fetchSpy.mock.calls[0] as [string, Record<string, string>];
       expect(callArgs[0]).toBe("/v2/statements");
     });
 
@@ -133,17 +118,7 @@ describe("statement commands", () => {
       registerStatementCommands(program);
 
       await program.parseAsync(
-        [
-          "statement",
-          "list",
-          "--from",
-          "01-2025",
-          "--to",
-          "06-2025",
-          "--no-paginate",
-          "-o",
-          "json",
-        ],
+        ["statement", "list", "--from", "01-2025", "--to", "06-2025", "--no-paginate", "-o", "json"],
         { from: "user" },
       );
 
@@ -178,14 +153,9 @@ describe("statement commands", () => {
       program.option("-o, --output <format>", "", "json");
       registerStatementCommands(program);
 
-      await program.parseAsync(
-        ["statement", "show", "id/with/slashes", "-o", "json"],
-        { from: "user" },
-      );
+      await program.parseAsync(["statement", "show", "id/with/slashes", "-o", "json"], { from: "user" });
 
-      expect(fetchSpy).toHaveBeenCalledWith(
-        "/v2/statements/id%2Fwith%2Fslashes",
-      );
+      expect(fetchSpy).toHaveBeenCalledWith("/v2/statements/id%2Fwith%2Fslashes");
     });
   });
 
@@ -216,10 +186,7 @@ describe("statement commands", () => {
 
       expect(mockClient.get).toHaveBeenCalledWith("/v2/statements/stmt-1");
       expect(globalFetchSpy).toHaveBeenCalledWith(stmt.file.file_url);
-      expect(writeFileMock).toHaveBeenCalledWith(
-        "statement-01-2025.pdf",
-        expect.any(Buffer),
-      );
+      expect(writeFileMock).toHaveBeenCalledWith("statement-01-2025.pdf", expect.any(Buffer));
     });
 
     it("strips path traversal from file name", async () => {
@@ -255,10 +222,7 @@ describe("statement commands", () => {
       });
 
       // basename("../../etc/malicious.pdf") -> "malicious.pdf"
-      expect(writeFileMock).toHaveBeenCalledWith(
-        "malicious.pdf",
-        expect.any(Buffer),
-      );
+      expect(writeFileMock).toHaveBeenCalledWith("malicious.pdf", expect.any(Buffer));
     });
   });
 });

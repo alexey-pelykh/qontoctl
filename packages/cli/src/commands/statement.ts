@@ -31,26 +31,16 @@ function formatStatementRow(s: Statement): Record<string, unknown> {
  * Register the `statement` command group on the given program.
  */
 export function registerStatementCommands(program: Command): void {
-  const statement = program
-    .command("statement")
-    .description("Manage bank statements");
+  const statement = program.command("statement").description("Manage bank statements");
 
   statement
     .command("list")
     .description("List bank statements")
-    .addOption(
-      new Option(
-        "--bank-account <id>",
-        "filter by bank account ID",
-      ),
-    )
-    .addOption(
-      new Option("--from <period>", "start period (MM-YYYY)"),
-    )
+    .addOption(new Option("--bank-account <id>", "filter by bank account ID"))
+    .addOption(new Option("--from <period>", "start period (MM-YYYY)"))
     .addOption(new Option("--to <period>", "end period (MM-YYYY)"))
     .action(async (commandOpts: StatementListOptions) => {
-      const globalOpts = program.opts() as GlobalOptions &
-        PaginationOptions;
+      const globalOpts = program.opts() as GlobalOptions & PaginationOptions;
       const client = await createClient(globalOpts);
 
       const params: Record<string, string> = {};
@@ -64,13 +54,7 @@ export function registerStatementCommands(program: Command): void {
         params["period_to"] = commandOpts.to;
       }
 
-      const result = await fetchPaginated<Statement>(
-        client,
-        "/v2/statements",
-        "statements",
-        globalOpts,
-        params,
-      );
+      const result = await fetchPaginated<Statement>(client, "/v2/statements", "statements", globalOpts, params);
 
       const rows = result.items.map(formatStatementRow);
       const output = formatOutput(rows, globalOpts.output);
@@ -87,9 +71,7 @@ export function registerStatementCommands(program: Command): void {
       const globalOpts = program.opts() as GlobalOptions;
       const client = await createClient(globalOpts);
 
-      const response = await client.get<{ statement: Statement }>(
-        `/v2/statements/${encodeURIComponent(id)}`,
-      );
+      const response = await client.get<{ statement: Statement }>(`/v2/statements/${encodeURIComponent(id)}`);
 
       const rows = [formatStatementRow(response.statement)];
       const output = formatOutput(rows, globalOpts.output);
@@ -102,26 +84,17 @@ export function registerStatementCommands(program: Command): void {
     .command("download")
     .description("Download a statement PDF")
     .argument("<id>", "statement ID")
-    .addOption(
-      new Option(
-        "--output-dir <path>",
-        "directory to save the file (default: current directory)",
-      ),
-    )
+    .addOption(new Option("--output-dir <path>", "directory to save the file (default: current directory)"))
     .action(async (id: string, commandOpts: { outputDir?: string }) => {
       const globalOpts = program.opts() as GlobalOptions;
       const client = await createClient(globalOpts);
 
-      const response = await client.get<{ statement: Statement }>(
-        `/v2/statements/${encodeURIComponent(id)}`,
-      );
+      const response = await client.get<{ statement: Statement }>(`/v2/statements/${encodeURIComponent(id)}`);
 
       const { file } = response.statement;
       const fileResponse = await fetch(file.file_url);
       if (!fileResponse.ok) {
-        throw new Error(
-          `Failed to download statement: ${fileResponse.status} ${fileResponse.statusText}`,
-        );
+        throw new Error(`Failed to download statement: ${fileResponse.status} ${fileResponse.statusText}`);
       }
 
       const outputDir = commandOpts.outputDir ?? ".";

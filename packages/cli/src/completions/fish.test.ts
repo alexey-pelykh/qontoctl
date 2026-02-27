@@ -9,18 +9,10 @@ import { generateFishCompletion } from "./fish.js";
 function createTestProgram(): Command {
   const program = new Command();
   program.name("testcli").version("1.0.0");
-  program.addOption(
-    new Option("-o, --output <format>", "output format")
-      .choices(["json", "table"])
-      .default("table"),
-  );
-  program.addOption(
-    new Option("--verbose", "enable verbose output"),
-  );
+  program.addOption(new Option("-o, --output <format>", "output format").choices(["json", "table"]).default("table"));
+  program.addOption(new Option("--verbose", "enable verbose output"));
 
-  const list = program
-    .command("list")
-    .description("list items");
+  const list = program.command("list").description("list items");
   list.command("all").description("list all items");
   list.command("recent").description("list recent items");
 
@@ -61,9 +53,7 @@ describe("generateFishCompletion", () => {
   it("includes boolean options without -r", () => {
     const program = createTestProgram();
     const script = generateFishCompletion(program);
-    const verboseLine = script
-      .split("\n")
-      .find((l) => l.includes("-l verbose"));
+    const verboseLine = script.split("\n").find((l) => l.includes("-l verbose"));
     expect(verboseLine).toBeDefined();
     expect(verboseLine).not.toContain("-r");
   });
@@ -78,20 +68,14 @@ describe("generateFishCompletion", () => {
   it("lists top-level commands with __fish_use_subcommand", () => {
     const program = createTestProgram();
     const script = generateFishCompletion(program);
-    expect(script).toContain(
-      "__fish_use_subcommand' -a list",
-    );
+    expect(script).toContain("__fish_use_subcommand' -a list");
   });
 
   it("lists subcommands with __fish_seen_subcommand_from", () => {
     const program = createTestProgram();
     const script = generateFishCompletion(program);
-    expect(script).toContain(
-      "__fish_seen_subcommand_from list' -a all",
-    );
-    expect(script).toContain(
-      "__fish_seen_subcommand_from list' -a recent",
-    );
+    expect(script).toContain("__fish_seen_subcommand_from list' -a all");
+    expect(script).toContain("__fish_seen_subcommand_from list' -a recent");
   });
 
   it("includes descriptions for commands", () => {
@@ -104,9 +88,7 @@ describe("generateFishCompletion", () => {
   it("escapes single quotes in descriptions", () => {
     const program = new Command();
     program.name("testcli");
-    program.addOption(
-      new Option("--test", "it's a test"),
-    );
+    program.addOption(new Option("--test", "it's a test"));
     const script = generateFishCompletion(program);
     expect(script).toContain("it\\'s a test");
   });

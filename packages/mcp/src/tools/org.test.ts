@@ -35,9 +35,7 @@ describe("org MCP tools", () => {
 
       const content = result.content as { type: string; text: string }[];
       expect(content).toHaveLength(1);
-      const parsed: unknown = JSON.parse(
-        (content[0] as { type: string; text: string }).text,
-      );
+      const parsed: unknown = JSON.parse((content[0] as { type: string; text: string }).text);
       expect(parsed).toEqual({ name: "Acme Corp", slug: "acme-corp" });
     });
 

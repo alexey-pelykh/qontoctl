@@ -45,16 +45,13 @@ describe.skipIf(!hasFish())("fish completion (e2e)", () => {
   it("completes top-level commands", () => {
     const result = execFileSync(
       "fish",
-      [
-        "-c",
-        [
-          `source "${scriptPath}"`,
-          'complete --do-complete "qontoctl "',
-        ].join("; "),
-      ],
+      ["-c", [`source "${scriptPath}"`, 'complete --do-complete "qontoctl "'].join("; ")],
       { encoding: "utf-8" },
     );
-    const completions = result.trim().split("\n").map((l) => l.split("\t")[0] ?? "");
+    const completions = result
+      .trim()
+      .split("\n")
+      .map((l) => l.split("\t")[0] ?? "");
     expect(completions).toContain("completion");
     expect(completions).toContain("org");
     expect(completions).toContain("account");
@@ -65,16 +62,13 @@ describe.skipIf(!hasFish())("fish completion (e2e)", () => {
   it("completes subcommands for completion command", () => {
     const result = execFileSync(
       "fish",
-      [
-        "-c",
-        [
-          `source "${scriptPath}"`,
-          'complete --do-complete "qontoctl completion "',
-        ].join("; "),
-      ],
+      ["-c", [`source "${scriptPath}"`, 'complete --do-complete "qontoctl completion "'].join("; ")],
       { encoding: "utf-8" },
     );
-    const completions = result.trim().split("\n").map((l) => l.split("\t")[0] ?? "");
+    const completions = result
+      .trim()
+      .split("\n")
+      .map((l) => l.split("\t")[0] ?? "");
     expect(completions).toContain("bash");
     expect(completions).toContain("zsh");
     expect(completions).toContain("fish");

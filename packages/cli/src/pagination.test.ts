@@ -53,9 +53,7 @@ describe("pagination", () => {
     });
 
     it("passes additional query params", async () => {
-      fetchSpy.mockReturnValue(
-        jsonResponse({ transactions: [], meta: makeMeta() }),
-      );
+      fetchSpy.mockReturnValue(jsonResponse({ transactions: [], meta: makeMeta() }));
 
       await fetchPage(client, "/v2/transactions", "transactions", 1, 50, {
         bank_account_id: "abc",
@@ -66,9 +64,7 @@ describe("pagination", () => {
     });
 
     it("returns empty items when collection key is missing", async () => {
-      fetchSpy.mockReturnValue(
-        jsonResponse({ meta: makeMeta() }),
-      );
+      fetchSpy.mockReturnValue(jsonResponse({ meta: makeMeta() }));
 
       const result = await fetchPage(client, "/v2/things", "things", 1, 100);
       expect(result.items).toEqual([]);

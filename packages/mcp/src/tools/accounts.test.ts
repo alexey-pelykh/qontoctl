@@ -35,9 +35,7 @@ describe("account MCP tools", () => {
 
       const content = result.content as { type: string; text: string }[];
       expect(content).toHaveLength(1);
-      const parsed: unknown = JSON.parse(
-        (content[0] as { type: string; text: string }).text,
-      );
+      const parsed: unknown = JSON.parse((content[0] as { type: string; text: string }).text);
       expect(parsed).toEqual([{ id: "acc-1", name: "Main", balance: 1000 }]);
     });
 
@@ -69,9 +67,7 @@ describe("account MCP tools", () => {
 
       const content = result.content as { type: string; text: string }[];
       expect(content).toHaveLength(1);
-      const parsed: unknown = JSON.parse(
-        (content[0] as { type: string; text: string }).text,
-      );
+      const parsed: unknown = JSON.parse((content[0] as { type: string; text: string }).text);
       expect(parsed).toEqual({ id: "acc-1", name: "Main", balance: 1000 });
     });
 

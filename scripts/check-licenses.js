@@ -57,8 +57,6 @@ if (violations.length > 0) {
   process.exit(1);
 } else {
   const total = Object.values(licenseMap).reduce((sum, pkgs) => sum + pkgs.length, 0);
-  console.log(
-    `License check passed: ${total} production dependencies, all using allowed licenses.`,
-  );
+  console.log(`License check passed: ${total} production dependencies, all using allowed licenses.`);
   console.log(`Licenses found: ${Object.keys(licenseMap).sort().join(", ")}`);
 }

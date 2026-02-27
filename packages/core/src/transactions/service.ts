@@ -9,9 +9,7 @@ import type { ListTransactionsParams, Transaction } from "./types.js";
  *
  * Array parameters use the `key[]` convention expected by the Qonto API.
  */
-export function buildTransactionQueryParams(
-  params: ListTransactionsParams,
-): QueryParams {
+export function buildTransactionQueryParams(params: ListTransactionsParams): QueryParams {
   const query: Record<string, string | readonly string[]> = {};
 
   if (params.bank_account_id !== undefined) {

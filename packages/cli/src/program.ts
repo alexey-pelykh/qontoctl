@@ -15,37 +15,16 @@ const packageJson = require("../package.json") as { version: string };
 export function createProgram(): Command {
   const program = new Command();
 
-  program
-    .name("qontoctl")
-    .description("The complete CLI & MCP for Qonto")
-    .version(packageJson.version);
+  program.name("qontoctl").description("The complete CLI & MCP for Qonto").version(packageJson.version);
 
   program
-    .addOption(
-      new Option("-p, --profile <name>", "configuration profile to use"),
-    )
-    .addOption(
-      new Option("-o, --output <format>", "output format")
-        .choices([...OUTPUT_FORMATS])
-        .default("table"),
-    )
-    .addOption(
-      new Option("--verbose", "enable verbose output"),
-    )
-    .addOption(
-      new Option("--debug", "enable debug output (implies --verbose)"),
-    )
-    .addOption(
-      new Option("--page <number>", "fetch a specific page of results")
-        .argParser(parsePositiveInt),
-    )
-    .addOption(
-      new Option("--per-page <number>", "number of results per page")
-        .argParser(parsePositiveInt),
-    )
-    .addOption(
-      new Option("--no-paginate", "disable auto-pagination"),
-    );
+    .addOption(new Option("-p, --profile <name>", "configuration profile to use"))
+    .addOption(new Option("-o, --output <format>", "output format").choices([...OUTPUT_FORMATS]).default("table"))
+    .addOption(new Option("--verbose", "enable verbose output"))
+    .addOption(new Option("--debug", "enable debug output (implies --verbose)"))
+    .addOption(new Option("--page <number>", "fetch a specific page of results").argParser(parsePositiveInt))
+    .addOption(new Option("--per-page <number>", "number of results per page").argParser(parsePositiveInt))
+    .addOption(new Option("--no-paginate", "disable auto-pagination"));
 
   registerCompletionCommand(program);
   registerTransactionCommands(program);

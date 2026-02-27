@@ -10,9 +10,7 @@ import { type CreateServerOptions, createServer } from "./server.js";
  * graceful shutdown. This function does not return under normal
  * operation — the process stays alive until SIGINT/SIGTERM.
  */
-export async function runStdioServer(
-  options?: CreateServerOptions,
-): Promise<void> {
+export async function runStdioServer(options?: CreateServerOptions): Promise<void> {
   const server = createServer(options);
   const transport = new StdioServerTransport();
 

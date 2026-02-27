@@ -18,12 +18,7 @@ export function createLabelCommand(): Command {
       const opts = label.optsWithGlobals<GlobalOptions & PaginationOptions>();
       const client = await createClient(opts);
 
-      const result = await fetchPaginated<Label>(
-        client,
-        "/v2/labels",
-        "labels",
-        opts,
-      );
+      const result = await fetchPaginated<Label>(client, "/v2/labels", "labels", opts);
 
       const data =
         opts.output === "json" || opts.output === "yaml"

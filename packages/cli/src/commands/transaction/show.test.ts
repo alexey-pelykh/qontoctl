@@ -22,12 +22,10 @@ describe("transaction show command", () => {
     vi.stubGlobal("fetch", fetchSpy);
 
     writtenOutput = [];
-    vi.spyOn(process.stdout, "write").mockImplementation(
-      (chunk: string | Uint8Array): boolean => {
-        writtenOutput.push(String(chunk));
-        return true;
-      },
-    );
+    vi.spyOn(process.stdout, "write").mockImplementation((chunk: string | Uint8Array): boolean => {
+      writtenOutput.push(String(chunk));
+      return true;
+    });
   });
 
   afterEach(() => {
@@ -71,17 +69,12 @@ describe("transaction show command", () => {
   });
 
   it("passes includes as query params", async () => {
-    fetchSpy.mockReturnValue(
-      jsonResponse({ transaction: { id: "txn-1" } }),
-    );
+    fetchSpy.mockReturnValue(jsonResponse({ transaction: { id: "txn-1" } }));
 
     await runCommand("txn-1", "--include", "labels", "attachments");
 
     const [url] = fetchSpy.mock.calls[0] as [URL];
-    expect(url.searchParams.getAll("includes[]")).toEqual([
-      "labels",
-      "attachments",
-    ]);
+    expect(url.searchParams.getAll("includes[]")).toEqual(["labels", "attachments"]);
   });
 
   it("outputs yaml format for single transaction", async () => {

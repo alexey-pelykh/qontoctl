@@ -33,18 +33,9 @@ function tryReadConfigFile(path: string): ApiKeyCredentials | undefined {
   try {
     const content = readFileSync(path, "utf-8");
     const parsed: unknown = parseYaml(content);
-    if (
-      typeof parsed === "object" &&
-      parsed !== null &&
-      "api-key" in parsed
-    ) {
+    if (typeof parsed === "object" && parsed !== null && "api-key" in parsed) {
       const apiKey = (parsed as Record<string, unknown>)["api-key"];
-      if (
-        typeof apiKey === "object" &&
-        apiKey !== null &&
-        "organization_slug" in apiKey &&
-        "secret_key" in apiKey
-      ) {
+      if (typeof apiKey === "object" && apiKey !== null && "organization_slug" in apiKey && "secret_key" in apiKey) {
         const record = apiKey as Record<string, unknown>;
         const slug = record["organization_slug"];
         const key = record["secret_key"];
@@ -67,10 +58,7 @@ function tryReadConfigFile(path: string): ApiKeyCredentials | undefined {
  * that API-dependent suites are skipped when no credentials are present.
  */
 export function hasCredentials(): boolean {
-  if (
-    process.env["QONTOCTL_ORGANIZATION_SLUG"] !== undefined &&
-    process.env["QONTOCTL_SECRET_KEY"] !== undefined
-  ) {
+  if (process.env["QONTOCTL_ORGANIZATION_SLUG"] !== undefined && process.env["QONTOCTL_SECRET_KEY"] !== undefined) {
     return true;
   }
   return readConfigFileCredentials() !== undefined;

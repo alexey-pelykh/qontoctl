@@ -83,18 +83,14 @@ describe("createClient", () => {
     });
 
     const options: GlobalOptions = { output: "table" };
-    await expect(createClient(options)).rejects.toThrow(
-      "No API key credentials found in configuration",
-    );
+    await expect(createClient(options)).rejects.toThrow("No API key credentials found in configuration");
   });
 
   it("creates client without logger by default", async () => {
     const options: GlobalOptions = { output: "table" };
     await createClient(options);
 
-    const ctorArgs = HttpClientMock.mock.calls[0]?.[0] as
-      | HttpClientOptions
-      | undefined;
+    const ctorArgs = HttpClientMock.mock.calls[0]?.[0] as HttpClientOptions | undefined;
     expect(ctorArgs?.logger).toBeUndefined();
   });
 
@@ -102,9 +98,7 @@ describe("createClient", () => {
     const options: GlobalOptions = { output: "table", debug: true };
     await createClient(options);
 
-    const ctorArgs = HttpClientMock.mock.calls[0]?.[0] as
-      | HttpClientOptions
-      | undefined;
+    const ctorArgs = HttpClientMock.mock.calls[0]?.[0] as HttpClientOptions | undefined;
     const logger = ctorArgs?.logger;
     expect(logger).toBeDefined();
 
@@ -119,18 +113,14 @@ describe("createClient", () => {
     const options: GlobalOptions = { output: "table", debug: true };
     await createClient(options);
 
-    expect(stderrSpy).toHaveBeenCalledWith(
-      expect.stringContaining("Debug mode logs full API responses"),
-    );
+    expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("Debug mode logs full API responses"));
   });
 
   it("does not emit debug warning when only --verbose is set", async () => {
     const options: GlobalOptions = { output: "table", verbose: true };
     await createClient(options);
 
-    const calls = stderrSpy.mock.calls.map(
-      (call: [string]) => call[0],
-    ) as string[];
+    const calls = stderrSpy.mock.calls.map((call: [string]) => call[0]) as string[];
     expect(calls.every((msg) => !msg.includes("Debug mode"))).toBe(true);
   });
 
@@ -138,9 +128,7 @@ describe("createClient", () => {
     const options: GlobalOptions = { output: "table", verbose: true };
     await createClient(options);
 
-    const ctorArgs = HttpClientMock.mock.calls[0]?.[0] as
-      | HttpClientOptions
-      | undefined;
+    const ctorArgs = HttpClientMock.mock.calls[0]?.[0] as HttpClientOptions | undefined;
     const logger = ctorArgs?.logger;
     expect(logger).toBeDefined();
 

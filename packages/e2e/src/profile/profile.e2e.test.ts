@@ -2,32 +2,19 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { type ChildProcess, spawn, spawnSync } from "node:child_process";
-import {
-  existsSync,
-  mkdtempSync,
-  mkdirSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { getCredentials, hasCredentials } from "../sandbox.js";
 
-const CLI_PATH = resolve(
-  import.meta.dirname,
-  "../../../qontoctl/dist/cli.js",
-);
+const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
 /**
  * Build a subprocess env with HOME (and USERPROFILE on Windows) pointing
  * to the given directory so the CLI reads/writes profiles there.
  */
-function homeEnv(
-  homeDir: string,
-  extra?: Record<string, string>,
-): Record<string, string> {
+function homeEnv(homeDir: string, extra?: Record<string, string>): Record<string, string> {
   return {
     PATH: process.env["PATH"] ?? "",
     HOME: homeDir,
@@ -110,14 +97,8 @@ describe("profile commands (e2e)", () => {
       listDir = mkdtempSync(join(tmpdir(), "qontoctl-list-e2e-"));
       const dir = join(listDir, ".qontoctl");
       mkdirSync(dir, { recursive: true });
-      writeFileSync(
-        join(dir, "personal.yaml"),
-        "api-key:\n  organization_slug: org-a\n  secret_key: key-a\n",
-      );
-      writeFileSync(
-        join(dir, "work.yaml"),
-        "api-key:\n  organization_slug: org-b\n  secret_key: key-b\n",
-      );
+      writeFileSync(join(dir, "personal.yaml"), "api-key:\n  organization_slug: org-a\n  secret_key: key-a\n");
+      writeFileSync(join(dir, "work.yaml"), "api-key:\n  organization_slug: org-b\n  secret_key: key-b\n");
       writeFileSync(join(dir, "notes.txt"), "not a profile");
     });
 
@@ -182,10 +163,7 @@ describe("profile commands (e2e)", () => {
     });
 
     it("reports error for non-existent profile", () => {
-      const { stderr, exitCode } = cli(
-        ["profile", "show", "nonexistent"],
-        { env: homeEnv(showDir) },
-      );
+      const { stderr, exitCode } = cli(["profile", "show", "nonexistent"], { env: homeEnv(showDir) });
       expect(exitCode).not.toBe(0);
       expect(stderr).toContain("not found");
     });
@@ -206,13 +184,10 @@ describe("profile commands (e2e)", () => {
     });
 
     it("creates a new profile yaml from interactive input", async () => {
-      const { stdout, exitCode } = await cliInteractive(
-        ["profile", "add", "myprofile"],
-        {
-          env: homeEnv(addDir),
-          lines: ["test-org-slug", "sk_test_secretkey123"],
-        },
-      );
+      const { stdout, exitCode } = await cliInteractive(["profile", "add", "myprofile"], {
+        env: homeEnv(addDir),
+        lines: ["test-org-slug", "sk_test_secretkey123"],
+      });
       expect(exitCode).toBe(0);
       expect(stdout).toContain('Profile "myprofile" created');
 
@@ -226,13 +201,10 @@ describe("profile commands (e2e)", () => {
 
     it("refuses to overwrite an existing profile", async () => {
       // myprofile was created in the previous test
-      const { stderr, exitCode } = await cliInteractive(
-        ["profile", "add", "myprofile"],
-        {
-          env: homeEnv(addDir),
-          lines: ["new-org", "new-key"],
-        },
-      );
+      const { stderr, exitCode } = await cliInteractive(["profile", "add", "myprofile"], {
+        env: homeEnv(addDir),
+        lines: ["new-org", "new-key"],
+      });
       expect(exitCode).not.toBe(0);
       expect(stderr).toContain("already exists");
     });
@@ -248,14 +220,8 @@ describe("profile commands (e2e)", () => {
       removeDir = mkdtempSync(join(tmpdir(), "qontoctl-remove-e2e-"));
       const dir = join(removeDir, ".qontoctl");
       mkdirSync(dir, { recursive: true });
-      writeFileSync(
-        join(dir, "disposable.yaml"),
-        "api-key:\n  organization_slug: org\n  secret_key: key\n",
-      );
-      writeFileSync(
-        join(dir, "keeper.yaml"),
-        "api-key:\n  organization_slug: org2\n  secret_key: key2\n",
-      );
+      writeFileSync(join(dir, "disposable.yaml"), "api-key:\n  organization_slug: org\n  secret_key: key\n");
+      writeFileSync(join(dir, "keeper.yaml"), "api-key:\n  organization_slug: org2\n  secret_key: key2\n");
     });
 
     afterAll(() => {
@@ -263,17 +229,13 @@ describe("profile commands (e2e)", () => {
     });
 
     it("deletes profile file after yes confirmation", () => {
-      const profilePath = join(
-        removeDir,
-        ".qontoctl",
-        "disposable.yaml",
-      );
+      const profilePath = join(removeDir, ".qontoctl", "disposable.yaml");
       expect(existsSync(profilePath)).toBe(true);
 
-      const { stdout, exitCode } = cli(
-        ["profile", "remove", "disposable"],
-        { env: homeEnv(removeDir), input: "yes\n" },
-      );
+      const { stdout, exitCode } = cli(["profile", "remove", "disposable"], {
+        env: homeEnv(removeDir),
+        input: "yes\n",
+      });
       expect(exitCode).toBe(0);
       expect(stdout).toContain('Profile "disposable" removed.');
       expect(existsSync(profilePath)).toBe(false);
@@ -283,20 +245,14 @@ describe("profile commands (e2e)", () => {
       const profilePath = join(removeDir, ".qontoctl", "keeper.yaml");
       expect(existsSync(profilePath)).toBe(true);
 
-      const { stdout, exitCode } = cli(
-        ["profile", "remove", "keeper"],
-        { env: homeEnv(removeDir), input: "no\n" },
-      );
+      const { stdout, exitCode } = cli(["profile", "remove", "keeper"], { env: homeEnv(removeDir), input: "no\n" });
       expect(exitCode).toBe(0);
       expect(stdout).toContain("Aborted.");
       expect(existsSync(profilePath)).toBe(true);
     });
 
     it("reports error for non-existent profile", () => {
-      const { stderr, exitCode } = cli(
-        ["profile", "remove", "ghost"],
-        { env: homeEnv(removeDir), input: "yes\n" },
-      );
+      const { stderr, exitCode } = cli(["profile", "remove", "ghost"], { env: homeEnv(removeDir), input: "yes\n" });
       expect(exitCode).not.toBe(0);
       expect(stderr).toContain("not found");
     });
@@ -307,46 +263,43 @@ describe("profile commands (e2e)", () => {
 // profile test — requires sandbox API access
 // ---------------------------------------------------------------------------
 
-describe.skipIf(!hasCredentials())(
-  "profile test (e2e)",
-  () => {
-    let tempDir: string;
+describe.skipIf(!hasCredentials())("profile test (e2e)", () => {
+  let tempDir: string;
 
-    beforeAll(() => {
-      tempDir = mkdtempSync(join(tmpdir(), "qontoctl-test-e2e-"));
-    });
+  beforeAll(() => {
+    tempDir = mkdtempSync(join(tmpdir(), "qontoctl-test-e2e-"));
+  });
 
-    afterAll(() => {
-      rmSync(tempDir, { recursive: true, force: true });
-    });
+  afterAll(() => {
+    rmSync(tempDir, { recursive: true, force: true });
+  });
 
-    // AC: Given valid API key credentials,
-    //     When `profile test` is run,
-    //     Then it calls GET /v2/organization and reports success with org name
-    it("reports success with organization name for valid credentials", () => {
-      const creds = getCredentials();
-      const { stdout, exitCode } = cli(["profile", "test"], {
-        env: homeEnv(tempDir, {
-          QONTOCTL_ORGANIZATION_SLUG: creds.organizationSlug,
-          QONTOCTL_SECRET_KEY: creds.secretKey,
-        }),
-      });
-      expect(exitCode).toBe(0);
-      expect(stdout).toContain("Success: connected to organization");
+  // AC: Given valid API key credentials,
+  //     When `profile test` is run,
+  //     Then it calls GET /v2/organization and reports success with org name
+  it("reports success with organization name for valid credentials", () => {
+    const creds = getCredentials();
+    const { stdout, exitCode } = cli(["profile", "test"], {
+      env: homeEnv(tempDir, {
+        QONTOCTL_ORGANIZATION_SLUG: creds.organizationSlug,
+        QONTOCTL_SECRET_KEY: creds.secretKey,
+      }),
     });
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("Success: connected to organization");
+  });
 
-    // AC: Given invalid credentials,
-    //     When `profile test` is run,
-    //     Then it reports failure with the error message
-    it("reports failure with error message for invalid credentials", () => {
-      const { stderr, exitCode } = cli(["profile", "test"], {
-        env: homeEnv(tempDir, {
-          QONTOCTL_ORGANIZATION_SLUG: "invalid-org-slug",
-          QONTOCTL_SECRET_KEY: "invalid-secret-key",
-        }),
-      });
-      expect(exitCode).not.toBe(0);
-      expect(stderr).toMatch(/error/i);
+  // AC: Given invalid credentials,
+  //     When `profile test` is run,
+  //     Then it reports failure with the error message
+  it("reports failure with error message for invalid credentials", () => {
+    const { stderr, exitCode } = cli(["profile", "test"], {
+      env: homeEnv(tempDir, {
+        QONTOCTL_ORGANIZATION_SLUG: "invalid-org-slug",
+        QONTOCTL_SECRET_KEY: "invalid-secret-key",
+      }),
     });
-  },
-);
+    expect(exitCode).not.toBe(0);
+    expect(stderr).toMatch(/error/i);
+  });
+});

@@ -57,9 +57,7 @@ describe("createServer", () => {
 
       const pattern = /^[a-z]+_[a-z]+$/;
       for (const tool of tools) {
-        expect(tool.name, `Tool "${tool.name}" should match {entity}_{operation} pattern`).toMatch(
-          pattern,
-        );
+        expect(tool.name, `Tool "${tool.name}" should match {entity}_{operation} pattern`).toMatch(pattern);
       }
     });
   });

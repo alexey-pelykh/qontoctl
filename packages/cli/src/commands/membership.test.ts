@@ -39,9 +39,7 @@ describe("membership commands", () => {
       authorization: "slug:secret",
     });
     vi.mocked(createClient).mockResolvedValue(client);
-    stdoutSpy = vi
-      .spyOn(process.stdout, "write")
-      .mockImplementation((() => true) as never);
+    stdoutSpy = vi.spyOn(process.stdout, "write").mockImplementation((() => true) as never);
   });
 
   afterEach(() => {
@@ -166,10 +164,7 @@ describe("membership commands", () => {
       program.addCommand(createMembershipCommand());
       program.exitOverride();
 
-      await program.parseAsync(
-        ["--page", "3", "--per-page", "25", "membership", "list"],
-        { from: "user" },
-      );
+      await program.parseAsync(["--page", "3", "--per-page", "25", "membership", "list"], { from: "user" });
 
       const [url] = fetchSpy.mock.calls[0] as [URL];
       expect(url.searchParams.get("current_page")).toBe("3");

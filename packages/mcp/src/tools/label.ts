@@ -22,22 +22,13 @@ interface SingleLabelResponse {
   readonly label: Label;
 }
 
-export function registerLabelTools(
-  server: McpServer,
-  getClient: () => Promise<HttpClient>,
-): void {
+export function registerLabelTools(server: McpServer, getClient: () => Promise<HttpClient>): void {
   server.tool(
     "label_list",
     "List all labels in the organization",
     {
       page: z.number().int().positive().optional().describe("Page number"),
-      per_page: z
-        .number()
-        .int()
-        .positive()
-        .max(100)
-        .optional()
-        .describe("Items per page (max 100)"),
+      per_page: z.number().int().positive().max(100).optional().describe("Items per page (max 100)"),
     },
     async ({ page, per_page }) =>
       withClient(getClient, async (client) => {
@@ -54,11 +45,7 @@ export function registerLabelTools(
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(
-                { labels: response.labels, meta: response.meta },
-                null,
-                2,
-              ),
+              text: JSON.stringify({ labels: response.labels, meta: response.meta }, null, 2),
             },
           ],
         };
@@ -73,10 +60,7 @@ export function registerLabelTools(
     },
     async ({ id }) =>
       withClient(getClient, async (client) => {
-        const response = await client.get<SingleLabelResponse>(
-          `/v2/labels/${encodeURIComponent(id)}`,
-        );
-
+        const response = await client.get<SingleLabelResponse>(`/v2/labels/${encodeURIComponent(id)}`);
 
         return {
           content: [

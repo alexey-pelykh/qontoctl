@@ -82,9 +82,9 @@ describe("transaction MCP tools", () => {
         arguments: { current_page: 2, per_page: 50 },
       });
 
-      const txnCall = fetchSpy.mock.calls.find(
-        (c: unknown[]) => (c[0] as URL).pathname === "/v2/transactions",
-      ) as [URL, RequestInit] | undefined;
+      const txnCall = fetchSpy.mock.calls.find((c: unknown[]) => (c[0] as URL).pathname === "/v2/transactions") as
+        | [URL, RequestInit]
+        | undefined;
       expect(txnCall).toBeDefined();
       const txnUrl = (txnCall as [URL, RequestInit])[0];
       expect(txnUrl.searchParams.get("current_page")).toBe("2");
@@ -105,18 +105,14 @@ describe("transaction MCP tools", () => {
         arguments: {},
       });
 
-      const orgCall = fetchSpy.mock.calls.find(
-        (c: unknown[]) => (c[0] as URL).pathname === "/v2/organization",
-      );
+      const orgCall = fetchSpy.mock.calls.find((c: unknown[]) => (c[0] as URL).pathname === "/v2/organization");
       expect(orgCall).toBeDefined();
 
-      const txnCall = fetchSpy.mock.calls.find(
-        (c: unknown[]) => (c[0] as URL).pathname === "/v2/transactions",
-      ) as [URL, RequestInit] | undefined;
+      const txnCall = fetchSpy.mock.calls.find((c: unknown[]) => (c[0] as URL).pathname === "/v2/transactions") as
+        | [URL, RequestInit]
+        | undefined;
       expect(txnCall).toBeDefined();
-      expect(
-        (txnCall as [URL, RequestInit])[0].searchParams.get("bank_account_id"),
-      ).toBe("auto-acc-1");
+      expect((txnCall as [URL, RequestInit])[0].searchParams.get("bank_account_id")).toBe("auto-acc-1");
     });
   });
 
@@ -135,9 +131,7 @@ describe("transaction MCP tools", () => {
 
       const content = result.content as { type: string; text: string }[];
       expect(content).toHaveLength(1);
-      const parsed: unknown = JSON.parse(
-        (content[0] as { type: string; text: string }).text,
-      );
+      const parsed: unknown = JSON.parse((content[0] as { type: string; text: string }).text);
       expect(parsed).toEqual({ id: "txn-1", amount: 42.0, side: "debit" });
     });
 

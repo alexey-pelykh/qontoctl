@@ -11,11 +11,10 @@ import { cliEnv, hasCredentials } from "../sandbox.js";
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
 function listStatements(): Record<string, unknown>[] {
-  const output = execFileSync(
-    "node",
-    [CLI_PATH, "statement", "list", "--no-paginate", "-o", "json"],
-    { encoding: "utf-8", env: cliEnv() },
-  );
+  const output = execFileSync("node", [CLI_PATH, "statement", "list", "--no-paginate", "-o", "json"], {
+    encoding: "utf-8",
+    env: cliEnv(),
+  });
   return JSON.parse(output) as Record<string, unknown>[];
 }
 
@@ -44,16 +43,7 @@ describe.skipIf(!hasCredentials())("statement CLI commands (e2e)", () => {
 
       const filteredOutput = execFileSync(
         "node",
-        [
-          CLI_PATH,
-          "statement",
-          "list",
-          "--bank-account",
-          bankAccountId,
-          "--no-paginate",
-          "-o",
-          "json",
-        ],
+        [CLI_PATH, "statement", "list", "--bank-account", bankAccountId, "--no-paginate", "-o", "json"],
         { encoding: "utf-8", env: cliEnv() },
       );
       const filteredRows = JSON.parse(filteredOutput) as Record<string, unknown>[];
@@ -66,18 +56,7 @@ describe.skipIf(!hasCredentials())("statement CLI commands (e2e)", () => {
     it("filters by period range", () => {
       const output = execFileSync(
         "node",
-        [
-          CLI_PATH,
-          "statement",
-          "list",
-          "--from",
-          "01-2025",
-          "--to",
-          "12-2025",
-          "--no-paginate",
-          "-o",
-          "json",
-        ],
+        [CLI_PATH, "statement", "list", "--from", "01-2025", "--to", "12-2025", "--no-paginate", "-o", "json"],
         { encoding: "utf-8", env: cliEnv() },
       );
 
@@ -96,11 +75,10 @@ describe.skipIf(!hasCredentials())("statement CLI commands (e2e)", () => {
 
       const statementId = (allRows[0] as Record<string, unknown>)["id"] as string;
 
-      const showOutput = execFileSync(
-        "node",
-        [CLI_PATH, "statement", "show", statementId, "-o", "json"],
-        { encoding: "utf-8", env: cliEnv() },
-      );
+      const showOutput = execFileSync("node", [CLI_PATH, "statement", "show", statementId, "-o", "json"], {
+        encoding: "utf-8",
+        env: cliEnv(),
+      });
       const showRows = JSON.parse(showOutput) as Record<string, unknown>[];
       expect(showRows).toHaveLength(1);
 
@@ -136,11 +114,11 @@ describe.skipIf(!hasCredentials())("statement CLI commands (e2e)", () => {
       const expectedFileName = firstRow["file_name"] as string;
 
       const downloadDir = mkdtempSync(join(tempDir, "cwd-"));
-      execFileSync(
-        "node",
-        [CLI_PATH, "statement", "download", statementId],
-        { encoding: "utf-8", env: cliEnv(), cwd: downloadDir },
-      );
+      execFileSync("node", [CLI_PATH, "statement", "download", statementId], {
+        encoding: "utf-8",
+        env: cliEnv(),
+        cwd: downloadDir,
+      });
 
       const downloadedFile = join(downloadDir, expectedFileName);
       expect(existsSync(downloadedFile)).toBe(true);
@@ -155,11 +133,10 @@ describe.skipIf(!hasCredentials())("statement CLI commands (e2e)", () => {
       const expectedFileName = firstRow["file_name"] as string;
 
       const outputDir = mkdtempSync(join(tempDir, "outdir-"));
-      execFileSync(
-        "node",
-        [CLI_PATH, "statement", "download", statementId, "--output-dir", outputDir],
-        { encoding: "utf-8", env: cliEnv() },
-      );
+      execFileSync("node", [CLI_PATH, "statement", "download", statementId, "--output-dir", outputDir], {
+        encoding: "utf-8",
+        env: cliEnv(),
+      });
 
       const downloadedFile = join(outputDir, expectedFileName);
       expect(existsSync(downloadedFile)).toBe(true);

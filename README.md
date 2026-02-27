@@ -76,25 +76,27 @@ All configuration files use the same YAML format:
 
 ```yaml
 api-key:
-  organization_slug: acme-corp-4821
-  secret_key: your-secret-key
+    organization_slug: acme-corp-4821
+    secret_key: your-secret-key
 
 oauth:
-  client_id: app-id
-  client_secret: app-secret
-  access_token: eyJ...              # auto-managed
-  refresh_token: dGhp...            # auto-managed
-  expires_at: 2026-02-26T18:30:00Z  # auto-managed
+    client_id: app-id
+    client_secret: app-secret
+    access_token: eyJ... # auto-managed
+    refresh_token: dGhp... # auto-managed
+    expires_at: 2026-02-26T18:30:00Z # auto-managed
 ```
 
 ### Resolution Order
 
 **Without `--profile`:**
+
 1. `QONTOCTL_*` environment variables (highest priority)
 2. `.qontoctl.yaml` in current directory
 3. `~/.qontoctl.yaml` (home default)
 
 **With `--profile acme`:**
+
 1. `QONTOCTL_ACME_*` environment variables (highest priority)
 2. `~/.qontoctl/acme.yaml`
 

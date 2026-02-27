@@ -24,9 +24,7 @@ export function generateBashCompletion(program: Command): string {
     lines.push('  case "$prev" in');
     for (const { flags, choices } of optionChoices) {
       lines.push(`    ${flags.join("|")})`);
-      lines.push(
-        `      COMPREPLY=($(compgen -W "${choices.join(" ")}" -- "$cur"))`,
-      );
+      lines.push(`      COMPREPLY=($(compgen -W "${choices.join(" ")}" -- "$cur"))`);
       lines.push("      return");
       lines.push("      ;;");
     }
@@ -68,13 +66,9 @@ export function generateBashCompletion(program: Command): string {
 
   lines.push('  if [[ -z "$cmd" ]]; then');
   lines.push('    if [[ "$cur" == -* ]]; then');
-  lines.push(
-    `      COMPREPLY=($(compgen -W "${rootFlags.join(" ")}" -- "$cur"))`,
-  );
+  lines.push(`      COMPREPLY=($(compgen -W "${rootFlags.join(" ")}" -- "$cur"))`);
   lines.push("    else");
-  lines.push(
-    `      COMPREPLY=($(compgen -W "${rootCmds.join(" ")}" -- "$cur"))`,
-  );
+  lines.push(`      COMPREPLY=($(compgen -W "${rootCmds.join(" ")}" -- "$cur"))`);
   lines.push("    fi");
   lines.push("    return");
   lines.push("  fi");
@@ -92,29 +86,17 @@ export function generateBashCompletion(program: Command): string {
         lines.push('      if [[ -z "$subcmd" ]]; then');
         if (cmdFlags.length > 0) {
           lines.push('        if [[ "$cur" == -* ]]; then');
-          lines.push(
-            "          COMPREPLY=" +
-              `($(compgen -W "${cmdFlags.join(" ")}" -- "$cur"))`,
-          );
+          lines.push("          COMPREPLY=" + `($(compgen -W "${cmdFlags.join(" ")}" -- "$cur"))`);
           lines.push("        else");
-          lines.push(
-            "          COMPREPLY=" +
-              `($(compgen -W "${subCmds.join(" ")}" -- "$cur"))`,
-          );
+          lines.push("          COMPREPLY=" + `($(compgen -W "${subCmds.join(" ")}" -- "$cur"))`);
           lines.push("        fi");
         } else {
-          lines.push(
-            "        COMPREPLY=" +
-              `($(compgen -W "${subCmds.join(" ")}" -- "$cur"))`,
-          );
+          lines.push("        COMPREPLY=" + `($(compgen -W "${subCmds.join(" ")}" -- "$cur"))`);
         }
         lines.push("      fi");
       } else if (cmdFlags.length > 0) {
         lines.push('      if [[ "$cur" == -* ]]; then');
-        lines.push(
-          "        COMPREPLY=" +
-            `($(compgen -W "${cmdFlags.join(" ")}" -- "$cur"))`,
-        );
+        lines.push("        COMPREPLY=" + `($(compgen -W "${cmdFlags.join(" ")}" -- "$cur"))`);
         lines.push("      fi");
       }
       lines.push("      ;;");
@@ -130,10 +112,7 @@ export function generateBashCompletion(program: Command): string {
   return lines.join("\n");
 }
 
-function collectFlags(
-  command: Command,
-  includeVersion: boolean,
-): string[] {
+function collectFlags(command: Command, includeVersion: boolean): string[] {
   const flags: string[] = [];
   for (const opt of command.options) {
     if (opt.hidden) continue;
@@ -175,9 +154,7 @@ function collectValueTakingFlags(root: Command): string[] {
   return flags;
 }
 
-function collectOptionChoices(
-  root: Command,
-): Array<{ flags: string[]; choices: string[] }> {
+function collectOptionChoices(root: Command): Array<{ flags: string[]; choices: string[] }> {
   const result: Array<{ flags: string[]; choices: string[] }> = [];
   const seen = new Set<string>();
 

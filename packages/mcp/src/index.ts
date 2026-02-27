@@ -2,11 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import {
-  HttpClient,
-  buildApiKeyAuthorization,
-  resolveConfig,
-} from "@qontoctl/core";
+import { HttpClient, buildApiKeyAuthorization, resolveConfig } from "@qontoctl/core";
 import { runStdioServer } from "./stdio.js";
 
 await runStdioServer({

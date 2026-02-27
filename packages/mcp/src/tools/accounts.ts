@@ -6,23 +6,14 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { HttpClient } from "@qontoctl/core";
 import { withClient } from "../errors.js";
 
-export function registerAccountTools(
-  server: McpServer,
-  getClient: () => Promise<HttpClient>,
-): void {
-  server.tool(
-    "account_list",
-    "List all bank accounts for the organization",
-    {},
-    async () =>
-      withClient(getClient, async (client) => {
-        const response = await client.get<{ bank_accounts: unknown[] }>("/v2/bank_accounts");
-        return {
-          content: [
-            { type: "text" as const, text: JSON.stringify(response.bank_accounts, null, 2) },
-          ],
-        };
-      }),
+export function registerAccountTools(server: McpServer, getClient: () => Promise<HttpClient>): void {
+  server.tool("account_list", "List all bank accounts for the organization", {}, async () =>
+    withClient(getClient, async (client) => {
+      const response = await client.get<{ bank_accounts: unknown[] }>("/v2/bank_accounts");
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify(response.bank_accounts, null, 2) }],
+      };
+    }),
   );
 
   server.tool(
@@ -35,9 +26,7 @@ export function registerAccountTools(
       withClient(getClient, async (client) => {
         const response = await client.get<{ bank_account: unknown }>(`/v2/bank_accounts/${encodeURIComponent(id)}`);
         return {
-          content: [
-            { type: "text" as const, text: JSON.stringify(response.bank_account, null, 2) },
-          ],
+          content: [{ type: "text" as const, text: JSON.stringify(response.bank_account, null, 2) }],
         };
       }),
   );

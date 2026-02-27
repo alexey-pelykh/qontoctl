@@ -13,11 +13,7 @@ describe("qontoctl CLI", () => {
   it("registers mcp subcommand", () => {
     const program = createProgram();
 
-    program
-      .command("mcp")
-      .description(
-        "Start MCP server on stdio (for Claude Desktop, Cursor, etc.)",
-      );
+    program.command("mcp").description("Start MCP server on stdio (for Claude Desktop, Cursor, etc.)");
 
     const commandNames = program.commands.map((c) => c.name());
     expect(commandNames).toContain("mcp");

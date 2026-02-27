@@ -2,13 +2,7 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { describe, it, expect } from "vitest";
-import {
-  ConfigError,
-  AuthError,
-  QontoApiError,
-  QontoRateLimitError,
-  HttpClient,
-} from "@qontoctl/core";
+import { ConfigError, AuthError, QontoApiError, QontoRateLimitError, HttpClient } from "@qontoctl/core";
 import { withClient } from "./errors.js";
 
 const fakeClient = {} as HttpClient;
@@ -31,9 +25,7 @@ describe("withClient", () => {
 
     expect(result.isError).toBe(true);
     expect((result.content[0] as { type: "text"; text: string }).text).toContain("HTTP 404");
-    expect((result.content[0] as { type: "text"; text: string }).text).toContain(
-      "Resource not found",
-    );
+    expect((result.content[0] as { type: "text"; text: string }).text).toContain("Resource not found");
   });
 
   describe("ConfigError", () => {
@@ -70,11 +62,7 @@ describe("withClient", () => {
   describe("QontoApiError", () => {
     it("formats API error with status and details", async () => {
       const factory = () =>
-        Promise.reject(
-          new QontoApiError(422, [
-            { code: "invalid_parameter", detail: "bank_account_id is required" },
-          ]),
-        );
+        Promise.reject(new QontoApiError(422, [{ code: "invalid_parameter", detail: "bank_account_id is required" }]));
       const result = await withClient(factory, async () => ({
         content: [{ type: "text" as const, text: "unreachable" }],
       }));

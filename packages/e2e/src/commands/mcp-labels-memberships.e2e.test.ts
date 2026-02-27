@@ -7,10 +7,7 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { cliEnv, hasCredentials } from "../sandbox.js";
 
-const CLI_PATH = resolve(
-  import.meta.dirname,
-  "../../../qontoctl/dist/cli.js",
-);
+const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
 /**
  * Extract the text content from a single-entry MCP tool result.

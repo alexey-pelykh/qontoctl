@@ -1,12 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import {
-  type HttpClientLogger,
-  HttpClient,
-  resolveConfig,
-  buildApiKeyAuthorization,
-} from "@qontoctl/core";
+import { type HttpClientLogger, HttpClient, resolveConfig, buildApiKeyAuthorization } from "@qontoctl/core";
 import type { GlobalOptions } from "./options.js";
 
 /**
@@ -15,9 +10,7 @@ import type { GlobalOptions } from "./options.js";
  * Resolves configuration (profile, env), builds the authorization
  * header, and uses the resolved endpoint.
  */
-export async function createClient(
-  options: GlobalOptions,
-): Promise<HttpClient> {
+export async function createClient(options: GlobalOptions): Promise<HttpClient> {
   const { config, endpoint, warnings } = await resolveConfig({
     profile: options.profile,
   });

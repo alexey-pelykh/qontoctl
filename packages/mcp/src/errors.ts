@@ -1,13 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import {
-  type HttpClient,
-  ConfigError,
-  AuthError,
-  QontoApiError,
-  QontoRateLimitError,
-} from "@qontoctl/core";
+import { type HttpClient, ConfigError, AuthError, QontoApiError, QontoRateLimitError } from "@qontoctl/core";
 
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
@@ -52,8 +46,7 @@ function formatApiError(error: QontoApiError): CallToolResult {
 }
 
 function formatRateLimitError(error: QontoRateLimitError): CallToolResult {
-  const retryHint =
-    error.retryAfter !== undefined ? ` Retry after ${error.retryAfter} seconds.` : "";
+  const retryHint = error.retryAfter !== undefined ? ` Retry after ${error.retryAfter} seconds.` : "";
   return textError(`Rate limit exceeded.${retryHint} Please wait before retrying.`);
 }
 

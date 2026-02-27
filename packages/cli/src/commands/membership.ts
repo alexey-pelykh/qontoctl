@@ -9,24 +9,16 @@ import { formatOutput } from "../formatters/index.js";
 import type { GlobalOptions, PaginationOptions } from "../options.js";
 
 export function createMembershipCommand(): Command {
-  const membership = new Command("membership").description(
-    "Manage memberships",
-  );
+  const membership = new Command("membership").description("Manage memberships");
 
   membership
     .command("list")
     .description("List all memberships")
     .action(async () => {
-      const opts =
-        membership.optsWithGlobals<GlobalOptions & PaginationOptions>();
+      const opts = membership.optsWithGlobals<GlobalOptions & PaginationOptions>();
       const client = await createClient(opts);
 
-      const result = await fetchPaginated<Membership>(
-        client,
-        "/v2/memberships",
-        "memberships",
-        opts,
-      );
+      const result = await fetchPaginated<Membership>(client, "/v2/memberships", "memberships", opts);
 
       const data =
         opts.output === "json" || opts.output === "yaml"

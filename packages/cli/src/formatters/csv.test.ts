@@ -59,10 +59,7 @@ describe("formatCsv", () => {
   });
 
   it("produces empty cells for missing keys", () => {
-    const result = formatCsv([
-      { a: 1, b: 2 },
-      { a: 3 } as Record<string, unknown>,
-    ]);
+    const result = formatCsv([{ a: 1, b: 2 }, { a: 3 } as Record<string, unknown>]);
     const lines = result.split("\n");
     expect(lines[2]).toBe("3,");
   });
