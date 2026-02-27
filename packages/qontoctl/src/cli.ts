@@ -7,6 +7,7 @@ import {
   createProgram,
   createLabelCommand,
   createMembershipCommand,
+  handleCliError,
   registerProfileCommands,
   registerStatementCommands,
 } from "@qontoctl/cli";
@@ -28,4 +29,8 @@ program
     });
   });
 
-program.parse();
+try {
+  await program.parseAsync();
+} catch (error: unknown) {
+  handleCliError(error, program.opts()["debug"] === true);
+}
