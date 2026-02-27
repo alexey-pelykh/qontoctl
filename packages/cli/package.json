@@ -10,6 +10,7 @@
   "author": "Alexey Pelykh (https://github.com/alexey-pelykh)",
   "homepage": "https://github.com/alexey-pelykh/qontoctl/tree/main/packages/cli",
   "bugs": "https://github.com/alexey-pelykh/qontoctl/issues",
+  "funding": "https://github.com/sponsors/alexey-pelykh",
   "repository": {
     "type": "git",
     "url": "https://github.com/alexey-pelykh/qontoctl.git",
@@ -26,6 +27,14 @@
   },
   "files": [
     "dist"
+  ],
+  "keywords": [
+    "qonto",
+    "banking",
+    "fintech",
+    "cli",
+    "command-line",
+    "qonto-api"
   ],
   "publishConfig": {
     "access": "public"
