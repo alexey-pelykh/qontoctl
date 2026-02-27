@@ -13,13 +13,7 @@ npm install @qontoctl/core
 ## Usage
 
 ```ts
-import {
-  resolveConfig,
-  buildApiKeyAuthorization,
-  HttpClient,
-  API_BASE_URL,
-  getOrganization,
-} from "@qontoctl/core";
+import { resolveConfig, buildApiKeyAuthorization, HttpClient, API_BASE_URL, getOrganization } from "@qontoctl/core";
 
 // Resolve configuration from file or environment
 const config = await resolveConfig();

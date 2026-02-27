@@ -14,32 +14,32 @@ npm install @qontoctl/cli
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `org show` | Show organization details |
-| `account list` | List bank accounts |
-| `account show <id>` | Show account details |
-| `transaction list` | List transactions with filters |
-| `transaction show <id>` | Show transaction details |
-| `label list` | List all labels |
-| `label show <id>` | Show label details |
-| `membership list` | List organization memberships |
-| `statement list` | List bank statements |
-| `statement show <id>` | Show statement details |
-| `statement download <id>` | Download statement PDF |
-| `completion` | Generate shell completion scripts |
+| Command                   | Description                       |
+| ------------------------- | --------------------------------- |
+| `org show`                | Show organization details         |
+| `account list`            | List bank accounts                |
+| `account show <id>`       | Show account details              |
+| `transaction list`        | List transactions with filters    |
+| `transaction show <id>`   | Show transaction details          |
+| `label list`              | List all labels                   |
+| `label show <id>`         | Show label details                |
+| `membership list`         | List organization memberships     |
+| `statement list`          | List bank statements              |
+| `statement show <id>`     | Show statement details            |
+| `statement download <id>` | Download statement PDF            |
+| `completion`              | Generate shell completion scripts |
 
 ### Global Options
 
-| Option | Description |
-|--------|-------------|
-| `-p, --profile <name>` | Configuration profile to use |
+| Option                  | Description                                   |
+| ----------------------- | --------------------------------------------- |
+| `-p, --profile <name>`  | Configuration profile to use                  |
 | `-o, --output <format>` | Output format: `table`, `json`, `yaml`, `csv` |
-| `--verbose` | Enable verbose logging |
-| `--debug` | Enable debug logging |
-| `--page <number>` | Page number for paginated results |
-| `--per-page <number>` | Items per page |
-| `--no-paginate` | Disable auto-pagination |
+| `--verbose`             | Enable verbose logging                        |
+| `--debug`               | Enable debug logging                          |
+| `--page <number>`       | Page number for paginated results             |
+| `--per-page <number>`   | Items per page                                |
+| `--no-paginate`         | Disable auto-pagination                       |
 
 ## Programmatic Usage
 
