@@ -1,6 +1,7 @@
 # QontoCtl: The Complete CLI & MCP for Qonto
 
 [![CI](https://github.com/alexey-pelykh/qontoctl/actions/workflows/ci.yml/badge.svg)](https://github.com/alexey-pelykh/qontoctl/actions/workflows/ci.yml)
+[![Codecov](https://img.shields.io/codecov/c/github/alexey-pelykh/qontoctl?logo=codecov)](https://codecov.io/gh/alexey-pelykh/qontoctl)
 [![npm version](https://img.shields.io/npm/v/qontoctl?logo=npm)](https://www.npmjs.com/package/qontoctl)
 [![npm downloads](https://img.shields.io/npm/dm/qontoctl?logo=npm)](https://www.npmjs.com/package/qontoctl)
 [![GitHub Repo stars](https://img.shields.io/github/stars/alexey-pelykh/qontoctl?style=flat&logo=github)](https://github.com/alexey-pelykh/qontoctl)
