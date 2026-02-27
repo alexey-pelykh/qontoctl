@@ -29,4 +29,8 @@ export type {
 
 export { AuthError, buildApiKeyAuthorization } from "./auth/index.js";
 
+export { API_BASE_URL, SANDBOX_BASE_URL } from "./constants.js";
+
+export type { Label, Membership } from "./types/index.js";
+
 export type { Statement, StatementFile } from "./statements/index.js";
