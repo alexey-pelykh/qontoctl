@@ -33,42 +33,42 @@ export function registerAccountCommands(program: Command): void {
   const list = account.command("list").description("List bank accounts");
   addInheritableOptions(list);
   list.action(async (_options: unknown, cmd: Command) => {
-      const opts = resolveGlobalOptions<GlobalOptions & PaginationOptions>(cmd);
-      const client = await createClient(opts);
+    const opts = resolveGlobalOptions<GlobalOptions & PaginationOptions>(cmd);
+    const client = await createClient(opts);
 
-      const result = await fetchPaginated<BankAccount>(client, "/v2/bank_accounts", "bank_accounts", opts);
+    const result = await fetchPaginated<BankAccount>(client, "/v2/bank_accounts", "bank_accounts", opts);
 
-      const data = opts.output === "json" || opts.output === "yaml" ? result.items : result.items.map(toListRow);
+    const data = opts.output === "json" || opts.output === "yaml" ? result.items : result.items.map(toListRow);
 
-      const output = formatOutput(data, opts.output);
-      process.stdout.write(output + "\n");
-    });
+    const output = formatOutput(data, opts.output);
+    process.stdout.write(output + "\n");
+  });
 
   const show = account.command("show").description("Show bank account details").argument("<id>", "Bank account ID");
   addInheritableOptions(show);
   show.action(async (id: string, _options: unknown, cmd: Command) => {
-      const opts = resolveGlobalOptions<GlobalOptions>(cmd);
-      const client = await createClient(opts);
-      const bankAccount = await getBankAccount(client, id);
+    const opts = resolveGlobalOptions<GlobalOptions>(cmd);
+    const client = await createClient(opts);
+    const bankAccount = await getBankAccount(client, id);
 
-      const data =
-        opts.output === "json" || opts.output === "yaml"
-          ? bankAccount
-          : [
-              {
-                id: bankAccount.id,
-                name: bankAccount.name,
-                iban: bankAccount.iban,
-                bic: bankAccount.bic,
-                balance: bankAccount.balance,
-                authorized_balance: bankAccount.authorized_balance,
-                currency: bankAccount.currency,
-                status: bankAccount.status,
-                main: bankAccount.main,
-              },
-            ];
+    const data =
+      opts.output === "json" || opts.output === "yaml"
+        ? bankAccount
+        : [
+            {
+              id: bankAccount.id,
+              name: bankAccount.name,
+              iban: bankAccount.iban,
+              bic: bankAccount.bic,
+              balance: bankAccount.balance,
+              authorized_balance: bankAccount.authorized_balance,
+              currency: bankAccount.currency,
+              status: bankAccount.status,
+              main: bankAccount.main,
+            },
+          ];
 
-      const output = formatOutput(data, opts.output);
-      process.stdout.write(output + "\n");
-    });
+    const output = formatOutput(data, opts.output);
+    process.stdout.write(output + "\n");
+  });
 }

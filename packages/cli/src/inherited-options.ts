@@ -30,8 +30,5 @@ export function resolveGlobalOptions<T>(cmd: Command): T {
   }
   // reduceRight processes [this, parent, root] as root → parent → this,
   // so leaf options overwrite parent options via Object.assign.
-  return chain.reduceRight<Record<string, unknown>>(
-    (combined, c) => Object.assign(combined, c.opts()),
-    {},
-  ) as T;
+  return chain.reduceRight<Record<string, unknown>>((combined, c) => Object.assign(combined, c.opts()), {}) as T;
 }

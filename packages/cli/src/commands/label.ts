@@ -15,45 +15,45 @@ export function createLabelCommand(): Command {
   const list = label.command("list").description("List all labels");
   addInheritableOptions(list);
   list.action(async (_options: unknown, cmd: Command) => {
-      const opts = resolveGlobalOptions<GlobalOptions & PaginationOptions>(cmd);
-      const client = await createClient(opts);
+    const opts = resolveGlobalOptions<GlobalOptions & PaginationOptions>(cmd);
+    const client = await createClient(opts);
 
-      const result = await fetchPaginated<Label>(client, "/v2/labels", "labels", opts);
+    const result = await fetchPaginated<Label>(client, "/v2/labels", "labels", opts);
 
-      const data =
-        opts.output === "json" || opts.output === "yaml"
-          ? result.items
-          : result.items.map((l) => ({
-              id: l.id,
-              name: l.name,
-              parent_id: l.parent_id ?? "",
-            }));
+    const data =
+      opts.output === "json" || opts.output === "yaml"
+        ? result.items
+        : result.items.map((l) => ({
+            id: l.id,
+            name: l.name,
+            parent_id: l.parent_id ?? "",
+          }));
 
-      process.stdout.write(formatOutput(data, opts.output) + "\n");
-    });
+    process.stdout.write(formatOutput(data, opts.output) + "\n");
+  });
 
   const show = label.command("show <id>").description("Show label details");
   addInheritableOptions(show);
   show.action(async (id: string, _options: unknown, cmd: Command) => {
-      const opts = resolveGlobalOptions<GlobalOptions>(cmd);
-      const client = await createClient(opts);
+    const opts = resolveGlobalOptions<GlobalOptions>(cmd);
+    const client = await createClient(opts);
 
-      const response = await client.get<{ label: Label }>(`/v2/labels/${encodeURIComponent(id)}`);
-      const l = response.label;
+    const response = await client.get<{ label: Label }>(`/v2/labels/${encodeURIComponent(id)}`);
+    const l = response.label;
 
-      const data =
-        opts.output === "json" || opts.output === "yaml"
-          ? l
-          : [
-              {
-                id: l.id,
-                name: l.name,
-                parent_id: l.parent_id ?? "",
-              },
-            ];
+    const data =
+      opts.output === "json" || opts.output === "yaml"
+        ? l
+        : [
+            {
+              id: l.id,
+              name: l.name,
+              parent_id: l.parent_id ?? "",
+            },
+          ];
 
-      process.stdout.write(formatOutput(data, opts.output) + "\n");
-    });
+    process.stdout.write(formatOutput(data, opts.output) + "\n");
+  });
 
   return label;
 }

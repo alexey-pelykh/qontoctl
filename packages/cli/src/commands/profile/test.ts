@@ -29,9 +29,9 @@ export function registerTestCommand(parent: Command): void {
   const test = parent.command("test").description("test credentials via GET /v2/organization");
   addInheritableOptions(test);
   test.action(async (_options: unknown, cmd: Command) => {
-      const globalOpts = resolveGlobalOptions<GlobalOptions>(cmd);
-      await testProfile(globalOpts);
-    });
+    const globalOpts = resolveGlobalOptions<GlobalOptions>(cmd);
+    await testProfile(globalOpts);
+  });
 }
 
 async function testProfile(options: GlobalOptions): Promise<void> {

@@ -17,22 +17,22 @@ export function registerOrgCommands(program: Command): void {
   const show = org.command("show").description("Show organization details");
   addInheritableOptions(show);
   show.action(async (_options: unknown, cmd: Command) => {
-      const opts = resolveGlobalOptions<GlobalOptions>(cmd);
-      const client = await createClient(opts);
-      const organization = await getOrganization(client);
+    const opts = resolveGlobalOptions<GlobalOptions>(cmd);
+    const client = await createClient(opts);
+    const organization = await getOrganization(client);
 
-      const data =
-        opts.output === "json" || opts.output === "yaml"
-          ? organization
-          : [
-              {
-                slug: organization.slug,
-                legal_name: organization.legal_name,
-                bank_accounts: organization.bank_accounts.length,
-              },
-            ];
+    const data =
+      opts.output === "json" || opts.output === "yaml"
+        ? organization
+        : [
+            {
+              slug: organization.slug,
+              legal_name: organization.legal_name,
+              bank_accounts: organization.bank_accounts.length,
+            },
+          ];
 
-      const output = formatOutput(data, opts.output);
-      process.stdout.write(output + "\n");
-    });
+    const output = formatOutput(data, opts.output);
+    process.stdout.write(output + "\n");
+  });
 }

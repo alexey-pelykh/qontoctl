@@ -75,23 +75,23 @@ export function registerTransactionListCommand(parent: Command): void {
     .addOption(new Option("--sort-by <sort>", "sort order (e.g. settled_at:desc)"));
   addInheritableOptions(list);
   list.action(async (_opts: unknown, cmd: Command) => {
-      const opts = resolveGlobalOptions<TransactionListOptions>(cmd);
-      const client = await createClient(opts);
+    const opts = resolveGlobalOptions<TransactionListOptions>(cmd);
+    const client = await createClient(opts);
 
-      let params = buildParams(opts);
-      if (params.bank_account_id === undefined && params.iban === undefined) {
-        const org = await getOrganization(client);
-        const mainAccount = org.bank_accounts.find((a) => a.main) ?? org.bank_accounts[0];
-        if (mainAccount !== undefined) {
-          params = { ...params, bank_account_id: mainAccount.id };
-        }
+    let params = buildParams(opts);
+    if (params.bank_account_id === undefined && params.iban === undefined) {
+      const org = await getOrganization(client);
+      const mainAccount = org.bank_accounts.find((a) => a.main) ?? org.bank_accounts[0];
+      if (mainAccount !== undefined) {
+        params = { ...params, bank_account_id: mainAccount.id };
       }
-      const queryParams = buildTransactionQueryParams(params);
+    }
+    const queryParams = buildTransactionQueryParams(params);
 
-      const result = await fetchPaginated<Transaction>(client, "/v2/transactions", "transactions", opts, queryParams);
+    const result = await fetchPaginated<Transaction>(client, "/v2/transactions", "transactions", opts, queryParams);
 
-      const data = opts.output === "table" || opts.output === "csv" ? result.items.map(toTableRow) : result.items;
+    const data = opts.output === "table" || opts.output === "csv" ? result.items.map(toTableRow) : result.items;
 
-      process.stdout.write(formatOutput(data, opts.output) + "\n");
-    });
+    process.stdout.write(formatOutput(data, opts.output) + "\n");
+  });
 }

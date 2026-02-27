@@ -26,11 +26,11 @@ export function registerTransactionShowCommand(parent: Command): void {
     );
   addInheritableOptions(show);
   show.action(async (id: string, _opts: unknown, cmd: Command) => {
-      const opts = resolveGlobalOptions<TransactionShowOptions>(cmd);
-      const client = await createClient(opts);
+    const opts = resolveGlobalOptions<TransactionShowOptions>(cmd);
+    const client = await createClient(opts);
 
-      const transaction = await getTransaction(client, id, opts.include);
+    const transaction = await getTransaction(client, id, opts.include);
 
-      process.stdout.write(formatOutput(transaction, opts.output) + "\n");
-    });
+    process.stdout.write(formatOutput(transaction, opts.output) + "\n");
+  });
 }
