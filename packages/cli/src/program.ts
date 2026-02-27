@@ -26,9 +26,6 @@ export function createProgram(): Command {
         .default("table"),
     )
     .addOption(
-      new Option("--sandbox", "use the Qonto sandbox environment"),
-    )
-    .addOption(
       new Option("--verbose", "enable verbose output"),
     )
     .addOption(

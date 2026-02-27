@@ -52,12 +52,6 @@ export interface HttpClientOptions {
   /** Value for the Authorization header. */
   readonly authorization: string;
 
-  /**
-   * Staging token for sandbox mode.
-   * When set, the `X-Qonto-Staging-Token` header is included.
-   */
-  readonly stagingToken?: string | undefined;
-
   /** Logger for verbose/debug output. */
   readonly logger?: HttpClientLogger | undefined;
 
@@ -92,12 +86,10 @@ export type QueryParams = Readonly<Record<string, QueryParamValue>>;
  * - Exponential backoff on 429 responses
  * - Structured error handling for 4xx/5xx
  * - Wire logging (verbose/debug) via injected logger
- * - Sandbox mode with X-Qonto-Staging-Token header
  */
 export class HttpClient {
   private readonly baseUrl: string;
   private readonly authorization: string;
-  private readonly stagingToken: string | undefined;
   private readonly logger: HttpClientLogger | undefined;
   private readonly maxRetries: number;
   private readonly userAgent: string;
@@ -105,7 +97,6 @@ export class HttpClient {
   constructor(options: HttpClientOptions) {
     this.baseUrl = options.baseUrl.replace(/\/+$/, "");
     this.authorization = options.authorization;
-    this.stagingToken = options.stagingToken;
     this.logger = options.logger;
     this.maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
     this.userAgent = buildUserAgent();
@@ -201,10 +192,6 @@ export class HttpClient {
 
     if (hasBody) {
       headers["Content-Type"] = "application/json";
-    }
-
-    if (this.stagingToken !== undefined) {
-      headers["X-Qonto-Staging-Token"] = this.stagingToken;
     }
 
     this.logDebug(`Request headers: ${JSON.stringify({ ...headers, Authorization: "[REDACTED]" })}`);

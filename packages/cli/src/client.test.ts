@@ -28,6 +28,7 @@ describe("createClient", () => {
           secretKey: "test-secret",
         },
       },
+      endpoint: "https://thirdparty.qonto.com",
       warnings: [],
     });
   });
@@ -56,6 +57,7 @@ describe("createClient", () => {
           secretKey: "test-secret",
         },
       },
+      endpoint: "https://thirdparty.qonto.com",
       warnings: ["Unknown key: foo"],
     });
 
@@ -67,6 +69,7 @@ describe("createClient", () => {
   it("throws when config has no API key", async () => {
     resolveConfigMock.mockResolvedValue({
       config: {},
+      endpoint: "https://thirdparty.qonto.com",
       warnings: [],
     });
 

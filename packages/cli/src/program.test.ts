@@ -62,11 +62,6 @@ describe("createProgram", () => {
       expect(() => program.parse(["--output", "xml"], { from: "user" })).toThrow();
     });
 
-    it("parses --sandbox flag", () => {
-      const program = parseGlobalOptions(["--sandbox"]);
-      expect(program.opts()["sandbox"]).toBe(true);
-    });
-
     it("parses --verbose flag", () => {
       const program = parseGlobalOptions(["--verbose"]);
       expect(program.opts()["verbose"]).toBe(true);

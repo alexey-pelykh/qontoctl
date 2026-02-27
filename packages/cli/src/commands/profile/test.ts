@@ -14,9 +14,6 @@ import {
 } from "@qontoctl/core";
 import type { GlobalOptions } from "../../options.js";
 
-const PRODUCTION_BASE_URL = "https://thirdparty.qonto.com";
-const SANDBOX_BASE_URL = "https://thirdparty-sandbox.staging.qonto.co";
-
 interface OrganizationResponse {
   readonly organization: {
     readonly name: string;
@@ -52,7 +49,7 @@ async function testProfile(options: GlobalOptions): Promise<void> {
   }
 
   try {
-    const { config } = await resolveConfig({ profile: options.profile });
+    const { config, endpoint } = await resolveConfig({ profile: options.profile });
 
     if (config.apiKey === undefined) {
       console.error("Configuration error: no credentials found.");
@@ -63,7 +60,7 @@ async function testProfile(options: GlobalOptions): Promise<void> {
     const authorization = buildApiKeyAuthorization(config.apiKey);
 
     const client = new HttpClient({
-      baseUrl: options.sandbox === true ? SANDBOX_BASE_URL : PRODUCTION_BASE_URL,
+      baseUrl: endpoint,
       authorization,
       logger,
     });

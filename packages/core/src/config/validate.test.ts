@@ -121,4 +121,49 @@ describe("validateConfig", () => {
     expect(result.config.apiKey).toBeUndefined();
     expect(result.errors).toEqual([]);
   });
+
+  it("parses valid endpoint URL", () => {
+    const result = validateConfig({ endpoint: "https://custom.example.com" });
+    expect(result.config.endpoint).toBe("https://custom.example.com");
+    expect(result.errors).toEqual([]);
+  });
+
+  it("errors when endpoint is not a string", () => {
+    const result = validateConfig({ endpoint: 123 });
+    expect(result.errors).toContain('"endpoint" must be a string');
+  });
+
+  it("errors when endpoint is not a valid URL", () => {
+    const result = validateConfig({ endpoint: "not-a-url" });
+    expect(result.errors).toContain('"endpoint" must be a valid URL');
+  });
+
+  it("allows null endpoint", () => {
+    const result = validateConfig({ endpoint: null });
+    expect(result.config.endpoint).toBeUndefined();
+    expect(result.errors).toEqual([]);
+  });
+
+  it("parses sandbox boolean true", () => {
+    const result = validateConfig({ sandbox: true });
+    expect(result.config.sandbox).toBe(true);
+    expect(result.errors).toEqual([]);
+  });
+
+  it("parses sandbox boolean false", () => {
+    const result = validateConfig({ sandbox: false });
+    expect(result.config.sandbox).toBe(false);
+    expect(result.errors).toEqual([]);
+  });
+
+  it("errors when sandbox is not a boolean", () => {
+    const result = validateConfig({ sandbox: "yes" });
+    expect(result.errors).toContain('"sandbox" must be a boolean');
+  });
+
+  it("allows null sandbox", () => {
+    const result = validateConfig({ sandbox: null });
+    expect(result.config.sandbox).toBeUndefined();
+    expect(result.errors).toEqual([]);
+  });
 });

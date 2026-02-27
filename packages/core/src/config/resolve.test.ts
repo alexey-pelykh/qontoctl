@@ -186,4 +186,99 @@ describe("resolveConfig", () => {
       }),
     ).rejects.toThrow(/~\/\.qontoctl\/nonexistent\.yaml/);
   });
+
+  it("defaults endpoint to production URL", async () => {
+    const result = await resolveConfig({
+      cwd: testDir,
+      home: testHome,
+      env: {
+        QONTOCTL_ORGANIZATION_SLUG: "org",
+        QONTOCTL_SECRET_KEY: "secret",
+      },
+    });
+    expect(result.endpoint).toBe("https://thirdparty.qonto.com");
+  });
+
+  it("resolves endpoint from config file", async () => {
+    await writeFile(
+      join(testDir, ".qontoctl.yaml"),
+      "api-key:\n  organization_slug: org\n  secret_key: secret\nendpoint: https://custom.example.com\n",
+    );
+
+    const result = await resolveConfig({
+      cwd: testDir,
+      home: testHome,
+      env: {},
+    });
+    expect(result.endpoint).toBe("https://custom.example.com");
+  });
+
+  it("resolves sandbox endpoint from config file", async () => {
+    await writeFile(
+      join(testDir, ".qontoctl.yaml"),
+      "api-key:\n  organization_slug: org\n  secret_key: secret\nsandbox: true\n",
+    );
+
+    const result = await resolveConfig({
+      cwd: testDir,
+      home: testHome,
+      env: {},
+    });
+    expect(result.endpoint).toBe("https://thirdparty-sandbox.staging.qonto.co");
+  });
+
+  it("explicit endpoint takes precedence over sandbox", async () => {
+    await writeFile(
+      join(testDir, ".qontoctl.yaml"),
+      "api-key:\n  organization_slug: org\n  secret_key: secret\nendpoint: https://custom.example.com\nsandbox: true\n",
+    );
+
+    const result = await resolveConfig({
+      cwd: testDir,
+      home: testHome,
+      env: {},
+    });
+    expect(result.endpoint).toBe("https://custom.example.com");
+  });
+
+  it("QONTOCTL_ENDPOINT env var takes precedence over file sandbox", async () => {
+    await writeFile(
+      join(testDir, ".qontoctl.yaml"),
+      "api-key:\n  organization_slug: org\n  secret_key: secret\nsandbox: true\n",
+    );
+
+    const result = await resolveConfig({
+      cwd: testDir,
+      home: testHome,
+      env: { QONTOCTL_ENDPOINT: "https://env.example.com" },
+    });
+    expect(result.endpoint).toBe("https://env.example.com");
+  });
+
+  it("QONTOCTL_SANDBOX=1 env var resolves to sandbox endpoint", async () => {
+    const result = await resolveConfig({
+      cwd: testDir,
+      home: testHome,
+      env: {
+        QONTOCTL_ORGANIZATION_SLUG: "org",
+        QONTOCTL_SECRET_KEY: "secret",
+        QONTOCTL_SANDBOX: "1",
+      },
+    });
+    expect(result.endpoint).toBe("https://thirdparty-sandbox.staging.qonto.co");
+  });
+
+  it("QONTOCTL_ENDPOINT takes precedence over QONTOCTL_SANDBOX", async () => {
+    const result = await resolveConfig({
+      cwd: testDir,
+      home: testHome,
+      env: {
+        QONTOCTL_ORGANIZATION_SLUG: "org",
+        QONTOCTL_SECRET_KEY: "secret",
+        QONTOCTL_ENDPOINT: "https://env.example.com",
+        QONTOCTL_SANDBOX: "1",
+      },
+    });
+    expect(result.endpoint).toBe("https://env.example.com");
+  });
 });
