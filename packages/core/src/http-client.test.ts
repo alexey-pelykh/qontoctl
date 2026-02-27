@@ -88,6 +88,26 @@ describe("HttpClient", () => {
       expect(url.searchParams.get("page")).toBe("2");
     });
 
+    it("appends array query parameters as repeated keys", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ data: "ok" }));
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+      });
+
+      await client.get("/v2/transactions", {
+        "status[]": ["pending", "completed"],
+        side: "debit",
+      });
+
+      const [url] = fetchSpy.mock.calls[0] as [URL];
+      expect(url.searchParams.getAll("status[]")).toEqual([
+        "pending",
+        "completed",
+      ]);
+      expect(url.searchParams.get("side")).toBe("debit");
+    });
+
     it("sends POST request with JSON body", async () => {
       fetchSpy.mockReturnValue(jsonResponse({ id: "123" }, { status: 201 }));
       const client = new TestableHttpClient({

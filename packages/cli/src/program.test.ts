@@ -4,6 +4,23 @@
 import { describe, it, expect } from "vitest";
 import { createProgram } from "./program.js";
 
+/**
+ * Parse global options without requiring a subcommand.
+ * Commander shows help and exits when no subcommand is provided,
+ * so we use exitOverride() and catch the resulting error.
+ * The options are still parsed before Commander looks for subcommands.
+ */
+function parseGlobalOptions(args: string[]) {
+  const program = createProgram();
+  program.exitOverride();
+  try {
+    program.parse(args, { from: "user" });
+  } catch {
+    // Commander throws when no subcommand is provided
+  }
+  return program;
+}
+
 describe("createProgram", () => {
   it("returns a Commander program with name 'qontoctl'", () => {
     const program = createProgram();
@@ -12,20 +29,17 @@ describe("createProgram", () => {
 
   describe("global options", () => {
     it("parses --profile option", () => {
-      const program = createProgram();
-      program.parse(["--profile", "work"], { from: "user" });
+      const program = parseGlobalOptions(["--profile", "work"]);
       expect(program.opts()["profile"]).toBe("work");
     });
 
     it("parses --output option with valid format", () => {
-      const program = createProgram();
-      program.parse(["--output", "json"], { from: "user" });
+      const program = parseGlobalOptions(["--output", "json"]);
       expect(program.opts()["output"]).toBe("json");
     });
 
     it("defaults --output to table", () => {
-      const program = createProgram();
-      program.parse([], { from: "user" });
+      const program = parseGlobalOptions([]);
       expect(program.opts()["output"]).toBe("table");
     });
 
@@ -36,58 +50,49 @@ describe("createProgram", () => {
     });
 
     it("parses --sandbox flag", () => {
-      const program = createProgram();
-      program.parse(["--sandbox"], { from: "user" });
+      const program = parseGlobalOptions(["--sandbox"]);
       expect(program.opts()["sandbox"]).toBe(true);
     });
 
     it("parses --verbose flag", () => {
-      const program = createProgram();
-      program.parse(["--verbose"], { from: "user" });
+      const program = parseGlobalOptions(["--verbose"]);
       expect(program.opts()["verbose"]).toBe(true);
     });
 
     it("parses --debug flag", () => {
-      const program = createProgram();
-      program.parse(["--debug"], { from: "user" });
+      const program = parseGlobalOptions(["--debug"]);
       expect(program.opts()["debug"]).toBe(true);
     });
 
     it("parses short -p alias for --profile", () => {
-      const program = createProgram();
-      program.parse(["-p", "staging"], { from: "user" });
+      const program = parseGlobalOptions(["-p", "staging"]);
       expect(program.opts()["profile"]).toBe("staging");
     });
 
     it("parses short -o alias for --output", () => {
-      const program = createProgram();
-      program.parse(["-o", "yaml"], { from: "user" });
+      const program = parseGlobalOptions(["-o", "yaml"]);
       expect(program.opts()["output"]).toBe("yaml");
     });
   });
 
   describe("pagination options", () => {
     it("parses --page option", () => {
-      const program = createProgram();
-      program.parse(["--page", "3"], { from: "user" });
+      const program = parseGlobalOptions(["--page", "3"]);
       expect(program.opts()["page"]).toBe(3);
     });
 
     it("parses --per-page option", () => {
-      const program = createProgram();
-      program.parse(["--per-page", "50"], { from: "user" });
+      const program = parseGlobalOptions(["--per-page", "50"]);
       expect(program.opts()["perPage"]).toBe(50);
     });
 
     it("defaults paginate to true", () => {
-      const program = createProgram();
-      program.parse([], { from: "user" });
+      const program = parseGlobalOptions([]);
       expect(program.opts()["paginate"]).toBe(true);
     });
 
     it("parses --no-paginate flag", () => {
-      const program = createProgram();
-      program.parse(["--no-paginate"], { from: "user" });
+      const program = parseGlobalOptions(["--no-paginate"]);
       expect(program.opts()["paginate"]).toBe(false);
     });
 

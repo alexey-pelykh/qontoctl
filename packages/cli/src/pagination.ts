@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import type { HttpClient } from "@qontoctl/core";
+import type { HttpClient, QueryParams } from "@qontoctl/core";
 import type { PaginationOptions } from "./options.js";
 
 /**
@@ -51,9 +51,9 @@ export async function fetchPage<T>(
   collectionKey: string,
   page: number,
   perPage: number,
-  params?: Readonly<Record<string, string>>,
+  params?: QueryParams,
 ): Promise<Page<T>> {
-  const queryParams: Record<string, string> = {
+  const queryParams: QueryParams = {
     ...params,
     current_page: String(page),
     per_page: String(perPage),
@@ -80,7 +80,7 @@ export async function fetchAllPages<T>(
   path: string,
   collectionKey: string,
   perPage: number,
-  params?: Readonly<Record<string, string>>,
+  params?: QueryParams,
 ): Promise<PaginatedResult<T>> {
   const firstPage = await fetchPage<T>(client, path, collectionKey, 1, perPage, params);
   const allItems: T[] = [...firstPage.items];
@@ -136,7 +136,7 @@ export async function fetchPaginated<T>(
   path: string,
   collectionKey: string,
   paginationOptions: PaginationOptions,
-  params?: Readonly<Record<string, string>>,
+  params?: QueryParams,
 ): Promise<PaginatedResult<T>> {
   const perPage = paginationOptions.perPage ?? DEFAULT_PER_PAGE;
 

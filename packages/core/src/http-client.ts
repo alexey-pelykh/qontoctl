@@ -73,6 +73,17 @@ function buildUserAgent(): string {
 }
 
 /**
+ * Query parameter value: a single string or an array of strings for
+ * repeated-key parameters (e.g., `status[]=pending&status[]=completed`).
+ */
+export type QueryParamValue = string | readonly string[];
+
+/**
+ * Query parameters for an HTTP request.
+ */
+export type QueryParams = Readonly<Record<string, QueryParamValue>>;
+
+/**
  * Core HTTP client for the Qonto API.
  *
  * Features:
@@ -105,7 +116,7 @@ export class HttpClient {
     path: string,
     options?: {
       readonly body?: unknown;
-      readonly params?: Readonly<Record<string, string>>;
+      readonly params?: QueryParams;
     },
   ): Promise<T> {
     const url = this.buildUrl(path, options?.params);
@@ -157,7 +168,7 @@ export class HttpClient {
     throw new QontoRateLimitError(undefined);
   }
 
-  async get<T>(path: string, params?: Readonly<Record<string, string>>): Promise<T> {
+  async get<T>(path: string, params?: QueryParams): Promise<T> {
     return this.request<T>("GET", path, params !== undefined ? { params } : undefined);
   }
 
@@ -165,11 +176,17 @@ export class HttpClient {
     return this.request<T>("POST", path, body !== undefined ? { body } : undefined);
   }
 
-  private buildUrl(path: string, params?: Readonly<Record<string, string>>): URL {
+  private buildUrl(path: string, params?: QueryParams): URL {
     const url = new URL(`${this.baseUrl}${path}`);
     if (params) {
       for (const [key, value] of Object.entries(params)) {
-        url.searchParams.set(key, value);
+        if (typeof value === "string") {
+          url.searchParams.set(key, value);
+        } else {
+          for (const v of value) {
+            url.searchParams.append(key, v);
+          }
+        }
       }
     }
     return url;
