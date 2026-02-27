@@ -1,5 +1,7 @@
 # @qontoctl/mcp
 
+[![npm version](https://img.shields.io/npm/v/@qontoctl/mcp?logo=npm)](https://www.npmjs.com/package/@qontoctl/mcp)
+
 [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server for [Qonto](https://qonto.com) API integration — lets AI assistants interact with Qonto banking data.
 
 Part of the [QontoCtl](https://github.com/alexey-pelykh/qontoctl) project.

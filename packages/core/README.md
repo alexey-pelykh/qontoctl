@@ -1,5 +1,7 @@
 # @qontoctl/core
 
+[![npm version](https://img.shields.io/npm/v/@qontoctl/core?logo=npm)](https://www.npmjs.com/package/@qontoctl/core)
+
 Core library for [Qonto](https://qonto.com) API integration — HTTP client, authentication, configuration, and typed service functions.
 
 Part of the [QontoCtl](https://github.com/alexey-pelykh/qontoctl) project.

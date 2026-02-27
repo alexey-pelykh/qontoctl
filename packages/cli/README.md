@@ -1,5 +1,7 @@
 # @qontoctl/cli
 
+[![npm version](https://img.shields.io/npm/v/@qontoctl/cli?logo=npm)](https://www.npmjs.com/package/@qontoctl/cli)
+
 CLI commands for [Qonto](https://qonto.com) API integration — transaction listing, organization details, labels, memberships, statements, and more.
 
 Part of the [QontoCtl](https://github.com/alexey-pelykh/qontoctl) project.
