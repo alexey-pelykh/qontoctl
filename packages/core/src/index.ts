@@ -28,3 +28,5 @@ export type {
 } from "./config/index.js";
 
 export { AuthError, buildApiKeyAuthorization } from "./auth/index.js";
+
+export type { Statement, StatementFile } from "./statements/index.js";
