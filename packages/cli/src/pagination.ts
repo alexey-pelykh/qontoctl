@@ -91,14 +91,7 @@ export async function fetchAllPages<T>(
     if (pagesFetched >= MAX_PAGES) {
       break;
     }
-    const nextPage = await fetchPage<T>(
-      client,
-      path,
-      collectionKey,
-      currentMeta.next_page,
-      perPage,
-      params,
-    );
+    const nextPage = await fetchPage<T>(client, path, collectionKey, currentMeta.next_page, perPage, params);
     allItems.push(...nextPage.items);
     currentMeta = nextPage.meta;
     pagesFetched++;
@@ -141,14 +134,7 @@ export async function fetchPaginated<T>(
   const perPage = paginationOptions.perPage ?? DEFAULT_PER_PAGE;
 
   if (paginationOptions.page !== undefined) {
-    const page = await fetchPage<T>(
-      client,
-      path,
-      collectionKey,
-      paginationOptions.page,
-      perPage,
-      params,
-    );
+    const page = await fetchPage<T>(client, path, collectionKey, paginationOptions.page, perPage, params);
     return { items: page.items, meta: page.meta };
   }
 

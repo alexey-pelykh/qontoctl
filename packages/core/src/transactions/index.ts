@@ -3,8 +3,4 @@
 
 export { buildTransactionQueryParams, getTransaction } from "./service.js";
 
-export type {
-  Transaction,
-  TransactionLabel,
-  ListTransactionsParams,
-} from "./types.js";
+export type { Transaction, TransactionLabel, ListTransactionsParams } from "./types.js";

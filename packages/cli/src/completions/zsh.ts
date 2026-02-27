@@ -45,26 +45,17 @@ export function generateZshCompletion(program: Command): string {
 
       lines.push(`        ${cmd.name()})`);
       if (subSubs.length > 0) {
-        const allSpecs = [
-          ...cmdOptSpecs,
-          `'1:subcommand:(${subSubs.map((s) => s.name()).join(" ")})'`,
-        ];
+        const allSpecs = [...cmdOptSpecs, `'1:subcommand:(${subSubs.map((s) => s.name()).join(" ")})'`];
         lines.push("          _arguments -s -S \\");
         for (let i = 0; i < allSpecs.length; i++) {
-          const trailing =
-            i < allSpecs.length - 1 ? " \\" : "";
-          lines.push(
-            `            ${allSpecs[i]}${trailing}`,
-          );
+          const trailing = i < allSpecs.length - 1 ? " \\" : "";
+          lines.push(`            ${allSpecs[i]}${trailing}`);
         }
       } else if (cmdOptSpecs.length > 0) {
         lines.push("          _arguments -s -S \\");
         for (let i = 0; i < cmdOptSpecs.length; i++) {
-          const trailing =
-            i < cmdOptSpecs.length - 1 ? " \\" : "";
-          lines.push(
-            `            ${cmdOptSpecs[i]}${trailing}`,
-          );
+          const trailing = i < cmdOptSpecs.length - 1 ? " \\" : "";
+          lines.push(`            ${cmdOptSpecs[i]}${trailing}`);
         }
       }
       lines.push("          ;;");
@@ -83,10 +74,7 @@ export function generateZshCompletion(program: Command): string {
   return lines.join("\n");
 }
 
-function buildOptionSpecs(
-  command: Command,
-  isRoot: boolean,
-): string[] {
+function buildOptionSpecs(command: Command, isRoot: boolean): string[] {
   const specs: string[] = [];
 
   for (const opt of command.options) {
@@ -95,32 +83,23 @@ function buildOptionSpecs(
   }
 
   // Add --help
-  const hasHelp = command.options.some(
-    (o) => o.long === "--help",
-  );
+  const hasHelp = command.options.some((o) => o.long === "--help");
   if (!hasHelp) {
     specs.push("'(- *)'{-h,--help}'[display help]'");
   }
 
   // Add --version for root only
   if (isRoot) {
-    const hasVersion = command.options.some(
-      (o) => o.long === "--version",
-    );
+    const hasVersion = command.options.some((o) => o.long === "--version");
     if (!hasVersion) {
-      specs.push(
-        "'(- *)'{-V,--version}'[display version]'",
-      );
+      specs.push("'(- *)'{-V,--version}'[display version]'");
     }
   }
 
   return specs;
 }
 
-function buildArgumentSpecs(
-  command: Command,
-  isRoot: boolean,
-): string[] {
+function buildArgumentSpecs(command: Command, isRoot: boolean): string[] {
   const specs = buildOptionSpecs(command, isRoot);
 
   // Add subcommand argument if command has subcommands
@@ -146,9 +125,7 @@ function formatZshOption(opt: {
 
   let valueSuffix = "";
   if (takesValue) {
-    const argName = opt.long
-      ? opt.long.replace(/^--/, "")
-      : "value";
+    const argName = opt.long ? opt.long.replace(/^--/, "") : "value";
     if (opt.argChoices && opt.argChoices.length > 0) {
       valueSuffix = `:${argName}:(${opt.argChoices.join(" ")})`;
     } else {
@@ -158,11 +135,7 @@ function formatZshOption(opt: {
 
   if (opt.short && opt.long) {
     const exclusion = `(${opt.short} ${opt.long})`;
-    return (
-      `'${exclusion}'` +
-      `{${opt.short},${opt.long}}` +
-      `'[${desc}]${valueSuffix}'`
-    );
+    return `'${exclusion}'` + `{${opt.short},${opt.long}}` + `'[${desc}]${valueSuffix}'`;
   }
 
   const flag = opt.long ?? opt.short ?? "";

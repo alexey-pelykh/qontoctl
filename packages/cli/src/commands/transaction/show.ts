@@ -17,10 +17,11 @@ export function registerTransactionShowCommand(parent: Command): void {
     .command("show <id>")
     .description("Show transaction details")
     .addOption(
-      new Option(
-        "--include <resources...>",
-        "include nested resources",
-      ).choices(["labels", "attachments", "vat_details"]),
+      new Option("--include <resources...>", "include nested resources").choices([
+        "labels",
+        "attachments",
+        "vat_details",
+      ]),
     )
     .action(async (id: string, _opts: unknown, cmd: Command) => {
       const opts = cmd.optsWithGlobals<TransactionShowOptions>();

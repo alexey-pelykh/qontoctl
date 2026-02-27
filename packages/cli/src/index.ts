@@ -5,20 +5,9 @@ export { createProgram } from "./program.js";
 
 export { registerProfileCommands } from "./commands/profile/index.js";
 
-export {
-  OUTPUT_FORMATS,
-  type GlobalOptions,
-  type OutputFormat,
-  type PaginationOptions,
-} from "./options.js";
+export { OUTPUT_FORMATS, type GlobalOptions, type OutputFormat, type PaginationOptions } from "./options.js";
 
-export {
-  formatOutput,
-  formatCsv,
-  formatJson,
-  formatTable,
-  formatYaml,
-} from "./formatters/index.js";
+export { formatOutput, formatCsv, formatJson, formatTable, formatYaml } from "./formatters/index.js";
 
 export {
   fetchPage,
@@ -33,10 +22,7 @@ export { createClient } from "./client.js";
 
 export { handleCliError } from "./error-handler.js";
 
-export {
-  createLabelCommand,
-  createMembershipCommand,
-} from "./commands/index.js";
+export { createLabelCommand, createMembershipCommand } from "./commands/index.js";
 
 export { registerStatementCommands } from "./commands/index.js";
 

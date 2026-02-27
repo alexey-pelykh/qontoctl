@@ -89,9 +89,7 @@ describe("getTransaction", () => {
   });
 
   it("encodes special characters in the ID", async () => {
-    fetchSpy.mockReturnValue(
-      jsonResponse({ transaction: { id: "a/b" } }),
-    );
+    fetchSpy.mockReturnValue(jsonResponse({ transaction: { id: "a/b" } }));
 
     await getTransaction(client, "a/b");
 
@@ -100,23 +98,16 @@ describe("getTransaction", () => {
   });
 
   it("passes includes as query params", async () => {
-    fetchSpy.mockReturnValue(
-      jsonResponse({ transaction: { id: "txn-1" } }),
-    );
+    fetchSpy.mockReturnValue(jsonResponse({ transaction: { id: "txn-1" } }));
 
     await getTransaction(client, "txn-1", ["labels", "attachments"]);
 
     const [url] = fetchSpy.mock.calls[0] as [URL];
-    expect(url.searchParams.getAll("includes[]")).toEqual([
-      "labels",
-      "attachments",
-    ]);
+    expect(url.searchParams.getAll("includes[]")).toEqual(["labels", "attachments"]);
   });
 
   it("omits includes param when not provided", async () => {
-    fetchSpy.mockReturnValue(
-      jsonResponse({ transaction: { id: "txn-1" } }),
-    );
+    fetchSpy.mockReturnValue(jsonResponse({ transaction: { id: "txn-1" } }));
 
     await getTransaction(client, "txn-1");
 

@@ -37,35 +37,22 @@ function getTool(
 describe("statement MCP tools", () => {
   let server: McpServer;
   let mockClient: { get: ReturnType<typeof vi.fn> };
-  let registeredTools: Map<
-    string,
-    { description: string; cb: ToolCallback }
-  >;
+  let registeredTools: Map<string, { description: string; cb: ToolCallback }>;
 
   beforeEach(() => {
     registeredTools = new Map();
 
     server = {
-      tool: vi.fn(
-        (
-          name: string,
-          description: string,
-          _schema: unknown,
-          cb: ToolCallback,
-        ) => {
-          registeredTools.set(name, { description, cb });
-        },
-      ),
+      tool: vi.fn((name: string, description: string, _schema: unknown, cb: ToolCallback) => {
+        registeredTools.set(name, { description, cb });
+      }),
     } as unknown as McpServer;
 
     mockClient = {
       get: vi.fn(),
     };
 
-    registerStatementTools(
-      server,
-      async () => mockClient as unknown as HttpClient,
-    );
+    registerStatementTools(server, async () => mockClient as unknown as HttpClient);
   });
 
   it("registers statement_list and statement_show tools", () => {
@@ -89,10 +76,7 @@ describe("statement MCP tools", () => {
       const tool = getTool(registeredTools, "statement_list");
       const result = await tool.cb({});
 
-      expect(mockClient.get).toHaveBeenCalledWith(
-        "/v2/statements",
-        undefined,
-      );
+      expect(mockClient.get).toHaveBeenCalledWith("/v2/statements", undefined);
       expect(result).toHaveProperty("content");
     });
 
@@ -147,9 +131,7 @@ describe("statement MCP tools", () => {
       const tool = getTool(registeredTools, "statement_show");
       await tool.cb({ id: "id/with/slashes" });
 
-      expect(mockClient.get).toHaveBeenCalledWith(
-        "/v2/statements/id%2Fwith%2Fslashes",
-      );
+      expect(mockClient.get).toHaveBeenCalledWith("/v2/statements/id%2Fwith%2Fslashes");
     });
   });
 });

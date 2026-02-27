@@ -25,22 +25,14 @@ export function generateFishCompletion(program: Command): string {
   }
 
   // Always add --help and --version if not present
-  const hasHelp = program.options.some(
-    (o) => o.long === "--help",
-  );
+  const hasHelp = program.options.some((o) => o.long === "--help");
   if (!hasHelp) {
-    lines.push(
-      `complete -c ${name} -s h -l help -d '${escapeFishString("display help")}'`,
-    );
+    lines.push(`complete -c ${name} -s h -l help -d '${escapeFishString("display help")}'`);
   }
 
-  const hasVersion = program.options.some(
-    (o) => o.long === "--version",
-  );
+  const hasVersion = program.options.some((o) => o.long === "--version");
   if (!hasVersion) {
-    lines.push(
-      `complete -c ${name} -s V -l version -d '${escapeFishString("display version")}'`,
-    );
+    lines.push(`complete -c ${name} -s V -l version -d '${escapeFishString("display version")}'`);
   }
   lines.push("");
 
@@ -49,12 +41,7 @@ export function generateFishCompletion(program: Command): string {
     lines.push("# Commands");
     for (const cmd of program.commands) {
       const desc = escapeFishString(cmd.description());
-      lines.push(
-        `complete -c ${name}` +
-          ` -n '__fish_use_subcommand'` +
-          ` -a ${cmd.name()}` +
-          ` -d '${desc}'`,
-      );
+      lines.push(`complete -c ${name}` + ` -n '__fish_use_subcommand'` + ` -a ${cmd.name()}` + ` -d '${desc}'`);
     }
     lines.push("");
 
@@ -80,13 +67,7 @@ export function generateFishCompletion(program: Command): string {
       }
 
       for (const opt of cmdOpts) {
-        lines.push(
-          formatFishOption(
-            name,
-            opt,
-            `__fish_seen_subcommand_from ${cmd.name()}`,
-          ),
-        );
+        lines.push(formatFishOption(name, opt, `__fish_seen_subcommand_from ${cmd.name()}`));
       }
 
       lines.push("");

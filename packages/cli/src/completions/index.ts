@@ -11,12 +11,8 @@ import { generateZshCompletion } from "./zsh.js";
  * Registers the `completion` command with bash, zsh, and fish
  * subcommands on the given Commander program.
  */
-export function registerCompletionCommand(
-  program: Command,
-): void {
-  const completion = program
-    .command("completion")
-    .description("generate shell completion scripts");
+export function registerCompletionCommand(program: Command): void {
+  const completion = program.command("completion").description("generate shell completion scripts");
 
   completion
     .command("bash")

@@ -7,8 +7,5 @@
   },
   "include": ["src"],
   "exclude": ["**/*.test.ts"],
-  "references": [
-    { "path": "../cli" },
-    { "path": "../mcp" }
-  ]
+  "references": [{ "path": "../cli" }, { "path": "../mcp" }]
 }

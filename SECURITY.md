@@ -22,19 +22,19 @@ filesystem.
 
 **Credential storage locations:**
 
-| Location | Purpose |
-|----------|---------|
-| `~/.qontoctl.yaml` | Default profile credentials |
-| `~/.qontoctl/<profile>.yaml` | Named profile credentials |
-| `.qontoctl.yaml` (CWD) | Project-scoped credentials |
+| Location                     | Purpose                     |
+| ---------------------------- | --------------------------- |
+| `~/.qontoctl.yaml`           | Default profile credentials |
+| `~/.qontoctl/<profile>.yaml` | Named profile credentials   |
+| `.qontoctl.yaml` (CWD)       | Project-scoped credentials  |
 
 **Threat model assumptions:**
 
-| Assumption | Rationale |
-|------------|-----------|
-| The local machine is trusted | Credentials are stored as plaintext YAML files readable by the local user |
-| The Qonto API is trusted | All API calls are made over HTTPS to `thirdparty.qonto.com` |
-| OAuth tokens are sensitive | Access tokens grant API access; refresh tokens can generate new access tokens |
+| Assumption                   | Rationale                                                                     |
+| ---------------------------- | ----------------------------------------------------------------------------- |
+| The local machine is trusted | Credentials are stored as plaintext YAML files readable by the local user     |
+| The Qonto API is trusted     | All API calls are made over HTTPS to `thirdparty.qonto.com`                   |
+| OAuth tokens are sensitive   | Access tokens grant API access; refresh tokens can generate new access tokens |
 
 ### OAuth Token Management
 

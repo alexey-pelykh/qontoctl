@@ -26,9 +26,7 @@ interface TransactionListOptions extends GlobalOptions, PaginationOptions {
   readonly sortBy?: string | undefined;
 }
 
-function toTableRow(
-  txn: Transaction,
-): Record<string, string | number | null> {
+function toTableRow(txn: Transaction): Record<string, string | number | null> {
   return {
     id: txn.id,
     settled_at: txn.settled_at,
@@ -59,48 +57,21 @@ export function registerTransactionListCommand(parent: Command): void {
   parent
     .command("list")
     .description("List transactions")
-    .addOption(
-      new Option(
-        "--bank-account <id>",
-        "filter by bank account ID",
-      ),
-    )
-    .addOption(
-      new Option("--status <status...>", "filter by status").choices([
-        "pending",
-        "declined",
-        "completed",
-      ]),
-    )
-    .addOption(
-      new Option("--side <side>", "filter by side").choices([
-        "credit",
-        "debit",
-      ]),
-    )
-    .addOption(
-      new Option(
-        "--operation-type <type...>",
-        "filter by operation type",
-      ),
-    )
+    .addOption(new Option("--bank-account <id>", "filter by bank account ID"))
+    .addOption(new Option("--status <status...>", "filter by status").choices(["pending", "declined", "completed"]))
+    .addOption(new Option("--side <side>", "filter by side").choices(["credit", "debit"]))
+    .addOption(new Option("--operation-type <type...>", "filter by operation type"))
     .addOption(new Option("--from <date>", "settled from date (ISO 8601)"))
     .addOption(new Option("--to <date>", "settled to date (ISO 8601)"))
     .addOption(
-      new Option(
-        "--include <resources...>",
-        "include nested resources",
-      ).choices(["labels", "attachments", "vat_details"]),
+      new Option("--include <resources...>", "include nested resources").choices([
+        "labels",
+        "attachments",
+        "vat_details",
+      ]),
     )
-    .addOption(
-      new Option(
-        "--with-attachments",
-        "filter to transactions with attachments",
-      ),
-    )
-    .addOption(
-      new Option("--sort-by <sort>", "sort order (e.g. settled_at:desc)"),
-    )
+    .addOption(new Option("--with-attachments", "filter to transactions with attachments"))
+    .addOption(new Option("--sort-by <sort>", "sort order (e.g. settled_at:desc)"))
     .action(async (_opts: unknown, cmd: Command) => {
       const opts = cmd.optsWithGlobals<TransactionListOptions>();
       const client = await createClient(opts);
@@ -115,18 +86,9 @@ export function registerTransactionListCommand(parent: Command): void {
       }
       const queryParams = buildTransactionQueryParams(params);
 
-      const result = await fetchPaginated<Transaction>(
-        client,
-        "/v2/transactions",
-        "transactions",
-        opts,
-        queryParams,
-      );
+      const result = await fetchPaginated<Transaction>(client, "/v2/transactions", "transactions", opts, queryParams);
 
-      const data =
-        opts.output === "table" || opts.output === "csv"
-          ? result.items.map(toTableRow)
-          : result.items;
+      const data = opts.output === "table" || opts.output === "csv" ? result.items.map(toTableRow) : result.items;
 
       process.stdout.write(formatOutput(data, opts.output) + "\n");
     });

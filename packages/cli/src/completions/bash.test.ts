@@ -9,18 +9,10 @@ import { generateBashCompletion } from "./bash.js";
 function createTestProgram(): Command {
   const program = new Command();
   program.name("testcli").version("1.0.0");
-  program.addOption(
-    new Option("-o, --output <format>", "output format")
-      .choices(["json", "table"])
-      .default("table"),
-  );
-  program.addOption(
-    new Option("--verbose", "enable verbose output"),
-  );
+  program.addOption(new Option("-o, --output <format>", "output format").choices(["json", "table"]).default("table"));
+  program.addOption(new Option("--verbose", "enable verbose output"));
 
-  const list = program
-    .command("list")
-    .description("list items");
+  const list = program.command("list").description("list items");
   list.command("all").description("list all items");
   list.command("recent").description("list recent items");
 
@@ -43,9 +35,7 @@ describe("generateBashCompletion", () => {
   it("registers with the complete builtin", () => {
     const program = createTestProgram();
     const script = generateBashCompletion(program);
-    expect(script).toContain(
-      "complete -o default -F _testcli testcli",
-    );
+    expect(script).toContain("complete -o default -F _testcli testcli");
   });
 
   it("includes top-level commands", () => {
@@ -74,9 +64,7 @@ describe("generateBashCompletion", () => {
   it("completes option choices for --output", () => {
     const program = createTestProgram();
     const script = generateBashCompletion(program);
-    expect(script).toContain(
-      'compgen -W "json table" -- "$cur"',
-    );
+    expect(script).toContain('compgen -W "json table" -- "$cur"');
   });
 
   it("includes subcommands for list command", () => {

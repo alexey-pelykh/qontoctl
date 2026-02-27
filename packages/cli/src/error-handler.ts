@@ -1,12 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import {
-  ConfigError,
-  AuthError,
-  QontoApiError,
-  QontoRateLimitError,
-} from "@qontoctl/core";
+import { ConfigError, AuthError, QontoApiError, QontoRateLimitError } from "@qontoctl/core";
 
 /**
  * Global CLI error handler that formats known error types into
@@ -48,24 +43,15 @@ export function handleCliError(error: unknown, debug: boolean): void {
   }
 
   if (error instanceof QontoApiError) {
-    const details = error.errors
-      .map((e) => `  - ${e.code}: ${e.detail}`)
-      .join("\n");
-    process.stderr.write(
-      `Qonto API error (HTTP ${error.status}):\n${details}\n`,
-    );
+    const details = error.errors.map((e) => `  - ${e.code}: ${e.detail}`).join("\n");
+    process.stderr.write(`Qonto API error (HTTP ${error.status}):\n${details}\n`);
     process.exitCode = 1;
     return;
   }
 
   if (error instanceof QontoRateLimitError) {
-    const retryHint =
-      error.retryAfter !== undefined
-        ? ` Retry after ${error.retryAfter} seconds.`
-        : "";
-    process.stderr.write(
-      `Rate limit exceeded.${retryHint} Please wait before retrying.\n`,
-    );
+    const retryHint = error.retryAfter !== undefined ? ` Retry after ${error.retryAfter} seconds.` : "";
+    process.stderr.write(`Rate limit exceeded.${retryHint} Please wait before retrying.\n`);
     process.exitCode = 1;
     return;
   }

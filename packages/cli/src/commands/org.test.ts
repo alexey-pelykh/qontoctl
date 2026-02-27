@@ -10,8 +10,7 @@ vi.mock("../client.js", () => ({
 }));
 
 vi.mock("@qontoctl/core", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("@qontoctl/core")>();
+  const actual = await importOriginal<typeof import("@qontoctl/core")>();
   return {
     ...actual,
     getOrganization: vi.fn(),
@@ -28,9 +27,7 @@ describe("registerOrgCommands", () => {
   let stdoutSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    stdoutSpy = vi
-      .spyOn(process.stdout, "write")
-      .mockReturnValue(true);
+    stdoutSpy = vi.spyOn(process.stdout, "write").mockReturnValue(true);
     createClientMock.mockResolvedValue({} as never);
   });
 
@@ -51,9 +48,7 @@ describe("registerOrgCommands", () => {
     registerOrgCommands(program);
 
     const orgCommand = program.commands.find((c) => c.name() === "org");
-    const showCommand = orgCommand?.commands.find(
-      (c) => c.name() === "show",
-    );
+    const showCommand = orgCommand?.commands.find((c) => c.name() === "show");
     expect(showCommand).toBeDefined();
     expect(showCommand?.description()).toBe("Show organization details");
   });
@@ -64,8 +59,36 @@ describe("registerOrgCommands", () => {
         slug: "acme-corp",
         legal_name: "ACME Corporation",
         bank_accounts: [
-          { id: "acc-1", name: "Main", iban: "FR76", bic: "BNPA", currency: "EUR", balance: 1000, balance_cents: 100000, authorized_balance: 900, authorized_balance_cents: 90000, status: "active", main: true, organization_id: "org-1", slug: "main" },
-          { id: "acc-2", name: "Savings", iban: "FR77", bic: "BNPA", currency: "EUR", balance: 5000, balance_cents: 500000, authorized_balance: 4900, authorized_balance_cents: 490000, status: "active", main: false, organization_id: "org-1", slug: "savings" },
+          {
+            id: "acc-1",
+            name: "Main",
+            iban: "FR76",
+            bic: "BNPA",
+            currency: "EUR",
+            balance: 1000,
+            balance_cents: 100000,
+            authorized_balance: 900,
+            authorized_balance_cents: 90000,
+            status: "active",
+            main: true,
+            organization_id: "org-1",
+            slug: "main",
+          },
+          {
+            id: "acc-2",
+            name: "Savings",
+            iban: "FR77",
+            bic: "BNPA",
+            currency: "EUR",
+            balance: 5000,
+            balance_cents: 500000,
+            authorized_balance: 4900,
+            authorized_balance_cents: 490000,
+            status: "active",
+            main: false,
+            organization_id: "org-1",
+            slug: "savings",
+          },
         ],
       };
       getOrganizationMock.mockResolvedValue(org);

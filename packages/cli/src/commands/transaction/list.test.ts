@@ -26,9 +26,7 @@ const ORG_BODY = {
 };
 
 function findTransactionCallUrl(spy: ReturnType<typeof vi.fn>): URL {
-  const call = spy.mock.calls.find(
-    (c) => (c[0] as URL).pathname === "/v2/transactions",
-  );
+  const call = spy.mock.calls.find((c) => (c[0] as URL).pathname === "/v2/transactions");
   expect(call, "expected a fetch call to /v2/transactions").toBeDefined();
   return (call as unknown[])[0] as URL;
 }
@@ -42,12 +40,10 @@ describe("transaction list command", () => {
     vi.stubGlobal("fetch", fetchSpy);
 
     writtenOutput = [];
-    vi.spyOn(process.stdout, "write").mockImplementation(
-      (chunk: string | Uint8Array): boolean => {
-        writtenOutput.push(String(chunk));
-        return true;
-      },
-    );
+    vi.spyOn(process.stdout, "write").mockImplementation((chunk: string | Uint8Array): boolean => {
+      writtenOutput.push(String(chunk));
+      return true;
+    });
   });
 
   afterEach(() => {
@@ -72,9 +68,7 @@ describe("transaction list command", () => {
   });
 
   it("sends request to /v2/transactions", async () => {
-    fetchSpy.mockReturnValue(
-      jsonResponse({ transactions: [], meta: makeMeta() }),
-    );
+    fetchSpy.mockReturnValue(jsonResponse({ transactions: [], meta: makeMeta() }));
 
     await runCommand("--bank-account", "acc-123");
 
@@ -85,16 +79,19 @@ describe("transaction list command", () => {
   });
 
   it("passes filter options as query params", async () => {
-    fetchSpy.mockReturnValue(
-      jsonResponse({ transactions: [], meta: makeMeta() }),
-    );
+    fetchSpy.mockReturnValue(jsonResponse({ transactions: [], meta: makeMeta() }));
 
     await runCommand(
-      "--bank-account", "acc-1",
-      "--side", "debit",
-      "--from", "2025-01-01",
-      "--to", "2025-01-31",
-      "--sort-by", "settled_at:desc",
+      "--bank-account",
+      "acc-1",
+      "--side",
+      "debit",
+      "--from",
+      "2025-01-01",
+      "--to",
+      "2025-01-31",
+      "--sort-by",
+      "settled_at:desc",
     );
 
     const [url] = fetchSpy.mock.calls[0] as [URL];
@@ -142,9 +139,7 @@ describe("transaction list command", () => {
   });
 
   it("outputs JSON when --output json", async () => {
-    const txns = [
-      { id: "txn-1", label: "Coffee", amount: 4.5, side: "debit" },
-    ];
+    const txns = [{ id: "txn-1", label: "Coffee", amount: 4.5, side: "debit" }];
     fetchSpy.mockImplementation((input: URL) => {
       if (input.pathname === "/v2/organization") return jsonResponse(ORG_BODY);
       return jsonResponse({ transactions: txns, meta: makeMeta({ total_count: 1 }) });

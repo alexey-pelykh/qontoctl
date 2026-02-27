@@ -30,15 +30,11 @@ export function formatTable(rows: readonly Record<string, unknown>[]): string {
 
   const cells = rows.map((row) => columns.map((col) => toDisplayValue(row[col])));
 
-  const widths = columns.map((col, i) =>
-    Math.max(col.length, ...cells.map((row) => (row[i] ?? "").length)),
-  );
+  const widths = columns.map((col, i) => Math.max(col.length, ...cells.map((row) => (row[i] ?? "").length)));
 
   const header = columns.map((col, i) => col.padEnd(widths[i] ?? 0)).join("  ");
   const separator = widths.map((w) => "-".repeat(w)).join("  ");
-  const body = cells.map((row) =>
-    row.map((cell, i) => (cell ?? "").padEnd(widths[i] ?? 0)).join("  "),
-  );
+  const body = cells.map((row) => row.map((cell, i) => (cell ?? "").padEnd(widths[i] ?? 0)).join("  "));
 
   return [header, separator, ...body].join("\n");
 }

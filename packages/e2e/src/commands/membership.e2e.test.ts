@@ -6,10 +6,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { cliEnv, hasCredentials } from "../sandbox.js";
 
-const CLI_PATH = resolve(
-  import.meta.dirname,
-  "../../../qontoctl/dist/cli.js",
-);
+const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
 /**
  * Run the CLI with the given arguments, inheriting credentials

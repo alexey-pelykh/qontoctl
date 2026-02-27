@@ -64,18 +64,13 @@ describe("profile test", () => {
 
     await program.parseAsync(["--profile", "work", "profile", "test"], { from: "user" });
 
-    expect(consoleSpy).toHaveBeenCalledWith(
-      'Success: connected to organization "My Company" (my-company-1234)',
-    );
+    expect(consoleSpy).toHaveBeenCalledWith('Success: connected to organization "My Company" (my-company-1234)');
   });
 
   it("reports failure on API error", async () => {
     const configDir = join(testHome, ".qontoctl");
     await mkdir(configDir, { recursive: true });
-    await writeFile(
-      join(configDir, "bad.yaml"),
-      "api-key:\n  organization_slug: bad-org\n  secret_key: sk_invalid\n",
-    );
+    await writeFile(join(configDir, "bad.yaml"), "api-key:\n  organization_slug: bad-org\n  secret_key: sk_invalid\n");
 
     fetchSpy.mockReturnValue(
       Promise.resolve(

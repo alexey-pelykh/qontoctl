@@ -90,9 +90,7 @@ describe("profile add", () => {
 
     await program.parseAsync(["profile", "add", "existing"], { from: "user" });
 
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      'Profile "existing" already exists. Remove it first to recreate.',
-    );
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Profile "existing" already exists. Remove it first to recreate.');
     expect(process.exitCode).toBe(1);
   });
 

@@ -105,10 +105,7 @@ describe("HttpClient", () => {
       });
 
       const [url] = fetchSpy.mock.calls[0] as [URL];
-      expect(url.searchParams.getAll("status[]")).toEqual([
-        "pending",
-        "completed",
-      ]);
+      expect(url.searchParams.getAll("status[]")).toEqual(["pending", "completed"]);
       expect(url.searchParams.get("side")).toBe("debit");
     });
 
@@ -227,7 +224,6 @@ describe("HttpClient", () => {
       const postHeaders = postInit.headers as Record<string, string>;
       expect(postHeaders["Content-Type"]).toBe("application/json");
     });
-
   });
 
   describe("error handling", () => {

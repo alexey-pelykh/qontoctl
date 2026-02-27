@@ -39,6 +39,7 @@
   "scripts": {
     "prepack": "cp ../../README.md ../../LICENSE .",
     "build": "tsc",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "lint": "eslint src/",
     "dev": "tsc --watch"

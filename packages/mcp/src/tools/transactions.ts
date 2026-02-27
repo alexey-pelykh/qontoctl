@@ -6,42 +6,24 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { type HttpClient, getOrganization } from "@qontoctl/core";
 import { withClient } from "../errors.js";
 
-export function registerTransactionTools(
-  server: McpServer,
-  getClient: () => Promise<HttpClient>,
-): void {
+export function registerTransactionTools(server: McpServer, getClient: () => Promise<HttpClient>): void {
   server.tool(
     "transaction_list",
     "List transactions for a bank account with optional filters",
     {
       bank_account_id: z.string().optional().describe("Bank account UUID"),
       iban: z.string().optional().describe("Bank account IBAN (alternative to bank_account_id)"),
-      status: z
-        .enum(["pending", "declined", "completed"])
-        .optional()
-        .describe("Filter by status"),
-      settled_at_from: z
-        .string()
-        .optional()
-        .describe("Start of settlement date range (ISO 8601)"),
+      status: z.enum(["pending", "declined", "completed"]).optional().describe("Filter by status"),
+      settled_at_from: z.string().optional().describe("Start of settlement date range (ISO 8601)"),
       settled_at_to: z.string().optional().describe("End of settlement date range (ISO 8601)"),
       side: z.enum(["credit", "debit"]).optional().describe("Filter by side (credit or debit)"),
       operation_type: z
         .string()
         .optional()
         .describe("Filter by operation type (card, transfer, income, direct_debit, etc.)"),
-      sort_by: z
-        .string()
-        .optional()
-        .describe("Sort order (e.g. settled_at:desc, created_at:asc)"),
+      sort_by: z.string().optional().describe("Sort order (e.g. settled_at:desc, created_at:asc)"),
       current_page: z.number().int().positive().optional().describe("Page number (default: 1)"),
-      per_page: z
-        .number()
-        .int()
-        .positive()
-        .max(100)
-        .optional()
-        .describe("Results per page (default: 100, max: 100)"),
+      per_page: z.number().int().positive().max(100).optional().describe("Results per page (default: 100, max: 100)"),
     },
     async (args) =>
       withClient(getClient, async (client) => {
@@ -68,19 +50,12 @@ export function registerTransactionTools(
         if (args.status !== undefined) params["status[]"] = args.status;
         if (args.operation_type !== undefined) params["operation_type[]"] = args.operation_type;
 
-        const response = await client.get<{ transactions: unknown[]; meta: unknown }>(
-          "/v2/transactions",
-          params,
-        );
+        const response = await client.get<{ transactions: unknown[]; meta: unknown }>("/v2/transactions", params);
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(
-                { transactions: response.transactions, meta: response.meta },
-                null,
-                2,
-              ),
+              text: JSON.stringify({ transactions: response.transactions, meta: response.meta }, null, 2),
             },
           ],
         };
@@ -97,9 +72,7 @@ export function registerTransactionTools(
       withClient(getClient, async (client) => {
         const response = await client.get<{ transaction: unknown }>(`/v2/transactions/${encodeURIComponent(id)}`);
         return {
-          content: [
-            { type: "text" as const, text: JSON.stringify(response.transaction, null, 2) },
-          ],
+          content: [{ type: "text" as const, text: JSON.stringify(response.transaction, null, 2) }],
         };
       }),
   );

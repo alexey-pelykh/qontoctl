@@ -2,21 +2,14 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import {
-  ConfigError,
-  AuthError,
-  QontoApiError,
-  QontoRateLimitError,
-} from "@qontoctl/core";
+import { ConfigError, AuthError, QontoApiError, QontoRateLimitError } from "@qontoctl/core";
 import { handleCliError } from "./error-handler.js";
 
 describe("handleCliError", () => {
   let stderrSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    stderrSpy = vi
-      .spyOn(process.stderr, "write")
-      .mockReturnValue(true);
+    stderrSpy = vi.spyOn(process.stderr, "write").mockReturnValue(true);
   });
 
   afterEach(() => {
@@ -41,9 +34,7 @@ describe("handleCliError", () => {
 
   describe("AuthError", () => {
     it("suggests checking credentials", () => {
-      const error = new AuthError(
-        "Missing organization slug in API key credentials",
-      );
+      const error = new AuthError("Missing organization slug in API key credentials");
 
       handleCliError(error, false);
 
@@ -57,9 +48,7 @@ describe("handleCliError", () => {
 
   describe("QontoApiError", () => {
     it("shows HTTP status and error details", () => {
-      const error = new QontoApiError(401, [
-        { code: "unauthorized", detail: "Invalid credentials" },
-      ]);
+      const error = new QontoApiError(401, [{ code: "unauthorized", detail: "Invalid credentials" }]);
 
       handleCliError(error, false);
 

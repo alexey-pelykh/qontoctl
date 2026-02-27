@@ -12,8 +12,7 @@ vi.mock("../client.js", () => ({
 }));
 
 vi.mock("@qontoctl/core", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("@qontoctl/core")>();
+  const actual = await importOriginal<typeof import("@qontoctl/core")>();
   return {
     ...actual,
     getBankAccount: vi.fn(),
@@ -26,9 +25,7 @@ const createClientMock = vi.mocked(createClient);
 const { getBankAccount } = await import("@qontoctl/core");
 const getBankAccountMock = vi.mocked(getBankAccount);
 
-function makeMeta(
-  overrides: Partial<PaginationMeta> = {},
-): PaginationMeta {
+function makeMeta(overrides: Partial<PaginationMeta> = {}): PaginationMeta {
   return {
     current_page: 1,
     next_page: null,
@@ -66,9 +63,7 @@ describe("registerAccountCommands", () => {
   beforeEach(() => {
     fetchSpy = vi.fn();
     vi.stubGlobal("fetch", fetchSpy);
-    stdoutSpy = vi
-      .spyOn(process.stdout, "write")
-      .mockReturnValue(true);
+    stdoutSpy = vi.spyOn(process.stdout, "write").mockReturnValue(true);
   });
 
   afterEach(() => {
@@ -79,9 +74,7 @@ describe("registerAccountCommands", () => {
     const program = new Command();
     registerAccountCommands(program);
 
-    const accountCommand = program.commands.find(
-      (c) => c.name() === "account",
-    );
+    const accountCommand = program.commands.find((c) => c.name() === "account");
     expect(accountCommand).toBeDefined();
   });
 
@@ -89,12 +82,8 @@ describe("registerAccountCommands", () => {
     const program = new Command();
     registerAccountCommands(program);
 
-    const accountCommand = program.commands.find(
-      (c) => c.name() === "account",
-    );
-    const listCommand = accountCommand?.commands.find(
-      (c) => c.name() === "list",
-    );
+    const accountCommand = program.commands.find((c) => c.name() === "account");
+    const listCommand = accountCommand?.commands.find((c) => c.name() === "list");
     expect(listCommand).toBeDefined();
     expect(listCommand?.description()).toBe("List bank accounts");
   });
@@ -103,12 +92,8 @@ describe("registerAccountCommands", () => {
     const program = new Command();
     registerAccountCommands(program);
 
-    const accountCommand = program.commands.find(
-      (c) => c.name() === "account",
-    );
-    const showCommand = accountCommand?.commands.find(
-      (c) => c.name() === "show",
-    );
+    const accountCommand = program.commands.find((c) => c.name() === "account");
+    const showCommand = accountCommand?.commands.find((c) => c.name() === "show");
     expect(showCommand).toBeDefined();
     expect(showCommand?.description()).toBe("Show bank account details");
 
@@ -120,10 +105,7 @@ describe("registerAccountCommands", () => {
 
   describe("account list", () => {
     it("lists bank accounts in table format", async () => {
-      const accounts = [
-        makeAccount(),
-        makeAccount({ id: "acc-2", name: "Savings", balance: 5000 }),
-      ];
+      const accounts = [makeAccount(), makeAccount({ id: "acc-2", name: "Savings", balance: 5000 })];
       fetchSpy.mockReturnValue(
         jsonResponse({
           bank_accounts: accounts,
@@ -197,10 +179,7 @@ describe("registerAccountCommands", () => {
         from: "user",
       });
 
-      expect(getBankAccountMock).toHaveBeenCalledWith(
-        expect.anything(),
-        "acc-1",
-      );
+      expect(getBankAccountMock).toHaveBeenCalledWith(expect.anything(), "acc-1");
       expect(stdoutSpy).toHaveBeenCalled();
       const output = stdoutSpy.mock.calls[0]?.[0] as string;
       expect(output).toContain("acc-1");

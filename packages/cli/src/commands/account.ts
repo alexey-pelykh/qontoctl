@@ -36,17 +36,9 @@ export function registerAccountCommands(program: Command): void {
       const opts = program.opts<GlobalOptions & PaginationOptions>();
       const client = await createClient(opts);
 
-      const result = await fetchPaginated<BankAccount>(
-        client,
-        "/v2/bank_accounts",
-        "bank_accounts",
-        opts,
-      );
+      const result = await fetchPaginated<BankAccount>(client, "/v2/bank_accounts", "bank_accounts", opts);
 
-      const data =
-        opts.output === "json" || opts.output === "yaml"
-          ? result.items
-          : result.items.map(toListRow);
+      const data = opts.output === "json" || opts.output === "yaml" ? result.items : result.items.map(toListRow);
 
       const output = formatOutput(data, opts.output);
       process.stdout.write(output + "\n");

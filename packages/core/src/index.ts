@@ -12,13 +12,7 @@ export {
   type QontoApiErrorEntry,
 } from "./http-client.js";
 
-export {
-  resolveConfig,
-  ConfigError,
-  loadConfigFile,
-  validateConfig,
-  applyEnvOverlay,
-} from "./config/index.js";
+export { resolveConfig, ConfigError, loadConfigFile, validateConfig, applyEnvOverlay } from "./config/index.js";
 
 export type {
   ApiKeyCredentials,
@@ -37,16 +31,9 @@ export type { Label, Membership } from "./types/index.js";
 
 export type { Statement, StatementFile } from "./statements/index.js";
 
-export {
-  buildTransactionQueryParams,
-  getTransaction,
-} from "./transactions/index.js";
+export { buildTransactionQueryParams, getTransaction } from "./transactions/index.js";
 
-export type {
-  Transaction,
-  TransactionLabel,
-  ListTransactionsParams,
-} from "./transactions/index.js";
+export type { Transaction, TransactionLabel, ListTransactionsParams } from "./transactions/index.js";
 
 export type { BankAccount, Organization } from "./api-types.js";
 

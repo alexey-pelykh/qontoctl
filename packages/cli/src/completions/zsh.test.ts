@@ -9,18 +9,10 @@ import { generateZshCompletion } from "./zsh.js";
 function createTestProgram(): Command {
   const program = new Command();
   program.name("testcli").version("1.0.0");
-  program.addOption(
-    new Option("-o, --output <format>", "output format")
-      .choices(["json", "table"])
-      .default("table"),
-  );
-  program.addOption(
-    new Option("--verbose", "enable verbose output"),
-  );
+  program.addOption(new Option("-o, --output <format>", "output format").choices(["json", "table"]).default("table"));
+  program.addOption(new Option("--verbose", "enable verbose output"));
 
-  const list = program
-    .command("list")
-    .description("list items");
+  const list = program.command("list").description("list items");
   list.command("all").description("list all items");
   list.command("recent").description("list recent items");
 
@@ -67,9 +59,7 @@ describe("generateZshCompletion", () => {
   it("includes boolean options without value spec", () => {
     const program = createTestProgram();
     const script = generateZshCompletion(program);
-    expect(script).toContain(
-      "'--verbose[enable verbose output]'",
-    );
+    expect(script).toContain("'--verbose[enable verbose output]'");
   });
 
   it("includes --help and --version specs", () => {
@@ -97,12 +87,7 @@ describe("generateZshCompletion", () => {
   it("escapes special characters in descriptions", () => {
     const program = new Command();
     program.name("testcli");
-    program.addOption(
-      new Option(
-        "--test",
-        "uses [brackets] and: colons",
-      ),
-    );
+    program.addOption(new Option("--test", "uses [brackets] and: colons"));
     const script = generateZshCompletion(program);
     expect(script).toContain("\\[brackets\\]");
     expect(script).toContain("and\\: colons");

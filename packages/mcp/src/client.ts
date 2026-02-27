@@ -1,12 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import {
-  HttpClient,
-  resolveConfig,
-  buildApiKeyAuthorization,
-  type HttpClientOptions,
-} from "@qontoctl/core";
+import { HttpClient, resolveConfig, buildApiKeyAuthorization, type HttpClientOptions } from "@qontoctl/core";
 
 export interface ClientOptions {
   readonly profile?: string | undefined;

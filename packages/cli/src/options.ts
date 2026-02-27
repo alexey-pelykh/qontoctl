@@ -9,12 +9,7 @@ export type OutputFormat = "table" | "json" | "yaml" | "csv";
 /**
  * All valid output format values, used for Commander choices validation.
  */
-export const OUTPUT_FORMATS: readonly OutputFormat[] = [
-  "table",
-  "json",
-  "yaml",
-  "csv",
-] as const;
+export const OUTPUT_FORMATS: readonly OutputFormat[] = ["table", "json", "yaml", "csv"] as const;
 
 /**
  * Global CLI options parsed from Commander.

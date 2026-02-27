@@ -21,34 +21,16 @@ interface StatementsResponse {
 /**
  * Register statement-related MCP tools on the server.
  */
-export function registerStatementTools(
-  server: McpServer,
-  getClient: () => Promise<HttpClient>,
-): void {
+export function registerStatementTools(server: McpServer, getClient: () => Promise<HttpClient>): void {
   server.tool(
     "statement_list",
     "List bank statements with optional filters",
     {
-      bank_account_id: z
-        .string()
-        .optional()
-        .describe("Filter by bank account ID"),
-      period_from: z
-        .string()
-        .optional()
-        .describe("Start period (MM-YYYY)"),
-      period_to: z
-        .string()
-        .optional()
-        .describe("End period (MM-YYYY)"),
+      bank_account_id: z.string().optional().describe("Filter by bank account ID"),
+      period_from: z.string().optional().describe("Start period (MM-YYYY)"),
+      period_to: z.string().optional().describe("End period (MM-YYYY)"),
       page: z.number().int().positive().optional().describe("Page number"),
-      per_page: z
-        .number()
-        .int()
-        .positive()
-        .max(100)
-        .optional()
-        .describe("Items per page (max 100)"),
+      per_page: z.number().int().positive().max(100).optional().describe("Items per page (max 100)"),
     },
     async (args) =>
       withClient(getClient, async (client) => {
@@ -94,9 +76,7 @@ export function registerStatementTools(
     },
     async (args) =>
       withClient(getClient, async (client) => {
-        const response = await client.get<{ statement: Statement }>(
-          `/v2/statements/${encodeURIComponent(args.id)}`,
-        );
+        const response = await client.get<{ statement: Statement }>(`/v2/statements/${encodeURIComponent(args.id)}`);
 
         return {
           content: [

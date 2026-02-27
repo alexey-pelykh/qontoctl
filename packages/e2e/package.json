@@ -11,6 +11,7 @@
   "author": "Alexey Pelykh (https://github.com/alexey-pelykh)",
   "scripts": {
     "build": "tsc",
+    "typecheck": "tsc --noEmit",
     "test": "echo 'No unit tests'",
     "test:e2e": "vitest run --config ../../vitest.e2e.config.ts",
     "lint": "eslint src/"

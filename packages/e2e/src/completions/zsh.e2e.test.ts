@@ -44,12 +44,7 @@ describe.skipIf(!hasZsh())("zsh completion (e2e)", () => {
       [
         "-f",
         "-c",
-        [
-          "autoload -Uz compinit",
-          `fpath=("${tempDir}" $fpath)`,
-          "compinit -u",
-          `source "${scriptPath}"`,
-        ].join("; "),
+        ["autoload -Uz compinit", `fpath=("${tempDir}" $fpath)`, "compinit -u", `source "${scriptPath}"`].join("; "),
       ],
       { encoding: "utf-8" },
     );
