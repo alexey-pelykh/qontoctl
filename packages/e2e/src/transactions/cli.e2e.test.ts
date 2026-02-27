@@ -4,20 +4,14 @@
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { cliEnv, hasCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
-
-function hasSandboxCredentials(): boolean {
-  return process.env["QONTOCTL_ORGANIZATION_SLUG"] !== undefined && process.env["QONTOCTL_SECRET_KEY"] !== undefined;
-}
 
 function cli(...args: string[]): string {
   return execFileSync("node", [CLI_PATH, ...args], {
     encoding: "utf-8",
-    env: {
-      ...process.env,
-      QONTOCTL_SANDBOX: "true",
-    },
+    env: cliEnv(),
   });
 }
 
@@ -49,7 +43,7 @@ function firstTransaction(transactions: readonly TransactionItem[]): Transaction
   return transactions[0];
 }
 
-describe.skipIf(!hasSandboxCredentials())("transaction CLI commands (e2e)", () => {
+describe.skipIf(!hasCredentials())("transaction CLI commands (e2e)", () => {
   describe("transaction list", () => {
     it("lists transactions with default output", () => {
       const output = cli("transaction", "list", "--no-paginate");
@@ -112,7 +106,7 @@ describe.skipIf(!hasSandboxCredentials())("transaction CLI commands (e2e)", () =
 
     it("filters by date range", () => {
       const fromDate = "2020-01-01";
-      const toDate = "2030-12-31";
+      const toDate = "2026-12-31";
       const transactions = cliJson<TransactionItem[]>(
         "transaction",
         "list",

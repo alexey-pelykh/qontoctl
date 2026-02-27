@@ -5,20 +5,14 @@ import { resolve } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { cliEnv, hasCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(
   import.meta.dirname,
   "../../../qontoctl/dist/cli.js",
 );
 
-function hasSandboxCredentials(): boolean {
-  return (
-    process.env["QONTOCTL_ORGANIZATION_SLUG"] !== undefined &&
-    process.env["QONTOCTL_SECRET_KEY"] !== undefined
-  );
-}
-
-describe.skipIf(!hasSandboxCredentials())(
+describe.skipIf(!hasCredentials())(
   "organization & accounts MCP (e2e)",
   () => {
     let client: Client;
@@ -28,10 +22,7 @@ describe.skipIf(!hasSandboxCredentials())(
       transport = new StdioClientTransport({
         command: "node",
         args: [CLI_PATH, "mcp"],
-        env: {
-          ...(process.env as Record<string, string>),
-          QONTOCTL_SANDBOX: "1",
-        },
+        env: cliEnv(),
         stderr: "pipe",
       });
 

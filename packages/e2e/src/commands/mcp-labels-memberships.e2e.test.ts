@@ -5,15 +5,12 @@ import { resolve } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { cliEnv, hasCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(
   import.meta.dirname,
   "../../../qontoctl/dist/cli.js",
 );
-
-const hasCredentials =
-  process.env["QONTOCTL_ORGANIZATION_SLUG"] !== undefined &&
-  process.env["QONTOCTL_SECRET_KEY"] !== undefined;
 
 /**
  * Extract the text content from a single-entry MCP tool result.
@@ -26,7 +23,7 @@ function firstText(result: Awaited<ReturnType<Client["callTool"]>>): string {
   return entry.text;
 }
 
-describe.skipIf(!hasCredentials)("MCP label & membership tools (e2e)", () => {
+describe.skipIf(!hasCredentials())("MCP label & membership tools (e2e)", () => {
   let client: Client;
   let transport: StdioClientTransport;
 
@@ -34,10 +31,7 @@ describe.skipIf(!hasCredentials)("MCP label & membership tools (e2e)", () => {
     transport = new StdioClientTransport({
       command: "node",
       args: [CLI_PATH, "mcp"],
-      env: {
-        ...process.env,
-        QONTOCTL_SANDBOX: "1",
-      } as Record<string, string>,
+      env: cliEnv(),
       stderr: "pipe",
     });
 

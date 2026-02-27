@@ -5,6 +5,7 @@ import type { Command } from "commander";
 import { Option } from "commander";
 import {
   buildTransactionQueryParams,
+  getOrganization,
   type ListTransactionsParams,
   type Transaction,
 } from "@qontoctl/core";
@@ -104,7 +105,15 @@ export function registerTransactionListCommand(parent: Command): void {
       const opts = cmd.optsWithGlobals<TransactionListOptions>();
       const client = await createClient(opts);
 
-      const queryParams = buildTransactionQueryParams(buildParams(opts));
+      let params = buildParams(opts);
+      if (params.bank_account_id === undefined && params.iban === undefined) {
+        const org = await getOrganization(client);
+        const mainAccount = org.bank_accounts.find((a) => a.main) ?? org.bank_accounts[0];
+        if (mainAccount !== undefined) {
+          params = { ...params, bank_account_id: mainAccount.id };
+        }
+      }
+      const queryParams = buildTransactionQueryParams(params);
 
       const result = await fetchPaginated<Transaction>(
         client,
