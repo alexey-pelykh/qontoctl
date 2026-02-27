@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { Command, Option } from "commander";
+import { registerCompletionCommand } from "./completions/index.js";
 import { OUTPUT_FORMATS } from "./options.js";
 
 export function createProgram(): Command {
@@ -41,6 +42,12 @@ export function createProgram(): Command {
     .addOption(
       new Option("--no-paginate", "disable auto-pagination"),
     );
+
+  registerCompletionCommand(program);
+
+  program.action(() => {
+    program.outputHelp();
+  });
 
   return program;
 }
