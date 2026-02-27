@@ -7,7 +7,7 @@ import type { HttpClient } from "@qontoctl/core";
 import { withClient } from "../errors.js";
 
 export function registerAccountTools(server: McpServer, getClient: () => Promise<HttpClient>): void {
-  server.tool("account_list", "List all bank accounts for the organization", {}, async () =>
+  server.registerTool("account_list", { description: "List all bank accounts for the organization" }, async () =>
     withClient(getClient, async (client) => {
       const response = await client.get<{ bank_accounts: unknown[] }>("/v2/bank_accounts");
       return {
@@ -16,11 +16,13 @@ export function registerAccountTools(server: McpServer, getClient: () => Promise
     }),
   );
 
-  server.tool(
+  server.registerTool(
     "account_show",
-    "Show details of a specific bank account",
     {
-      id: z.string().describe("Bank account UUID"),
+      description: "Show details of a specific bank account",
+      inputSchema: {
+        id: z.string().describe("Bank account UUID"),
+      },
     },
     async ({ id }) =>
       withClient(getClient, async (client) => {

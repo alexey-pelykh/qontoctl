@@ -43,8 +43,8 @@ describe("statement MCP tools", () => {
     registeredTools = new Map();
 
     server = {
-      tool: vi.fn((name: string, description: string, _schema: unknown, cb: ToolCallback) => {
-        registeredTools.set(name, { description, cb });
+      registerTool: vi.fn((name: string, config: { description: string; inputSchema?: unknown }, cb: ToolCallback) => {
+        registeredTools.set(name, { description: config.description, cb });
       }),
     } as unknown as McpServer;
 

@@ -7,23 +7,25 @@ import { type HttpClient, getOrganization } from "@qontoctl/core";
 import { withClient } from "../errors.js";
 
 export function registerTransactionTools(server: McpServer, getClient: () => Promise<HttpClient>): void {
-  server.tool(
+  server.registerTool(
     "transaction_list",
-    "List transactions for a bank account with optional filters",
     {
-      bank_account_id: z.string().optional().describe("Bank account UUID"),
-      iban: z.string().optional().describe("Bank account IBAN (alternative to bank_account_id)"),
-      status: z.enum(["pending", "declined", "completed"]).optional().describe("Filter by status"),
-      settled_at_from: z.string().optional().describe("Start of settlement date range (ISO 8601)"),
-      settled_at_to: z.string().optional().describe("End of settlement date range (ISO 8601)"),
-      side: z.enum(["credit", "debit"]).optional().describe("Filter by side (credit or debit)"),
-      operation_type: z
-        .string()
-        .optional()
-        .describe("Filter by operation type (card, transfer, income, direct_debit, etc.)"),
-      sort_by: z.string().optional().describe("Sort order (e.g. settled_at:desc, created_at:asc)"),
-      current_page: z.number().int().positive().optional().describe("Page number (default: 1)"),
-      per_page: z.number().int().positive().max(100).optional().describe("Results per page (default: 100, max: 100)"),
+      description: "List transactions for a bank account with optional filters",
+      inputSchema: {
+        bank_account_id: z.string().optional().describe("Bank account UUID"),
+        iban: z.string().optional().describe("Bank account IBAN (alternative to bank_account_id)"),
+        status: z.enum(["pending", "declined", "completed"]).optional().describe("Filter by status"),
+        settled_at_from: z.string().optional().describe("Start of settlement date range (ISO 8601)"),
+        settled_at_to: z.string().optional().describe("End of settlement date range (ISO 8601)"),
+        side: z.enum(["credit", "debit"]).optional().describe("Filter by side (credit or debit)"),
+        operation_type: z
+          .string()
+          .optional()
+          .describe("Filter by operation type (card, transfer, income, direct_debit, etc.)"),
+        sort_by: z.string().optional().describe("Sort order (e.g. settled_at:desc, created_at:asc)"),
+        current_page: z.number().int().positive().optional().describe("Page number (default: 1)"),
+        per_page: z.number().int().positive().max(100).optional().describe("Results per page (default: 100, max: 100)"),
+      },
     },
     async (args) =>
       withClient(getClient, async (client) => {
@@ -62,11 +64,13 @@ export function registerTransactionTools(server: McpServer, getClient: () => Pro
       }),
   );
 
-  server.tool(
+  server.registerTool(
     "transaction_show",
-    "Show details of a specific transaction",
     {
-      id: z.string().describe("Transaction UUID"),
+      description: "Show details of a specific transaction",
+      inputSchema: {
+        id: z.string().describe("Transaction UUID"),
+      },
     },
     async ({ id }) =>
       withClient(getClient, async (client) => {

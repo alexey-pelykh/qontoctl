@@ -8,10 +8,25 @@ import headerPlugin from "@tony.ganchev/eslint-plugin-header";
 
 export default tseslint.config(
   eslint.configs.recommended,
-  ...tseslint.configs.strict,
+  ...tseslint.configs.strictTypeChecked,
   eslintConfigPrettier,
   {
     ignores: ["**/dist/"],
+  },
+  {
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    rules: {
+      "@typescript-eslint/restrict-template-expressions": ["error", { allowNumber: true }],
+    },
+  },
+  {
+    files: ["**/*.test.ts", "**/*.e2e.test.ts"],
+    ...tseslint.configs.disableTypeChecked,
   },
   {
     plugins: {
