@@ -5,6 +5,7 @@ import type { ConfigResult, ResolveOptions } from "./types.js";
 import { loadConfigFile } from "./loader.js";
 import { validateConfig } from "./validate.js";
 import { applyEnvOverlay } from "./env.js";
+import { API_BASE_URL, SANDBOX_BASE_URL } from "../constants.js";
 
 export class ConfigError extends Error {
   constructor(message: string) {
@@ -19,6 +20,10 @@ export class ConfigError extends Error {
  * 2. Validating the schema (producing warnings for unknown keys)
  * 3. Overlaying environment variables
  * 4. Verifying that credentials are present
+ * 5. Resolving the API endpoint
+ *
+ * Endpoint precedence:
+ *   QONTOCTL_ENDPOINT > QONTOCTL_SANDBOX > profile endpoint > profile sandbox > default
  *
  * @throws {ConfigError} on validation errors or missing credentials
  */
@@ -60,7 +65,26 @@ export async function resolveConfig(options?: ResolveOptions): Promise<ConfigRes
     throw new ConfigError('Missing required field "secret_key" in api-key credentials');
   }
 
-  return { config, warnings };
+  // 5. Resolve endpoint
+  const endpoint = resolveEndpoint(config);
+
+  return { config, endpoint, warnings };
+}
+
+/**
+ * Resolves the API endpoint from config.
+ *
+ * Precedence (env overlay already applied, so env vars win over file values):
+ *   explicit endpoint > sandbox flag > default (production)
+ */
+function resolveEndpoint(config: { endpoint?: string; sandbox?: boolean }): string {
+  if (config.endpoint !== undefined) {
+    return config.endpoint;
+  }
+  if (config.sandbox === true) {
+    return SANDBOX_BASE_URL;
+  }
+  return API_BASE_URL;
 }
 
 function describeSearchLocations(profile: string | undefined, loadedPath: string | undefined): string {

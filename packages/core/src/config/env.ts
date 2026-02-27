@@ -6,13 +6,17 @@ import type { QontoctlConfig } from "./types.js";
 const ENV_PREFIX = "QONTOCTL";
 const ORG_SLUG_SUFFIX = "ORGANIZATION_SLUG";
 const SECRET_KEY_SUFFIX = "SECRET_KEY";
+const ENDPOINT_SUFFIX = "ENDPOINT";
+const SANDBOX_SUFFIX = "SANDBOX";
 
 /**
  * Overlays environment variables onto a config.
  *
- * - Without profile: reads `QONTOCTL_ORGANIZATION_SLUG` and `QONTOCTL_SECRET_KEY`
- * - With profile: reads `QONTOCTL_{PROFILE}_ORGANIZATION_SLUG` and
- *   `QONTOCTL_{PROFILE}_SECRET_KEY` (profile name uppercased, hyphens→underscores)
+ * - Without profile: reads `QONTOCTL_ORGANIZATION_SLUG`, `QONTOCTL_SECRET_KEY`,
+ *   `QONTOCTL_ENDPOINT`, and `QONTOCTL_SANDBOX`
+ * - With profile: reads `QONTOCTL_{PROFILE}_ORGANIZATION_SLUG`,
+ *   `QONTOCTL_{PROFILE}_SECRET_KEY`, `QONTOCTL_{PROFILE}_ENDPOINT`, and
+ *   `QONTOCTL_{PROFILE}_SANDBOX` (profile name uppercased, hyphens→underscores)
  *
  * Env vars take precedence over file values.
  */
@@ -28,20 +32,31 @@ export function applyEnvOverlay(
 
   const orgSlug = env[`${prefix}_${ORG_SLUG_SUFFIX}`];
   const secretKey = env[`${prefix}_${SECRET_KEY_SUFFIX}`];
+  const endpoint = env[`${prefix}_${ENDPOINT_SUFFIX}`];
+  const sandbox = env[`${prefix}_${SANDBOX_SUFFIX}`];
 
-  if (orgSlug === undefined && secretKey === undefined) {
-    return config;
+  let result = config;
+
+  if (orgSlug !== undefined || secretKey !== undefined) {
+    const existing = result.apiKey;
+    result = {
+      ...result,
+      apiKey: {
+        organizationSlug: orgSlug ?? existing?.organizationSlug ?? "",
+        secretKey: secretKey ?? existing?.secretKey ?? "",
+      },
+    };
   }
 
-  const existing = config.apiKey;
+  if (endpoint !== undefined) {
+    result = { ...result, endpoint };
+  }
 
-  return {
-    ...config,
-    apiKey: {
-      organizationSlug: orgSlug ?? existing?.organizationSlug ?? "",
-      secretKey: secretKey ?? existing?.secretKey ?? "",
-    },
-  };
+  if (sandbox !== undefined) {
+    result = { ...result, sandbox: sandbox === "1" || sandbox === "true" };
+  }
+
+  return result;
 }
 
 function buildPrefix(profile: string | undefined): string {

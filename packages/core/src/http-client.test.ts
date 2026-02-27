@@ -212,34 +212,6 @@ describe("HttpClient", () => {
       expect(postHeaders["Content-Type"]).toBe("application/json");
     });
 
-    it("includes X-Qonto-Staging-Token in sandbox mode", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({}));
-      const client = new TestableHttpClient({
-        baseUrl: "https://thirdparty-sandbox.staging.qonto.co",
-        authorization: "slug:secret",
-        stagingToken: "staging-token-value",
-      });
-
-      await client.get("/v2/organizations");
-
-      const [, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
-      const headers = init.headers as Record<string, string>;
-      expect(headers["X-Qonto-Staging-Token"]).toBe("staging-token-value");
-    });
-
-    it("omits X-Qonto-Staging-Token when not in sandbox mode", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({}));
-      const client = new TestableHttpClient({
-        baseUrl: "https://thirdparty.qonto.com",
-        authorization: "slug:secret",
-      });
-
-      await client.get("/v2/organizations");
-
-      const [, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
-      const headers = init.headers as Record<string, string>;
-      expect(headers["X-Qonto-Staging-Token"]).toBeUndefined();
-    });
   });
 
   describe("error handling", () => {

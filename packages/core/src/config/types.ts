@@ -14,6 +14,8 @@ export interface ApiKeyCredentials {
  */
 export interface QontoctlConfig {
   apiKey?: ApiKeyCredentials;
+  endpoint?: string;
+  sandbox?: boolean;
 }
 
 /**
@@ -21,6 +23,8 @@ export interface QontoctlConfig {
  */
 export interface ConfigResult {
   config: QontoctlConfig;
+  /** Resolved API endpoint URL. */
+  endpoint: string;
   warnings: string[];
 }
 

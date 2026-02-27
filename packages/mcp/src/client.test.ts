@@ -31,9 +31,10 @@ afterEach(() => {
 });
 
 describe("buildClient", () => {
-  it("resolves config and creates HttpClient with production URL", async () => {
+  it("resolves config and creates HttpClient with resolved endpoint", async () => {
     mocks.resolveConfig.mockResolvedValue({
       config: { apiKey: { organizationSlug: "org", secretKey: "key" } },
+      endpoint: "https://thirdparty.qonto.com",
       warnings: [],
     });
     mocks.buildApiKeyAuthorization.mockReturnValue("org:key");
@@ -51,17 +52,18 @@ describe("buildClient", () => {
     });
   });
 
-  it("uses sandbox URL when sandbox option is true", async () => {
+  it("uses endpoint from resolveConfig", async () => {
     mocks.resolveConfig.mockResolvedValue({
-      config: { apiKey: { organizationSlug: "org", secretKey: "key" } },
+      config: { apiKey: { organizationSlug: "org", secretKey: "key" }, endpoint: "https://custom.example.com" },
+      endpoint: "https://custom.example.com",
       warnings: [],
     });
     mocks.buildApiKeyAuthorization.mockReturnValue("org:key");
 
-    await buildClient({ sandbox: true });
+    await buildClient();
 
     expect(mocks.httpClientConstructor).toHaveBeenCalledWith({
-      baseUrl: "https://thirdparty-sandbox.staging.qonto.co",
+      baseUrl: "https://custom.example.com",
       authorization: "org:key",
     });
   });
@@ -69,6 +71,7 @@ describe("buildClient", () => {
   it("passes profile to resolveConfig", async () => {
     mocks.resolveConfig.mockResolvedValue({
       config: { apiKey: { organizationSlug: "org", secretKey: "key" } },
+      endpoint: "https://thirdparty.qonto.com",
       warnings: [],
     });
     mocks.buildApiKeyAuthorization.mockReturnValue("org:key");

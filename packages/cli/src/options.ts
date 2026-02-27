@@ -22,7 +22,6 @@ export const OUTPUT_FORMATS: readonly OutputFormat[] = [
 export interface GlobalOptions {
   readonly profile?: string | undefined;
   readonly output: OutputFormat;
-  readonly sandbox?: true | undefined;
   readonly verbose?: true | undefined;
   readonly debug?: true | undefined;
 }

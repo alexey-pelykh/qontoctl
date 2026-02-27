@@ -124,4 +124,62 @@ describe("applyEnvOverlay", () => {
     });
     expect(config).toEqual(original);
   });
+
+  it("overlays QONTOCTL_ENDPOINT env var", () => {
+    const config = {};
+    const result = applyEnvOverlay(config, {
+      env: { QONTOCTL_ENDPOINT: "https://custom.example.com" },
+    });
+    expect(result.endpoint).toBe("https://custom.example.com");
+  });
+
+  it("overlays profile-scoped endpoint env var", () => {
+    const config = {};
+    const result = applyEnvOverlay(config, {
+      profile: "staging",
+      env: { QONTOCTL_STAGING_ENDPOINT: "https://staging.example.com" },
+    });
+    expect(result.endpoint).toBe("https://staging.example.com");
+  });
+
+  it("overlays QONTOCTL_SANDBOX=1 as sandbox true", () => {
+    const config = {};
+    const result = applyEnvOverlay(config, {
+      env: { QONTOCTL_SANDBOX: "1" },
+    });
+    expect(result.sandbox).toBe(true);
+  });
+
+  it("overlays QONTOCTL_SANDBOX=true as sandbox true", () => {
+    const config = {};
+    const result = applyEnvOverlay(config, {
+      env: { QONTOCTL_SANDBOX: "true" },
+    });
+    expect(result.sandbox).toBe(true);
+  });
+
+  it("overlays QONTOCTL_SANDBOX=0 as sandbox false", () => {
+    const config = {};
+    const result = applyEnvOverlay(config, {
+      env: { QONTOCTL_SANDBOX: "0" },
+    });
+    expect(result.sandbox).toBe(false);
+  });
+
+  it("overlays profile-scoped sandbox env var", () => {
+    const config = {};
+    const result = applyEnvOverlay(config, {
+      profile: "staging",
+      env: { QONTOCTL_STAGING_SANDBOX: "1" },
+    });
+    expect(result.sandbox).toBe(true);
+  });
+
+  it("endpoint env var overrides file endpoint", () => {
+    const config = { endpoint: "https://file.example.com" };
+    const result = applyEnvOverlay(config, {
+      env: { QONTOCTL_ENDPOINT: "https://env.example.com" },
+    });
+    expect(result.endpoint).toBe("https://env.example.com");
+  });
 });
