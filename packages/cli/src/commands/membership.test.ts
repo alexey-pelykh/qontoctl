@@ -102,7 +102,7 @@ describe("membership commands", () => {
       expect(output).toContain("Bob");
     });
 
-    it("lists memberships in json format", async () => {
+    it("lists memberships in json format with full API fields", async () => {
       const memberships = [
         {
           id: "mem-1",
@@ -144,6 +144,11 @@ describe("membership commands", () => {
         last_name: "Smith",
         role: "admin",
         team_id: "team-1",
+        residence_country: null,
+        birthdate: null,
+        nationality: null,
+        birth_country: null,
+        ubo: null,
         status: "active",
       });
     });
