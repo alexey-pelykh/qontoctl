@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import type { HttpClientOptions } from "@qontoctl/core";
 import { createClient } from "./client.js";
 import type { GlobalOptions } from "./options.js";
 
@@ -10,16 +11,19 @@ vi.mock("@qontoctl/core", async (importOriginal) => {
   return {
     ...actual,
     resolveConfig: vi.fn(),
+    HttpClient: vi.fn(),
   };
 });
 
-const { resolveConfig } = await import("@qontoctl/core");
+const { resolveConfig, HttpClient } = await import("@qontoctl/core");
 const resolveConfigMock = vi.mocked(resolveConfig);
+const HttpClientMock = vi.mocked(HttpClient);
 
 describe("createClient", () => {
   let stderrSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
+    HttpClientMock.mockClear();
     stderrSpy = vi.spyOn(process.stderr, "write").mockReturnValue(true);
     resolveConfigMock.mockResolvedValue({
       config: {
@@ -37,10 +41,15 @@ describe("createClient", () => {
     vi.restoreAllMocks();
   });
 
-  it("creates a client with production base URL by default", async () => {
+  it("creates a client with resolved endpoint", async () => {
     const options: GlobalOptions = { output: "table" };
-    const client = await createClient(options);
-    expect(client).toBeDefined();
+    await createClient(options);
+
+    expect(HttpClientMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        baseUrl: "https://thirdparty.qonto.com",
+      }),
+    );
   });
 
   it("passes profile to resolveConfig", async () => {
@@ -77,5 +86,50 @@ describe("createClient", () => {
     await expect(createClient(options)).rejects.toThrow(
       "No API key credentials found in configuration",
     );
+  });
+
+  it("creates client without logger by default", async () => {
+    const options: GlobalOptions = { output: "table" };
+    await createClient(options);
+
+    const ctorArgs = HttpClientMock.mock.calls[0]?.[0] as
+      | HttpClientOptions
+      | undefined;
+    expect(ctorArgs?.logger).toBeUndefined();
+  });
+
+  it("creates a debug logger when --debug is set", async () => {
+    const options: GlobalOptions = { output: "table", debug: true };
+    await createClient(options);
+
+    const ctorArgs = HttpClientMock.mock.calls[0]?.[0] as
+      | HttpClientOptions
+      | undefined;
+    const logger = ctorArgs?.logger;
+    expect(logger).toBeDefined();
+
+    logger?.verbose("verbose msg");
+    expect(stderrSpy).toHaveBeenCalledWith("verbose msg\n");
+
+    logger?.debug("debug msg");
+    expect(stderrSpy).toHaveBeenCalledWith("debug msg\n");
+  });
+
+  it("creates a verbose-only logger when --verbose is set", async () => {
+    const options: GlobalOptions = { output: "table", verbose: true };
+    await createClient(options);
+
+    const ctorArgs = HttpClientMock.mock.calls[0]?.[0] as
+      | HttpClientOptions
+      | undefined;
+    const logger = ctorArgs?.logger;
+    expect(logger).toBeDefined();
+
+    logger?.verbose("verbose msg");
+    expect(stderrSpy).toHaveBeenCalledWith("verbose msg\n");
+
+    stderrSpy.mockClear();
+    logger?.debug("debug msg");
+    expect(stderrSpy).not.toHaveBeenCalled();
   });
 });

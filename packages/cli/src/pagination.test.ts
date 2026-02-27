@@ -135,6 +135,28 @@ describe("pagination", () => {
       expect(result.items).toEqual(items);
       expect(fetchSpy).toHaveBeenCalledTimes(1);
     });
+
+    it("stops at MAX_PAGES safety limit", async () => {
+      // Always return a next_page to simulate infinite pagination
+      fetchSpy.mockImplementation(() => {
+        const callCount = fetchSpy.mock.calls.length;
+        return jsonResponse({
+          items: [{ id: String(callCount) }],
+          meta: makeMeta({
+            current_page: callCount,
+            next_page: callCount + 1,
+            total_pages: 9999,
+            total_count: 9999,
+          }),
+        });
+      });
+
+      const result = await fetchAllPages(client, "/v2/items", "items", 1);
+
+      // MAX_PAGES is 1000, so it should stop after 1000 fetches
+      expect(fetchSpy).toHaveBeenCalledTimes(1000);
+      expect(result.items).toHaveLength(1000);
+    });
   });
 
   describe("fetchPaginated", () => {
