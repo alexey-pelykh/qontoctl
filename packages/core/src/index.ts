@@ -7,6 +7,8 @@ export {
   QontoRateLimitError,
   type HttpClientLogger,
   type HttpClientOptions,
+  type QueryParams,
+  type QueryParamValue,
   type QontoApiErrorEntry,
 } from "./http-client.js";
 
@@ -34,3 +36,14 @@ export { API_BASE_URL, SANDBOX_BASE_URL } from "./constants.js";
 export type { Label, Membership } from "./types/index.js";
 
 export type { Statement, StatementFile } from "./statements/index.js";
+
+export {
+  buildTransactionQueryParams,
+  getTransaction,
+} from "./transactions/index.js";
+
+export type {
+  Transaction,
+  TransactionLabel,
+  ListTransactionsParams,
+} from "./transactions/index.js";

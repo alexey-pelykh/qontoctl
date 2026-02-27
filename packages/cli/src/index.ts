@@ -37,3 +37,5 @@ export {
 } from "./commands/index.js";
 
 export { registerStatementCommands } from "./commands/index.js";
+
+export { registerTransactionCommands } from "./commands/transaction/index.js";
