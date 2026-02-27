@@ -28,16 +28,19 @@ export function createMembershipCommand(): Command {
         opts,
       );
 
-      const rows = result.items.map((m) => ({
-        id: m.id,
-        first_name: m.first_name,
-        last_name: m.last_name,
-        role: m.role,
-        team_id: m.team_id,
-        status: m.status,
-      }));
+      const data =
+        opts.output === "json" || opts.output === "yaml"
+          ? result.items
+          : result.items.map((m) => ({
+              id: m.id,
+              first_name: m.first_name,
+              last_name: m.last_name,
+              role: m.role,
+              team_id: m.team_id,
+              status: m.status,
+            }));
 
-      process.stdout.write(formatOutput(rows, opts.output) + "\n");
+      process.stdout.write(formatOutput(data, opts.output) + "\n");
     });
 
   return membership;

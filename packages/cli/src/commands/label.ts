@@ -25,13 +25,16 @@ export function createLabelCommand(): Command {
         opts,
       );
 
-      const rows = result.items.map((l) => ({
-        id: l.id,
-        name: l.name,
-        parent_id: l.parent_id ?? "",
-      }));
+      const data =
+        opts.output === "json" || opts.output === "yaml"
+          ? result.items
+          : result.items.map((l) => ({
+              id: l.id,
+              name: l.name,
+              parent_id: l.parent_id ?? "",
+            }));
 
-      process.stdout.write(formatOutput(rows, opts.output) + "\n");
+      process.stdout.write(formatOutput(data, opts.output) + "\n");
     });
 
   label
@@ -44,13 +47,18 @@ export function createLabelCommand(): Command {
       const response = await client.get<{ label: Label }>(`/v2/labels/${encodeURIComponent(id)}`);
       const l = response.label;
 
-      const row = {
-        id: l.id,
-        name: l.name,
-        parent_id: l.parent_id ?? "",
-      };
+      const data =
+        opts.output === "json" || opts.output === "yaml"
+          ? l
+          : [
+              {
+                id: l.id,
+                name: l.name,
+                parent_id: l.parent_id ?? "",
+              },
+            ];
 
-      process.stdout.write(formatOutput([row], opts.output) + "\n");
+      process.stdout.write(formatOutput(data, opts.output) + "\n");
     });
 
   return label;
