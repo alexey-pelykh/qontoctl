@@ -2,12 +2,22 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { HttpClient } from "@qontoctl/core";
+import { registerStatementTools } from "./tools/index.js";
 
-export function createServer(): McpServer {
+export interface CreateServerOptions {
+  readonly getClient: () => Promise<HttpClient>;
+}
+
+export function createServer(options?: CreateServerOptions): McpServer {
   const server = new McpServer({
     name: "qontoctl",
     version: "0.0.0",
   });
+
+  if (options?.getClient !== undefined) {
+    registerStatementTools(server, options.getClient);
+  }
 
   return server;
 }

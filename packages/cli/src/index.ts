@@ -26,3 +26,7 @@ export {
   type PaginatedResult,
   type PaginationMeta,
 } from "./pagination.js";
+
+export { createClient } from "./client.js";
+
+export { registerStatementCommands } from "./commands/index.js";
