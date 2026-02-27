@@ -1,0 +1,81 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2026 Oleksii PELYKH
+
+import type { QontoctlConfig } from "./types.js";
+
+const KNOWN_TOP_LEVEL_KEYS = new Set(["api-key"]);
+const KNOWN_API_KEY_KEYS = new Set(["organization_slug", "secret_key"]);
+
+export interface ValidationResult {
+  config: QontoctlConfig;
+  warnings: string[];
+  errors: string[];
+}
+
+/**
+ * Validates a parsed YAML document against the expected config schema.
+ *
+ * - Known keys with wrong types produce errors.
+ * - Unknown keys produce warnings (forward compatibility).
+ * - Returns a partially-populated config for valid fields.
+ */
+export function validateConfig(raw: unknown): ValidationResult {
+  const warnings: string[] = [];
+  const errors: string[] = [];
+  const config: QontoctlConfig = {};
+
+  if (raw === null || raw === undefined) {
+    return { config, warnings, errors };
+  }
+
+  if (typeof raw !== "object" || Array.isArray(raw)) {
+    errors.push("Configuration must be a YAML mapping");
+    return { config, warnings, errors };
+  }
+
+  const doc = raw as Record<string, unknown>;
+
+  for (const key of Object.keys(doc)) {
+    if (!KNOWN_TOP_LEVEL_KEYS.has(key)) {
+      warnings.push(`Unknown configuration key: "${key}"`);
+    }
+  }
+
+  if ("api-key" in doc) {
+    const apiKeySection = doc["api-key"];
+
+    if (apiKeySection === null || apiKeySection === undefined) {
+      // api-key section present but empty — not an error, just no credentials from file
+    } else if (typeof apiKeySection !== "object" || Array.isArray(apiKeySection)) {
+      errors.push('"api-key" must be a mapping');
+    } else {
+      const apiKey = apiKeySection as Record<string, unknown>;
+
+      for (const key of Object.keys(apiKey)) {
+        if (!KNOWN_API_KEY_KEYS.has(key)) {
+          warnings.push(`Unknown key in "api-key": "${key}"`);
+        }
+      }
+
+      const orgSlug = apiKey["organization_slug"];
+      const secretKey = apiKey["secret_key"];
+
+      if (orgSlug !== undefined && typeof orgSlug !== "string") {
+        errors.push('"api-key.organization_slug" must be a string');
+      }
+
+      if (secretKey !== undefined && typeof secretKey !== "string") {
+        errors.push('"api-key.secret_key" must be a string');
+      }
+
+      if (typeof orgSlug === "string" || typeof secretKey === "string") {
+        config.apiKey = {
+          organizationSlug: typeof orgSlug === "string" ? orgSlug : "",
+          secretKey: typeof secretKey === "string" ? secretKey : "",
+        };
+      }
+    }
+  }
+
+  return { config, warnings, errors };
+}
