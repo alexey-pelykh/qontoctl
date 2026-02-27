@@ -136,6 +136,12 @@ export class HttpClient {
     this.userAgent = buildUserAgent();
   }
 
+  /**
+   * Sends an HTTP request and parses the response as JSON.
+   *
+   * **Trust boundary**: The parsed JSON is cast to `T` without runtime validation.
+   * Callers trust the Qonto API contract for response shapes.
+   */
   async request<T>(
     method: string,
     path: string,
@@ -144,6 +150,46 @@ export class HttpClient {
       readonly params?: QueryParams;
     },
   ): Promise<T> {
+    const response = await this.fetchWithRetry(method, path, options);
+    const responseBody: unknown = await response.json();
+    this.logDebug(`Response body: ${JSON.stringify(redactSensitiveFields(responseBody))}`);
+    return responseBody as T;
+  }
+
+  /**
+   * Sends an HTTP request expecting no response body (e.g. 204 No Content).
+   */
+  async requestVoid(
+    method: string,
+    path: string,
+    options?: {
+      readonly body?: unknown;
+      readonly params?: QueryParams;
+    },
+  ): Promise<void> {
+    await this.fetchWithRetry(method, path, options);
+  }
+
+  async get<T>(path: string, params?: QueryParams): Promise<T> {
+    return this.request<T>("GET", path, params !== undefined ? { params } : undefined);
+  }
+
+  async post<T>(path: string, body?: unknown): Promise<T> {
+    return this.request<T>("POST", path, body !== undefined ? { body } : undefined);
+  }
+
+  async delete(path: string): Promise<void> {
+    return this.requestVoid("DELETE", path);
+  }
+
+  private async fetchWithRetry(
+    method: string,
+    path: string,
+    options?: {
+      readonly body?: unknown;
+      readonly params?: QueryParams;
+    },
+  ): Promise<Response> {
     const url = this.buildUrl(path, options?.params);
     const headers = this.buildHeaders(options?.body !== undefined);
     const body = options?.body !== undefined ? JSON.stringify(options.body) : undefined;
@@ -180,25 +226,11 @@ export class HttpClient {
         throw new QontoApiError(response.status, errors);
       }
 
-      if (response.status === 204) {
-        return undefined as T;
-      }
-
-      const responseBody: unknown = await response.json();
-      this.logDebug(`Response body: ${JSON.stringify(redactSensitiveFields(responseBody))}`);
-      return responseBody as T;
+      return response;
     }
 
     // Unreachable in practice: the loop always returns or throws
     throw new QontoRateLimitError(undefined);
-  }
-
-  async get<T>(path: string, params?: QueryParams): Promise<T> {
-    return this.request<T>("GET", path, params !== undefined ? { params } : undefined);
-  }
-
-  async post<T>(path: string, body?: unknown): Promise<T> {
-    return this.request<T>("POST", path, body !== undefined ? { body } : undefined);
   }
 
   private buildUrl(path: string, params?: QueryParams): URL {

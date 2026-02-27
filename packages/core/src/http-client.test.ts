@@ -142,16 +142,28 @@ describe("HttpClient", () => {
       expect(result).toEqual(responseData);
     });
 
-    it("returns undefined for 204 No Content responses", async () => {
+    it("resolves void for 204 No Content via requestVoid", async () => {
       fetchSpy.mockReturnValue(Promise.resolve(new Response(null, { status: 204 })));
       const client = new TestableHttpClient({
         baseUrl: "https://thirdparty.qonto.com",
         authorization: "slug:secret",
       });
 
-      const result = await client.request("DELETE", "/v2/something");
+      await expect(client.requestVoid("DELETE", "/v2/something")).resolves.toBeUndefined();
+    });
 
-      expect(result).toBeUndefined();
+    it("sends DELETE request via delete convenience method", async () => {
+      fetchSpy.mockReturnValue(Promise.resolve(new Response(null, { status: 204 })));
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+      });
+
+      await expect(client.delete("/v2/something")).resolves.toBeUndefined();
+
+      const [url, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      expect(url.toString()).toBe("https://thirdparty.qonto.com/v2/something");
+      expect(init.method).toBe("DELETE");
     });
   });
 
