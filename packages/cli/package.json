@@ -27,6 +27,9 @@
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "prepack": "cp ../../LICENSE .",
     "build": "tsc",
