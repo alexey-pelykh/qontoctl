@@ -4,6 +4,7 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { HttpClient, Label } from "@qontoctl/core";
+import { withClient } from "../errors.js";
 
 interface PaginatedLabelsResponse {
   readonly labels: readonly Label[];
@@ -38,30 +39,30 @@ export function registerLabelTools(
         .optional()
         .describe("Items per page (max 100)"),
     },
-    async ({ page, per_page }) => {
-      const client = await getClient();
-      const params: Record<string, string> = {};
-      if (page !== undefined) params["current_page"] = String(page);
-      if (per_page !== undefined) params["per_page"] = String(per_page);
+    async ({ page, per_page }) =>
+      withClient(getClient, async (client) => {
+        const params: Record<string, string> = {};
+        if (page !== undefined) params["current_page"] = String(page);
+        if (per_page !== undefined) params["per_page"] = String(per_page);
 
-      const response = await client.get<PaginatedLabelsResponse>(
-        "/v2/labels",
-        Object.keys(params).length > 0 ? params : undefined,
-      );
+        const response = await client.get<PaginatedLabelsResponse>(
+          "/v2/labels",
+          Object.keys(params).length > 0 ? params : undefined,
+        );
 
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: JSON.stringify(
-              { labels: response.labels, meta: response.meta },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
-    },
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(
+                { labels: response.labels, meta: response.meta },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      }),
   );
 
   server.tool(
@@ -70,20 +71,21 @@ export function registerLabelTools(
     {
       id: z.string().describe("Label ID (UUID)"),
     },
-    async ({ id }) => {
-      const client = await getClient();
-      const response = await client.get<SingleLabelResponse>(
-        `/v2/labels/${encodeURIComponent(id)}`,
-      );
+    async ({ id }) =>
+      withClient(getClient, async (client) => {
+        const response = await client.get<SingleLabelResponse>(
+          `/v2/labels/${encodeURIComponent(id)}`,
+        );
 
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: JSON.stringify(response.label, null, 2),
-          },
-        ],
-      };
-    },
+
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(response.label, null, 2),
+            },
+          ],
+        };
+      }),
   );
 }
