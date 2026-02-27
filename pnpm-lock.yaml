@@ -151,6 +151,9 @@ importers:
       '@qontoctl/mcp':
         specifier: workspace:^
         version: link:../mcp
+      zod:
+        specifier: 'catalog:'
+        version: 4.3.6
     devDependencies:
       '@types/node':
         specifier: 'catalog:'

@@ -19,7 +19,8 @@
     "@modelcontextprotocol/sdk": "catalog:",
     "@qontoctl/cli": "workspace:^",
     "@qontoctl/core": "workspace:^",
-    "@qontoctl/mcp": "workspace:^"
+    "@qontoctl/mcp": "workspace:^",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",
