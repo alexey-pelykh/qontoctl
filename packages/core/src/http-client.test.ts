@@ -3,6 +3,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { HttpClient, QontoApiError, QontoRateLimitError } from "./http-client.js";
+import { jsonResponse } from "./testing/json-response.js";
 
 /**
  * Test-friendly subclass that stubs `sleep` to avoid real delays.
@@ -19,16 +20,6 @@ function createMockLogger() {
     verbose: vi.fn<(message: string) => void>(),
     debug: vi.fn<(message: string) => void>(),
   };
-}
-
-function jsonResponse(body: unknown, init?: ResponseInit): Promise<Response> {
-  return Promise.resolve(
-    new Response(JSON.stringify(body), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-      ...init,
-    }),
-  );
 }
 
 describe("HttpClient", () => {

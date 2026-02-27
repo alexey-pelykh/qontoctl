@@ -3,16 +3,8 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { HttpClient } from "../http-client.js";
+import { jsonResponse } from "../testing/json-response.js";
 import { getBankAccount } from "./bank-accounts.js";
-
-function jsonResponse(body: unknown): Promise<Response> {
-  return Promise.resolve(
-    new Response(JSON.stringify(body), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    }),
-  );
-}
 
 describe("getBankAccount", () => {
   let fetchSpy: ReturnType<typeof vi.fn>;

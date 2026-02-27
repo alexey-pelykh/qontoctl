@@ -2,10 +2,8 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { HttpClient } from "@qontoctl/core";
-import { createServer } from "./server.js";
+import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { connectInMemory } from "./testing/mcp-helpers.js";
 
 describe("rate limit error handling (integration)", () => {
   let fetchSpy: ReturnType<typeof vi.fn>;
@@ -14,18 +12,7 @@ describe("rate limit error handling (integration)", () => {
   beforeEach(async () => {
     fetchSpy = vi.fn();
     vi.stubGlobal("fetch", fetchSpy);
-
-    const httpClient = new HttpClient({
-      baseUrl: "https://thirdparty.qonto.com",
-      authorization: "slug:secret",
-      maxRetries: 0, // No retries — trigger QontoRateLimitError immediately
-    });
-
-    const server = createServer({ getClient: () => Promise.resolve(httpClient) });
-    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
-
-    mcpClient = new Client({ name: "test", version: "0.0.0" });
-    await Promise.all([mcpClient.connect(clientTransport), server.connect(serverTransport)]);
+    ({ mcpClient } = await connectInMemory(fetchSpy, { maxRetries: 0 }));
   });
 
   afterEach(() => {

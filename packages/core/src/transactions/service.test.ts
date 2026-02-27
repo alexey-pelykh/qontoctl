@@ -3,17 +3,9 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { HttpClient } from "../http-client.js";
+import { jsonResponse } from "../testing/json-response.js";
 import { buildTransactionQueryParams, getTransaction } from "./service.js";
 import type { ListTransactionsParams } from "./types.js";
-
-function jsonResponse(body: unknown): Promise<Response> {
-  return Promise.resolve(
-    new Response(JSON.stringify(body), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    }),
-  );
-}
 
 describe("buildTransactionQueryParams", () => {
   it("returns empty object for empty params", () => {
