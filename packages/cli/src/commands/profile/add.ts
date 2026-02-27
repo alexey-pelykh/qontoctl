@@ -58,8 +58,8 @@ async function addProfile(name: string): Promise<void> {
 
     const config = {
       "api-key": {
-        organization_slug: organizationSlug.trim(),
-        secret_key: secretKey.trim(),
+        "organization-slug": organizationSlug.trim(),
+        "secret-key": secretKey.trim(),
       },
     };
 

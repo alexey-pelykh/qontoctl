@@ -4,7 +4,7 @@
 import type { QontoctlConfig } from "./types.js";
 
 const KNOWN_TOP_LEVEL_KEYS = new Set(["api-key", "endpoint", "sandbox"]);
-const KNOWN_API_KEY_KEYS = new Set(["organization_slug", "secret_key"]);
+const KNOWN_API_KEY_KEYS = new Set(["organization-slug", "secret-key"]);
 
 export interface ValidationResult {
   config: QontoctlConfig;
@@ -57,15 +57,15 @@ export function validateConfig(raw: unknown): ValidationResult {
         }
       }
 
-      const orgSlug = apiKey["organization_slug"];
-      const secretKey = apiKey["secret_key"];
+      const orgSlug = apiKey["organization-slug"];
+      const secretKey = apiKey["secret-key"];
 
       if (orgSlug !== undefined && typeof orgSlug !== "string") {
-        errors.push('"api-key.organization_slug" must be a string');
+        errors.push('"api-key.organization-slug" must be a string');
       }
 
       if (secretKey !== undefined && typeof secretKey !== "string") {
-        errors.push('"api-key.secret_key" must be a string');
+        errors.push('"api-key.secret-key" must be a string');
       }
 
       if (typeof orgSlug === "string" || typeof secretKey === "string") {

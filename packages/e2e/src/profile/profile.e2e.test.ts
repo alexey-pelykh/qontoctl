@@ -97,8 +97,8 @@ describe("profile commands (e2e)", () => {
       listDir = mkdtempSync(join(tmpdir(), "qontoctl-list-e2e-"));
       const dir = join(listDir, ".qontoctl");
       mkdirSync(dir, { recursive: true });
-      writeFileSync(join(dir, "personal.yaml"), "api-key:\n  organization_slug: org-a\n  secret_key: key-a\n");
-      writeFileSync(join(dir, "work.yaml"), "api-key:\n  organization_slug: org-b\n  secret_key: key-b\n");
+      writeFileSync(join(dir, "personal.yaml"), "api-key:\n  organization-slug: org-a\n  secret-key: key-a\n");
+      writeFileSync(join(dir, "work.yaml"), "api-key:\n  organization-slug: org-b\n  secret-key: key-b\n");
       writeFileSync(join(dir, "notes.txt"), "not a profile");
     });
 
@@ -143,7 +143,7 @@ describe("profile commands (e2e)", () => {
       mkdirSync(dir, { recursive: true });
       writeFileSync(
         join(dir, "demo.yaml"),
-        "api-key:\n  organization_slug: demo-org\n  secret_key: sk_live_abcdef7890\n",
+        "api-key:\n  organization-slug: demo-org\n  secret-key: sk_live_abcdef7890\n",
       );
     });
 
@@ -195,8 +195,8 @@ describe("profile commands (e2e)", () => {
       expect(existsSync(profilePath)).toBe(true);
 
       const content = readFileSync(profilePath, "utf-8");
-      expect(content).toContain("organization_slug: test-org-slug");
-      expect(content).toContain("secret_key: sk_test_secretkey123");
+      expect(content).toContain("organization-slug: test-org-slug");
+      expect(content).toContain("secret-key: sk_test_secretkey123");
     });
 
     it("refuses to overwrite an existing profile", async () => {
@@ -220,8 +220,8 @@ describe("profile commands (e2e)", () => {
       removeDir = mkdtempSync(join(tmpdir(), "qontoctl-remove-e2e-"));
       const dir = join(removeDir, ".qontoctl");
       mkdirSync(dir, { recursive: true });
-      writeFileSync(join(dir, "disposable.yaml"), "api-key:\n  organization_slug: org\n  secret_key: key\n");
-      writeFileSync(join(dir, "keeper.yaml"), "api-key:\n  organization_slug: org2\n  secret_key: key2\n");
+      writeFileSync(join(dir, "disposable.yaml"), "api-key:\n  organization-slug: org\n  secret-key: key\n");
+      writeFileSync(join(dir, "keeper.yaml"), "api-key:\n  organization-slug: org2\n  secret-key: key2\n");
     });
 
     afterAll(() => {

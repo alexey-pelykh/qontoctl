@@ -26,7 +26,7 @@ describe("handleCliError", () => {
       const output = stderrSpy.mock.calls[0]?.[0] as string;
       expect(output).toContain("Configuration error: No credentials found.");
       expect(output).toContain("~/.qontoctl.yaml");
-      expect(output).toContain("organization_slug");
+      expect(output).toContain("organization-slug");
       expect(output).toContain("QONTOCTL_ORGANIZATION_SLUG");
       expect(process.exitCode).toBe(1);
     });

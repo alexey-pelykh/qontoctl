@@ -51,7 +51,7 @@ describe("profile show", () => {
     await mkdir(configDir, { recursive: true });
     await writeFile(
       join(configDir, "work.yaml"),
-      "api-key:\n  organization_slug: my-org-slug\n  secret_key: sk_test_abcdef1234\n",
+      "api-key:\n  organization-slug: my-org-slug\n  secret-key: sk_test_abcdef1234\n",
     );
 
     const program = createProgram();
@@ -72,7 +72,7 @@ describe("profile show", () => {
     await mkdir(configDir, { recursive: true });
     await writeFile(
       join(configDir, "dev.yaml"),
-      "api-key:\n  organization_slug: dev-org\n  secret_key: sk_dev_xyz789\n",
+      "api-key:\n  organization-slug: dev-org\n  secret-key: sk_dev_xyz789\n",
     );
 
     const program = createProgram();
@@ -86,15 +86,15 @@ describe("profile show", () => {
     expect(parsed).toHaveLength(1);
     expect(parsed[0]).toMatchObject({
       name: "dev",
-      organization_slug: "dev-org",
-      secret_key: "****z789",
+      "organization-slug": "dev-org",
+      "secret-key": "****z789",
     });
   });
 
   it("redacts short secret keys completely", async () => {
     const configDir = join(testHome, ".qontoctl");
     await mkdir(configDir, { recursive: true });
-    await writeFile(join(configDir, "short.yaml"), "api-key:\n  organization_slug: org\n  secret_key: abc\n");
+    await writeFile(join(configDir, "short.yaml"), "api-key:\n  organization-slug: org\n  secret-key: abc\n");
 
     const program = createProgram();
     registerProfileCommands(program);
@@ -104,6 +104,6 @@ describe("profile show", () => {
 
     const output = consoleSpy.mock.calls[0]?.[0] as string;
     const parsed = JSON.parse(output) as Record<string, unknown>[];
-    expect(parsed[0]?.["secret_key"]).toBe("****");
+    expect(parsed[0]?.["secret-key"]).toBe("****");
   });
 });

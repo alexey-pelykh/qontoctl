@@ -39,8 +39,8 @@ describe("validateConfig", () => {
   it("parses valid api-key section", () => {
     const result = validateConfig({
       "api-key": {
-        organization_slug: "my-org",
-        secret_key: "sk_test_123",
+        "organization-slug": "my-org",
+        "secret-key": "sk_test_123",
       },
     });
     expect(result.config.apiKey).toEqual({
@@ -70,8 +70,8 @@ describe("validateConfig", () => {
   it("warns on unknown keys inside api-key", () => {
     const result = validateConfig({
       "api-key": {
-        organization_slug: "my-org",
-        secret_key: "sk_test_123",
+        "organization-slug": "my-org",
+        "secret-key": "sk_test_123",
         extra_field: "value",
       },
     });
@@ -80,23 +80,23 @@ describe("validateConfig", () => {
     expect(result.config.apiKey).toBeDefined();
   });
 
-  it("errors when organization_slug is not a string", () => {
+  it("errors when organization-slug is not a string", () => {
     const result = validateConfig({
-      "api-key": { organization_slug: 123, secret_key: "sk_test" },
+      "api-key": { "organization-slug": 123, "secret-key": "sk_test" },
     });
-    expect(result.errors).toContain('"api-key.organization_slug" must be a string');
+    expect(result.errors).toContain('"api-key.organization-slug" must be a string');
   });
 
-  it("errors when secret_key is not a string", () => {
+  it("errors when secret-key is not a string", () => {
     const result = validateConfig({
-      "api-key": { organization_slug: "my-org", secret_key: true },
+      "api-key": { "organization-slug": "my-org", "secret-key": true },
     });
-    expect(result.errors).toContain('"api-key.secret_key" must be a string');
+    expect(result.errors).toContain('"api-key.secret-key" must be a string');
   });
 
-  it("allows partial api-key with only organization_slug", () => {
+  it("allows partial api-key with only organization-slug", () => {
     const result = validateConfig({
-      "api-key": { organization_slug: "my-org" },
+      "api-key": { "organization-slug": "my-org" },
     });
     expect(result.config.apiKey).toEqual({
       organizationSlug: "my-org",
@@ -105,9 +105,9 @@ describe("validateConfig", () => {
     expect(result.errors).toEqual([]);
   });
 
-  it("allows partial api-key with only secret_key", () => {
+  it("allows partial api-key with only secret-key", () => {
     const result = validateConfig({
-      "api-key": { secret_key: "sk_test" },
+      "api-key": { "secret-key": "sk_test" },
     });
     expect(result.config.apiKey).toEqual({
       organizationSlug: "",

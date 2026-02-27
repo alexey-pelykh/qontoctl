@@ -46,8 +46,8 @@ async function showProfile(name: string, options: GlobalOptions): Promise<void> 
   const details = {
     name,
     path: path ?? "unknown",
-    organization_slug: config.apiKey?.organizationSlug ?? "",
-    secret_key: redactSecret(config.apiKey?.secretKey ?? ""),
+    "organization-slug": config.apiKey?.organizationSlug ?? "",
+    "secret-key": redactSecret(config.apiKey?.secretKey ?? ""),
   };
 
   console.log(formatOutput([details], options.output));

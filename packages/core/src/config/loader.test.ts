@@ -33,39 +33,39 @@ describe("loadConfigFile", () => {
 
   it("loads .qontoctl.yaml from CWD", async () => {
     const configPath = join(testDir, ".qontoctl.yaml");
-    await writeFile(configPath, "api-key:\n  organization_slug: cwd-org\n  secret_key: cwd-secret\n");
+    await writeFile(configPath, "api-key:\n  organization-slug: cwd-org\n  secret-key: cwd-secret\n");
 
     const result = await loadConfigFile({ cwd: testDir, home: testHome });
     expect(result.path).toBe(configPath);
     expect(result.raw).toEqual({
-      "api-key": { organization_slug: "cwd-org", secret_key: "cwd-secret" },
+      "api-key": { "organization-slug": "cwd-org", "secret-key": "cwd-secret" },
     });
   });
 
   it("falls back to ~/.qontoctl.yaml when CWD has no config", async () => {
     const homePath = join(testHome, ".qontoctl.yaml");
-    await writeFile(homePath, "api-key:\n  organization_slug: home-org\n  secret_key: home-secret\n");
+    await writeFile(homePath, "api-key:\n  organization-slug: home-org\n  secret-key: home-secret\n");
 
     const result = await loadConfigFile({ cwd: testDir, home: testHome });
     expect(result.path).toBe(homePath);
     expect(result.raw).toEqual({
-      "api-key": { organization_slug: "home-org", secret_key: "home-secret" },
+      "api-key": { "organization-slug": "home-org", "secret-key": "home-secret" },
     });
   });
 
   it("prefers CWD config over home config", async () => {
     await writeFile(
       join(testDir, ".qontoctl.yaml"),
-      "api-key:\n  organization_slug: cwd-org\n  secret_key: cwd-secret\n",
+      "api-key:\n  organization-slug: cwd-org\n  secret-key: cwd-secret\n",
     );
     await writeFile(
       join(testHome, ".qontoctl.yaml"),
-      "api-key:\n  organization_slug: home-org\n  secret_key: home-secret\n",
+      "api-key:\n  organization-slug: home-org\n  secret-key: home-secret\n",
     );
 
     const result = await loadConfigFile({ cwd: testDir, home: testHome });
     expect(result.raw).toEqual({
-      "api-key": { organization_slug: "cwd-org", secret_key: "cwd-secret" },
+      "api-key": { "organization-slug": "cwd-org", "secret-key": "cwd-secret" },
     });
   });
 
@@ -73,7 +73,7 @@ describe("loadConfigFile", () => {
     const profileDir = join(testHome, ".qontoctl");
     await mkdir(profileDir, { recursive: true });
     const profilePath = join(profileDir, "staging.yaml");
-    await writeFile(profilePath, "api-key:\n  organization_slug: staging-org\n  secret_key: staging-secret\n");
+    await writeFile(profilePath, "api-key:\n  organization-slug: staging-org\n  secret-key: staging-secret\n");
 
     const result = await loadConfigFile({
       profile: "staging",
@@ -83,8 +83,8 @@ describe("loadConfigFile", () => {
     expect(result.path).toBe(profilePath);
     expect(result.raw).toEqual({
       "api-key": {
-        organization_slug: "staging-org",
-        secret_key: "staging-secret",
+        "organization-slug": "staging-org",
+        "secret-key": "staging-secret",
       },
     });
   });

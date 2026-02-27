@@ -64,7 +64,7 @@ describe("profile remove", () => {
     const configDir = join(testHome, ".qontoctl");
     await mkdir(configDir, { recursive: true });
     const filePath = join(configDir, "work.yaml");
-    await writeFile(filePath, "api-key:\n  organization_slug: org\n  secret_key: key\n");
+    await writeFile(filePath, "api-key:\n  organization-slug: org\n  secret-key: key\n");
 
     mockQuestionResponses = ["yes"];
 
@@ -82,7 +82,7 @@ describe("profile remove", () => {
     const configDir = join(testHome, ".qontoctl");
     await mkdir(configDir, { recursive: true });
     const filePath = join(configDir, "work.yaml");
-    await writeFile(filePath, "api-key:\n  organization_slug: org\n  secret_key: key\n");
+    await writeFile(filePath, "api-key:\n  organization-slug: org\n  secret-key: key\n");
 
     mockQuestionResponses = ["no"];
 
