@@ -24,9 +24,7 @@ const UNRESOLVED_PROTOCOLS = ["catalog:", "workspace:", "link:", "file:"];
 const DEP_FIELDS = ["dependencies", "devDependencies", "peerDependencies", "optionalDependencies"];
 
 // Discover non-private workspace packages
-const workspaceList = JSON.parse(
-  execSync("pnpm -r ls --json --depth -1", { encoding: "utf-8" }),
-);
+const workspaceList = JSON.parse(execSync("pnpm -r ls --json --depth -1", { encoding: "utf-8" }));
 const packages = workspaceList.filter((pkg) => !pkg.private);
 
 if (packages.length === 0) {
