@@ -99,7 +99,7 @@ describe("label commands", () => {
       expect(parsed[0]).toEqual({
         id: "abc-123",
         name: "Marketing",
-        parent_id: "",
+        parent_id: null,
       });
     });
 
@@ -149,7 +149,7 @@ describe("label commands", () => {
       expect(output).toContain("parent-id");
     });
 
-    it("shows label with null parent_id as empty string", async () => {
+    it("shows label with null parent_id in json format", async () => {
       const label = {
         id: "abc-123",
         name: "Root Label",
@@ -166,11 +166,11 @@ describe("label commands", () => {
 
       expect(stdoutSpy).toHaveBeenCalled();
       const output = stdoutSpy.mock.calls[0]?.[0] as string;
-      const parsed = JSON.parse(output) as unknown[];
-      expect(parsed[0]).toEqual({
+      const parsed = JSON.parse(output) as Record<string, unknown>;
+      expect(parsed).toEqual({
         id: "abc-123",
         name: "Root Label",
-        parent_id: "",
+        parent_id: null,
       });
     });
 
