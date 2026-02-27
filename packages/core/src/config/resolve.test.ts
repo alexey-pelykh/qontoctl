@@ -28,7 +28,7 @@ describe("resolveConfig", () => {
   it("resolves config from CWD file", async () => {
     await writeFile(
       join(testDir, ".qontoctl.yaml"),
-      "api-key:\n  organization_slug: my-org\n  secret_key: my-secret\n",
+      "api-key:\n  organization-slug: my-org\n  secret-key: my-secret\n",
     );
 
     const result = await resolveConfig({
@@ -46,7 +46,7 @@ describe("resolveConfig", () => {
   it("resolves config from home fallback", async () => {
     await writeFile(
       join(testHome, ".qontoctl.yaml"),
-      "api-key:\n  organization_slug: home-org\n  secret_key: home-secret\n",
+      "api-key:\n  organization-slug: home-org\n  secret-key: home-secret\n",
     );
 
     const result = await resolveConfig({
@@ -65,7 +65,7 @@ describe("resolveConfig", () => {
     await mkdir(profileDir);
     await writeFile(
       join(profileDir, "staging.yaml"),
-      "api-key:\n  organization_slug: staging-org\n  secret_key: staging-secret\n",
+      "api-key:\n  organization-slug: staging-org\n  secret-key: staging-secret\n",
     );
 
     const result = await resolveConfig({
@@ -83,7 +83,7 @@ describe("resolveConfig", () => {
   it("env vars overlay onto file values", async () => {
     await writeFile(
       join(testDir, ".qontoctl.yaml"),
-      "api-key:\n  organization_slug: file-org\n  secret_key: file-secret\n",
+      "api-key:\n  organization-slug: file-org\n  secret-key: file-secret\n",
     );
 
     const result = await resolveConfig({
@@ -124,26 +124,26 @@ describe("resolveConfig", () => {
     await expect(resolveConfig({ cwd: testDir, home: testHome, env: {} })).rejects.toThrow(/Invalid configuration/);
   });
 
-  it("throws ConfigError when organization_slug is missing", async () => {
-    await writeFile(join(testDir, ".qontoctl.yaml"), "api-key:\n  secret_key: my-secret\n");
+  it("throws ConfigError when organization-slug is missing", async () => {
+    await writeFile(join(testDir, ".qontoctl.yaml"), "api-key:\n  secret-key: my-secret\n");
 
     await expect(resolveConfig({ cwd: testDir, home: testHome, env: {} })).rejects.toThrow(
-      /Missing required field "organization_slug"/,
+      /Missing required field "organization-slug"/,
     );
   });
 
-  it("throws ConfigError when secret_key is missing", async () => {
-    await writeFile(join(testDir, ".qontoctl.yaml"), "api-key:\n  organization_slug: my-org\n");
+  it("throws ConfigError when secret-key is missing", async () => {
+    await writeFile(join(testDir, ".qontoctl.yaml"), "api-key:\n  organization-slug: my-org\n");
 
     await expect(resolveConfig({ cwd: testDir, home: testHome, env: {} })).rejects.toThrow(
-      /Missing required field "secret_key"/,
+      /Missing required field "secret-key"/,
     );
   });
 
   it("returns warnings for unknown keys", async () => {
     await writeFile(
       join(testDir, ".qontoctl.yaml"),
-      "api-key:\n  organization_slug: my-org\n  secret_key: my-secret\n  extra: value\nfuture-feature: true\n",
+      "api-key:\n  organization-slug: my-org\n  secret-key: my-secret\n  extra: value\nfuture-feature: true\n",
     );
 
     const result = await resolveConfig({
@@ -161,7 +161,7 @@ describe("resolveConfig", () => {
     await mkdir(profileDir);
     await writeFile(
       join(profileDir, "prod.yaml"),
-      "api-key:\n  organization_slug: file-org\n  secret_key: file-secret\n",
+      "api-key:\n  organization-slug: file-org\n  secret-key: file-secret\n",
     );
 
     const result = await resolveConfig({
@@ -210,7 +210,7 @@ describe("resolveConfig", () => {
   it("resolves endpoint from config file", async () => {
     await writeFile(
       join(testDir, ".qontoctl.yaml"),
-      "api-key:\n  organization_slug: org\n  secret_key: secret\nendpoint: https://custom.example.com\n",
+      "api-key:\n  organization-slug: org\n  secret-key: secret\nendpoint: https://custom.example.com\n",
     );
 
     const result = await resolveConfig({
@@ -224,7 +224,7 @@ describe("resolveConfig", () => {
   it("resolves sandbox endpoint from config file", async () => {
     await writeFile(
       join(testDir, ".qontoctl.yaml"),
-      "api-key:\n  organization_slug: org\n  secret_key: secret\nsandbox: true\n",
+      "api-key:\n  organization-slug: org\n  secret-key: secret\nsandbox: true\n",
     );
 
     const result = await resolveConfig({
@@ -238,7 +238,7 @@ describe("resolveConfig", () => {
   it("explicit endpoint takes precedence over sandbox", async () => {
     await writeFile(
       join(testDir, ".qontoctl.yaml"),
-      "api-key:\n  organization_slug: org\n  secret_key: secret\nendpoint: https://custom.example.com\nsandbox: true\n",
+      "api-key:\n  organization-slug: org\n  secret-key: secret\nendpoint: https://custom.example.com\nsandbox: true\n",
     );
 
     const result = await resolveConfig({
@@ -252,7 +252,7 @@ describe("resolveConfig", () => {
   it("QONTOCTL_ENDPOINT env var takes precedence over file sandbox", async () => {
     await writeFile(
       join(testDir, ".qontoctl.yaml"),
-      "api-key:\n  organization_slug: org\n  secret_key: secret\nsandbox: true\n",
+      "api-key:\n  organization-slug: org\n  secret-key: secret\nsandbox: true\n",
     );
 
     const result = await resolveConfig({

@@ -58,8 +58,8 @@ describe("profile add", () => {
 
     const path = join(testHome, ".qontoctl", "work.yaml");
     const content = await readFile(path, "utf-8");
-    expect(content).toContain("organization_slug: my-org");
-    expect(content).toContain("secret_key: sk_test_12345678");
+    expect(content).toContain("organization-slug: my-org");
+    expect(content).toContain("secret-key: sk_test_12345678");
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Profile "work" created'));
   });
 
@@ -74,13 +74,13 @@ describe("profile add", () => {
 
     const path = join(testHome, ".qontoctl", "new-profile.yaml");
     const content = await readFile(path, "utf-8");
-    expect(content).toContain("organization_slug: org-slug");
+    expect(content).toContain("organization-slug: org-slug");
   });
 
   it("refuses to overwrite existing profile", async () => {
     const configDir = join(testHome, ".qontoctl");
     await mkdir(configDir, { recursive: true });
-    await writeFile(join(configDir, "existing.yaml"), "api-key:\n  organization_slug: org\n  secret_key: key\n");
+    await writeFile(join(configDir, "existing.yaml"), "api-key:\n  organization-slug: org\n  secret-key: key\n");
 
     mockQuestionResponses = ["new-org", "new-key"];
 

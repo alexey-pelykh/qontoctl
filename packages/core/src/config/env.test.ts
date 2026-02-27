@@ -88,7 +88,7 @@ describe("applyEnvOverlay", () => {
     });
   });
 
-  it("defaults secretKey to empty string when only organization_slug env var is set and no existing apiKey", () => {
+  it("defaults secretKey to empty string when only ORGANIZATION_SLUG env var is set and no existing apiKey", () => {
     const result = applyEnvOverlay(
       {},
       {
@@ -101,7 +101,7 @@ describe("applyEnvOverlay", () => {
     });
   });
 
-  it("defaults organizationSlug to empty string when only secret_key env var is set and no existing apiKey", () => {
+  it("defaults organizationSlug to empty string when only SECRET_KEY env var is set and no existing apiKey", () => {
     const result = applyEnvOverlay(
       {},
       {

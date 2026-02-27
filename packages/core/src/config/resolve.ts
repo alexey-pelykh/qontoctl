@@ -58,11 +58,11 @@ export async function resolveConfig(options?: ResolveOptions): Promise<ConfigRes
   }
 
   if (config.apiKey.organizationSlug === "") {
-    throw new ConfigError('Missing required field "organization_slug" in api-key credentials');
+    throw new ConfigError('Missing required field "organization-slug" in api-key credentials');
   }
 
   if (config.apiKey.secretKey === "") {
-    throw new ConfigError('Missing required field "secret_key" in api-key credentials');
+    throw new ConfigError('Missing required field "secret-key" in api-key credentials');
   }
 
   // 5. Resolve endpoint

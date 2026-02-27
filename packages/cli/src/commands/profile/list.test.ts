@@ -58,8 +58,8 @@ describe("profile list", () => {
   it("lists profile names from yaml files", async () => {
     const configDir = join(testHome, ".qontoctl");
     await mkdir(configDir, { recursive: true });
-    await writeFile(join(configDir, "work.yaml"), "api-key:\n  organization_slug: org\n  secret_key: key\n");
-    await writeFile(join(configDir, "personal.yaml"), "api-key:\n  organization_slug: org2\n  secret_key: key2\n");
+    await writeFile(join(configDir, "work.yaml"), "api-key:\n  organization-slug: org\n  secret-key: key\n");
+    await writeFile(join(configDir, "personal.yaml"), "api-key:\n  organization-slug: org2\n  secret-key: key2\n");
 
     const program = createProgram();
     registerProfileCommands(program);
@@ -75,7 +75,7 @@ describe("profile list", () => {
   it("ignores non-yaml files", async () => {
     const configDir = join(testHome, ".qontoctl");
     await mkdir(configDir, { recursive: true });
-    await writeFile(join(configDir, "work.yaml"), "api-key:\n  organization_slug: org\n  secret_key: key\n");
+    await writeFile(join(configDir, "work.yaml"), "api-key:\n  organization-slug: org\n  secret-key: key\n");
     await writeFile(join(configDir, "notes.txt"), "some notes");
 
     const program = createProgram();
@@ -92,7 +92,7 @@ describe("profile list", () => {
   it("outputs json format with --output json", async () => {
     const configDir = join(testHome, ".qontoctl");
     await mkdir(configDir, { recursive: true });
-    await writeFile(join(configDir, "staging.yaml"), "api-key:\n  organization_slug: org\n  secret_key: key\n");
+    await writeFile(join(configDir, "staging.yaml"), "api-key:\n  organization-slug: org\n  secret-key: key\n");
 
     const program = createProgram();
     registerProfileCommands(program);

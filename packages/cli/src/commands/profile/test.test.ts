@@ -44,7 +44,7 @@ describe("profile test", () => {
     await mkdir(configDir, { recursive: true });
     await writeFile(
       join(configDir, "work.yaml"),
-      "api-key:\n  organization_slug: my-org\n  secret_key: sk_test_1234\n",
+      "api-key:\n  organization-slug: my-org\n  secret-key: sk_test_1234\n",
     );
 
     fetchSpy.mockReturnValue(
@@ -70,7 +70,7 @@ describe("profile test", () => {
   it("reports failure on API error", async () => {
     const configDir = join(testHome, ".qontoctl");
     await mkdir(configDir, { recursive: true });
-    await writeFile(join(configDir, "bad.yaml"), "api-key:\n  organization_slug: bad-org\n  secret_key: sk_invalid\n");
+    await writeFile(join(configDir, "bad.yaml"), "api-key:\n  organization-slug: bad-org\n  secret-key: sk_invalid\n");
 
     fetchSpy.mockReturnValue(
       Promise.resolve(

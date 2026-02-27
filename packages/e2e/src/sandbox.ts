@@ -35,10 +35,10 @@ function tryReadConfigFile(path: string): ApiKeyCredentials | undefined {
     const parsed: unknown = parseYaml(content);
     if (typeof parsed === "object" && parsed !== null && "api-key" in parsed) {
       const apiKey = (parsed as Record<string, unknown>)["api-key"];
-      if (typeof apiKey === "object" && apiKey !== null && "organization_slug" in apiKey && "secret_key" in apiKey) {
+      if (typeof apiKey === "object" && apiKey !== null && "organization-slug" in apiKey && "secret-key" in apiKey) {
         const record = apiKey as Record<string, unknown>;
-        const slug = record["organization_slug"];
-        const key = record["secret_key"];
+        const slug = record["organization-slug"];
+        const key = record["secret-key"];
         if (typeof slug === "string" && typeof key === "string") {
           return { organizationSlug: slug, secretKey: key };
         }

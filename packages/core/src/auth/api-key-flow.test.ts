@@ -35,14 +35,14 @@ describe("API key auth flow", () => {
     await rm(baseDir, { recursive: true, force: true });
   });
 
-  // AC1: Given a profile with api-key.organization_slug and api-key.secret_key,
+  // AC1: Given a profile with api-key.organization-slug and api-key.secret-key,
   //      When an authenticated request is made,
   //      Then Authorization: {slug}:{key} header is sent (no Base64)
   describe("auth header from profile credentials", () => {
     it("resolves profile credentials into {slug}:{key} auth header", async () => {
       await writeFile(
         join(testDir, ".qontoctl.yaml"),
-        "api-key:\n  organization_slug: my-org\n  secret_key: my-secret\n",
+        "api-key:\n  organization-slug: my-org\n  secret-key: my-secret\n",
       );
 
       const { config } = await resolveConfig({
@@ -61,7 +61,7 @@ describe("API key auth flow", () => {
       await mkdir(profileDir);
       await writeFile(
         join(profileDir, "production.yaml"),
-        "api-key:\n  organization_slug: prod-org\n  secret_key: prod-secret\n",
+        "api-key:\n  organization-slug: prod-org\n  secret-key: prod-secret\n",
       );
 
       const { config } = await resolveConfig({
@@ -146,7 +146,7 @@ describe("API key auth flow", () => {
     it("builds auth header with env values overriding file values", async () => {
       await writeFile(
         join(testDir, ".qontoctl.yaml"),
-        "api-key:\n  organization_slug: file-org\n  secret_key: file-secret\n",
+        "api-key:\n  organization-slug: file-org\n  secret-key: file-secret\n",
       );
 
       const { config } = await resolveConfig({
@@ -166,7 +166,7 @@ describe("API key auth flow", () => {
     it("builds auth header from partial env override with file fallback", async () => {
       await writeFile(
         join(testDir, ".qontoctl.yaml"),
-        "api-key:\n  organization_slug: file-org\n  secret_key: file-secret\n",
+        "api-key:\n  organization-slug: file-org\n  secret-key: file-secret\n",
       );
 
       const { config } = await resolveConfig({
