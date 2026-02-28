@@ -16,20 +16,25 @@ npm install @qontoctl/cli
 
 ## Commands
 
-| Command                   | Description                       |
-| ------------------------- | --------------------------------- |
-| `org show`                | Show organization details         |
-| `account list`            | List bank accounts                |
-| `account show <id>`       | Show account details              |
-| `transaction list`        | List transactions with filters    |
-| `transaction show <id>`   | Show transaction details          |
-| `label list`              | List all labels                   |
-| `label show <id>`         | Show label details                |
-| `membership list`         | List organization memberships     |
-| `statement list`          | List bank statements              |
-| `statement show <id>`     | Show statement details            |
-| `statement download <id>` | Download statement PDF            |
-| `completion`              | Generate shell completion scripts |
+| Command                   | Description                        |
+| ------------------------- | ---------------------------------- |
+| `org show`                | Show organization details          |
+| `account list`            | List bank accounts                 |
+| `account show <id>`       | Show account details               |
+| `transaction list`        | List transactions with filters     |
+| `transaction show <id>`   | Show transaction details           |
+| `label list`              | List all labels                    |
+| `label show <id>`         | Show label details                 |
+| `membership list`         | List organization memberships      |
+| `profile add <name>`      | Create a new profile interactively |
+| `profile list`            | List named profiles                |
+| `profile show <name>`     | Show profile details               |
+| `profile remove <name>`   | Delete a named profile             |
+| `profile test`            | Test profile credentials           |
+| `statement list`          | List bank statements               |
+| `statement show <id>`     | Show statement details             |
+| `statement download <id>` | Download statement PDF             |
+| `completion`              | Generate shell completion scripts  |
 
 ### Global Options
 
