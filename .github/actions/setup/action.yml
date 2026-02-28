@@ -23,6 +23,6 @@ runs:
     - uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
       with:
         path: .turbo
-        key: turbo-${{ runner.os }}-node24-${{ hashFiles('**/pnpm-lock.yaml') }}
+        key: turbo-${{ runner.os }}-node24-${{ hashFiles('turbo.json', '**/pnpm-lock.yaml') }}
         restore-keys: |
           turbo-${{ runner.os }}-node24-
