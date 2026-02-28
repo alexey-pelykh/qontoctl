@@ -243,8 +243,8 @@ With `--profile <name>`, prefix becomes `QONTOCTL_{NAME}_` (uppercased, hyphens 
 The `--verbose` and `--debug` flags enable wire-level logging to stderr:
 
 ```sh
-qontoctl --verbose transactions list   # request/response summaries
-qontoctl --debug transactions list     # full headers and response bodies
+qontoctl --verbose transaction list   # request/response summaries
+qontoctl --debug transaction list     # full headers and response bodies
 ```
 
 > **Security note:** `--debug` logs full API response bodies. Known sensitive fields
