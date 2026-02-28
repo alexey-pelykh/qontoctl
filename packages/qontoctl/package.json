@@ -37,6 +37,7 @@
     "dist"
   ],
   "scripts": {
+    "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "prepack": "cp ../../README.md ../../LICENSE .",
     "build": "tsc",
     "typecheck": "tsc --noEmit",

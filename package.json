@@ -9,6 +9,7 @@
     "node": ">=24"
   },
   "scripts": {
+    "clean": "turbo run clean",
     "build": "turbo run build",
     "test": "turbo run test",
     "test:e2e": "turbo run test:e2e --concurrency=1",

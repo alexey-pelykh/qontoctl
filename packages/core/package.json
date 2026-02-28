@@ -42,6 +42,7 @@
     "access": "public"
   },
   "scripts": {
+    "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "prepack": "cp ../../LICENSE .",
     "build": "tsc",
     "typecheck": "tsc --noEmit",
