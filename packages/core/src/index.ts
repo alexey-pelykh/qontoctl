@@ -12,7 +12,14 @@ export {
   type QontoApiErrorEntry,
 } from "./http-client.js";
 
-export { resolveConfig, ConfigError, isValidProfileName, loadConfigFile, validateConfig, applyEnvOverlay } from "./config/index.js";
+export {
+  resolveConfig,
+  ConfigError,
+  isValidProfileName,
+  loadConfigFile,
+  validateConfig,
+  applyEnvOverlay,
+} from "./config/index.js";
 
 export type {
   ApiKeyCredentials,
