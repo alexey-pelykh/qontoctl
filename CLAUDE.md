@@ -88,7 +88,7 @@ ESLint enforces this via `eslint-plugin-header`.
 
 - Unit tests: `*.test.ts` (co-located with source)
 - E2E tests: `*.e2e.test.ts` (require Qonto sandbox)
-- Coverage thresholds: statements 85%, branches 69%, functions 80%, lines 85%
+- Coverage thresholds: statements 85%, branches 75%, functions 80%, lines 85%
 
 ### E2E Testing
 
