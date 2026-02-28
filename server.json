@@ -1,0 +1,36 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.alexey-pelykh/qontoctl",
+  "description": "CLI and MCP server for the Qonto banking API",
+  "repository": {
+    "url": "https://github.com/alexey-pelykh/qontoctl",
+    "source": "github"
+  },
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "qontoctl",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "QONTOCTL_ORGANIZATION_SLUG",
+          "description": "Qonto organization slug",
+          "isRequired": true,
+          "isSecret": false,
+          "format": "string"
+        },
+        {
+          "name": "QONTOCTL_SECRET_KEY",
+          "description": "Qonto API secret key",
+          "isRequired": true,
+          "isSecret": true,
+          "format": "string"
+        }
+      ]
+    }
+  ]
+}
