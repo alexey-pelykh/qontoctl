@@ -98,7 +98,7 @@ describe("statement MCP tools", () => {
         bank_account_id: "acct-1",
         period_from: "01-2025",
         period_to: "06-2025",
-        page: 2,
+        current_page: 2,
         per_page: 50,
       });
 

@@ -28,14 +28,14 @@ export function registerLabelTools(server: McpServer, getClient: () => Promise<H
     {
       description: "List all labels in the organization",
       inputSchema: {
-        page: z.number().int().positive().optional().describe("Page number"),
+        current_page: z.number().int().positive().optional().describe("Page number"),
         per_page: z.number().int().positive().max(100).optional().describe("Items per page (max 100)"),
       },
     },
-    async ({ page, per_page }) =>
+    async ({ current_page, per_page }) =>
       withClient(getClient, async (client) => {
         const params: Record<string, string> = {};
-        if (page !== undefined) params["current_page"] = String(page);
+        if (current_page !== undefined) params["current_page"] = String(current_page);
         if (per_page !== undefined) params["per_page"] = String(per_page);
 
         const response = await client.get<PaginatedLabelsResponse>(
