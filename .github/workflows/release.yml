@@ -35,6 +35,12 @@ jobs:
       - run: pnpm publish-check
       - run: pnpm test
 
+  # NOTE: The npm-publish environment requires the following protection rules
+  # configured in GitHub Settings → Environments → npm-publish:
+  #   1. Required reviewers — at least one reviewer must approve the deployment
+  #   2. Deployment branches — restricted to "main" only
+  # npm publishes are permanent (same version cannot be re-published after unpublish),
+  # so human approval and branch restriction prevent accidental or unauthorized releases.
   publish-npm:
     name: Publish to npm
     timeout-minutes: 10
