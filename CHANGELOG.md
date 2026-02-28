@@ -63,7 +63,7 @@ All notable changes to this project will be documented in this file.
 - Monorepo scaffolding with pnpm workspace and Turbo build orchestration
 - `@qontoctl/core` package for Qonto API client and service layer
 - `@qontoctl/mcp` package with MCP server (stdio transport)
-- `@qontoctl/cli` umbrella package with `qontoctl` CLI and `mcp` subcommand
+- `@qontoctl/cli` package with CLI command definitions
 - CI pipeline (GitHub Actions) with multi-platform testing
 - Release pipeline with npm provenance attestation
 - SPDX license headers on all source files
