@@ -34,20 +34,27 @@ const org = await getOrganization(client);
 
 ### Configuration
 
-- **`resolveConfig(options?)`** — resolve credentials from config files and environment variables
+- **`resolveConfig(options?): Promise<ConfigResult>`** — resolve credentials from config files and environment variables. Returns `{ config, endpoint, warnings }`.
 - **`loadConfigFile(path)`** — load a YAML configuration file
 - **`validateConfig(config)`** — validate configuration structure
 - **`applyEnvOverlay(config, prefix?)`** — overlay environment variable overrides
+- **`ConfigError`** — error thrown on configuration validation failures or missing credentials
 
 ### Authentication
 
 - **`buildApiKeyAuthorization(credentials)`** — build authorization headers from API key credentials
+- **`AuthError`** — error thrown when API key credentials are missing or invalid
 
 ### HTTP Client
 
 - **`HttpClient`** — HTTP client for the Qonto API with rate-limit handling
 - **`QontoApiError`** — typed error for Qonto API error responses
 - **`QontoRateLimitError`** — error for rate-limit (429) responses
+
+### Constants
+
+- **`API_BASE_URL`** — production API base URL (`https://thirdparty.qonto.com`)
+- **`SANDBOX_BASE_URL`** — sandbox API base URL (`https://thirdparty-sandbox.staging.qonto.co`)
 
 ### Services
 
@@ -61,6 +68,8 @@ const org = await getOrganization(client);
 - `Organization`, `BankAccount`, `Transaction`, `TransactionLabel`
 - `Label`, `Membership`, `Statement`, `StatementFile`
 - `QontoctlConfig`, `ApiKeyCredentials`, `ListTransactionsParams`
+- `ConfigResult`, `ResolveOptions`, `LoadResult`, `ValidationResult`
+- `HttpClientOptions`, `HttpClientLogger`, `QueryParams`, `QueryParamValue`, `QontoApiErrorEntry`
 
 ## Configuration Resolution
 
