@@ -16,9 +16,8 @@ You should receive a response within 48 hours. Please include:
 
 ### API Credential Handling
 
-QontoCtl manages Qonto API credentials (API keys and OAuth tokens) on behalf
-of the user. Credentials are stored in YAML configuration files on the local
-filesystem.
+QontoCtl manages Qonto API credentials (API keys) on behalf of the user.
+Credentials are stored in YAML configuration files on the local filesystem.
 
 **Credential storage locations:**
 
@@ -30,21 +29,10 @@ filesystem.
 
 **Threat model assumptions:**
 
-| Assumption                   | Rationale                                                                     |
-| ---------------------------- | ----------------------------------------------------------------------------- |
-| The local machine is trusted | Credentials are stored as plaintext YAML files readable by the local user     |
-| The Qonto API is trusted     | All API calls are made over HTTPS to `thirdparty.qonto.com`                   |
-| OAuth tokens are sensitive   | Access tokens grant API access; refresh tokens can generate new access tokens |
-
-### OAuth Token Management
-
-QontoCtl automatically refreshes expired OAuth access tokens and writes
-updated tokens back to the source configuration file. This means:
-
-- Configuration files are **mutable** — QontoCtl writes to them during
-  normal operation.
-- File permissions should restrict access to the owning user
-  (`chmod 600 ~/.qontoctl.yaml`).
+| Assumption                   | Rationale                                                                 |
+| ---------------------------- | ------------------------------------------------------------------------- |
+| The local machine is trusted | Credentials are stored as plaintext YAML files readable by the local user |
+| The Qonto API is trusted     | All API calls are made over HTTPS to `thirdparty.qonto.com`               |
 
 ### MCP Trust Model
 

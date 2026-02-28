@@ -191,7 +191,7 @@ Once configured, you can ask your AI assistant things like:
 
 ## Configuration
 
-QontoCtl supports two authentication methods: **API Key** and **OAuth 2.0**.
+QontoCtl uses **API Key** authentication.
 
 ### Profile Format
 
@@ -201,13 +201,6 @@ All configuration files use the same YAML format:
 api-key:
     organization-slug: acme-corp-4821
     secret-key: your-secret-key
-
-oauth:
-    client-id: app-id
-    client-secret: app-secret
-    access-token: eyJ... # auto-managed
-    refresh-token: dGhp... # auto-managed
-    expires-at: 2026-02-26T18:30:00Z # auto-managed
 ```
 
 ### Resolution Order
@@ -222,8 +215,6 @@ oauth:
 
 1. `QONTOCTL_ACME_*` environment variables (highest priority)
 2. `~/.qontoctl/acme.yaml`
-
-OAuth takes precedence over API Key when tokens are valid. Expired tokens are refreshed automatically and written back to the source file.
 
 ### Environment Variables
 
