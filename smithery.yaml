@@ -1,0 +1,24 @@
+# Smithery configuration file: https://smithery.ai/docs/config#smitheryyaml
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    required:
+      - organizationSlug
+      - secretKey
+    properties:
+      organizationSlug:
+        type: string
+        description: Qonto organization slug
+      secretKey:
+        type: string
+        description: Qonto API secret key
+  commandFunction: |-
+    (config) => ({
+      command: 'npx',
+      args: ['-y', 'qontoctl@0.1.0', 'mcp'],
+      env: {
+        QONTOCTL_ORGANIZATION_SLUG: config.organizationSlug,
+        QONTOCTL_SECRET_KEY: config.secretKey
+      }
+    })

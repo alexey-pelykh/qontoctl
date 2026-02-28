@@ -4,6 +4,9 @@
 build/
 .tmp/
 
+# MCP Registry publisher tokens
+.mcpregistry_*
+
 # Turbo
 .turbo/
 
