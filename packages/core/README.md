@@ -15,16 +15,16 @@ npm install @qontoctl/core
 ## Usage
 
 ```ts
-import { resolveConfig, buildApiKeyAuthorization, HttpClient, API_BASE_URL, getOrganization } from "@qontoctl/core";
+import { resolveConfig, buildApiKeyAuthorization, HttpClient, getOrganization } from "@qontoctl/core";
 
 // Resolve configuration from file or environment
-const config = await resolveConfig();
+const { config, endpoint } = await resolveConfig();
 
 // Build authorization headers
-const auth = buildApiKeyAuthorization(config.credentials);
+const authorization = buildApiKeyAuthorization(config.apiKey);
 
 // Create an HTTP client
-const client = new HttpClient({ baseUrl: API_BASE_URL, auth });
+const client = new HttpClient({ baseUrl: endpoint, authorization });
 
 // Fetch organization details
 const org = await getOrganization(client);
