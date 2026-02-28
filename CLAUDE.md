@@ -141,3 +141,12 @@ Each package uses conditional exports with `types` + `import`:
 - **Release**: Triggered by GitHub Release publish; validates, stamps version from git tag, publishes to npm with provenance
 - **Setup**: Composite action at `.github/actions/setup/` (pnpm + Node.js 24 + frozen lockfile + Turbo cache)
 - Coverage uploaded to Codecov on ubuntu only
+
+### Branch Protection
+
+The `main` branch is protected with the following rules:
+
+- **Require pull request before merging**: At least 1 approval required
+- **Require status checks to pass**: The `CI` job (ci-gate) must pass before merging
+- **Require branches to be up to date**: Feature branches must be rebased on latest `main`
+- **No bypass**: Admin bypass is disabled — all contributors follow the same rules
