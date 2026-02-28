@@ -29,10 +29,10 @@ Credentials are stored in YAML configuration files on the local filesystem.
 
 **Threat model assumptions:**
 
-| Assumption                   | Rationale                                                                     |
-| ---------------------------- | ----------------------------------------------------------------------------- |
-| The local machine is trusted | Credentials are stored as plaintext YAML files readable by the local user     |
-| The Qonto API is trusted     | All API calls are made over HTTPS to `thirdparty.qonto.com`                   |
+| Assumption                   | Rationale                                                                 |
+| ---------------------------- | ------------------------------------------------------------------------- |
+| The local machine is trusted | Credentials are stored as plaintext YAML files readable by the local user |
+| The Qonto API is trusted     | All API calls are made over HTTPS to `thirdparty.qonto.com`               |
 
 ### MCP Trust Model
 
