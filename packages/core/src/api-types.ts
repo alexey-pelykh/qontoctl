@@ -28,3 +28,15 @@ export interface Organization {
   readonly legal_name: string;
   readonly bank_accounts: readonly BankAccount[];
 }
+
+/**
+ * Pagination metadata returned by the Qonto API.
+ */
+export interface PaginationMeta {
+  readonly current_page: number;
+  readonly next_page: number | null;
+  readonly prev_page: number | null;
+  readonly total_pages: number;
+  readonly total_count: number;
+  readonly per_page: number;
+}

@@ -3,19 +3,12 @@
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import type { HttpClient, Statement } from "@qontoctl/core";
+import type { HttpClient, PaginationMeta, Statement } from "@qontoctl/core";
 import { withClient } from "../errors.js";
 
 interface StatementsResponse {
   readonly statements: readonly Statement[];
-  readonly meta: {
-    readonly current_page: number;
-    readonly next_page: number | null;
-    readonly prev_page: number | null;
-    readonly total_pages: number;
-    readonly total_count: number;
-    readonly per_page: number;
-  };
+  readonly meta: PaginationMeta;
 }
 
 /**

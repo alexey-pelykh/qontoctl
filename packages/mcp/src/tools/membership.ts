@@ -3,19 +3,12 @@
 
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { HttpClient, Membership } from "@qontoctl/core";
+import type { HttpClient, Membership, PaginationMeta } from "@qontoctl/core";
 import { withClient } from "../errors.js";
 
 interface PaginatedMembershipsResponse {
   readonly memberships: readonly Membership[];
-  readonly meta: {
-    readonly current_page: number;
-    readonly next_page: number | null;
-    readonly prev_page: number | null;
-    readonly total_pages: number;
-    readonly total_count: number;
-    readonly per_page: number;
-  };
+  readonly meta: PaginationMeta;
 }
 
 export function registerMembershipTools(server: McpServer, getClient: () => Promise<HttpClient>): void {

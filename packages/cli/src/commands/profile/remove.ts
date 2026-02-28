@@ -6,10 +6,8 @@ import { join } from "node:path";
 import { homedir } from "node:os";
 import { createInterface } from "node:readline/promises";
 import type { Command } from "commander";
-import { loadConfigFile } from "@qontoctl/core";
+import { CONFIG_DIR, isValidProfileName, loadConfigFile } from "@qontoctl/core";
 import { addInheritableOptions } from "../../inherited-options.js";
-
-const CONFIG_DIR = ".qontoctl";
 
 /**
  * Register the `profile remove <name>` subcommand.
@@ -23,7 +21,7 @@ export function registerRemoveCommand(parent: Command): void {
 }
 
 async function removeProfile(name: string): Promise<void> {
-  if (/[/\\]/.test(name) || name.includes("..")) {
+  if (!isValidProfileName(name)) {
     console.error("Invalid profile name: must not contain path separators or '..'.");
     process.exitCode = 1;
     return;

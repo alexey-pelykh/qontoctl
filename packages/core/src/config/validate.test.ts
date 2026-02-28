@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { describe, it, expect } from "vitest";
-import { validateConfig } from "./validate.js";
+import { isValidProfileName, validateConfig } from "./validate.js";
 
 describe("validateConfig", () => {
   it("returns empty config for null input", () => {
@@ -165,5 +165,30 @@ describe("validateConfig", () => {
     const result = validateConfig({ sandbox: null });
     expect(result.config.sandbox).toBeUndefined();
     expect(result.errors).toEqual([]);
+  });
+});
+
+describe("isValidProfileName", () => {
+  it("accepts simple alphanumeric names", () => {
+    expect(isValidProfileName("default")).toBe(true);
+    expect(isValidProfileName("my-profile")).toBe(true);
+    expect(isValidProfileName("profile_123")).toBe(true);
+  });
+
+  it("rejects names with forward slashes", () => {
+    expect(isValidProfileName("path/traversal")).toBe(false);
+  });
+
+  it("rejects names with backslashes", () => {
+    expect(isValidProfileName("path\\traversal")).toBe(false);
+  });
+
+  it("rejects names with parent directory references", () => {
+    expect(isValidProfileName("..")).toBe(false);
+    expect(isValidProfileName("..secret")).toBe(false);
+  });
+
+  it("accepts names with single dots", () => {
+    expect(isValidProfileName("my.profile")).toBe(true);
   });
 });

@@ -9,14 +9,9 @@ export { OUTPUT_FORMATS, type GlobalOptions, type OutputFormat, type PaginationO
 
 export { formatOutput, formatCsv, formatJson, formatTable, formatYaml } from "./formatters/index.js";
 
-export {
-  fetchPage,
-  fetchAllPages,
-  fetchPaginated,
-  type Page,
-  type PaginatedResult,
-  type PaginationMeta,
-} from "./pagination.js";
+export { fetchPage, fetchAllPages, fetchPaginated, type Page, type PaginatedResult } from "./pagination.js";
+
+export type { PaginationMeta } from "@qontoctl/core";
 
 export { createClient } from "./client.js";
 

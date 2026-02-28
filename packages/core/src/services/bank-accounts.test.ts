@@ -2,9 +2,10 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import type { BankAccount, Organization } from "../api-types.js";
 import { HttpClient } from "../http-client.js";
 import { jsonResponse } from "../testing/json-response.js";
-import { getBankAccount } from "./bank-accounts.js";
+import { getBankAccount, resolveDefaultBankAccount } from "./bank-accounts.js";
 
 describe("getBankAccount", () => {
   let fetchSpy: ReturnType<typeof vi.fn>;
@@ -73,5 +74,45 @@ describe("getBankAccount", () => {
 
     const [url] = fetchSpy.mock.calls[0] as [URL];
     expect(url.pathname).toBe("/v2/bank_accounts/acc-1");
+  });
+});
+
+function makeAccount(overrides: Partial<BankAccount> & { id: string }): BankAccount {
+  return {
+    name: "Account",
+    status: "active",
+    main: false,
+    organization_id: "org-1",
+    iban: "FR76",
+    bic: "BNPA",
+    currency: "EUR",
+    balance: 0,
+    balance_cents: 0,
+    authorized_balance: 0,
+    authorized_balance_cents: 0,
+    slug: "test",
+    ...overrides,
+  };
+}
+
+function makeOrg(accounts: BankAccount[]): Organization {
+  return { slug: "acme", legal_name: "Acme Corp", bank_accounts: accounts };
+}
+
+describe("resolveDefaultBankAccount", () => {
+  it("returns the main account when present", () => {
+    const main = makeAccount({ id: "main-1", main: true });
+    const other = makeAccount({ id: "other-1" });
+    expect(resolveDefaultBankAccount(makeOrg([other, main]))).toBe(main);
+  });
+
+  it("falls back to the first account when no main account exists", () => {
+    const first = makeAccount({ id: "first-1" });
+    const second = makeAccount({ id: "second-1" });
+    expect(resolveDefaultBankAccount(makeOrg([first, second]))).toBe(first);
+  });
+
+  it("returns undefined when there are no accounts", () => {
+    expect(resolveDefaultBankAccount(makeOrg([]))).toBeUndefined();
   });
 });

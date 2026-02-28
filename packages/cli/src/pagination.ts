@@ -1,20 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import type { HttpClient, QueryParams } from "@qontoctl/core";
+import type { HttpClient, PaginationMeta, QueryParams } from "@qontoctl/core";
 import type { PaginationOptions } from "./options.js";
-
-/**
- * Pagination metadata returned by the Qonto API.
- */
-export interface PaginationMeta {
-  readonly current_page: number;
-  readonly next_page: number | null;
-  readonly prev_page: number | null;
-  readonly total_pages: number;
-  readonly total_count: number;
-  readonly per_page: number;
-}
 
 /**
  * A single page of results from a paginated API endpoint.

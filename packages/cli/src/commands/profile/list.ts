@@ -5,11 +5,10 @@ import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import type { Command } from "commander";
+import { CONFIG_DIR } from "@qontoctl/core";
 import { formatOutput } from "../../formatters/index.js";
 import { addInheritableOptions, resolveGlobalOptions } from "../../inherited-options.js";
 import type { GlobalOptions } from "../../options.js";
-
-const CONFIG_DIR = ".qontoctl";
 const YAML_EXT = ".yaml";
 
 /**

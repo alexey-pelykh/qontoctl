@@ -3,7 +3,7 @@
 
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { type HttpClient, getOrganization } from "@qontoctl/core";
+import { type HttpClient, getOrganization, resolveDefaultBankAccount } from "@qontoctl/core";
 import { withClient } from "../errors.js";
 
 export function registerTransactionTools(server: McpServer, getClient: () => Promise<HttpClient>): void {
@@ -34,7 +34,7 @@ export function registerTransactionTools(server: McpServer, getClient: () => Pro
         let bankAccountId = args.bank_account_id;
         if (bankAccountId === undefined && args.iban === undefined) {
           const org = await getOrganization(client);
-          const mainAccount = org.bank_accounts.find((a) => a.main) ?? org.bank_accounts[0];
+          const mainAccount = resolveDefaultBankAccount(org);
           if (mainAccount !== undefined) {
             bankAccountId = mainAccount.id;
           }

@@ -12,7 +12,14 @@ export {
   type QontoApiErrorEntry,
 } from "./http-client.js";
 
-export { resolveConfig, ConfigError, loadConfigFile, validateConfig, applyEnvOverlay } from "./config/index.js";
+export {
+  resolveConfig,
+  ConfigError,
+  isValidProfileName,
+  loadConfigFile,
+  validateConfig,
+  applyEnvOverlay,
+} from "./config/index.js";
 
 export type {
   ApiKeyCredentials,
@@ -25,7 +32,7 @@ export type {
 
 export { AuthError, buildApiKeyAuthorization } from "./auth/index.js";
 
-export { API_BASE_URL, SANDBOX_BASE_URL } from "./constants.js";
+export { API_BASE_URL, CONFIG_DIR, SANDBOX_BASE_URL } from "./constants.js";
 
 export type { Label, Membership } from "./types/index.js";
 
@@ -35,7 +42,7 @@ export { buildTransactionQueryParams, getTransaction } from "./transactions/inde
 
 export type { Transaction, TransactionLabel, ListTransactionsParams } from "./transactions/index.js";
 
-export type { BankAccount, Organization } from "./api-types.js";
+export type { BankAccount, Organization, PaginationMeta } from "./api-types.js";
 
 export { getOrganization } from "./services/organization.js";
-export { getBankAccount } from "./services/bank-accounts.js";
+export { getBankAccount, resolveDefaultBankAccount } from "./services/bank-accounts.js";
