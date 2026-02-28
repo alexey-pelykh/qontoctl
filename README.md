@@ -199,15 +199,15 @@ All configuration files use the same YAML format:
 
 ```yaml
 api-key:
-    organization_slug: acme-corp-4821
-    secret_key: your-secret-key
+    organization-slug: acme-corp-4821
+    secret-key: your-secret-key
 
 oauth:
-    client_id: app-id
-    client_secret: app-secret
-    access_token: eyJ... # auto-managed
-    refresh_token: dGhp... # auto-managed
-    expires_at: 2026-02-26T18:30:00Z # auto-managed
+    client-id: app-id
+    client-secret: app-secret
+    access-token: eyJ... # auto-managed
+    refresh-token: dGhp... # auto-managed
+    expires-at: 2026-02-26T18:30:00Z # auto-managed
 ```
 
 ### Resolution Order
