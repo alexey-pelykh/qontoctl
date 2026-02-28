@@ -15,8 +15,9 @@ export {
   fetchPaginated,
   type Page,
   type PaginatedResult,
-  type PaginationMeta,
 } from "./pagination.js";
+
+export type { PaginationMeta } from "@qontoctl/core";
 
 export { createClient } from "./client.js";
 

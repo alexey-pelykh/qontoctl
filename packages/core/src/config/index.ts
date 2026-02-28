@@ -5,6 +5,6 @@ export type { ApiKeyCredentials, QontoctlConfig, ConfigResult, ResolveOptions } 
 export { resolveConfig, ConfigError } from "./resolve.js";
 export { loadConfigFile } from "./loader.js";
 export type { LoadResult } from "./loader.js";
-export { validateConfig } from "./validate.js";
+export { isValidProfileName, validateConfig } from "./validate.js";
 export type { ValidationResult } from "./validate.js";
 export { applyEnvOverlay } from "./env.js";

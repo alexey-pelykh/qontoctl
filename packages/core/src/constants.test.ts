@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { describe, it, expect } from "vitest";
-import { API_BASE_URL, SANDBOX_BASE_URL } from "./constants.js";
+import { API_BASE_URL, CONFIG_DIR, SANDBOX_BASE_URL } from "./constants.js";
 
 describe("constants", () => {
   it("API_BASE_URL points to production endpoint", () => {
@@ -19,5 +19,9 @@ describe("constants", () => {
 
   it("SANDBOX_BASE_URL uses HTTPS", () => {
     expect(new URL(SANDBOX_BASE_URL).protocol).toBe("https:");
+  });
+
+  it("CONFIG_DIR is the expected directory name", () => {
+    expect(CONFIG_DIR).toBe(".qontoctl");
   });
 });

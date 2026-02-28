@@ -3,6 +3,16 @@
 
 import type { QontoctlConfig } from "./types.js";
 
+/**
+ * Check whether a profile name is safe to use as a filename.
+ *
+ * Rejects names containing path separators (`/`, `\`) or parent-directory
+ * references (`..`) to prevent path-traversal attacks.
+ */
+export function isValidProfileName(name: string): boolean {
+  return !/[/\\]/.test(name) && !name.includes("..");
+}
+
 const KNOWN_TOP_LEVEL_KEYS = new Set(["api-key", "endpoint", "sandbox"]);
 const KNOWN_API_KEY_KEYS = new Set(["organization-slug", "secret-key"]);
 

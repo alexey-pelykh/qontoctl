@@ -6,3 +6,6 @@ export const API_BASE_URL = "https://thirdparty.qonto.com";
 
 /** Sandbox API base URL. */
 export const SANDBOX_BASE_URL = "https://thirdparty-sandbox.staging.qonto.co";
+
+/** Configuration directory name under the user's home directory. */
+export const CONFIG_DIR = ".qontoctl";

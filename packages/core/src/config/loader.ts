@@ -5,9 +5,9 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import { parse as parseYaml } from "yaml";
+import { CONFIG_DIR } from "../constants.js";
 
 const CONFIG_FILENAME = ".qontoctl.yaml";
-const CONFIG_DIR = ".qontoctl";
 
 export interface LoadResult {
   /** Parsed YAML content, or `undefined` if no file was found. */

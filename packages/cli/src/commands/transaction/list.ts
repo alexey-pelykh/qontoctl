@@ -6,6 +6,7 @@ import { Option } from "commander";
 import {
   buildTransactionQueryParams,
   getOrganization,
+  resolveDefaultBankAccount,
   type ListTransactionsParams,
   type Transaction,
 } from "@qontoctl/core";
@@ -81,7 +82,7 @@ export function registerTransactionListCommand(parent: Command): void {
     let params = buildParams(opts);
     if (params.bank_account_id === undefined && params.iban === undefined) {
       const org = await getOrganization(client);
-      const mainAccount = org.bank_accounts.find((a) => a.main) ?? org.bank_accounts[0];
+      const mainAccount = resolveDefaultBankAccount(org);
       if (mainAccount !== undefined) {
         params = { ...params, bank_account_id: mainAccount.id };
       }
