@@ -1,4 +1,4 @@
-# QontoCtl: The Complete CLI & MCP for Qonto
+![QontoCtl: The Complete CLI & MCP for Qonto](.github/assets/social-preview.png)
 
 [![CI](https://github.com/alexey-pelykh/qontoctl/actions/workflows/ci.yml/badge.svg)](https://github.com/alexey-pelykh/qontoctl/actions/workflows/ci.yml)
 [![Codecov](https://img.shields.io/codecov/c/github/alexey-pelykh/qontoctl?logo=codecov)](https://codecov.io/gh/alexey-pelykh/qontoctl)
