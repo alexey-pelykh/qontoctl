@@ -69,7 +69,7 @@ describe("label MCP tools", () => {
 
       await mcpClient.callTool({
         name: "label_list",
-        arguments: { page: 2, per_page: 10 },
+        arguments: { current_page: 2, per_page: 10 },
       });
 
       const [url] = fetchSpy.mock.calls[0] as [URL];
