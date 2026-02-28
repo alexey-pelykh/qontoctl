@@ -4,19 +4,19 @@
 import type { Command } from "commander";
 import { loadConfigFile, validateConfig } from "@qontoctl/core";
 import { formatOutput } from "../../formatters/index.js";
+import { addInheritableOptions, resolveGlobalOptions } from "../../inherited-options.js";
 import type { GlobalOptions } from "../../options.js";
 
 /**
  * Register the `profile show <name>` subcommand.
  */
 export function registerShowCommand(parent: Command): void {
-  parent
-    .command("show <name>")
-    .description("show profile details with secrets redacted")
-    .action(async (name: string, _options: unknown, cmd: Command) => {
-      const globalOpts = cmd.optsWithGlobals<GlobalOptions>();
-      await showProfile(name, globalOpts);
-    });
+  const show = parent.command("show <name>").description("show profile details with secrets redacted");
+  addInheritableOptions(show);
+  show.action(async (name: string, _options: unknown, cmd: Command) => {
+    const globalOpts = resolveGlobalOptions<GlobalOptions>(cmd);
+    await showProfile(name, globalOpts);
+  });
 }
 
 async function showProfile(name: string, options: GlobalOptions): Promise<void> {
