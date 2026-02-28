@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { homedir } from "node:os";
 import type { Command } from "commander";
 import { formatOutput } from "../../formatters/index.js";
+import { addInheritableOptions, resolveGlobalOptions } from "../../inherited-options.js";
 import type { GlobalOptions } from "../../options.js";
 
 const CONFIG_DIR = ".qontoctl";
@@ -15,13 +16,12 @@ const YAML_EXT = ".yaml";
  * Register the `profile list` subcommand.
  */
 export function registerListCommand(parent: Command): void {
-  parent
-    .command("list")
-    .description("list named profiles from ~/.qontoctl/")
-    .action(async (_options: unknown, cmd: Command) => {
-      const globalOpts = cmd.optsWithGlobals<GlobalOptions>();
-      await listProfiles(globalOpts);
-    });
+  const list = parent.command("list").description("list named profiles from ~/.qontoctl/");
+  addInheritableOptions(list);
+  list.action(async (_options: unknown, cmd: Command) => {
+    const globalOpts = resolveGlobalOptions<GlobalOptions>(cmd);
+    await listProfiles(globalOpts);
+  });
 }
 
 async function listProfiles(options: GlobalOptions): Promise<void> {

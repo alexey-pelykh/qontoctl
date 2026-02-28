@@ -7,6 +7,7 @@ import { homedir } from "node:os";
 import { createInterface } from "node:readline/promises";
 import type { Command } from "commander";
 import { loadConfigFile } from "@qontoctl/core";
+import { addInheritableOptions } from "../../inherited-options.js";
 
 const CONFIG_DIR = ".qontoctl";
 
@@ -14,12 +15,11 @@ const CONFIG_DIR = ".qontoctl";
  * Register the `profile remove <name>` subcommand.
  */
 export function registerRemoveCommand(parent: Command): void {
-  parent
-    .command("remove <name>")
-    .description("delete a named profile (with confirmation)")
-    .action(async (name: string) => {
-      await removeProfile(name);
-    });
+  const remove = parent.command("remove <name>").description("delete a named profile (with confirmation)");
+  addInheritableOptions(remove);
+  remove.action(async (name: string) => {
+    await removeProfile(name);
+  });
 }
 
 async function removeProfile(name: string): Promise<void> {

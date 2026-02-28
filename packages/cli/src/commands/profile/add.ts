@@ -8,6 +8,7 @@ import { createInterface } from "node:readline/promises";
 import { stringify as stringifyYaml } from "yaml";
 import type { Command } from "commander";
 import { loadConfigFile } from "@qontoctl/core";
+import { addInheritableOptions } from "../../inherited-options.js";
 
 const CONFIG_DIR = ".qontoctl";
 
@@ -15,12 +16,11 @@ const CONFIG_DIR = ".qontoctl";
  * Register the `profile add <name>` subcommand.
  */
 export function registerAddCommand(parent: Command): void {
-  parent
-    .command("add <name>")
-    .description("create a new profile interactively")
-    .action(async (name: string) => {
-      await addProfile(name);
-    });
+  const add = parent.command("add <name>").description("create a new profile interactively");
+  addInheritableOptions(add);
+  add.action(async (name: string) => {
+    await addProfile(name);
+  });
 }
 
 async function addProfile(name: string): Promise<void> {
