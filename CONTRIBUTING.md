@@ -42,11 +42,15 @@ pnpm install
 pnpm build
 ```
 
-### Running Tests
+### Development Commands
 
 ```sh
-pnpm test          # unit + integration tests
-pnpm lint          # lint checks
+pnpm build            # Build all packages (via Turbo)
+pnpm test             # Run unit tests
+pnpm test:e2e         # Run E2E tests (sequential, requires API credentials)
+pnpm lint             # Lint all packages
+pnpm license-check    # Verify dependency licenses
+pnpm dev              # Watch mode
 ```
 
 ### Project Structure
