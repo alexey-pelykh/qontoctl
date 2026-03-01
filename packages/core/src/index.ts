@@ -58,6 +58,14 @@ export type { Transaction, TransactionLabel, ListTransactionsParams } from "./tr
 
 export type { BankAccount, Organization, PaginationMeta } from "./api-types.js";
 
+export { getBulkTransfer } from "./bulk-transfers/index.js";
+
+export type { BulkTransfer, BulkTransferResult, BulkTransferResultError } from "./bulk-transfers/index.js";
+
+export { getRecurringTransfer } from "./recurring-transfers/index.js";
+
+export type { RecurringTransfer } from "./recurring-transfers/index.js";
+
 export { getBankAccount, resolveDefaultBankAccount } from "./services/bank-accounts.js";
 export { getEInvoicingSettings } from "./services/einvoicing.js";
 export { getOrganization } from "./services/organization.js";

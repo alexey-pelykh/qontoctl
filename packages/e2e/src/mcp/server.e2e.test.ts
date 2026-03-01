@@ -15,9 +15,13 @@ const EXPECTED_TOOLS = [
   "org_show",
   "account_list",
   "account_show",
+  "bulk_transfer_list",
+  "bulk_transfer_show",
   "credit_note_list",
   "credit_note_show",
   "einvoicing_settings",
+  "recurring_transfer_list",
+  "recurring_transfer_show",
   "transaction_list",
   "transaction_show",
   "transfer_list",
@@ -56,7 +60,7 @@ describe("MCP server via stdio (e2e)", () => {
   });
 
   describe("tools/list", () => {
-    it("lists all 16 expected tools", async () => {
+    it("lists all 20 expected tools", async () => {
       const { tools } = await client.listTools();
       const names = tools.map((t) => t.name);
 

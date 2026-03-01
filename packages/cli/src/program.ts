@@ -5,7 +5,9 @@ import { createRequire } from "node:module";
 import { Command, Option } from "commander";
 import { registerCompletionCommand } from "./completions/index.js";
 import { registerTransactionCommands } from "./commands/transaction/index.js";
+import { registerBulkTransferCommands } from "./commands/bulk-transfer/index.js";
 import { registerEInvoicingCommands } from "./commands/einvoicing.js";
+import { registerRecurringTransferCommands } from "./commands/recurring-transfer/index.js";
 import { registerOrgCommands } from "./commands/org.js";
 import { registerAccountCommands } from "./commands/account.js";
 import { OUTPUT_FORMATS } from "./options.js";
@@ -30,6 +32,8 @@ export function createProgram(): Command {
   registerCompletionCommand(program);
   registerEInvoicingCommands(program);
   registerTransactionCommands(program);
+  registerBulkTransferCommands(program);
+  registerRecurringTransferCommands(program);
   registerOrgCommands(program);
   registerAccountCommands(program);
 
