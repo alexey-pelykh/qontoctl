@@ -12,6 +12,7 @@ import {
   handleCliError,
   registerProfileCommands,
   registerStatementCommands,
+  registerTransferCommands,
   resolveGlobalOptions,
 } from "@qontoctl/cli";
 import { runStdioServer } from "@qontoctl/mcp/stdio";
@@ -23,6 +24,7 @@ program.addCommand(createLabelCommand());
 program.addCommand(createMembershipCommand());
 registerProfileCommands(program);
 registerStatementCommands(program);
+registerTransferCommands(program);
 
 const mcpCommand = program.command("mcp").description("Start MCP server on stdio (for Claude Desktop, Cursor, etc.)");
 addInheritableOptions(mcpCommand);

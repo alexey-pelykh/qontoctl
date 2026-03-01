@@ -13,6 +13,7 @@ import {
   registerOrgTools,
   registerStatementTools,
   registerTransactionTools,
+  registerTransferTools,
 } from "./tools/index.js";
 
 const require = createRequire(import.meta.url);
@@ -42,6 +43,7 @@ export function createServer(options?: CreateServerOptions): McpServer {
   registerOrgTools(server, getClient);
   registerStatementTools(server, getClient);
   registerTransactionTools(server, getClient);
+  registerTransferTools(server, getClient);
 
   return server;
 }

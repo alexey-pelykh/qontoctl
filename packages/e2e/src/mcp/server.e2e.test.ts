@@ -20,6 +20,8 @@ const EXPECTED_TOOLS = [
   "einvoicing_settings",
   "transaction_list",
   "transaction_show",
+  "transfer_list",
+  "transfer_show",
   "statement_list",
   "statement_show",
   "label_list",

@@ -39,6 +39,8 @@ describe("createServer", () => {
       expect(toolNames).toContain("einvoicing_settings");
       expect(toolNames).toContain("transaction_list");
       expect(toolNames).toContain("transaction_show");
+      expect(toolNames).toContain("transfer_list");
+      expect(toolNames).toContain("transfer_show");
       expect(toolNames).toContain("statement_list");
       expect(toolNames).toContain("statement_show");
       expect(toolNames).toContain("label_list");
