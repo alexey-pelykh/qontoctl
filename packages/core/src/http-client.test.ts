@@ -226,6 +226,132 @@ describe("HttpClient", () => {
     });
   });
 
+  describe("idempotency keys", () => {
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+    it("auto-generates idempotency key header on POST requests", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ id: "123" }, { status: 201 }));
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+      });
+
+      await client.post("/v2/internal_transfers", { amount: 100 });
+
+      const [, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      const headers = init.headers as Record<string, string>;
+      expect(headers["X-Qonto-Idempotency-Key"]).toMatch(UUID_REGEX);
+    });
+
+    it("uses user-provided idempotency key on POST requests", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ id: "123" }, { status: 201 }));
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+      });
+
+      await client.post("/v2/internal_transfers", { amount: 100 }, { idempotencyKey: "user-key-123" });
+
+      const [, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      const headers = init.headers as Record<string, string>;
+      expect(headers["X-Qonto-Idempotency-Key"]).toBe("user-key-123");
+    });
+
+    it("auto-generates idempotency key header on DELETE requests", async () => {
+      fetchSpy.mockReturnValue(Promise.resolve(new Response(null, { status: 204 })));
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+      });
+
+      await client.delete("/v2/something");
+
+      const [, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      const headers = init.headers as Record<string, string>;
+      expect(headers["X-Qonto-Idempotency-Key"]).toMatch(UUID_REGEX);
+    });
+
+    it("uses user-provided idempotency key on DELETE requests", async () => {
+      fetchSpy.mockReturnValue(Promise.resolve(new Response(null, { status: 204 })));
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+      });
+
+      await client.delete("/v2/something", { idempotencyKey: "delete-key-456" });
+
+      const [, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      const headers = init.headers as Record<string, string>;
+      expect(headers["X-Qonto-Idempotency-Key"]).toBe("delete-key-456");
+    });
+
+    it("does not include idempotency key header on GET requests", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ data: "ok" }));
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+      });
+
+      await client.get("/v2/organizations");
+
+      const [, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      const headers = init.headers as Record<string, string>;
+      expect(headers["X-Qonto-Idempotency-Key"]).toBeUndefined();
+    });
+
+    it("auto-generates idempotency key for PUT requests via request()", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ id: "123" }));
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+      });
+
+      await client.request("PUT", "/v2/labels/123", { body: { name: "updated" } });
+
+      const [, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      const headers = init.headers as Record<string, string>;
+      expect(headers["X-Qonto-Idempotency-Key"]).toMatch(UUID_REGEX);
+    });
+
+    it("reuses same idempotency key across retries", async () => {
+      fetchSpy
+        .mockReturnValueOnce(Promise.resolve(new Response(null, { status: 429 })))
+        .mockReturnValueOnce(Promise.resolve(new Response(null, { status: 429 })))
+        .mockReturnValue(jsonResponse({ id: "123" }, { status: 201 }));
+
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+        maxRetries: 3,
+      });
+
+      await client.post("/v2/internal_transfers", { amount: 100 });
+
+      const calls = fetchSpy.mock.calls as [URL, RequestInit][];
+      const key1 = (calls[0]?.[1]?.headers as Record<string, string>)["X-Qonto-Idempotency-Key"];
+      const key2 = (calls[1]?.[1]?.headers as Record<string, string>)["X-Qonto-Idempotency-Key"];
+      const key3 = (calls[2]?.[1]?.headers as Record<string, string>)["X-Qonto-Idempotency-Key"];
+
+      expect(key1).toMatch(UUID_REGEX);
+      expect(key1).toBe(key2);
+      expect(key1).toBe(key3);
+    });
+
+    it("auto-generates idempotency key for POST without body", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ id: "123" }, { status: 201 }));
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+      });
+
+      await client.post("/v2/something");
+
+      const [, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      const headers = init.headers as Record<string, string>;
+      expect(headers["X-Qonto-Idempotency-Key"]).toMatch(UUID_REGEX);
+    });
+  });
+
   describe("error handling", () => {
     it("throws QontoApiError on 4xx responses with structured errors", async () => {
       fetchSpy.mockReturnValue(
