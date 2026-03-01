@@ -27,6 +27,7 @@ export { addInheritableOptions, addWriteOptions, resolveGlobalOptions } from "./
 
 export {
   createCreditNoteCommand,
+  createInternalTransferCommand,
   createLabelCommand,
   createMembershipCommand,
   createQuoteCommand,

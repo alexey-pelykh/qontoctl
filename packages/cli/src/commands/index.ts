@@ -3,6 +3,7 @@
 
 export { createCreditNoteCommand } from "./credit-note.js";
 export { registerEInvoicingCommands } from "./einvoicing.js";
+export { createInternalTransferCommand } from "./internal-transfer.js";
 export { createLabelCommand } from "./label.js";
 export { createMembershipCommand } from "./membership.js";
 export { createQuoteCommand } from "./quote.js";
