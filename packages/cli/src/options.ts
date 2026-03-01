@@ -29,3 +29,10 @@ export interface PaginationOptions {
   readonly perPage?: number | undefined;
   readonly paginate: boolean;
 }
+
+/**
+ * Write operation options parsed from Commander.
+ */
+export interface WriteOptions {
+  readonly idempotencyKey?: string | undefined;
+}

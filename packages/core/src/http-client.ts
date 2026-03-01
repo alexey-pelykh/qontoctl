@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
+import { randomUUID } from "node:crypto";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
@@ -66,6 +67,16 @@ export interface HttpClientOptions {
 
 const DEFAULT_MAX_RETRIES = 5;
 const BASE_BACKOFF_MS = 1000;
+
+/**
+ * HTTP methods that represent write operations and require an idempotency key.
+ */
+const WRITE_METHODS: ReadonlySet<string> = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+
+/**
+ * Header name for the Qonto idempotency key.
+ */
+const IDEMPOTENCY_KEY_HEADER = "X-Qonto-Idempotency-Key";
 
 /**
  * Field names redacted from debug log output to avoid leaking financial data.
@@ -148,6 +159,7 @@ export class HttpClient {
     options?: {
       readonly body?: unknown;
       readonly params?: QueryParams;
+      readonly idempotencyKey?: string;
     },
   ): Promise<T> {
     const response = await this.fetchWithRetry(method, path, options);
@@ -165,6 +177,7 @@ export class HttpClient {
     options?: {
       readonly body?: unknown;
       readonly params?: QueryParams;
+      readonly idempotencyKey?: string;
     },
   ): Promise<void> {
     await this.fetchWithRetry(method, path, options);
@@ -174,12 +187,15 @@ export class HttpClient {
     return this.request<T>("GET", path, params !== undefined ? { params } : undefined);
   }
 
-  async post<T>(path: string, body?: unknown): Promise<T> {
-    return this.request<T>("POST", path, body !== undefined ? { body } : undefined);
+  async post<T>(path: string, body?: unknown, options?: { readonly idempotencyKey?: string }): Promise<T> {
+    return this.request<T>("POST", path, {
+      ...(body !== undefined ? { body } : {}),
+      ...options,
+    });
   }
 
-  async delete(path: string): Promise<void> {
-    return this.requestVoid("DELETE", path);
+  async delete(path: string, options?: { readonly idempotencyKey?: string }): Promise<void> {
+    return this.requestVoid("DELETE", path, options);
   }
 
   private async fetchWithRetry(
@@ -188,11 +204,16 @@ export class HttpClient {
     options?: {
       readonly body?: unknown;
       readonly params?: QueryParams;
+      readonly idempotencyKey?: string;
     },
   ): Promise<Response> {
     const url = this.buildUrl(path, options?.params);
     const headers = this.buildHeaders(options?.body !== undefined);
     const body = options?.body !== undefined ? JSON.stringify(options.body) : undefined;
+
+    if (WRITE_METHODS.has(method.toUpperCase())) {
+      headers[IDEMPOTENCY_KEY_HEADER] = options?.idempotencyKey ?? randomUUID();
+    }
 
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
       this.logVerbose(`${method} ${url.toString()}${attempt > 0 ? ` (retry ${attempt})` : ""}`);

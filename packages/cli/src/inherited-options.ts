@@ -16,6 +16,13 @@ export function addInheritableOptions(cmd: Command): Command {
 }
 
 /**
+ * Adds write operation options (--idempotency-key) to a command.
+ */
+export function addWriteOptions(cmd: Command): Command {
+  return cmd.addOption(new Option("--idempotency-key <key>", "idempotency key (UUID) for the request"));
+}
+
+/**
  * Resolve global options from a command, giving child (subcommand) precedence over parent.
  *
  * Walks the command ancestor chain from root to leaf, merging options at each level.
