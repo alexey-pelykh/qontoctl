@@ -80,6 +80,10 @@ export type {
 
 export type { BankAccount, Organization, PaginationMeta } from "./api-types.js";
 
+export { createInternalTransfer } from "./internal-transfers/index.js";
+
+export type { InternalTransfer, CreateInternalTransferParams } from "./internal-transfers/index.js";
+
 export { getBulkTransfer } from "./bulk-transfers/index.js";
 
 export type { BulkTransfer, BulkTransferResult, BulkTransferResultError } from "./bulk-transfers/index.js";

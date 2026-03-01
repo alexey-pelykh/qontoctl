@@ -27,7 +27,7 @@ describe("createServer", () => {
       vi.restoreAllMocks();
     });
 
-    it("registers all 31 expected tools", async () => {
+    it("registers all 32 expected tools", async () => {
       const { tools } = await mcpClient.listTools();
       const toolNames = tools.map((t) => t.name);
 
@@ -42,6 +42,7 @@ describe("createServer", () => {
       expect(toolNames).toContain("credit_note_list");
       expect(toolNames).toContain("credit_note_show");
       expect(toolNames).toContain("einvoicing_settings");
+      expect(toolNames).toContain("internal_transfer_create");
       expect(toolNames).toContain("recurring_transfer_list");
       expect(toolNames).toContain("recurring_transfer_show");
       expect(toolNames).toContain("transaction_list");
@@ -62,7 +63,7 @@ describe("createServer", () => {
       expect(toolNames).toContain("supplier_invoice_list");
       expect(toolNames).toContain("supplier_invoice_show");
       expect(toolNames).toContain("supplier_invoice_bulk_create");
-      expect(tools).toHaveLength(31);
+      expect(tools).toHaveLength(32);
     });
 
     it("tools have descriptions", async () => {

@@ -6,6 +6,7 @@ export { registerBeneficiaryTools } from "./beneficiary.js";
 export { registerBulkTransferTools } from "./bulk-transfer.js";
 export { registerCreditNoteTools } from "./credit-note.js";
 export { registerEInvoicingTools } from "./einvoicing.js";
+export { registerInternalTransferTools } from "./internal-transfer.js";
 export { registerLabelTools } from "./label.js";
 export { registerMembershipTools } from "./membership.js";
 export { registerOrgTools } from "./org.js";
