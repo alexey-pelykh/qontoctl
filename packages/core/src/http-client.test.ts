@@ -3,6 +3,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { HttpClient, QontoApiError, QontoRateLimitError } from "./http-client.js";
+import { binaryResponse } from "./testing/binary-response.js";
 import { jsonResponse } from "./testing/json-response.js";
 
 /**
@@ -161,6 +162,65 @@ describe("HttpClient", () => {
       const [url, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
       expect(url.toString()).toBe("https://thirdparty.qonto.com/v2/something");
       expect(init.method).toBe("DELETE");
+    });
+  });
+
+  describe("requestBuffer", () => {
+    it("returns response body as Buffer", async () => {
+      const pdfData = Buffer.from("%PDF-1.4 test content");
+      fetchSpy.mockReturnValue(binaryResponse(pdfData));
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+      });
+
+      const result = await client.getBuffer("/v2/bank_accounts/acc-1/iban_certificate");
+
+      expect(Buffer.isBuffer(result)).toBe(true);
+      expect(result.toString()).toBe("%PDF-1.4 test content");
+    });
+
+    it("sends Accept: application/octet-stream header", async () => {
+      fetchSpy.mockReturnValue(binaryResponse(Buffer.from("data")));
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+      });
+
+      await client.getBuffer("/v2/bank_accounts/acc-1/iban_certificate");
+
+      const [, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      const headers = init.headers as Record<string, string>;
+      expect(headers["Accept"]).toBe("application/octet-stream");
+    });
+
+    it("calls the correct URL", async () => {
+      fetchSpy.mockReturnValue(binaryResponse(Buffer.from("data")));
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+      });
+
+      await client.getBuffer("/v2/bank_accounts/acc-1/iban_certificate");
+
+      const [url] = fetchSpy.mock.calls[0] as [URL];
+      expect(url.pathname).toBe("/v2/bank_accounts/acc-1/iban_certificate");
+    });
+
+    it("logs binary response size in debug mode", async () => {
+      const pdfData = Buffer.from("test binary data");
+      fetchSpy.mockReturnValue(binaryResponse(pdfData));
+      const logger = createMockLogger();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+        logger,
+      });
+
+      await client.getBuffer("/v2/bank_accounts/acc-1/iban_certificate");
+
+      expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining("binary"));
+      expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining(`${pdfData.byteLength} bytes`));
     });
   });
 

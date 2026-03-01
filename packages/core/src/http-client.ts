@@ -183,6 +183,25 @@ export class HttpClient {
     await this.fetchWithRetry(method, path, options);
   }
 
+  /**
+   * Sends an HTTP request and returns the response body as a Buffer.
+   *
+   * Used for binary endpoints (e.g. PDF downloads) where JSON parsing
+   * is not appropriate.
+   */
+  async requestBuffer(
+    method: string,
+    path: string,
+    options?: {
+      readonly params?: QueryParams;
+    },
+  ): Promise<Buffer> {
+    const response = await this.fetchWithRetry(method, path, { ...options, accept: "application/octet-stream" });
+    const arrayBuffer = await response.arrayBuffer();
+    this.logDebug(`Response body: <binary ${arrayBuffer.byteLength} bytes>`);
+    return Buffer.from(arrayBuffer);
+  }
+
   async get<T>(path: string, params?: QueryParams): Promise<T> {
     return this.request<T>("GET", path, params !== undefined ? { params } : undefined);
   }
@@ -192,6 +211,10 @@ export class HttpClient {
       ...(body !== undefined ? { body } : {}),
       ...options,
     });
+  }
+
+  async getBuffer(path: string, params?: QueryParams): Promise<Buffer> {
+    return this.requestBuffer("GET", path, params !== undefined ? { params } : undefined);
   }
 
   async delete(path: string, options?: { readonly idempotencyKey?: string }): Promise<void> {
@@ -205,10 +228,11 @@ export class HttpClient {
       readonly body?: unknown;
       readonly params?: QueryParams;
       readonly idempotencyKey?: string;
+      readonly accept?: string;
     },
   ): Promise<Response> {
     const url = this.buildUrl(path, options?.params);
-    const headers = this.buildHeaders(options?.body !== undefined);
+    const headers = this.buildHeaders(options?.body !== undefined, options?.accept);
     const body = options?.body !== undefined ? JSON.stringify(options.body) : undefined;
 
     if (WRITE_METHODS.has(method.toUpperCase())) {
@@ -270,11 +294,11 @@ export class HttpClient {
     return url;
   }
 
-  private buildHeaders(hasBody: boolean): Record<string, string> {
+  private buildHeaders(hasBody: boolean, accept?: string): Record<string, string> {
     const headers: Record<string, string> = {
       Authorization: this.authorization,
       "User-Agent": this.userAgent,
-      Accept: "application/json",
+      Accept: accept ?? "application/json",
     };
 
     if (hasBody) {

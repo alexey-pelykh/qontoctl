@@ -71,6 +71,6 @@ export { getRecurringTransfer } from "./recurring-transfers/index.js";
 
 export type { RecurringTransfer } from "./recurring-transfers/index.js";
 
-export { getBankAccount, resolveDefaultBankAccount } from "./services/bank-accounts.js";
+export { getBankAccount, getIbanCertificate, resolveDefaultBankAccount } from "./services/bank-accounts.js";
 export { getEInvoicingSettings } from "./services/einvoicing.js";
 export { getOrganization } from "./services/organization.js";
