@@ -217,11 +217,7 @@ export class HttpClient {
     return this.requestBuffer("GET", path, params !== undefined ? { params } : undefined);
   }
 
-  async patch<T>(
-    path: string,
-    body?: unknown,
-    options?: { readonly idempotencyKey?: string },
-  ): Promise<T> {
+  async patch<T>(path: string, body?: unknown, options?: { readonly idempotencyKey?: string }): Promise<T> {
     return this.request<T>("PATCH", path, {
       ...(body !== undefined ? { body } : {}),
       ...options,

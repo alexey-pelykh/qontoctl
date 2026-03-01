@@ -6,14 +6,7 @@ export type { CreditNote, CreditNoteAmount, CreditNoteClient, CreditNoteItem } f
 export type { EInvoicingSettings } from "./einvoicing.js";
 export type { Label } from "./label.js";
 export type { Membership } from "./membership.js";
-export type {
-  Quote,
-  QuoteAddress,
-  QuoteAmount,
-  QuoteClient,
-  QuoteDiscount,
-  QuoteItem,
-} from "./quote.js";
+export type { Quote, QuoteAddress, QuoteAmount, QuoteClient, QuoteDiscount, QuoteItem } from "./quote.js";
 export type {
   Request,
   RequestFlashCard,

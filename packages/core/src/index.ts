@@ -51,14 +51,7 @@ export { buildBeneficiaryQueryParams, getBeneficiary } from "./beneficiaries/ind
 
 export type { ListBeneficiariesParams } from "./beneficiaries/index.js";
 
-export type {
-  Quote,
-  QuoteAddress,
-  QuoteAmount,
-  QuoteClient,
-  QuoteDiscount,
-  QuoteItem,
-} from "./types/index.js";
+export type { Quote, QuoteAddress, QuoteAmount, QuoteClient, QuoteDiscount, QuoteItem } from "./types/index.js";
 
 export type { Statement, StatementFile } from "./statements/index.js";
 
