@@ -63,6 +63,21 @@ export type { Transfer, ListTransfersParams } from "./transfers/index.js";
 
 export type { Transaction, TransactionLabel, ListTransactionsParams } from "./transactions/index.js";
 
+export {
+  buildSupplierInvoiceQueryParams,
+  getSupplierInvoice,
+  bulkCreateSupplierInvoices,
+} from "./supplier-invoices/index.js";
+
+export type {
+  SupplierInvoice,
+  SupplierInvoiceAmount,
+  ListSupplierInvoicesParams,
+  BulkCreateSupplierInvoiceEntry,
+  BulkCreateSupplierInvoiceError,
+  BulkCreateSupplierInvoicesResult,
+} from "./supplier-invoices/index.js";
+
 export type { BankAccount, Organization, PaginationMeta } from "./api-types.js";
 
 export { getBulkTransfer } from "./bulk-transfers/index.js";
