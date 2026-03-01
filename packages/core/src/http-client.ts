@@ -228,19 +228,41 @@ export class HttpClient {
     return this.requestVoid("DELETE", path, options);
   }
 
+  /**
+   * Sends a multipart form-data POST request and parses the response as JSON.
+   *
+   * Unlike `post()`, this does NOT set `Content-Type` — the runtime sets it
+   * automatically with the correct multipart boundary.
+   */
+  async postFormData<T>(path: string, formData: FormData, options?: { readonly idempotencyKey?: string }): Promise<T> {
+    const response = await this.fetchWithRetry("POST", path, {
+      formData,
+      ...options,
+    });
+    const responseBody: unknown = await response.json();
+    this.logDebug(`Response body: ${JSON.stringify(redactSensitiveFields(responseBody))}`);
+    return responseBody as T;
+  }
+
   private async fetchWithRetry(
     method: string,
     path: string,
     options?: {
       readonly body?: unknown;
+      readonly formData?: FormData;
       readonly params?: QueryParams;
       readonly idempotencyKey?: string;
       readonly accept?: string;
     },
   ): Promise<Response> {
     const url = this.buildUrl(path, options?.params);
-    const headers = this.buildHeaders(options?.body !== undefined, options?.accept);
-    const body = options?.body !== undefined ? JSON.stringify(options.body) : undefined;
+    const isFormData = options?.formData !== undefined;
+    const headers = this.buildHeaders(!isFormData && options?.body !== undefined, options?.accept);
+    const body: string | FormData | undefined = isFormData
+      ? options.formData
+      : options?.body !== undefined
+        ? JSON.stringify(options.body)
+        : undefined;
 
     if (WRITE_METHODS.has(method.toUpperCase())) {
       headers[IDEMPOTENCY_KEY_HEADER] = options?.idempotencyKey ?? randomUUID();
@@ -249,7 +271,7 @@ export class HttpClient {
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
       this.logVerbose(`${method} ${url.toString()}${attempt > 0 ? ` (retry ${attempt})` : ""}`);
       if (body !== undefined) {
-        this.logDebug(`Request body: ${body}`);
+        this.logDebug(isFormData ? "Request body: [FormData]" : `Request body: ${body as string}`);
       }
 
       const startTime = performance.now();

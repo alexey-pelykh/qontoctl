@@ -40,6 +40,9 @@ const EXPECTED_TOOLS = [
   "quote_update",
   "quote_delete",
   "request_list",
+  "supplier_invoice_list",
+  "supplier_invoice_show",
+  "supplier_invoice_bulk_create",
 ] as const;
 
 describe("MCP server via stdio (e2e)", () => {
@@ -68,7 +71,7 @@ describe("MCP server via stdio (e2e)", () => {
   });
 
   describe("tools/list", () => {
-    it("lists all 28 expected tools", async () => {
+    it("lists all 31 expected tools", async () => {
       const { tools } = await client.listTools();
       const names = tools.map((t) => t.name);
 
