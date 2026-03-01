@@ -113,4 +113,39 @@ describe.skipIf(!hasCredentials())("organization & accounts MCP (e2e)", () => {
     expect(account).toHaveProperty("currency");
     expect(account).toHaveProperty("status");
   });
+
+  // ── account_iban_certificate ─────────────────────────────────
+
+  it("account_iban_certificate returns PDF as embedded resource", async () => {
+    // First, get an account ID from account_list
+    const listResult = await client.callTool({
+      name: "account_list",
+      arguments: {},
+    });
+    const listContent = listResult.content as {
+      type: string;
+      text: string;
+    }[];
+    const accounts = JSON.parse((listContent[0] as { text: string }).text) as { id: string }[];
+    const accountId = (accounts[0] as { id: string }).id;
+
+    const result = await client.callTool({
+      name: "account_iban_certificate",
+      arguments: { id: accountId },
+    });
+    expect(result.isError).not.toBe(true);
+
+    const content = result.content as { type: string; resource?: { blob: string; mimeType: string } }[];
+    expect(content).toHaveLength(1);
+    expect((content[0] as { type: string }).type).toBe("resource");
+
+    const resource = (content[0] as { resource: { blob: string; mimeType: string } }).resource;
+    expect(resource.mimeType).toBe("application/pdf");
+    expect(resource.blob).toBeDefined();
+
+    // Verify it's valid base64 that decodes to a PDF
+    const pdfBuffer = Buffer.from(resource.blob, "base64");
+    expect(pdfBuffer.length).toBeGreaterThan(0);
+    expect(pdfBuffer.toString("ascii", 0, 4)).toBe("%PDF");
+  });
 });

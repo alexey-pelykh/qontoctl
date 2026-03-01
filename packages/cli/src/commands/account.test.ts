@@ -11,19 +11,28 @@ vi.mock("../client.js", () => ({
   createClient: vi.fn(),
 }));
 
+vi.mock("node:fs/promises", () => ({
+  writeFile: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock("@qontoctl/core", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@qontoctl/core")>();
   return {
     ...actual,
     getBankAccount: vi.fn(),
+    getIbanCertificate: vi.fn(),
   };
 });
 
 const { createClient } = await import("../client.js");
 const createClientMock = vi.mocked(createClient);
 
-const { getBankAccount } = await import("@qontoctl/core");
+const { getBankAccount, getIbanCertificate } = await import("@qontoctl/core");
 const getBankAccountMock = vi.mocked(getBankAccount);
+const getIbanCertificateMock = vi.mocked(getIbanCertificate);
+
+const { writeFile } = await import("node:fs/promises");
+const writeFileMock = vi.mocked(writeFile);
 
 function makeMeta(overrides: Partial<PaginationMeta> = {}): PaginationMeta {
   return {
@@ -225,6 +234,62 @@ describe("registerAccountCommands", () => {
       const output = stdoutSpy.mock.calls[0]?.[0] as string;
       expect(output).toContain("id: acc-1");
       expect(output).toContain("name: Main Account");
+    });
+  });
+
+  describe("account iban-certificate", () => {
+    it("registers the iban-certificate subcommand under account with id argument", () => {
+      const program = new Command();
+      registerAccountCommands(program);
+
+      const accountCommand = program.commands.find((c) => c.name() === "account");
+      const ibanCertCommand = accountCommand?.commands.find((c) => c.name() === "iban-certificate");
+      expect(ibanCertCommand).toBeDefined();
+      expect(ibanCertCommand?.description()).toBe("Download IBAN certificate PDF");
+
+      const args = ibanCertCommand?.registeredArguments;
+      expect(args).toHaveLength(1);
+      expect(args?.[0]?.name()).toBe("id");
+      expect(args?.[0]?.required).toBe(true);
+    });
+
+    it("downloads IBAN certificate with default filename", async () => {
+      const pdfBuffer = Buffer.from("%PDF-1.4 test");
+      getIbanCertificateMock.mockResolvedValue(pdfBuffer);
+      createClientMock.mockResolvedValue({} as never);
+
+      const program = new Command();
+      program.option("-o, --output <format>", "", "table");
+      registerAccountCommands(program);
+
+      await program.parseAsync(["account", "iban-certificate", "acc-1"], {
+        from: "user",
+      });
+
+      expect(getIbanCertificateMock).toHaveBeenCalledWith(expect.anything(), "acc-1");
+      expect(writeFileMock).toHaveBeenCalledWith("iban-certificate-acc-1.pdf", pdfBuffer);
+      expect(stdoutSpy).toHaveBeenCalled();
+      const output = stdoutSpy.mock.calls[0]?.[0] as string;
+      expect(output).toContain("Downloaded: iban-certificate-acc-1.pdf");
+    });
+
+    it("downloads IBAN certificate with custom filename", async () => {
+      const pdfBuffer = Buffer.from("%PDF-1.4 test");
+      getIbanCertificateMock.mockResolvedValue(pdfBuffer);
+      createClientMock.mockResolvedValue({} as never);
+
+      const program = new Command();
+      program.option("-o, --output <format>", "", "table");
+      registerAccountCommands(program);
+
+      await program.parseAsync(["account", "iban-certificate", "acc-1", "--output-file", "my-cert.pdf"], {
+        from: "user",
+      });
+
+      expect(writeFileMock).toHaveBeenCalledWith("my-cert.pdf", pdfBuffer);
+      expect(stdoutSpy).toHaveBeenCalled();
+      const output = stdoutSpy.mock.calls[0]?.[0] as string;
+      expect(output).toContain("Downloaded: my-cert.pdf");
     });
   });
 });

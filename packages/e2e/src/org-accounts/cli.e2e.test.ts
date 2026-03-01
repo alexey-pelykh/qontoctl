@@ -2,7 +2,9 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { execFileSync } from "node:child_process";
-import { resolve } from "node:path";
+import { existsSync, readFileSync, unlinkSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import { cliEnv, hasCredentials } from "../sandbox.js";
 
@@ -93,5 +95,26 @@ describe.skipIf(!hasCredentials())("organization & accounts CLI (e2e)", () => {
     expect(account).toHaveProperty("authorized_balance");
     expect(account).toHaveProperty("currency");
     expect(account).toHaveProperty("status");
+  });
+
+  // ── account iban-certificate ─────────────────────────────────
+
+  it("account iban-certificate downloads a PDF file", () => {
+    const outputFile = join(tmpdir(), `iban-cert-e2e-${Date.now()}.pdf`);
+    try {
+      const output = cli(["account", "iban-certificate", knownAccountId, "--output-file", outputFile]);
+      expect(output).toContain("Downloaded:");
+      expect(output).toContain(outputFile);
+      expect(existsSync(outputFile)).toBe(true);
+
+      const content = readFileSync(outputFile);
+      expect(content.length).toBeGreaterThan(0);
+      // PDF files start with %PDF
+      expect(content.toString("ascii", 0, 4)).toBe("%PDF");
+    } finally {
+      if (existsSync(outputFile)) {
+        unlinkSync(outputFile);
+      }
+    }
   });
 });

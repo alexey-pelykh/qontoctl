@@ -21,6 +21,17 @@ export async function getBankAccount(client: HttpClient, id: string): Promise<Ba
 }
 
 /**
+ * Download the IBAN certificate PDF for a bank account.
+ *
+ * @param client - The HTTP client to use for the request.
+ * @param id - The bank account UUID.
+ * @returns The IBAN certificate as a PDF buffer.
+ */
+export async function getIbanCertificate(client: HttpClient, id: string): Promise<Buffer> {
+  return client.getBuffer(`/v2/bank_accounts/${encodeURIComponent(id)}/iban_certificate`);
+}
+
+/**
  * Resolve the default bank account from an organization.
  *
  * Returns the account marked as `main`, or falls back to the first account.
