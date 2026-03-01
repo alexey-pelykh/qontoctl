@@ -38,9 +38,7 @@ describe("getEInvoicingSettings", () => {
   });
 
   it("calls the correct API endpoint", async () => {
-    fetchSpy.mockReturnValue(
-      jsonResponse({ sending_status: "disabled", receiving_status: "disabled" }),
-    );
+    fetchSpy.mockReturnValue(jsonResponse({ sending_status: "disabled", receiving_status: "disabled" }));
 
     await getEInvoicingSettings(client);
 

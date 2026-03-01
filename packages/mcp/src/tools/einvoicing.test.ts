@@ -22,9 +22,7 @@ describe("einvoicing MCP tools", () => {
 
   describe("einvoicing_settings", () => {
     it("returns e-invoicing settings from API", async () => {
-      fetchSpy.mockReturnValue(
-        jsonResponse({ sending_status: "enabled", receiving_status: "enabled" }),
-      );
+      fetchSpy.mockReturnValue(jsonResponse({ sending_status: "enabled", receiving_status: "enabled" }));
 
       const result = await mcpClient.callTool({
         name: "einvoicing_settings",
@@ -38,9 +36,7 @@ describe("einvoicing MCP tools", () => {
     });
 
     it("calls the correct API endpoint", async () => {
-      fetchSpy.mockReturnValue(
-        jsonResponse({ sending_status: "disabled", receiving_status: "disabled" }),
-      );
+      fetchSpy.mockReturnValue(jsonResponse({ sending_status: "disabled", receiving_status: "disabled" }));
 
       await mcpClient.callTool({
         name: "einvoicing_settings",
