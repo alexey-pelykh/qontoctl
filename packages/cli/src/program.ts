@@ -4,6 +4,7 @@
 import { createRequire } from "node:module";
 import { Command, Option } from "commander";
 import { registerCompletionCommand } from "./completions/index.js";
+import { registerBeneficiaryCommands } from "./commands/beneficiary/index.js";
 import { registerTransactionCommands } from "./commands/transaction/index.js";
 import { registerBulkTransferCommands } from "./commands/bulk-transfer/index.js";
 import { registerEInvoicingCommands } from "./commands/einvoicing.js";
@@ -30,6 +31,7 @@ export function createProgram(): Command {
     .addOption(new Option("--no-paginate", "disable auto-pagination"));
 
   registerCompletionCommand(program);
+  registerBeneficiaryCommands(program);
   registerEInvoicingCommands(program);
   registerTransactionCommands(program);
   registerBulkTransferCommands(program);

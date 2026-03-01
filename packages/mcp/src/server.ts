@@ -6,6 +6,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { HttpClient } from "@qontoctl/core";
 import {
   registerAccountTools,
+  registerBeneficiaryTools,
   registerBulkTransferTools,
   registerCreditNoteTools,
   registerEInvoicingTools,
@@ -39,6 +40,7 @@ export function createServer(options?: CreateServerOptions): McpServer {
     });
 
   registerAccountTools(server, getClient);
+  registerBeneficiaryTools(server, getClient);
   registerBulkTransferTools(server, getClient);
   registerCreditNoteTools(server, getClient);
   registerEInvoicingTools(server, getClient);
