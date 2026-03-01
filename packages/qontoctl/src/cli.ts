@@ -9,6 +9,7 @@ import {
   createProgram,
   createLabelCommand,
   createMembershipCommand,
+  createRequestCommand,
   handleCliError,
   registerProfileCommands,
   registerStatementCommands,
@@ -22,6 +23,7 @@ const program = createProgram();
 program.addCommand(createCreditNoteCommand());
 program.addCommand(createLabelCommand());
 program.addCommand(createMembershipCommand());
+program.addCommand(createRequestCommand());
 registerProfileCommands(program);
 registerStatementCommands(program);
 registerTransferCommands(program);
