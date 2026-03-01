@@ -44,9 +44,7 @@ export function registerBeneficiaryListCommand(parent: Command): void {
   const list = parent
     .command("list")
     .description("List beneficiaries")
-    .addOption(
-      new Option("--status <status...>", "filter by status").choices(["pending", "validated", "declined"]),
-    )
+    .addOption(new Option("--status <status...>", "filter by status").choices(["pending", "validated", "declined"]))
     .addOption(new Option("--trusted", "filter to trusted beneficiaries only"))
     .addOption(new Option("--iban <iban...>", "filter by IBAN"))
     .addOption(new Option("--updated-from <date>", "updated from date (ISO 8601)"))

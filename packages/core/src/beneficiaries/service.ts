@@ -39,8 +39,6 @@ export function buildBeneficiaryQueryParams(params: ListBeneficiariesParams): Qu
  * Fetch a single SEPA beneficiary by ID.
  */
 export async function getBeneficiary(client: HttpClient, id: string): Promise<Beneficiary> {
-  const response = await client.get<{ beneficiary: Beneficiary }>(
-    `/v2/sepa/beneficiaries/${encodeURIComponent(id)}`,
-  );
+  const response = await client.get<{ beneficiary: Beneficiary }>(`/v2/sepa/beneficiaries/${encodeURIComponent(id)}`);
   return response.beneficiary;
 }

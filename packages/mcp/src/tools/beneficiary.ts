@@ -21,10 +21,7 @@ export function registerBeneficiaryTools(server: McpServer, getClient: () => Pro
     {
       description: "List SEPA beneficiaries in the organization",
       inputSchema: {
-        status: z
-          .enum(["pending", "validated", "declined"])
-          .optional()
-          .describe("Filter by status"),
+        status: z.enum(["pending", "validated", "declined"]).optional().describe("Filter by status"),
         trusted: z.boolean().optional().describe("Filter by trust status"),
         iban: z.string().optional().describe("Filter by IBAN"),
         updated_at_from: z.string().optional().describe("Updated from date (ISO 8601)"),
