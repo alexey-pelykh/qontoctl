@@ -139,6 +139,7 @@ Each package uses conditional exports with `types` + `import`:
 
 - **CI**: Runs on push/PR to `main`; 3-OS matrix (ubuntu, macos, windows); builds, lints, license-checks, tests
 - **Release**: Triggered by GitHub Release publish; validates, stamps version from git tag, publishes to npm with provenance
+- **Homebrew**: After npm publish completes, manually trigger the "Update Formula" workflow in `qontoctl/homebrew-tap` (Actions → Update Formula → Run workflow) to update the Homebrew formula to the latest npm version
 - **Setup**: Composite action at `.github/actions/setup/` (pnpm + Node.js 24 + frozen lockfile + Turbo cache)
 - Coverage uploaded to Codecov on ubuntu only
 
