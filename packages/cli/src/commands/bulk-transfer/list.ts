@@ -27,12 +27,7 @@ export function registerBulkTransferListCommand(parent: Command): void {
     const opts = resolveGlobalOptions<GlobalOptions & PaginationOptions>(cmd);
     const client = await createClient(opts);
 
-    const result = await fetchPaginated<BulkTransfer>(
-      client,
-      "/v2/sepa/bulk_transfers",
-      "bulk_transfers",
-      opts,
-    );
+    const result = await fetchPaginated<BulkTransfer>(client, "/v2/sepa/bulk_transfers", "bulk_transfers", opts);
 
     const data = opts.output === "table" || opts.output === "csv" ? result.items.map(toTableRow) : result.items;
 

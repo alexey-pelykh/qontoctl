@@ -50,14 +50,7 @@ describe.skipIf(!hasCredentials())("bulk-transfer CLI commands (e2e)", () => {
     });
 
     it("lists bulk transfers with pagination", () => {
-      const bulkTransfers = cliJson<BulkTransferItem[]>(
-        "bulk-transfer",
-        "list",
-        "--per-page",
-        "2",
-        "--page",
-        "1",
-      );
+      const bulkTransfers = cliJson<BulkTransferItem[]>("bulk-transfer", "list", "--per-page", "2", "--page", "1");
       expect(Array.isArray(bulkTransfers)).toBe(true);
       expect(bulkTransfers.length).toBeLessThanOrEqual(2);
     });
@@ -65,13 +58,7 @@ describe.skipIf(!hasCredentials())("bulk-transfer CLI commands (e2e)", () => {
 
   describe("bulk-transfer show", () => {
     it("shows a bulk transfer by ID", () => {
-      const bulkTransfers = cliJson<BulkTransferItem[]>(
-        "bulk-transfer",
-        "list",
-        "--no-paginate",
-        "--per-page",
-        "1",
-      );
+      const bulkTransfers = cliJson<BulkTransferItem[]>("bulk-transfer", "list", "--no-paginate", "--per-page", "1");
       const first = bulkTransfers[0];
       if (first === undefined) return;
 

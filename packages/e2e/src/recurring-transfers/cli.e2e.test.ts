@@ -41,11 +41,7 @@ describe.skipIf(!hasCredentials())("recurring-transfer CLI commands (e2e)", () =
     });
 
     it("produces valid JSON with --output json", () => {
-      const recurringTransfers = cliJson<RecurringTransferItem[]>(
-        "recurring-transfer",
-        "list",
-        "--no-paginate",
-      );
+      const recurringTransfers = cliJson<RecurringTransferItem[]>("recurring-transfer", "list", "--no-paginate");
       expect(Array.isArray(recurringTransfers)).toBe(true);
       for (const item of recurringTransfers) {
         expect(item).toHaveProperty("id");
