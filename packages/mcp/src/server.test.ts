@@ -27,13 +27,15 @@ describe("createServer", () => {
       vi.restoreAllMocks();
     });
 
-    it("registers all 11 expected tools", async () => {
+    it("registers all 12 expected tools", async () => {
       const { tools } = await mcpClient.listTools();
       const toolNames = tools.map((t) => t.name);
 
       expect(toolNames).toContain("org_show");
       expect(toolNames).toContain("account_list");
       expect(toolNames).toContain("account_show");
+      expect(toolNames).toContain("credit_note_list");
+      expect(toolNames).toContain("credit_note_show");
       expect(toolNames).toContain("einvoicing_settings");
       expect(toolNames).toContain("transaction_list");
       expect(toolNames).toContain("transaction_show");
@@ -42,7 +44,7 @@ describe("createServer", () => {
       expect(toolNames).toContain("label_list");
       expect(toolNames).toContain("label_show");
       expect(toolNames).toContain("membership_list");
-      expect(tools).toHaveLength(11);
+      expect(tools).toHaveLength(12);
     });
 
     it("tools have descriptions", async () => {
@@ -56,7 +58,7 @@ describe("createServer", () => {
     it("tool names follow entity_operation underscore convention", async () => {
       const { tools } = await mcpClient.listTools();
 
-      const pattern = /^[a-z]+_[a-z]+$/;
+      const pattern = /^[a-z]+(?:_[a-z]+)+$/;
       for (const tool of tools) {
         expect(tool.name, `Tool "${tool.name}" should match {entity}_{operation} pattern`).toMatch(pattern);
       }

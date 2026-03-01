@@ -25,7 +25,7 @@ export { handleCliError } from "./error-handler.js";
 
 export { addInheritableOptions, addWriteOptions, resolveGlobalOptions } from "./inherited-options.js";
 
-export { createLabelCommand, createMembershipCommand } from "./commands/index.js";
+export { createCreditNoteCommand, createLabelCommand, createMembershipCommand } from "./commands/index.js";
 
 export { registerStatementCommands } from "./commands/index.js";
 
