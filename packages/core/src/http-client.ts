@@ -187,11 +187,7 @@ export class HttpClient {
     return this.request<T>("GET", path, params !== undefined ? { params } : undefined);
   }
 
-  async post<T>(
-    path: string,
-    body?: unknown,
-    options?: { readonly idempotencyKey?: string },
-  ): Promise<T> {
+  async post<T>(path: string, body?: unknown, options?: { readonly idempotencyKey?: string }): Promise<T> {
     return this.request<T>("POST", path, {
       ...(body !== undefined ? { body } : {}),
       ...options,

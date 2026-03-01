@@ -5,7 +5,13 @@ export { createProgram } from "./program.js";
 
 export { registerProfileCommands } from "./commands/profile/index.js";
 
-export { OUTPUT_FORMATS, type GlobalOptions, type OutputFormat, type PaginationOptions, type WriteOptions } from "./options.js";
+export {
+  OUTPUT_FORMATS,
+  type GlobalOptions,
+  type OutputFormat,
+  type PaginationOptions,
+  type WriteOptions,
+} from "./options.js";
 
 export { formatOutput, formatCsv, formatJson, formatTable, formatYaml } from "./formatters/index.js";
 
