@@ -217,6 +217,7 @@ export class HttpClient {
     return this.requestBuffer("GET", path, params !== undefined ? { params } : undefined);
   }
 
+
   async delete(path: string, options?: { readonly idempotencyKey?: string }): Promise<void> {
     return this.requestVoid("DELETE", path, options);
   }
