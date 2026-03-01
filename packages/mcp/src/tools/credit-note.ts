@@ -57,9 +57,7 @@ export function registerCreditNoteTools(server: McpServer, getClient: () => Prom
     },
     async ({ id }) =>
       withClient(getClient, async (client) => {
-        const response = await client.get<SingleCreditNoteResponse>(
-          `/v2/credit_notes/${encodeURIComponent(id)}`,
-        );
+        const response = await client.get<SingleCreditNoteResponse>(`/v2/credit_notes/${encodeURIComponent(id)}`);
 
         return {
           content: [

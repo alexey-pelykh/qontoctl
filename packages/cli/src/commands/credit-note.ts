@@ -41,9 +41,7 @@ export function createCreditNoteCommand(): Command {
     const opts = resolveGlobalOptions<GlobalOptions>(cmd);
     const client = await createClient(opts);
 
-    const response = await client.get<{ credit_note: CreditNote }>(
-      `/v2/credit_notes/${encodeURIComponent(id)}`,
-    );
+    const response = await client.get<{ credit_note: CreditNote }>(`/v2/credit_notes/${encodeURIComponent(id)}`);
     const cn = response.credit_note;
 
     const data =
