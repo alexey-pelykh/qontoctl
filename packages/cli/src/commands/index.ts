@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
+export { createCreditNoteCommand } from "./credit-note.js";
 export { registerEInvoicingCommands } from "./einvoicing.js";
 export { createLabelCommand } from "./label.js";
 export { createMembershipCommand } from "./membership.js";

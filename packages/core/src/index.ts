@@ -34,6 +34,7 @@ export { AuthError, buildApiKeyAuthorization } from "./auth/index.js";
 
 export { API_BASE_URL, CONFIG_DIR, SANDBOX_BASE_URL } from "./constants.js";
 
+export type { CreditNote, CreditNoteAmount, CreditNoteClient, CreditNoteItem } from "./types/index.js";
 export type { EInvoicingSettings, Label, Membership } from "./types/index.js";
 
 export type { Statement, StatementFile } from "./statements/index.js";
