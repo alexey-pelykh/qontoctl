@@ -40,6 +40,10 @@ export type { Statement, StatementFile } from "./statements/index.js";
 
 export { buildTransactionQueryParams, getTransaction } from "./transactions/index.js";
 
+export { buildTransferQueryParams, getTransfer } from "./transfers/index.js";
+
+export type { Transfer, ListTransfersParams } from "./transfers/index.js";
+
 export type { Transaction, TransactionLabel, ListTransactionsParams } from "./transactions/index.js";
 
 export type { BankAccount, Organization, PaginationMeta } from "./api-types.js";

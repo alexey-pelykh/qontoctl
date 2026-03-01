@@ -26,3 +26,4 @@ export { registerStatementCommands } from "./commands/index.js";
 export { registerTransactionCommands } from "./commands/transaction/index.js";
 export { registerOrgCommands } from "./commands/index.js";
 export { registerAccountCommands } from "./commands/index.js";
+export { registerTransferCommands } from "./commands/index.js";

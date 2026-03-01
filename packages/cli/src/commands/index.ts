@@ -6,3 +6,4 @@ export { createMembershipCommand } from "./membership.js";
 export { registerStatementCommands } from "./statement.js";
 export { registerOrgCommands } from "./org.js";
 export { registerAccountCommands } from "./account.js";
+export { registerTransferCommands } from "./transfer/index.js";

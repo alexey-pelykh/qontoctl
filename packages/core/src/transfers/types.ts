@@ -1,0 +1,41 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2026 Oleksii PELYKH
+
+/**
+ * A SEPA transfer returned by the Qonto API.
+ */
+export interface Transfer {
+  readonly id: string;
+  readonly initiator_id: string;
+  readonly bank_account_id: string;
+  readonly beneficiary_id: string;
+  readonly amount: number;
+  readonly amount_cents: number;
+  readonly amount_currency: string;
+  readonly status: "pending" | "processing" | "canceled" | "declined" | "settled";
+  readonly reference: string;
+  readonly note: string | null;
+  readonly scheduled_date: string;
+  readonly created_at: string;
+  readonly updated_at: string;
+  readonly processed_at: string | null;
+  readonly completed_at: string | null;
+  readonly transaction_id: string | null;
+  readonly recurring_transfer_id: string | null;
+  readonly declined_reason: string | null;
+}
+
+/**
+ * Parameters for listing SEPA transfers.
+ */
+export interface ListTransfersParams {
+  readonly status?: readonly string[];
+  readonly updated_at_from?: string;
+  readonly updated_at_to?: string;
+  readonly scheduled_date_from?: string;
+  readonly scheduled_date_to?: string;
+  readonly beneficiary_ids?: readonly string[];
+  readonly ids?: readonly string[];
+  readonly recurring_transfer_ids?: readonly string[];
+  readonly sort_by?: string;
+}

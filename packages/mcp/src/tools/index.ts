@@ -7,3 +7,4 @@ export { registerMembershipTools } from "./membership.js";
 export { registerOrgTools } from "./org.js";
 export { registerStatementTools } from "./statement.js";
 export { registerTransactionTools } from "./transactions.js";
+export { registerTransferTools } from "./transfer.js";
