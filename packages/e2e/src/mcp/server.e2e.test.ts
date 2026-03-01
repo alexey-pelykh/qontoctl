@@ -34,6 +34,11 @@ const EXPECTED_TOOLS = [
   "label_list",
   "label_show",
   "membership_list",
+  "quote_list",
+  "quote_show",
+  "quote_create",
+  "quote_update",
+  "quote_delete",
   "request_list",
 ] as const;
 
@@ -63,7 +68,7 @@ describe("MCP server via stdio (e2e)", () => {
   });
 
   describe("tools/list", () => {
-    it("lists all 23 expected tools", async () => {
+    it("lists all 28 expected tools", async () => {
       const { tools } = await client.listTools();
       const names = tools.map((t) => t.name);
 

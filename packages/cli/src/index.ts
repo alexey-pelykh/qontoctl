@@ -29,6 +29,7 @@ export {
   createCreditNoteCommand,
   createLabelCommand,
   createMembershipCommand,
+  createQuoteCommand,
   createRequestCommand,
 } from "./commands/index.js";
 
