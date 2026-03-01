@@ -9,6 +9,7 @@ export { registerEInvoicingTools } from "./einvoicing.js";
 export { registerLabelTools } from "./label.js";
 export { registerMembershipTools } from "./membership.js";
 export { registerOrgTools } from "./org.js";
+export { registerQuoteTools } from "./quote.js";
 export { registerRecurringTransferTools } from "./recurring-transfer.js";
 export { registerRequestTools } from "./request.js";
 export { registerStatementTools } from "./statement.js";
