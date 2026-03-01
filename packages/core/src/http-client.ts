@@ -224,7 +224,6 @@ export class HttpClient {
     });
   }
 
-
   async delete(path: string, options?: { readonly idempotencyKey?: string }): Promise<void> {
     return this.requestVoid("DELETE", path, options);
   }
