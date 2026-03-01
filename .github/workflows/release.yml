@@ -78,3 +78,21 @@ jobs:
 
       - name: Publish packages
         run: pnpm -r publish --access public --no-git-checks --report-summary --provenance
+
+  # NOTE: GITHUB_TOKEN cannot trigger cross-repo workflows, so this job requires
+  # a PAT (HOMEBREW_TAP_TOKEN) with repo scope for the qontoctl org.
+  update-homebrew:
+    name: Update Homebrew formula
+    timeout-minutes: 5
+    needs: publish-npm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch formula update
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          RAW_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          VERSION="${RAW_TAG#v}"
+          gh api repos/qontoctl/homebrew-tap/dispatches \
+            -f event_type=update-formula \
+            -f "client_payload[version]=$VERSION"
