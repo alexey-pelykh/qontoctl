@@ -6,6 +6,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { HttpClient } from "@qontoctl/core";
 import {
   registerAccountTools,
+  registerEInvoicingTools,
   registerLabelTools,
   registerMembershipTools,
   registerOrgTools,
@@ -33,6 +34,7 @@ export function createServer(options?: CreateServerOptions): McpServer {
     });
 
   registerAccountTools(server, getClient);
+  registerEInvoicingTools(server, getClient);
   registerLabelTools(server, getClient);
   registerMembershipTools(server, getClient);
   registerOrgTools(server, getClient);

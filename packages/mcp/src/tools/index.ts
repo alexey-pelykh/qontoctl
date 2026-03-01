@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 export { registerAccountTools } from "./accounts.js";
+export { registerEInvoicingTools } from "./einvoicing.js";
 export { registerLabelTools } from "./label.js";
 export { registerMembershipTools } from "./membership.js";
 export { registerOrgTools } from "./org.js";
