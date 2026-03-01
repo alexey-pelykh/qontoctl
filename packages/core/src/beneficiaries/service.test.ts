@@ -1,0 +1,92 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2026 Oleksii PELYKH
+
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { HttpClient } from "../http-client.js";
+import { jsonResponse } from "../testing/json-response.js";
+import { buildBeneficiaryQueryParams, getBeneficiary } from "./service.js";
+import type { ListBeneficiariesParams } from "./types.js";
+
+describe("buildBeneficiaryQueryParams", () => {
+  it("returns empty object for empty params", () => {
+    const result = buildBeneficiaryQueryParams({});
+    expect(result).toEqual({});
+  });
+
+  it("maps scalar string params", () => {
+    const params: ListBeneficiariesParams = {
+      updated_at_from: "2025-01-01T00:00:00Z",
+      updated_at_to: "2025-01-31T23:59:59Z",
+      sort_by: "updated_at:desc",
+    };
+    const result = buildBeneficiaryQueryParams(params);
+    expect(result).toEqual({
+      updated_at_from: "2025-01-01T00:00:00Z",
+      updated_at_to: "2025-01-31T23:59:59Z",
+      sort_by: "updated_at:desc",
+    });
+  });
+
+  it("maps array params with [] suffix", () => {
+    const params: ListBeneficiariesParams = {
+      status: ["pending", "validated"],
+      iban: ["FR7630001007941234567890185"],
+    };
+    const result = buildBeneficiaryQueryParams(params);
+    expect(result).toEqual({
+      "status[]": ["pending", "validated"],
+      "iban[]": ["FR7630001007941234567890185"],
+    });
+  });
+
+  it("maps trusted boolean to string", () => {
+    const result = buildBeneficiaryQueryParams({ trusted: true });
+    expect(result).toEqual({ trusted: "true" });
+  });
+
+  it("omits empty arrays", () => {
+    const result = buildBeneficiaryQueryParams({
+      status: [],
+      iban: [],
+    });
+    expect(result).toEqual({});
+  });
+});
+
+describe("getBeneficiary", () => {
+  let fetchSpy: ReturnType<typeof vi.fn>;
+  let client: HttpClient;
+
+  beforeEach(() => {
+    fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    client = new HttpClient({
+      baseUrl: "https://thirdparty.qonto.com",
+      authorization: "slug:secret",
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("fetches a beneficiary by ID", async () => {
+    const beneficiary = { id: "ben-1", name: "Acme Corp", iban: "FR7630001007941234567890185" };
+    fetchSpy.mockReturnValue(jsonResponse({ beneficiary }));
+
+    const result = await getBeneficiary(client, "ben-1");
+    expect(result).toEqual(beneficiary);
+
+    const [url] = fetchSpy.mock.calls[0] as [URL];
+    expect(url.pathname).toBe("/v2/sepa/beneficiaries/ben-1");
+  });
+
+  it("encodes special characters in the ID", async () => {
+    fetchSpy.mockReturnValue(jsonResponse({ beneficiary: { id: "a/b" } }));
+
+    await getBeneficiary(client, "a/b");
+
+    const [url] = fetchSpy.mock.calls[0] as [URL];
+    expect(url.pathname).toBe("/v2/sepa/beneficiaries/a%2Fb");
+  });
+});

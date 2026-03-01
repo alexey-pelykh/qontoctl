@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 export { registerAccountTools } from "./accounts.js";
+export { registerBeneficiaryTools } from "./beneficiary.js";
 export { registerBulkTransferTools } from "./bulk-transfer.js";
 export { registerCreditNoteTools } from "./credit-note.js";
 export { registerEInvoicingTools } from "./einvoicing.js";
