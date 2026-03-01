@@ -30,18 +30,9 @@ export function registerTransferTools(server: McpServer, getClient: () => Promis
         updated_at_to: z.string().optional().describe("End of update date range (ISO 8601)"),
         scheduled_date_from: z.string().optional().describe("Start of scheduled date range (YYYY-MM-DD)"),
         scheduled_date_to: z.string().optional().describe("End of scheduled date range (YYYY-MM-DD)"),
-        sort_by: z
-          .string()
-          .optional()
-          .describe("Sort order (e.g. updated_at:desc, scheduled_date:asc)"),
+        sort_by: z.string().optional().describe("Sort order (e.g. updated_at:desc, scheduled_date:asc)"),
         current_page: z.number().int().positive().optional().describe("Page number (default: 1)"),
-        per_page: z
-          .number()
-          .int()
-          .positive()
-          .max(100)
-          .optional()
-          .describe("Results per page (default: 100, max: 100)"),
+        per_page: z.number().int().positive().max(100).optional().describe("Results per page (default: 100, max: 100)"),
       },
     },
     async (args) =>
@@ -84,9 +75,7 @@ export function registerTransferTools(server: McpServer, getClient: () => Promis
     },
     async ({ id }) =>
       withClient(getClient, async (client) => {
-        const response = await client.get<SingleTransferResponse>(
-          `/v2/sepa/transfers/${encodeURIComponent(id)}`,
-        );
+        const response = await client.get<SingleTransferResponse>(`/v2/sepa/transfers/${encodeURIComponent(id)}`);
 
         return {
           content: [{ type: "text" as const, text: JSON.stringify(response.transfer, null, 2) }],
