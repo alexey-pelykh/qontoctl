@@ -173,5 +173,21 @@ export function createQuoteCommand(): Command {
     }
   });
 
+  // --- send ---
+  const send = quote.command("send <id>").description("Send quote to client via email");
+  addInheritableOptions(send);
+  send.action(async (id: string, _options: unknown, cmd: Command) => {
+    const opts = resolveGlobalOptions<GlobalOptions>(cmd);
+    const client = await createClient(opts);
+
+    await client.requestVoid("POST", `/v2/quotes/${encodeURIComponent(id)}/send`);
+
+    if (opts.output === "json" || opts.output === "yaml") {
+      process.stdout.write(formatOutput({ sent: true, id }, opts.output) + "\n");
+    } else {
+      process.stdout.write(`Quote ${id} sent.\n`);
+    }
+  });
+
   return quote;
 }

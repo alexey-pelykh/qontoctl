@@ -228,4 +228,27 @@ export function registerQuoteTools(server: McpServer, getClient: () => Promise<H
         };
       }),
   );
+
+  server.registerTool(
+    "quote_send",
+    {
+      description: "Send a quote to the client via email",
+      inputSchema: {
+        id: z.string().describe("Quote ID (UUID)"),
+      },
+    },
+    async ({ id }) =>
+      withClient(getClient, async (client) => {
+        await client.requestVoid("POST", `/v2/quotes/${encodeURIComponent(id)}/send`);
+
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify({ sent: true, id }, null, 2),
+            },
+          ],
+        };
+      }),
+  );
 }

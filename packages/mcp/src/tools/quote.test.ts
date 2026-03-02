@@ -311,4 +311,35 @@ describe("quote MCP tools", () => {
       expect(opts.method).toBe("DELETE");
     });
   });
+
+  describe("quote_send", () => {
+    it("sends a quote and returns confirmation", async () => {
+      fetchSpy.mockReturnValue(new Response(null, { status: 204 }));
+
+      const result = await mcpClient.callTool({
+        name: "quote_send",
+        arguments: { id: "q-123" },
+      });
+
+      const content = result.content as { type: string; text: string }[];
+      expect(content).toHaveLength(1);
+      const first = content[0] as { type: string; text: string };
+      const parsed = JSON.parse(first.text) as { sent: boolean; id: string };
+      expect(parsed.sent).toBe(true);
+      expect(parsed.id).toBe("q-123");
+    });
+
+    it("sends POST to the correct endpoint", async () => {
+      fetchSpy.mockReturnValue(new Response(null, { status: 204 }));
+
+      await mcpClient.callTool({
+        name: "quote_send",
+        arguments: { id: "q-123" },
+      });
+
+      const [url, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      expect(url.pathname).toBe("/v2/quotes/q-123/send");
+      expect(opts.method).toBe("POST");
+    });
+  });
 });

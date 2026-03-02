@@ -59,11 +59,12 @@ describe("createServer", () => {
       expect(toolNames).toContain("quote_create");
       expect(toolNames).toContain("quote_update");
       expect(toolNames).toContain("quote_delete");
+      expect(toolNames).toContain("quote_send");
       expect(toolNames).toContain("request_list");
       expect(toolNames).toContain("supplier_invoice_list");
       expect(toolNames).toContain("supplier_invoice_show");
       expect(toolNames).toContain("supplier_invoice_bulk_create");
-      expect(tools).toHaveLength(32);
+      expect(tools).toHaveLength(33);
     });
 
     it("tools have descriptions", async () => {
