@@ -102,7 +102,12 @@ describe("createServer", () => {
       expect(toolNames).toContain("account_close");
       expect(toolNames).toContain("team_list");
       expect(toolNames).toContain("team_create");
-      expect(tools).toHaveLength(86);
+      expect(toolNames).toContain("webhook_list");
+      expect(toolNames).toContain("webhook_show");
+      expect(toolNames).toContain("webhook_create");
+      expect(toolNames).toContain("webhook_update");
+      expect(toolNames).toContain("webhook_delete");
+      expect(tools).toHaveLength(91);
     });
 
     it("tools have descriptions", async () => {

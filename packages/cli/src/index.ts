@@ -37,6 +37,7 @@ export {
   createMembershipCommand,
   createQuoteCommand,
   createRequestCommand,
+  createWebhookCommand,
 } from "./commands/index.js";
 
 export { registerStatementCommands } from "./commands/index.js";

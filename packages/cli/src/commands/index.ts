@@ -17,3 +17,4 @@ export { registerAccountCommands } from "./account.js";
 export { registerTransferCommands } from "./transfer/index.js";
 export { registerSupplierInvoiceCommands } from "./supplier-invoice/index.js";
 export { createTeamCommand } from "./team.js";
+export { createWebhookCommand } from "./webhook.js";
