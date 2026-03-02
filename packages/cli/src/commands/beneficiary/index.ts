@@ -2,15 +2,23 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import type { Command } from "commander";
+import { registerBeneficiaryAddCommand } from "./add.js";
 import { registerBeneficiaryListCommand } from "./list.js";
 import { registerBeneficiaryShowCommand } from "./show.js";
+import { registerBeneficiaryTrustCommand } from "./trust.js";
+import { registerBeneficiaryUntrustCommand } from "./untrust.js";
+import { registerBeneficiaryUpdateCommand } from "./update.js";
 
 /**
- * Register the `beneficiary` command group with list and show subcommands.
+ * Register the `beneficiary` command group with all subcommands.
  */
 export function registerBeneficiaryCommands(program: Command): void {
   const beneficiary = program.command("beneficiary").description("Manage SEPA beneficiaries");
 
   registerBeneficiaryListCommand(beneficiary);
   registerBeneficiaryShowCommand(beneficiary);
+  registerBeneficiaryAddCommand(beneficiary);
+  registerBeneficiaryUpdateCommand(beneficiary);
+  registerBeneficiaryTrustCommand(beneficiary);
+  registerBeneficiaryUntrustCommand(beneficiary);
 }

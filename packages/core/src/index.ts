@@ -76,9 +76,20 @@ export type {
   RequestMultiTransfer,
 } from "./types/index.js";
 
-export { buildBeneficiaryQueryParams, getBeneficiary } from "./beneficiaries/index.js";
+export {
+  buildBeneficiaryQueryParams,
+  getBeneficiary,
+  createBeneficiary,
+  updateBeneficiary,
+  trustBeneficiaries,
+  untrustBeneficiaries,
+} from "./beneficiaries/index.js";
 
-export type { ListBeneficiariesParams } from "./beneficiaries/index.js";
+export type {
+  CreateBeneficiaryParams,
+  ListBeneficiariesParams,
+  UpdateBeneficiaryParams,
+} from "./beneficiaries/index.js";
 
 export type { Quote, QuoteAddress, QuoteAmount, QuoteClient, QuoteDiscount, QuoteItem } from "./types/index.js";
 

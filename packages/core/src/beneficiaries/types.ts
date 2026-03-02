@@ -12,3 +12,25 @@ export interface ListBeneficiariesParams {
   readonly updated_at_to?: string;
   readonly sort_by?: string;
 }
+
+/**
+ * Parameters for creating a SEPA beneficiary.
+ */
+export interface CreateBeneficiaryParams {
+  readonly name: string;
+  readonly iban: string;
+  readonly bic?: string;
+  readonly email?: string;
+  readonly activity_tag?: string;
+}
+
+/**
+ * Parameters for updating a SEPA beneficiary.
+ */
+export interface UpdateBeneficiaryParams {
+  readonly name?: string;
+  readonly iban?: string;
+  readonly bic?: string;
+  readonly email?: string;
+  readonly activity_tag?: string;
+}
