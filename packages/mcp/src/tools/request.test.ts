@@ -117,4 +117,197 @@ describe("request MCP tools", () => {
       expect(url.pathname).toBe("/v2/requests");
     });
   });
+
+  describe("request_approve", () => {
+    it("posts to the correct approve endpoint", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({}));
+
+      const result = await mcpClient.callTool({
+        name: "request_approve",
+        arguments: { request_type: "transfer", id: "req-1" },
+      });
+
+      const [url, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      expect(url.pathname).toBe("/v2/requests/transfers/req-1/approve");
+      expect(init.method).toBe("POST");
+
+      const content = result.content as { type: string; text: string }[];
+      const parsed = JSON.parse((content[0] as { type: string; text: string }).text) as {
+        approved: boolean;
+        id: string;
+      };
+      expect(parsed.approved).toBe(true);
+      expect(parsed.id).toBe("req-1");
+    });
+
+    it("sends debit_iban when provided", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({}));
+
+      await mcpClient.callTool({
+        name: "request_approve",
+        arguments: { request_type: "multi_transfer", id: "req-2", debit_iban: "FR7612345000010009876543210" },
+      });
+
+      const [, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      const body = JSON.parse(init.body as string) as Record<string, unknown>;
+      expect(body).toEqual({ debit_iban: "FR7612345000010009876543210" });
+    });
+  });
+
+  describe("request_decline", () => {
+    it("posts to the correct decline endpoint with declined_note", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({}));
+
+      const result = await mcpClient.callTool({
+        name: "request_decline",
+        arguments: { request_type: "flash_card", id: "req-1", declined_note: "Not approved" },
+      });
+
+      const [url, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      expect(url.pathname).toBe("/v2/requests/flash_cards/req-1/decline");
+      expect(init.method).toBe("POST");
+
+      const body = JSON.parse(init.body as string) as Record<string, unknown>;
+      expect(body).toEqual({ declined_note: "Not approved" });
+
+      const content = result.content as { type: string; text: string }[];
+      const parsed = JSON.parse((content[0] as { type: string; text: string }).text) as {
+        declined: boolean;
+        id: string;
+      };
+      expect(parsed.declined).toBe(true);
+    });
+  });
+
+  describe("request_create_flash_card", () => {
+    it("creates a flash card request", async () => {
+      const request = {
+        id: "req-1",
+        request_type: "flash_card",
+        status: "pending",
+        initiator_id: "user-1",
+        approver_id: null,
+        note: "Travel",
+        declined_note: null,
+        payment_lifespan_limit: "500.00",
+        pre_expires_at: "2026-06-01T00:00:00.000Z",
+        currency: "EUR",
+        processed_at: null,
+        created_at: "2026-03-01T10:00:00.000Z",
+      };
+      fetchSpy.mockReturnValue(jsonResponse({ request_flash_card: request }));
+
+      const result = await mcpClient.callTool({
+        name: "request_create_flash_card",
+        arguments: { note: "Travel", payment_lifespan_limit: "500.00" },
+      });
+
+      const [url, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      expect(url.pathname).toBe("/v2/requests/flash_cards");
+      expect(init.method).toBe("POST");
+
+      const content = result.content as { type: string; text: string }[];
+      const parsed = JSON.parse((content[0] as { type: string; text: string }).text) as {
+        id: string;
+        request_type: string;
+      };
+      expect(parsed.id).toBe("req-1");
+      expect(parsed.request_type).toBe("flash_card");
+    });
+  });
+
+  describe("request_create_virtual_card", () => {
+    it("creates a virtual card request", async () => {
+      const request = {
+        id: "req-1",
+        request_type: "virtual_card",
+        status: "pending",
+        initiator_id: "user-1",
+        approver_id: null,
+        note: "Subscription",
+        declined_note: null,
+        payment_monthly_limit: "200.00",
+        currency: "EUR",
+        processed_at: null,
+        created_at: "2026-03-01T10:00:00.000Z",
+        card_level: "virtual",
+        card_design: "virtual.default.2017",
+      };
+      fetchSpy.mockReturnValue(jsonResponse({ request_virtual_card: request }));
+
+      const result = await mcpClient.callTool({
+        name: "request_create_virtual_card",
+        arguments: { note: "Subscription", payment_monthly_limit: "200.00" },
+      });
+
+      const [url] = fetchSpy.mock.calls[0] as [URL];
+      expect(url.pathname).toBe("/v2/requests/virtual_cards");
+
+      const content = result.content as { type: string; text: string }[];
+      const parsed = JSON.parse((content[0] as { type: string; text: string }).text) as {
+        id: string;
+        request_type: string;
+      };
+      expect(parsed.id).toBe("req-1");
+      expect(parsed.request_type).toBe("virtual_card");
+    });
+  });
+
+  describe("request_create_multi_transfer", () => {
+    it("creates a multi-transfer request", async () => {
+      const request = {
+        id: "req-1",
+        request_type: "multi_transfer",
+        status: "pending",
+        initiator_id: "user-1",
+        approver_id: null,
+        note: "Payments",
+        declined_note: null,
+        total_transfers_amount: "300.00",
+        total_transfers_amount_currency: "EUR",
+        total_transfers_count: 2,
+        scheduled_date: "2026-04-01",
+        processed_at: null,
+        created_at: "2026-03-01T10:00:00.000Z",
+      };
+      fetchSpy.mockReturnValue(jsonResponse({ request_multi_transfer: request }));
+
+      const result = await mcpClient.callTool({
+        name: "request_create_multi_transfer",
+        arguments: {
+          note: "Payments",
+          transfers: [
+            {
+              amount: "150.00",
+              currency: "EUR",
+              credit_iban: "FR7612345000010009876543210",
+              credit_account_name: "Vendor A",
+              credit_account_currency: "EUR",
+              reference: "Invoice 001",
+            },
+            {
+              amount: "150.00",
+              currency: "EUR",
+              credit_iban: "DE89370400440532013000",
+              credit_account_name: "Vendor B",
+              credit_account_currency: "EUR",
+              reference: "Invoice 002",
+            },
+          ],
+        },
+      });
+
+      const [url, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      expect(url.pathname).toBe("/v2/requests/multi_transfers");
+      expect(init.method).toBe("POST");
+
+      const content = result.content as { type: string; text: string }[];
+      const parsed = JSON.parse((content[0] as { type: string; text: string }).text) as {
+        id: string;
+        total_transfers_count: number;
+      };
+      expect(parsed.id).toBe("req-1");
+      expect(parsed.total_transfers_count).toBe(2);
+    });
+  });
 });

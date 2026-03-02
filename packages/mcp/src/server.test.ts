@@ -89,6 +89,11 @@ describe("createServer", () => {
       expect(toolNames).toContain("quote_delete");
       expect(toolNames).toContain("quote_send");
       expect(toolNames).toContain("request_list");
+      expect(toolNames).toContain("request_approve");
+      expect(toolNames).toContain("request_decline");
+      expect(toolNames).toContain("request_create_flash_card");
+      expect(toolNames).toContain("request_create_virtual_card");
+      expect(toolNames).toContain("request_create_multi_transfer");
       expect(toolNames).toContain("supplier_invoice_list");
       expect(toolNames).toContain("supplier_invoice_show");
       expect(toolNames).toContain("supplier_invoice_bulk_create");
@@ -107,7 +112,7 @@ describe("createServer", () => {
       expect(toolNames).toContain("webhook_create");
       expect(toolNames).toContain("webhook_update");
       expect(toolNames).toContain("webhook_delete");
-      expect(tools).toHaveLength(91);
+      expect(tools).toHaveLength(96);
     });
 
     it("tools have descriptions", async () => {

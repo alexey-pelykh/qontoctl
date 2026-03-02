@@ -192,6 +192,24 @@ export { getWebhook, createWebhook, updateWebhook, deleteWebhook } from "./webho
 
 export type { CreateWebhookParams, UpdateWebhookParams } from "./webhooks/index.js";
 
+export {
+  approveRequest,
+  declineRequest,
+  createFlashCardRequest,
+  createVirtualCardRequest,
+  createMultiTransferRequest,
+} from "./requests/index.js";
+
+export type {
+  RequestType,
+  ApproveRequestParams,
+  DeclineRequestParams,
+  CreateFlashCardRequestParams,
+  CreateVirtualCardRequestParams,
+  MultiTransferItem,
+  CreateMultiTransferRequestParams,
+} from "./requests/index.js";
+
 export type { BankAccount, Organization, PaginationMeta } from "./api-types.js";
 
 export { createInternalTransfer } from "./internal-transfers/index.js";

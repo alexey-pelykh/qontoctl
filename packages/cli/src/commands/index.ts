@@ -10,7 +10,7 @@ export { createInternalTransferCommand } from "./internal-transfer.js";
 export { createLabelCommand } from "./label.js";
 export { createMembershipCommand } from "./membership.js";
 export { createQuoteCommand } from "./quote.js";
-export { createRequestCommand } from "./request.js";
+export { registerRequestCommands } from "./request/index.js";
 export { registerStatementCommands } from "./statement.js";
 export { registerOrgCommands } from "./org.js";
 export { registerAccountCommands } from "./account.js";

@@ -3,8 +3,8 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { jsonResponse } from "@qontoctl/core/testing";
-import { createRequestCommand } from "./request.js";
-import type { PaginationMeta } from "../pagination.js";
+import { registerRequestCommands } from "./index.js";
+import type { PaginationMeta } from "../../pagination.js";
 
 function makeMeta(overrides: Partial<PaginationMeta> = {}): PaginationMeta {
   return {
@@ -18,11 +18,11 @@ function makeMeta(overrides: Partial<PaginationMeta> = {}): PaginationMeta {
   };
 }
 
-vi.mock("../client.js", () => ({
+vi.mock("../../client.js", () => ({
   createClient: vi.fn(),
 }));
 
-import { createClient } from "../client.js";
+import { createClient } from "../../client.js";
 import { HttpClient } from "@qontoctl/core";
 
 describe("request commands", () => {
@@ -89,9 +89,9 @@ describe("request commands", () => {
         }),
       );
 
-      const { createProgram } = await import("../program.js");
+      const { createProgram } = await import("../../program.js");
       const program = createProgram();
-      program.addCommand(createRequestCommand());
+      registerRequestCommands(program);
       program.exitOverride();
 
       await program.parseAsync(["request", "list"], { from: "user" });
@@ -132,9 +132,9 @@ describe("request commands", () => {
         }),
       );
 
-      const { createProgram } = await import("../program.js");
+      const { createProgram } = await import("../../program.js");
       const program = createProgram();
-      program.addCommand(createRequestCommand());
+      registerRequestCommands(program);
       program.exitOverride();
 
       await program.parseAsync(["--output", "json", "request", "list"], {
@@ -170,9 +170,9 @@ describe("request commands", () => {
         }),
       );
 
-      const { createProgram } = await import("../program.js");
+      const { createProgram } = await import("../../program.js");
       const program = createProgram();
-      program.addCommand(createRequestCommand());
+      registerRequestCommands(program);
       program.exitOverride();
 
       await program.parseAsync(["--page", "3", "--per-page", "25", "request", "list"], { from: "user" });
@@ -190,9 +190,9 @@ describe("request commands", () => {
         }),
       );
 
-      const { createProgram } = await import("../program.js");
+      const { createProgram } = await import("../../program.js");
       const program = createProgram();
-      program.addCommand(createRequestCommand());
+      registerRequestCommands(program);
       program.exitOverride();
 
       await program.parseAsync(["request", "list"], { from: "user" });
