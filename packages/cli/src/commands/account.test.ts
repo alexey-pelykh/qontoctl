@@ -21,15 +21,28 @@ vi.mock("@qontoctl/core", async (importOriginal) => {
     ...actual,
     getBankAccount: vi.fn(),
     getIbanCertificate: vi.fn(),
+    createBankAccount: vi.fn(),
+    updateBankAccount: vi.fn(),
+    closeBankAccount: vi.fn(),
   };
 });
+
+vi.mock("../sca.js", () => ({
+  executeWithCliSca: vi.fn((_client: unknown, operation: (scaSessionToken?: string) => Promise<unknown>) =>
+    operation(undefined),
+  ),
+}));
 
 const { createClient } = await import("../client.js");
 const createClientMock = vi.mocked(createClient);
 
-const { getBankAccount, getIbanCertificate } = await import("@qontoctl/core");
+const { getBankAccount, getIbanCertificate, createBankAccount, updateBankAccount, closeBankAccount } =
+  await import("@qontoctl/core");
 const getBankAccountMock = vi.mocked(getBankAccount);
 const getIbanCertificateMock = vi.mocked(getIbanCertificate);
+const createBankAccountMock = vi.mocked(createBankAccount);
+const updateBankAccountMock = vi.mocked(updateBankAccount);
+const closeBankAccountMock = vi.mocked(closeBankAccount);
 
 const { writeFile } = await import("node:fs/promises");
 const writeFileMock = vi.mocked(writeFile);
@@ -68,11 +81,13 @@ function makeAccount(overrides: Record<string, unknown> = {}) {
 describe("registerAccountCommands", () => {
   let fetchSpy: ReturnType<typeof vi.fn>;
   let stdoutSpy: ReturnType<typeof vi.spyOn>;
+  let stderrSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     fetchSpy = vi.fn();
     vi.stubGlobal("fetch", fetchSpy);
     stdoutSpy = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    stderrSpy = vi.spyOn(process.stderr, "write").mockReturnValue(true);
   });
 
   afterEach(() => {
@@ -290,6 +305,138 @@ describe("registerAccountCommands", () => {
       expect(stdoutSpy).toHaveBeenCalled();
       const output = stdoutSpy.mock.calls[0]?.[0] as string;
       expect(output).toContain("Downloaded: my-cert.pdf");
+    });
+  });
+
+  describe("account create", () => {
+    it("creates a bank account in table format", async () => {
+      const account = makeAccount({ name: "New Account" });
+      createBankAccountMock.mockResolvedValue(account);
+      createClientMock.mockResolvedValue({} as never);
+
+      const program = new Command();
+      program.option("-o, --output <format>", "", "table");
+      registerAccountCommands(program);
+
+      await program.parseAsync(["account", "create", "--name", "New Account"], { from: "user" });
+
+      expect(createBankAccountMock).toHaveBeenCalledWith(expect.anything(), { name: "New Account" }, expect.anything());
+      expect(stdoutSpy).toHaveBeenCalled();
+      const output = stdoutSpy.mock.calls[0]?.[0] as string;
+      expect(output).toContain("acc-1");
+      expect(output).toContain("New Account");
+    });
+
+    it("creates a bank account in json format", async () => {
+      const account = makeAccount({ name: "New Account" });
+      createBankAccountMock.mockResolvedValue(account);
+      createClientMock.mockResolvedValue({} as never);
+
+      const program = new Command();
+      program.option("-o, --output <format>", "", "json");
+      registerAccountCommands(program);
+
+      await program.parseAsync(["account", "create", "--name", "New Account"], { from: "user" });
+
+      expect(stdoutSpy).toHaveBeenCalled();
+      const output = stdoutSpy.mock.calls[0]?.[0] as string;
+      const parsed = JSON.parse(output) as typeof account;
+      expect(parsed.id).toBe("acc-1");
+      expect(parsed.name).toBe("New Account");
+    });
+  });
+
+  describe("account update", () => {
+    it("updates a bank account in table format", async () => {
+      const account = makeAccount({ name: "Updated Name" });
+      updateBankAccountMock.mockResolvedValue(account);
+      createClientMock.mockResolvedValue({} as never);
+
+      const program = new Command();
+      program.option("-o, --output <format>", "", "table");
+      registerAccountCommands(program);
+
+      await program.parseAsync(["account", "update", "acc-1", "--name", "Updated Name"], { from: "user" });
+
+      expect(updateBankAccountMock).toHaveBeenCalledWith(
+        expect.anything(),
+        "acc-1",
+        { name: "Updated Name" },
+        expect.anything(),
+      );
+      expect(stdoutSpy).toHaveBeenCalled();
+      const output = stdoutSpy.mock.calls[0]?.[0] as string;
+      expect(output).toContain("acc-1");
+      expect(output).toContain("Updated Name");
+    });
+
+    it("updates a bank account in json format", async () => {
+      const account = makeAccount({ name: "Updated Name" });
+      updateBankAccountMock.mockResolvedValue(account);
+      createClientMock.mockResolvedValue({} as never);
+
+      const program = new Command();
+      program.option("-o, --output <format>", "", "json");
+      registerAccountCommands(program);
+
+      await program.parseAsync(["account", "update", "acc-1", "--name", "Updated Name"], { from: "user" });
+
+      expect(stdoutSpy).toHaveBeenCalled();
+      const output = stdoutSpy.mock.calls[0]?.[0] as string;
+      const parsed = JSON.parse(output) as typeof account;
+      expect(parsed.id).toBe("acc-1");
+      expect(parsed.name).toBe("Updated Name");
+    });
+  });
+
+  describe("account close", () => {
+    it("closes a bank account with --yes flag", async () => {
+      closeBankAccountMock.mockResolvedValue(undefined);
+      createClientMock.mockResolvedValue({} as never);
+
+      const program = new Command();
+      program.option("-o, --output <format>", "", "table");
+      registerAccountCommands(program);
+
+      await program.parseAsync(["account", "close", "acc-1", "--yes"], { from: "user" });
+
+      expect(closeBankAccountMock).toHaveBeenCalledWith(expect.anything(), "acc-1", expect.anything());
+      expect(stdoutSpy).toHaveBeenCalled();
+      const output = stdoutSpy.mock.calls[0]?.[0] as string;
+      expect(output).toContain("Account acc-1 closed.");
+    });
+
+    it("closes a bank account in json format", async () => {
+      closeBankAccountMock.mockResolvedValue(undefined);
+      createClientMock.mockResolvedValue({} as never);
+
+      const program = new Command();
+      program.option("-o, --output <format>", "", "json");
+      registerAccountCommands(program);
+
+      await program.parseAsync(["account", "close", "acc-1", "--yes"], { from: "user" });
+
+      expect(stdoutSpy).toHaveBeenCalled();
+      const output = stdoutSpy.mock.calls[0]?.[0] as string;
+      const parsed = JSON.parse(output) as { closed: boolean; id: string };
+      expect(parsed.closed).toBe(true);
+      expect(parsed.id).toBe("acc-1");
+    });
+
+    it("exits with error when --yes is not provided", async () => {
+      createClientMock.mockResolvedValue({} as never);
+
+      const program = new Command();
+      program.option("-o, --output <format>", "", "table");
+      registerAccountCommands(program);
+
+      await program.parseAsync(["account", "close", "acc-1"], { from: "user" });
+
+      expect(stderrSpy).toHaveBeenCalled();
+      const errorOutput = stderrSpy.mock.calls[0]?.[0] as string;
+      expect(errorOutput).toContain("About to close account acc-1");
+      expect(errorOutput).toContain("--yes");
+      expect(process.exitCode).toBe(1);
     });
   });
 });

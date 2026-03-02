@@ -74,7 +74,10 @@ describe("createServer", () => {
       expect(toolNames).toContain("transaction_attachment_list");
       expect(toolNames).toContain("transaction_attachment_add");
       expect(toolNames).toContain("transaction_attachment_remove");
-      expect(tools).toHaveLength(43);
+      expect(toolNames).toContain("account_create");
+      expect(toolNames).toContain("account_update");
+      expect(toolNames).toContain("account_close");
+      expect(tools).toHaveLength(46);
     });
 
     it("tools have descriptions", async () => {
