@@ -74,6 +74,7 @@ export type {
   RequestVirtualCard,
   RequestTransfer,
   RequestMultiTransfer,
+  Team,
 } from "./types/index.js";
 
 export {

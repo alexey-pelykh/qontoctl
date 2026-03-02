@@ -15,3 +15,4 @@ export type {
   RequestTransfer,
   RequestMultiTransfer,
 } from "./request.js";
+export type { Team } from "./team.js";
