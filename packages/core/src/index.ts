@@ -83,6 +83,7 @@ export type {
   RequestTransfer,
   RequestMultiTransfer,
   Team,
+  WebhookSubscription,
 } from "./types/index.js";
 
 export {
@@ -186,6 +187,10 @@ export type {
   ClientInvoiceUpload,
   ListClientInvoicesParams,
 } from "./client-invoices/index.js";
+
+export { getWebhook, createWebhook, updateWebhook, deleteWebhook } from "./webhooks/index.js";
+
+export type { CreateWebhookParams, UpdateWebhookParams } from "./webhooks/index.js";
 
 export type { BankAccount, Organization, PaginationMeta } from "./api-types.js";
 

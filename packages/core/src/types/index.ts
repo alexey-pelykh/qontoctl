@@ -24,3 +24,4 @@ export type {
   RequestMultiTransfer,
 } from "./request.js";
 export type { Team } from "./team.js";
+export type { WebhookSubscription } from "./webhook-subscription.js";

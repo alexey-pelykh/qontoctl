@@ -26,6 +26,7 @@ import {
   registerTeamTools,
   registerTransactionTools,
   registerTransferTools,
+  registerWebhookTools,
 } from "./tools/index.js";
 
 const require = createRequire(import.meta.url);
@@ -68,6 +69,7 @@ export function createServer(options?: CreateServerOptions): McpServer {
   registerTeamTools(server, getClient);
   registerTransactionTools(server, getClient);
   registerTransferTools(server, getClient);
+  registerWebhookTools(server, getClient);
 
   return server;
 }
