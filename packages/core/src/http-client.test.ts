@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { HttpClient, QontoApiError, QontoRateLimitError } from "./http-client.js";
+import { HttpClient, QontoApiError, QontoRateLimitError, QontoScaRequiredError } from "./http-client.js";
 import { binaryResponse } from "./testing/binary-response.js";
 import { jsonResponse } from "./testing/json-response.js";
 
@@ -877,6 +877,176 @@ describe("HttpClient", () => {
 
       expect(logger.verbose).toHaveBeenCalledWith(expect.stringContaining("retry 1"));
       expect(logger.verbose).toHaveBeenCalledWith(expect.stringContaining("Rate limited"));
+    });
+  });
+
+  describe("SCA handling", () => {
+    it("throws QontoScaRequiredError on 428 with session token", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ sca_session_token: "sca-tok-123" }, { status: 428 }));
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+      });
+
+      const error = await client.post("/v2/transfers", { amount: 100 }).catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(QontoScaRequiredError);
+      expect((error as QontoScaRequiredError).scaSessionToken).toBe("sca-tok-123");
+    });
+
+    it("throws QontoScaRequiredError with 'unknown' when no token in body", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({}, { status: 428 }));
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+      });
+
+      const error = await client.post("/v2/transfers", { amount: 100 }).catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(QontoScaRequiredError);
+      expect((error as QontoScaRequiredError).scaSessionToken).toBe("unknown");
+    });
+
+    it("throws QontoScaRequiredError with 'unknown' when body is not JSON", async () => {
+      fetchSpy.mockReturnValue(
+        Promise.resolve(
+          new Response("Precondition Required", {
+            status: 428,
+            headers: { "Content-Type": "text/plain" },
+          }),
+        ),
+      );
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+      });
+
+      const error = await client.post("/v2/transfers", { amount: 100 }).catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(QontoScaRequiredError);
+      expect((error as QontoScaRequiredError).scaSessionToken).toBe("unknown");
+    });
+
+    it("sends X-Qonto-2fa-Preference header on write requests when scaMethod is set", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ id: "123" }, { status: 201 }));
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+        scaMethod: "paired_device",
+      });
+
+      await client.post("/v2/transfers", { amount: 100 });
+
+      const [, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      const headers = init.headers as Record<string, string>;
+      expect(headers["X-Qonto-2fa-Preference"]).toBe("paired_device");
+    });
+
+    it("does not send X-Qonto-2fa-Preference header on GET requests", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ data: "ok" }));
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+        scaMethod: "paired_device",
+      });
+
+      await client.get("/v2/organizations");
+
+      const [, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      const headers = init.headers as Record<string, string>;
+      expect(headers["X-Qonto-2fa-Preference"]).toBeUndefined();
+    });
+
+    it("does not send X-Qonto-2fa-Preference header when scaMethod is not set", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ id: "123" }, { status: 201 }));
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+      });
+
+      await client.post("/v2/transfers", { amount: 100 });
+
+      const [, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      const headers = init.headers as Record<string, string>;
+      expect(headers["X-Qonto-2fa-Preference"]).toBeUndefined();
+    });
+
+    it("sends X-Qonto-Sca-Session-Token header when scaSessionToken is provided", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ id: "123" }, { status: 201 }));
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+      });
+
+      await client.post("/v2/transfers", { amount: 100 }, { scaSessionToken: "sca-retry-tok" });
+
+      const [, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      const headers = init.headers as Record<string, string>;
+      expect(headers["X-Qonto-Sca-Session-Token"]).toBe("sca-retry-tok");
+    });
+
+    it("does not send X-Qonto-Sca-Session-Token header when not provided", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ id: "123" }, { status: 201 }));
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+      });
+
+      await client.post("/v2/transfers", { amount: 100 });
+
+      const [, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      const headers = init.headers as Record<string, string>;
+      expect(headers["X-Qonto-Sca-Session-Token"]).toBeUndefined();
+    });
+
+    it("sends scaSessionToken through patch method", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ id: "123" }));
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+      });
+
+      await client.patch("/v2/resource/1", { name: "updated" }, { scaSessionToken: "sca-patch-tok" });
+
+      const [, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      const headers = init.headers as Record<string, string>;
+      expect(headers["X-Qonto-Sca-Session-Token"]).toBe("sca-patch-tok");
+    });
+
+    it("sends scaSessionToken through delete method", async () => {
+      fetchSpy.mockReturnValue(Promise.resolve(new Response(null, { status: 204 })));
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+      });
+
+      await client.delete("/v2/resource/1", { scaSessionToken: "sca-delete-tok" });
+
+      const [, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      const headers = init.headers as Record<string, string>;
+      expect(headers["X-Qonto-Sca-Session-Token"]).toBe("sca-delete-tok");
+    });
+  });
+
+  describe("QontoScaRequiredError", () => {
+    it("has correct name property", () => {
+      const error = new QontoScaRequiredError("tok-123");
+      expect(error.name).toBe("QontoScaRequiredError");
+    });
+
+    it("includes session token in message", () => {
+      const error = new QontoScaRequiredError("tok-456");
+      expect(error.message).toContain("tok-456");
+    });
+
+    it("exposes scaSessionToken property", () => {
+      const error = new QontoScaRequiredError("tok-789");
+      expect(error.scaSessionToken).toBe("tok-789");
+    });
+
+    it("is an instance of Error", () => {
+      const error = new QontoScaRequiredError("tok-abc");
+      expect(error).toBeInstanceOf(Error);
     });
   });
 

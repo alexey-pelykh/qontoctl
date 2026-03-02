@@ -2,7 +2,14 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { describe, it, expect } from "vitest";
-import { ConfigError, AuthError, QontoApiError, QontoRateLimitError, HttpClient } from "@qontoctl/core";
+import {
+  ConfigError,
+  AuthError,
+  QontoApiError,
+  QontoRateLimitError,
+  QontoScaRequiredError,
+  HttpClient,
+} from "@qontoctl/core";
 import { withClient } from "./errors.js";
 
 const fakeClient = {} as HttpClient;
@@ -116,6 +123,42 @@ describe("withClient", () => {
       const text = (result.content[0] as { type: "text"; text: string }).text;
       expect(text).toContain("Rate limit exceeded");
       expect(text).not.toContain("seconds");
+    });
+  });
+
+  describe("QontoScaRequiredError", () => {
+    it("returns structured SCA-pending response with isError: false", async () => {
+      const result = await withClient(succeedingFactory, async () => {
+        throw new QontoScaRequiredError("sca-tok-abc");
+      });
+
+      expect(result.isError).toBe(false);
+      const text = (result.content[0] as { type: "text"; text: string }).text;
+      expect(text).toContain("SCA required");
+      expect(text).toContain("approve this operation on their Qonto mobile app");
+      expect(text).toContain("sca-tok-abc");
+      expect(text).toContain("/v2/sca/sessions/sca-tok-abc");
+    });
+
+    it("includes polling instructions and status descriptions", async () => {
+      const result = await withClient(succeedingFactory, async () => {
+        throw new QontoScaRequiredError("sca-tok-def");
+      });
+
+      const text = (result.content[0] as { type: "text"; text: string }).text;
+      expect(text).toContain("waiting");
+      expect(text).toContain("allow");
+      expect(text).toContain("deny");
+      expect(text).toContain("15 minutes");
+    });
+
+    it("returns a single text content item", async () => {
+      const result = await withClient(succeedingFactory, async () => {
+        throw new QontoScaRequiredError("sca-tok-ghi");
+      });
+
+      expect(result.content).toHaveLength(1);
+      expect((result.content[0] as { type: string }).type).toBe("text");
     });
   });
 

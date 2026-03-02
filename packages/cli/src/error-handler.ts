@@ -1,7 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import { ConfigError, AuthError, QontoApiError, QontoRateLimitError } from "@qontoctl/core";
+import {
+  ConfigError,
+  AuthError,
+  QontoApiError,
+  QontoRateLimitError,
+  QontoScaRequiredError,
+  ScaTimeoutError,
+  ScaDeniedError,
+} from "@qontoctl/core";
 
 /**
  * Global CLI error handler that formats known error types into
@@ -52,6 +60,33 @@ export function handleCliError(error: unknown, debug: boolean): void {
   if (error instanceof QontoRateLimitError) {
     const retryHint = error.retryAfter !== undefined ? ` Retry after ${error.retryAfter} seconds.` : "";
     process.stderr.write(`Rate limit exceeded.${retryHint} Please wait before retrying.\n`);
+    process.exitCode = 1;
+    return;
+  }
+
+  if (error instanceof QontoScaRequiredError) {
+    process.stderr.write(
+      [
+        "SCA (Strong Customer Authentication) required for this operation.",
+        "",
+        `Session token: ${error.scaSessionToken}`,
+        "Please approve the operation on your Qonto mobile app and retry.",
+      ].join("\n") + "\n",
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  if (error instanceof ScaTimeoutError) {
+    process.stderr.write(
+      `SCA authentication timed out after ${Math.round(error.timeoutMs / 1000)}s. Please try again.\n`,
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  if (error instanceof ScaDeniedError) {
+    process.stderr.write("SCA authentication was denied. The operation has been cancelled.\n");
     process.exitCode = 1;
     return;
   }
