@@ -161,7 +161,13 @@ export function registerAuthCommands(program: Command): void {
   const auth = program.command("auth").description("OAuth 2.0 authentication");
 
   // auth setup
-  const setup = auth.command("setup").description("Configure OAuth client credentials interactively");
+  const setup = auth
+    .command("setup")
+    .description("Configure OAuth client credentials interactively")
+    .addHelpText(
+      "after",
+      "\nSee the OAuth setup guide: https://github.com/alexey-pelykh/qontoctl/blob/main/docs/oauth-setup.md",
+    );
   addInheritableOptions(setup);
   setup.action(async (_options: unknown, cmd: Command) => {
     const opts = resolveGlobalOptions<GlobalOptions>(cmd);
@@ -226,7 +232,13 @@ export function registerAuthCommands(program: Command): void {
   });
 
   // auth login
-  const login = auth.command("login").description("Start OAuth login flow");
+  const login = auth
+    .command("login")
+    .description("Start OAuth login flow")
+    .addHelpText(
+      "after",
+      "\nSee the OAuth setup guide: https://github.com/alexey-pelykh/qontoctl/blob/main/docs/oauth-setup.md",
+    );
   addInheritableOptions(login);
   login.option("--port <number>", "local callback server port", String(DEFAULT_REDIRECT_PORT));
   login.action(async (_options: unknown, cmd: Command) => {
