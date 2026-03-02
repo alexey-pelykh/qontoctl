@@ -70,6 +70,11 @@ describe("createServer", () => {
       expect(toolNames).toContain("transaction_show");
       expect(toolNames).toContain("transfer_list");
       expect(toolNames).toContain("transfer_show");
+      expect(toolNames).toContain("transfer_create");
+      expect(toolNames).toContain("transfer_cancel");
+      expect(toolNames).toContain("transfer_proof");
+      expect(toolNames).toContain("transfer_verify_payee");
+      expect(toolNames).toContain("transfer_bulk_verify_payee");
       expect(toolNames).toContain("statement_list");
       expect(toolNames).toContain("statement_show");
       expect(toolNames).toContain("label_list");
@@ -95,7 +100,7 @@ describe("createServer", () => {
       expect(toolNames).toContain("account_create");
       expect(toolNames).toContain("account_update");
       expect(toolNames).toContain("account_close");
-      expect(tools).toHaveLength(64);
+      expect(tools).toHaveLength(69);
     });
 
     it("tools have descriptions", async () => {

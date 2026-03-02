@@ -97,9 +97,17 @@ export type { Statement, StatementFile } from "./statements/index.js";
 
 export { buildTransactionQueryParams, getTransaction } from "./transactions/index.js";
 
-export { buildTransferQueryParams, getTransfer } from "./transfers/index.js";
+export {
+  buildTransferQueryParams,
+  getTransfer,
+  createTransfer,
+  cancelTransfer,
+  getTransferProof,
+  verifyPayee,
+  bulkVerifyPayee,
+} from "./transfers/index.js";
 
-export type { Transfer, ListTransfersParams } from "./transfers/index.js";
+export type { Transfer, ListTransfersParams, CreateTransferParams, VopEntry, VopResult } from "./transfers/index.js";
 
 export type { Transaction, TransactionLabel, ListTransactionsParams } from "./transactions/index.js";
 
