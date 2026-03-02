@@ -38,10 +38,14 @@ export function registerTransferVerifyPayeeCommand(parent: Command): void {
     const result = await executeWithCliSca(
       httpClient,
       async (scaSessionToken) =>
-        verifyPayee(httpClient, { iban: opts.iban, name: opts.name }, {
-          ...(opts.idempotencyKey !== undefined ? { idempotencyKey: opts.idempotencyKey } : {}),
-          ...(scaSessionToken !== undefined ? { scaSessionToken } : {}),
-        }),
+        verifyPayee(
+          httpClient,
+          { iban: opts.iban, name: opts.name },
+          {
+            ...(opts.idempotencyKey !== undefined ? { idempotencyKey: opts.idempotencyKey } : {}),
+            ...(scaSessionToken !== undefined ? { scaSessionToken } : {}),
+          },
+        ),
       { verbose: opts.verbose === true || opts.debug === true },
     );
 

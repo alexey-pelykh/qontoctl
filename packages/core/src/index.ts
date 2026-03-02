@@ -107,13 +107,7 @@ export {
   bulkVerifyPayee,
 } from "./transfers/index.js";
 
-export type {
-  Transfer,
-  ListTransfersParams,
-  CreateTransferParams,
-  VopEntry,
-  VopResult,
-} from "./transfers/index.js";
+export type { Transfer, ListTransfersParams, CreateTransferParams, VopEntry, VopResult } from "./transfers/index.js";
 
 export type { Transaction, TransactionLabel, ListTransactionsParams } from "./transactions/index.js";
 

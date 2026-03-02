@@ -92,10 +92,9 @@ describe("transfer verify-payee command", () => {
     program.option("-o, --output <format>", "", "table");
     registerTransferCommands(program);
 
-    await program.parseAsync(
-      ["transfer", "verify-payee", "--iban", "DE89370400440532013000", "--name", "Jane Smith"],
-      { from: "user" },
-    );
+    await program.parseAsync(["transfer", "verify-payee", "--iban", "DE89370400440532013000", "--name", "Jane Smith"], {
+      from: "user",
+    });
 
     expect(verifyPayeeMock).toHaveBeenCalledWith(
       expect.anything(),

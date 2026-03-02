@@ -11,10 +11,4 @@ export {
   bulkVerifyPayee,
 } from "./service.js";
 
-export type {
-  Transfer,
-  ListTransfersParams,
-  CreateTransferParams,
-  VopEntry,
-  VopResult,
-} from "./types.js";
+export type { Transfer, ListTransfersParams, CreateTransferParams, VopEntry, VopResult } from "./types.js";

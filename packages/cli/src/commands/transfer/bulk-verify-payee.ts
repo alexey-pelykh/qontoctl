@@ -75,10 +75,7 @@ export function registerTransferBulkVerifyPayeeCommand(parent: Command): void {
       { verbose: opts.verbose === true || opts.debug === true },
     );
 
-    const data =
-      opts.output === "json" || opts.output === "yaml"
-        ? results
-        : results.map((r) => toTableRow(r));
+    const data = opts.output === "json" || opts.output === "yaml" ? results : results.map((r) => toTableRow(r));
     process.stdout.write(formatOutput(data, opts.output) + "\n");
   });
 }

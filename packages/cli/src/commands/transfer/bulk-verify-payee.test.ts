@@ -60,7 +60,9 @@ describe("transfer bulk-verify-payee command", () => {
   });
 
   it("reads CSV file and verifies payees in json format", async () => {
-    readFileMock.mockResolvedValue("iban,name\nFR7612345000010009876543210,John Doe\nDE89370400440532013000,Jane Smith");
+    readFileMock.mockResolvedValue(
+      "iban,name\nFR7612345000010009876543210,John Doe\nDE89370400440532013000,Jane Smith",
+    );
     bulkVerifyPayeeMock.mockResolvedValue(sampleResults);
 
     const program = new Command();

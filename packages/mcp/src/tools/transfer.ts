@@ -4,13 +4,7 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CreateTransferParams, HttpClient, PaginationMeta, Transfer, VopResult } from "@qontoctl/core";
-import {
-  createTransfer,
-  cancelTransfer,
-  getTransferProof,
-  verifyPayee,
-  bulkVerifyPayee,
-} from "@qontoctl/core";
+import { createTransfer, cancelTransfer, getTransferProof, verifyPayee, bulkVerifyPayee } from "@qontoctl/core";
 import { withClient } from "../errors.js";
 
 interface PaginatedTransfersResponse {
