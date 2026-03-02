@@ -172,6 +172,11 @@ Once configured, you can ask your AI assistant things like:
 | `profile show <name>`     | Show profile details (secrets redacted) |
 | `profile remove <name>`   | Remove a named profile                  |
 | `profile test`            | Test credentials                        |
+| `auth setup`              | Configure OAuth client credentials      |
+| `auth login`              | Start OAuth login flow                  |
+| `auth status`             | Display OAuth token status              |
+| `auth refresh`            | Refresh the OAuth access token          |
+| `auth revoke`             | Revoke OAuth tokens and clear session   |
 | `completion bash`         | Generate bash completions               |
 | `completion zsh`          | Generate zsh completions                |
 | `completion fish`         | Generate fish completions               |
@@ -191,17 +196,34 @@ Once configured, you can ask your AI assistant things like:
 
 ## Configuration
 
-QontoCtl uses **API Key** authentication.
+QontoCtl supports two authentication methods: **API Key** (read-only) and **OAuth 2.0** (read + write).
 
-### Profile Format
-
-All configuration files use the same YAML format:
+### API Key Authentication
 
 ```yaml
 api-key:
-    organization_slug: acme-corp-4821
-    secret_key: your-secret-key
+    organization-slug: acme-corp-4821
+    secret-key: your-secret-key
 ```
+
+### OAuth 2.0 Authentication
+
+OAuth enables write operations (transfers, invoices, etc.) and uses the Authorization Code Grant with PKCE.
+
+```sh
+# 1. Set up OAuth credentials (interactive guide)
+qontoctl auth setup
+
+# 2. Log in via browser
+qontoctl auth login
+
+# 3. Check token status
+qontoctl auth status
+```
+
+The `auth setup` command walks you through creating an OAuth app on the [Qonto Developer Portal](https://developers.qonto.com/). After creating the app, you must **publish the production version** — the sandbox version does not work with production API endpoints.
+
+When both API key and OAuth credentials are configured, OAuth is used when an active session exists (access token present); otherwise it falls through to API key.
 
 ### Resolution Order
 

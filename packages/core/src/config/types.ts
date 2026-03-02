@@ -10,10 +10,23 @@ export interface ApiKeyCredentials {
 }
 
 /**
+ * OAuth 2.0 credentials for authenticating with the Qonto API.
+ */
+export interface OAuthCredentials {
+  clientId: string;
+  clientSecret: string;
+  accessToken?: string;
+  refreshToken?: string;
+  /** ISO 8601 timestamp of when the access token expires. */
+  tokenExpiresAt?: string;
+}
+
+/**
  * Parsed configuration from a `.qontoctl.yaml` file.
  */
 export interface QontoctlConfig {
   apiKey?: ApiKeyCredentials;
+  oauth?: OAuthCredentials;
   endpoint?: string;
   sandbox?: boolean;
 }

@@ -13,8 +13,9 @@ export function isValidProfileName(name: string): boolean {
   return !/[/\\]/.test(name) && !name.includes("..");
 }
 
-const KNOWN_TOP_LEVEL_KEYS = new Set(["api-key", "endpoint", "sandbox"]);
+const KNOWN_TOP_LEVEL_KEYS = new Set(["api-key", "oauth", "endpoint", "sandbox"]);
 const KNOWN_API_KEY_KEYS = new Set(["organization-slug", "secret-key"]);
+const KNOWN_OAUTH_KEYS = new Set(["client-id", "client-secret", "access-token", "refresh-token", "token-expires-at"]);
 
 export interface ValidationResult {
   config: QontoctlConfig;
@@ -82,6 +83,60 @@ export function validateConfig(raw: unknown): ValidationResult {
         config.apiKey = {
           organizationSlug: typeof orgSlug === "string" ? orgSlug : "",
           secretKey: typeof secretKey === "string" ? secretKey : "",
+        };
+      }
+    }
+  }
+
+  if ("oauth" in doc) {
+    const oauthSection = doc["oauth"];
+
+    if (oauthSection === null || oauthSection === undefined) {
+      // oauth section present but empty — not an error, just no credentials from file
+    } else if (typeof oauthSection !== "object" || Array.isArray(oauthSection)) {
+      errors.push('"oauth" must be a mapping');
+    } else {
+      const oauth = oauthSection as Record<string, unknown>;
+
+      for (const key of Object.keys(oauth)) {
+        if (!KNOWN_OAUTH_KEYS.has(key)) {
+          warnings.push(`Unknown key in "oauth": "${key}"`);
+        }
+      }
+
+      const clientId = oauth["client-id"];
+      const clientSecret = oauth["client-secret"];
+      const accessToken = oauth["access-token"];
+      const refreshToken = oauth["refresh-token"];
+      const tokenExpiresAt = oauth["token-expires-at"];
+
+      if (clientId !== undefined && typeof clientId !== "string") {
+        errors.push('"oauth.client-id" must be a string');
+      }
+
+      if (clientSecret !== undefined && typeof clientSecret !== "string") {
+        errors.push('"oauth.client-secret" must be a string');
+      }
+
+      if (accessToken !== undefined && typeof accessToken !== "string") {
+        errors.push('"oauth.access-token" must be a string');
+      }
+
+      if (refreshToken !== undefined && typeof refreshToken !== "string") {
+        errors.push('"oauth.refresh-token" must be a string');
+      }
+
+      if (tokenExpiresAt !== undefined && typeof tokenExpiresAt !== "string") {
+        errors.push('"oauth.token-expires-at" must be a string');
+      }
+
+      if (typeof clientId === "string" || typeof clientSecret === "string") {
+        config.oauth = {
+          clientId: typeof clientId === "string" ? clientId : "",
+          clientSecret: typeof clientSecret === "string" ? clientSecret : "",
+          ...(typeof accessToken === "string" ? { accessToken } : {}),
+          ...(typeof refreshToken === "string" ? { refreshToken } : {}),
+          ...(typeof tokenExpiresAt === "string" ? { tokenExpiresAt } : {}),
         };
       }
     }
