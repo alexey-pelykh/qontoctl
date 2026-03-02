@@ -2,11 +2,7 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import type { Command } from "commander";
-import {
-  createFlashCardRequest,
-  type CreateFlashCardRequestParams,
-  type RequestFlashCard,
-} from "@qontoctl/core";
+import { createFlashCardRequest, type CreateFlashCardRequestParams, type RequestFlashCard } from "@qontoctl/core";
 import { createClient } from "../../client.js";
 import { formatOutput } from "../../formatters/index.js";
 import { addInheritableOptions, addWriteOptions, resolveGlobalOptions } from "../../inherited-options.js";

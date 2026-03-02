@@ -33,11 +33,7 @@ export async function approveRequest(
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<void> {
   const typePath = REQUEST_TYPE_PATH[requestType];
-  await client.post(
-    "/v2/requests/" + typePath + "/" + encodeURIComponent(id) + "/approve",
-    params,
-    options,
-  );
+  await client.post("/v2/requests/" + typePath + "/" + encodeURIComponent(id) + "/approve", params, options);
 }
 
 /**
@@ -51,11 +47,7 @@ export async function declineRequest(
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<void> {
   const typePath = REQUEST_TYPE_PATH[requestType];
-  await client.post(
-    "/v2/requests/" + typePath + "/" + encodeURIComponent(id) + "/decline",
-    params,
-    options,
-  );
+  await client.post("/v2/requests/" + typePath + "/" + encodeURIComponent(id) + "/decline", params, options);
 }
 
 /**

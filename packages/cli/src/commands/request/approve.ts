@@ -34,10 +34,16 @@ export function registerRequestApproveCommand(parent: Command): void {
     await executeWithCliSca(
       httpClient,
       async (scaSessionToken) =>
-        approveRequest(httpClient, opts.type, id, opts.debitIban !== undefined ? { debit_iban: opts.debitIban } : undefined, {
-          ...(opts.idempotencyKey !== undefined ? { idempotencyKey: opts.idempotencyKey } : {}),
-          ...(scaSessionToken !== undefined ? { scaSessionToken } : {}),
-        }),
+        approveRequest(
+          httpClient,
+          opts.type,
+          id,
+          opts.debitIban !== undefined ? { debit_iban: opts.debitIban } : undefined,
+          {
+            ...(opts.idempotencyKey !== undefined ? { idempotencyKey: opts.idempotencyKey } : {}),
+            ...(scaSessionToken !== undefined ? { scaSessionToken } : {}),
+          },
+        ),
       { verbose: opts.verbose === true || opts.debug === true },
     );
 

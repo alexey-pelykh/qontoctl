@@ -132,7 +132,10 @@ describe("request MCP tools", () => {
       expect(init.method).toBe("POST");
 
       const content = result.content as { type: string; text: string }[];
-      const parsed = JSON.parse((content[0] as { type: string; text: string }).text) as { approved: boolean; id: string };
+      const parsed = JSON.parse((content[0] as { type: string; text: string }).text) as {
+        approved: boolean;
+        id: string;
+      };
       expect(parsed.approved).toBe(true);
       expect(parsed.id).toBe("req-1");
     });
@@ -168,7 +171,10 @@ describe("request MCP tools", () => {
       expect(body).toEqual({ declined_note: "Not approved" });
 
       const content = result.content as { type: string; text: string }[];
-      const parsed = JSON.parse((content[0] as { type: string; text: string }).text) as { declined: boolean; id: string };
+      const parsed = JSON.parse((content[0] as { type: string; text: string }).text) as {
+        declined: boolean;
+        id: string;
+      };
       expect(parsed.declined).toBe(true);
     });
   });
@@ -201,7 +207,10 @@ describe("request MCP tools", () => {
       expect(init.method).toBe("POST");
 
       const content = result.content as { type: string; text: string }[];
-      const parsed = JSON.parse((content[0] as { type: string; text: string }).text) as { id: string; request_type: string };
+      const parsed = JSON.parse((content[0] as { type: string; text: string }).text) as {
+        id: string;
+        request_type: string;
+      };
       expect(parsed.id).toBe("req-1");
       expect(parsed.request_type).toBe("flash_card");
     });
@@ -235,7 +244,10 @@ describe("request MCP tools", () => {
       expect(url.pathname).toBe("/v2/requests/virtual_cards");
 
       const content = result.content as { type: string; text: string }[];
-      const parsed = JSON.parse((content[0] as { type: string; text: string }).text) as { id: string; request_type: string };
+      const parsed = JSON.parse((content[0] as { type: string; text: string }).text) as {
+        id: string;
+        request_type: string;
+      };
       expect(parsed.id).toBe("req-1");
       expect(parsed.request_type).toBe("virtual_card");
     });
@@ -290,7 +302,10 @@ describe("request MCP tools", () => {
       expect(init.method).toBe("POST");
 
       const content = result.content as { type: string; text: string }[];
-      const parsed = JSON.parse((content[0] as { type: string; text: string }).text) as { id: string; total_transfers_count: number };
+      const parsed = JSON.parse((content[0] as { type: string; text: string }).text) as {
+        id: string;
+        total_transfers_count: number;
+      };
       expect(parsed.id).toBe("req-1");
       expect(parsed.total_transfers_count).toBe(2);
     });

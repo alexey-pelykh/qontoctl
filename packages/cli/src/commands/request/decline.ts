@@ -34,10 +34,16 @@ export function registerRequestDeclineCommand(parent: Command): void {
     await executeWithCliSca(
       httpClient,
       async (scaSessionToken) =>
-        declineRequest(httpClient, opts.type, id, { declined_note: opts.reason }, {
-          ...(opts.idempotencyKey !== undefined ? { idempotencyKey: opts.idempotencyKey } : {}),
-          ...(scaSessionToken !== undefined ? { scaSessionToken } : {}),
-        }),
+        declineRequest(
+          httpClient,
+          opts.type,
+          id,
+          { declined_note: opts.reason },
+          {
+            ...(opts.idempotencyKey !== undefined ? { idempotencyKey: opts.idempotencyKey } : {}),
+            ...(scaSessionToken !== undefined ? { scaSessionToken } : {}),
+          },
+        ),
       { verbose: opts.verbose === true || opts.debug === true },
     );
 

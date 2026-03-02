@@ -88,10 +88,9 @@ describe("request create-multi-transfer command", () => {
     program.option("-o, --output <format>", "", "table");
     registerRequestCommands(program);
 
-    await program.parseAsync(
-      ["request", "create-multi-transfer", "--note", "Monthly payments", "--file", tempFile],
-      { from: "user" },
-    );
+    await program.parseAsync(["request", "create-multi-transfer", "--note", "Monthly payments", "--file", tempFile], {
+      from: "user",
+    });
 
     expect(createMultiTransferRequestMock).toHaveBeenCalledWith(
       expect.anything(),

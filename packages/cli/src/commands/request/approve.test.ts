@@ -51,7 +51,13 @@ describe("request approve command", () => {
 
     await program.parseAsync(["request", "approve", "req-1", "--type", "transfer"], { from: "user" });
 
-    expect(approveRequestMock).toHaveBeenCalledWith(expect.anything(), "transfer", "req-1", undefined, expect.anything());
+    expect(approveRequestMock).toHaveBeenCalledWith(
+      expect.anything(),
+      "transfer",
+      "req-1",
+      undefined,
+      expect.anything(),
+    );
     expect(stdoutSpy).toHaveBeenCalled();
     const output = stdoutSpy.mock.calls[0]?.[0] as string;
     expect(output).toContain("Request req-1 approved.");
