@@ -78,7 +78,9 @@ export function handleCliError(error: unknown, debug: boolean): void {
   }
 
   if (error instanceof ScaTimeoutError) {
-    process.stderr.write(`SCA authentication timed out after ${Math.round(error.timeoutMs / 1000)}s. Please try again.\n`);
+    process.stderr.write(
+      `SCA authentication timed out after ${Math.round(error.timeoutMs / 1000)}s. Please try again.\n`,
+    );
     process.exitCode = 1;
     return;
   }

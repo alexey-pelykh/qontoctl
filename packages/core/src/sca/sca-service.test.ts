@@ -136,9 +136,7 @@ describe("SCA service", () => {
     it("throws ScaDeniedError when session is denied", async () => {
       fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "deny" } }));
 
-      const error = await pollScaSession(client, "tok-3", { sleep: noopSleep }).catch(
-        (e: unknown) => e,
-      );
+      const error = await pollScaSession(client, "tok-3", { sleep: noopSleep }).catch((e: unknown) => e);
 
       expect(error).toBeInstanceOf(ScaDeniedError);
       expect((error as ScaDeniedError).token).toBe("tok-3");
@@ -195,9 +193,7 @@ describe("SCA service", () => {
         .mockReturnValueOnce(jsonResponse({ sca_session: { status: "waiting" } }))
         .mockReturnValue(jsonResponse({ sca_session: { status: "deny" } }));
 
-      const error = await pollScaSession(client, "tok-7", { sleep: noopSleep }).catch(
-        (e: unknown) => e,
-      );
+      const error = await pollScaSession(client, "tok-7", { sleep: noopSleep }).catch((e: unknown) => e);
 
       expect(error).toBeInstanceOf(ScaDeniedError);
       expect(fetchSpy).toHaveBeenCalledTimes(2);

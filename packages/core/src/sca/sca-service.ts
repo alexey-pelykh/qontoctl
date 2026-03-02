@@ -15,20 +15,14 @@ interface ScaSessionResponse {
  * Retrieve the current status of an SCA session.
  */
 export async function getScaSession(client: HttpClient, token: string): Promise<ScaSession> {
-  const response = await client.get<ScaSessionResponse>(
-    `/v2/sca/sessions/${encodeURIComponent(token)}`,
-  );
+  const response = await client.get<ScaSessionResponse>(`/v2/sca/sessions/${encodeURIComponent(token)}`);
   return { token, status: response.sca_session.status };
 }
 
 /**
  * Simulate a user SCA decision in sandbox mode.
  */
-export async function mockScaDecision(
-  client: HttpClient,
-  token: string,
-  decision: "allow" | "deny",
-): Promise<void> {
+export async function mockScaDecision(client: HttpClient, token: string, decision: "allow" | "deny"): Promise<void> {
   await client.requestVoid("POST", `/v2/sca/sessions/mock/${encodeURIComponent(token)}/decision`, {
     body: { decision },
   });

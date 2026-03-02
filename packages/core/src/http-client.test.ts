@@ -882,9 +882,7 @@ describe("HttpClient", () => {
 
   describe("SCA handling", () => {
     it("throws QontoScaRequiredError on 428 with session token", async () => {
-      fetchSpy.mockReturnValue(
-        jsonResponse({ sca_session_token: "sca-tok-123" }, { status: 428 }),
-      );
+      fetchSpy.mockReturnValue(jsonResponse({ sca_session_token: "sca-tok-123" }, { status: 428 }));
       const client = new TestableHttpClient({
         baseUrl: "https://thirdparty.qonto.com",
         authorization: "slug:secret",
