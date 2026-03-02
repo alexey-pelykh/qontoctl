@@ -167,6 +167,11 @@ Once configured, you can ask your AI assistant things like:
 | `label list`              | List labels                             |
 | `label show <id>`         | Show label details                      |
 | `membership list`         | List team memberships                   |
+| `auth setup`              | Configure OAuth client credentials      |
+| `auth login`              | Start OAuth login flow                  |
+| `auth status`             | Display OAuth token status              |
+| `auth refresh`            | Refresh the OAuth access token          |
+| `auth revoke`             | Revoke OAuth consent and clear tokens   |
 | `profile add <name>`      | Create a named profile                  |
 | `profile list`            | List all profiles                       |
 | `profile show <name>`     | Show profile details (secrets redacted) |
@@ -191,16 +196,25 @@ Once configured, you can ask your AI assistant things like:
 
 ## Configuration
 
-QontoCtl uses **API Key** authentication.
+QontoCtl supports two authentication methods:
+
+- **API Key** — read-only access using your organization slug and secret key
+- **OAuth 2.0** — full access including write operations and SCA; see the [OAuth App Setup Guide](docs/oauth-setup.md)
 
 ### Profile Format
 
 All configuration files use the same YAML format:
 
 ```yaml
+# API Key authentication
 api-key:
     organization-slug: acme-corp-4821
     secret-key: your-secret-key
+
+# OAuth 2.0 authentication (see docs/oauth-setup.md)
+oauth:
+    client-id: your-client-id
+    client-secret: your-client-secret
 ```
 
 ### Resolution Order
@@ -224,6 +238,8 @@ Environment variables override file values. Without `--profile`:
 | ---------------------------- | --------------------------------------- |
 | `QONTOCTL_ORGANIZATION_SLUG` | Organization slug                       |
 | `QONTOCTL_SECRET_KEY`        | API secret key                          |
+| `QONTOCTL_CLIENT_ID`         | OAuth client ID                         |
+| `QONTOCTL_CLIENT_SECRET`     | OAuth client secret                     |
 | `QONTOCTL_ENDPOINT`          | Custom API endpoint                     |
 | `QONTOCTL_SANDBOX`           | Use sandbox (`1`/`true` or `0`/`false`) |
 
