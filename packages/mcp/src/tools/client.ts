@@ -151,10 +151,7 @@ export function registerClientTools(server: McpServer, getClient: () => Promise<
           }
         }
 
-        const response = await client.patch<SingleClientResponse>(
-          `/v2/clients/${encodeURIComponent(id)}`,
-          body,
-        );
+        const response = await client.patch<SingleClientResponse>(`/v2/clients/${encodeURIComponent(id)}`, body);
 
         return {
           content: [

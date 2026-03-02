@@ -71,15 +71,7 @@ describe.skipIf(!hasCredentials())("client commands (e2e)", () => {
         return;
       }
 
-      const output = cli(
-        "--output",
-        "json",
-        "client",
-        "update",
-        createdClientId,
-        "--name",
-        "E2E Updated Client",
-      );
+      const output = cli("--output", "json", "client", "update", createdClientId, "--name", "E2E Updated Client");
       const parsed = JSON.parse(output) as Record<string, unknown>;
       expect(parsed).toHaveProperty("id", createdClientId);
     });

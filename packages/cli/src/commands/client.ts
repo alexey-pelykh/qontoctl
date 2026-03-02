@@ -69,8 +69,7 @@ export function createClientCommand(): Command {
 
     const result = await fetchPaginated<Client>(httpClient, "/v2/clients", "clients", opts);
 
-    const data =
-      opts.output === "json" || opts.output === "yaml" ? result.items : result.items.map(clientToTableRow);
+    const data = opts.output === "json" || opts.output === "yaml" ? result.items : result.items.map(clientToTableRow);
 
     process.stdout.write(formatOutput(data, opts.output) + "\n");
   });
