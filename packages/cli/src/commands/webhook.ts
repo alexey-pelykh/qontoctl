@@ -36,8 +36,7 @@ export function createWebhookCommand(): Command {
       opts,
     );
 
-    const data =
-      opts.output === "json" || opts.output === "yaml" ? result.items : result.items.map(toTableRow);
+    const data = opts.output === "json" || opts.output === "yaml" ? result.items : result.items.map(toTableRow);
 
     process.stdout.write(formatOutput(data, opts.output) + "\n");
   });
