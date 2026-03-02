@@ -12,4 +12,4 @@
 
 ## CLA Acknowledgment
 
-- [ ] I agree to the [Contributor License Agreement](../CONTRIBUTING.md#contributor-license-agreement-cla)
+- [ ] I agree to the [Contributor License Agreement](https://github.com/alexey-pelykh/qontoctl/blob/main/CONTRIBUTING.md#contributor-license-agreement-cla)

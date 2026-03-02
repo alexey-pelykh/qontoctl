@@ -29,14 +29,14 @@ qontoctl/
 ```
 core ← cli ← qontoctl (umbrella)
 core ← mcp ←┘
-core ← cli ← e2e (private, all packages)
+core ← cli ← e2e (private)
 core ← mcp ←┘
 ```
 
 - `core` has no internal dependencies (leaf package)
 - `cli` and `mcp` depend on `core`
 - `qontoctl` (umbrella) composes `cli` + `mcp`
-- `e2e` depends on all publishable packages
+- `e2e` depends on `core`, `cli`, and `mcp` (not the umbrella)
 
 ## Development Commands
 

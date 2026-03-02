@@ -4,6 +4,32 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- OAuth 2.0 authentication flow with PKCE, token management, and automatic refresh
+- SCA (Strong Customer Authentication) handling infrastructure for write operations
+- Idempotency key management for write operations
+- OAuth app setup guide (`docs/oauth-setup.md`)
+- Account management commands: `account create`, `account update`, `account close`, `account iban-certificate`
+- SEPA beneficiary commands: `beneficiary list`, `beneficiary show`, `beneficiary add`, `beneficiary update`, `beneficiary trust`, `beneficiary untrust`
+- SEPA transfer commands: `transfer list`, `transfer show`, `transfer create`, `transfer cancel`, `transfer proof`, `transfer verify-payee`, `transfer bulk-verify-payee`
+- Internal transfer command: `internal-transfer create`
+- Bulk transfer commands: `bulk-transfer list`, `bulk-transfer show`
+- Recurring transfer commands: `recurring-transfer list`, `recurring-transfer show`
+- Client management commands: `client list`, `client show`, `client create`, `client update`, `client delete`
+- Client invoice commands: `client-invoice list`, `client-invoice show`, `client-invoice create`, `client-invoice update`, `client-invoice delete`, `client-invoice finalize`, `client-invoice send`, `client-invoice mark-paid`, `client-invoice unmark-paid`, `client-invoice cancel`, `client-invoice upload`, `client-invoice upload-show`
+- Quote commands: `quote list`, `quote show`, `quote create`, `quote update`, `quote delete`, `quote send`
+- Credit note commands: `credit-note list`, `credit-note show`
+- Supplier invoice commands: `supplier-invoice list`, `supplier-invoice show`, `supplier-invoice bulk-create`
+- E-invoicing command: `einvoicing settings`
+- Request command: `request list`
+- Attachment commands: `attachment upload`, `attachment show`
+- Transaction attachment commands: `transaction attachment list`, `transaction attachment add`, `transaction attachment remove`
+- Membership management commands: `membership show`, `membership invite`
+- Corresponding MCP tools for all new CLI commands (69 tools total)
+- MCP registry configuration files
+- Social preview banner for README
+
 ## [0.1.0] — 2026-02-27
 
 ### Added
