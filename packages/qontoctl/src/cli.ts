@@ -6,6 +6,7 @@ import {
   addInheritableOptions,
   createAttachmentCommand,
   createClient,
+  createClientCommand,
   createCreditNoteCommand,
   createInternalTransferCommand,
   createProgram,
@@ -24,6 +25,7 @@ import { runStdioServer } from "@qontoctl/mcp/stdio";
 const program = createProgram();
 
 program.addCommand(createAttachmentCommand());
+program.addCommand(createClientCommand());
 program.addCommand(createCreditNoteCommand());
 program.addCommand(createInternalTransferCommand());
 program.addCommand(createLabelCommand());
