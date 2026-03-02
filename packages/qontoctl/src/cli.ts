@@ -7,6 +7,7 @@ import {
   createAttachmentCommand,
   createClient,
   createClientCommand,
+  createClientInvoiceCommand,
   createCreditNoteCommand,
   createInternalTransferCommand,
   createProgram,
@@ -26,6 +27,7 @@ const program = createProgram();
 
 program.addCommand(createAttachmentCommand());
 program.addCommand(createClientCommand());
+program.addCommand(createClientInvoiceCommand());
 program.addCommand(createCreditNoteCommand());
 program.addCommand(createInternalTransferCommand());
 program.addCommand(createLabelCommand());
