@@ -32,10 +32,7 @@ export function registerClientInvoiceTools(server: McpServer, getClient: () => P
     {
       description: "List client invoices with optional filters",
       inputSchema: {
-        status: z
-          .enum(["draft", "pending", "paid", "cancelled"])
-          .optional()
-          .describe("Filter by status"),
+        status: z.enum(["draft", "pending", "paid", "cancelled"]).optional().describe("Filter by status"),
         client_id: z.string().optional().describe("Filter by client ID (UUID)"),
         current_page: z.number().int().positive().optional().describe("Page number"),
         per_page: z.number().int().positive().max(100).optional().describe("Items per page (max 100)"),
@@ -58,11 +55,7 @@ export function registerClientInvoiceTools(server: McpServer, getClient: () => P
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(
-                { client_invoices: response.client_invoices, meta: response.meta },
-                null,
-                2,
-              ),
+              text: JSON.stringify({ client_invoices: response.client_invoices, meta: response.meta }, null, 2),
             },
           ],
         };

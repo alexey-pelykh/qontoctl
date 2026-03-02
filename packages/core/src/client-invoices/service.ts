@@ -24,9 +24,7 @@ export function buildClientInvoiceQueryParams(params: ListClientInvoicesParams):
  * Retrieve a single client invoice by ID.
  */
 export async function getClientInvoice(client: HttpClient, id: string): Promise<ClientInvoice> {
-  const response = await client.get<{ client_invoice: ClientInvoice }>(
-    `/v2/client_invoices/${encodeURIComponent(id)}`,
-  );
+  const response = await client.get<{ client_invoice: ClientInvoice }>(`/v2/client_invoices/${encodeURIComponent(id)}`);
   return response.client_invoice;
 }
 

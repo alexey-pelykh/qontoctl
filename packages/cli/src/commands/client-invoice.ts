@@ -79,9 +79,7 @@ export function createClientInvoiceCommand(): Command {
   const list = invoice
     .command("list")
     .description("List client invoices")
-    .addOption(
-      new Option("--status <status>", "filter by status").choices(["draft", "pending", "paid", "cancelled"]),
-    )
+    .addOption(new Option("--status <status>", "filter by status").choices(["draft", "pending", "paid", "cancelled"]))
     .addOption(new Option("--client-id <id>", "filter by client ID"));
   addInheritableOptions(list);
   list.action(async (_options: unknown, cmd: Command) => {
@@ -89,16 +87,9 @@ export function createClientInvoiceCommand(): Command {
     const client = await createClient(opts);
 
     const params = buildClientInvoiceListParams(opts);
-    const result = await fetchPaginated<ClientInvoice>(
-      client,
-      "/v2/client_invoices",
-      "client_invoices",
-      opts,
-      params,
-    );
+    const result = await fetchPaginated<ClientInvoice>(client, "/v2/client_invoices", "client_invoices", opts, params);
 
-    const data =
-      opts.output === "json" || opts.output === "yaml" ? result.items : result.items.map(invoiceToTableRow);
+    const data = opts.output === "json" || opts.output === "yaml" ? result.items : result.items.map(invoiceToTableRow);
 
     process.stdout.write(formatOutput(data, opts.output) + "\n");
   });
@@ -267,9 +258,7 @@ export function createClientInvoiceCommand(): Command {
   });
 
   // --- upload ---
-  const upload = invoice
-    .command("upload <id> <file>")
-    .description("Upload a file to a client invoice");
+  const upload = invoice.command("upload <id> <file>").description("Upload a file to a client invoice");
   addInheritableOptions(upload);
   addWriteOptions(upload);
   upload.action(async (id: string, file: string, _options: unknown, cmd: Command) => {

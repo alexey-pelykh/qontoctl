@@ -244,10 +244,9 @@ describe("client-invoice commands", () => {
       program.exitOverride();
 
       const body = JSON.stringify({ client_id: "cl-123" });
-      await program.parseAsync(
-        ["client-invoice", "create", "--body", body, "--idempotency-key", "key-abc-123"],
-        { from: "user" },
-      );
+      await program.parseAsync(["client-invoice", "create", "--body", body, "--idempotency-key", "key-abc-123"], {
+        from: "user",
+      });
 
       const [, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
       const headers = opts.headers as Record<string, string>;
@@ -521,10 +520,9 @@ describe("client-invoice commands", () => {
       program.addCommand(createClientInvoiceCommand());
       program.exitOverride();
 
-      await program.parseAsync(
-        ["--output", "json", "client-invoice", "upload-show", "inv-123", "upl-456"],
-        { from: "user" },
-      );
+      await program.parseAsync(["--output", "json", "client-invoice", "upload-show", "inv-123", "upl-456"], {
+        from: "user",
+      });
 
       expect(stdoutSpy).toHaveBeenCalled();
       const output = stdoutSpy.mock.calls[0]?.[0] as string;
