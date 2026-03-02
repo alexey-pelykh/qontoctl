@@ -1,7 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import { type HttpClient, ConfigError, AuthError, QontoApiError, QontoRateLimitError } from "@qontoctl/core";
+import {
+  type HttpClient,
+  ConfigError,
+  AuthError,
+  QontoApiError,
+  QontoRateLimitError,
+  QontoScaRequiredError,
+} from "@qontoctl/core";
 
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
@@ -50,6 +57,26 @@ function formatRateLimitError(error: QontoRateLimitError): CallToolResult {
   return textError(`Rate limit exceeded.${retryHint} Please wait before retrying.`);
 }
 
+function formatScaRequiredResponse(error: QontoScaRequiredError): CallToolResult {
+  return {
+    content: [
+      {
+        type: "text",
+        text: [
+          "SCA required. The user needs to approve this operation on their Qonto mobile app.",
+          "",
+          `Session token: ${error.scaSessionToken}`,
+          `Poll GET /v2/sca/sessions/${error.scaSessionToken} for status.`,
+          "",
+          "Possible statuses: waiting (still pending), allow (approved), deny (rejected).",
+          "Token validity: 15 minutes.",
+        ].join("\n"),
+      },
+    ],
+    isError: false,
+  };
+}
+
 /**
  * Wraps a tool handler with consistent error handling.
  *
@@ -66,6 +93,7 @@ export async function withClient(
   } catch (error: unknown) {
     if (error instanceof ConfigError) return formatConfigError(error);
     if (error instanceof AuthError) return formatAuthError(error);
+    if (error instanceof QontoScaRequiredError) return formatScaRequiredResponse(error);
     if (error instanceof QontoApiError) return formatApiError(error);
     if (error instanceof QontoRateLimitError) return formatRateLimitError(error);
 

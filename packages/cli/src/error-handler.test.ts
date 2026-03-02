@@ -2,7 +2,15 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { ConfigError, AuthError, QontoApiError, QontoRateLimitError } from "@qontoctl/core";
+import {
+  ConfigError,
+  AuthError,
+  QontoApiError,
+  QontoRateLimitError,
+  QontoScaRequiredError,
+  ScaTimeoutError,
+  ScaDeniedError,
+} from "@qontoctl/core";
 import { handleCliError } from "./error-handler.js";
 
 describe("handleCliError", () => {
@@ -93,6 +101,47 @@ describe("handleCliError", () => {
       expect(output).toContain("Rate limit exceeded.");
       expect(output).toContain("Please wait before retrying.");
       expect(output).not.toContain("Retry after");
+      expect(process.exitCode).toBe(1);
+    });
+  });
+
+  describe("QontoScaRequiredError", () => {
+    it("shows SCA guidance with session token", () => {
+      const error = new QontoScaRequiredError("sca-tok-test");
+
+      handleCliError(error, false);
+
+      const output = stderrSpy.mock.calls[0]?.[0] as string;
+      expect(output).toContain("SCA (Strong Customer Authentication) required");
+      expect(output).toContain("sca-tok-test");
+      expect(output).toContain("approve the operation on your Qonto mobile app");
+      expect(process.exitCode).toBe(1);
+    });
+  });
+
+  describe("ScaTimeoutError", () => {
+    it("shows timeout message with duration", () => {
+      const error = new ScaTimeoutError("tok-timeout", 900_000);
+
+      handleCliError(error, false);
+
+      const output = stderrSpy.mock.calls[0]?.[0] as string;
+      expect(output).toContain("SCA authentication timed out");
+      expect(output).toContain("900s");
+      expect(output).toContain("Please try again");
+      expect(process.exitCode).toBe(1);
+    });
+  });
+
+  describe("ScaDeniedError", () => {
+    it("shows denial message", () => {
+      const error = new ScaDeniedError("tok-denied");
+
+      handleCliError(error, false);
+
+      const output = stderrSpy.mock.calls[0]?.[0] as string;
+      expect(output).toContain("SCA authentication was denied");
+      expect(output).toContain("cancelled");
       expect(process.exitCode).toBe(1);
     });
   });

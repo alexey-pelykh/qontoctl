@@ -52,6 +52,19 @@ export class QontoRateLimitError extends Error {
 }
 
 /**
+ * Error thrown when the Qonto API requires Strong Customer Authentication (428).
+ *
+ * The SCA session token can be used to poll the SCA session status and
+ * retry the original request once approved.
+ */
+export class QontoScaRequiredError extends Error {
+  constructor(public readonly scaSessionToken: string) {
+    super(`SCA required (session token: ${scaSessionToken})`);
+    this.name = "QontoScaRequiredError";
+  }
+}
+
+/**
  * Authorization value: either a static string or a function that resolves
  * the authorization header dynamically (e.g., for OAuth auto-refresh).
  */
@@ -69,6 +82,9 @@ export interface HttpClientOptions {
 
   /** Maximum number of retries on 429 responses. Defaults to 5. */
   readonly maxRetries?: number | undefined;
+
+  /** SCA method preference for write requests. Sent as `X-Qonto-2fa-Preference` header. */
+  readonly scaMethod?: string | undefined;
 }
 
 const DEFAULT_MAX_RETRIES = 5;
@@ -83,6 +99,16 @@ const WRITE_METHODS: ReadonlySet<string> = new Set(["POST", "PUT", "PATCH", "DEL
  * Header name for the Qonto idempotency key.
  */
 const IDEMPOTENCY_KEY_HEADER = "X-Qonto-Idempotency-Key";
+
+/**
+ * Header name for the SCA method preference.
+ */
+const SCA_METHOD_HEADER = "X-Qonto-2fa-Preference";
+
+/**
+ * Header name for the SCA session token (used on retry after SCA approval).
+ */
+const SCA_SESSION_TOKEN_HEADER = "X-Qonto-Sca-Session-Token";
 
 /**
  * Field names redacted from debug log output to avoid leaking financial data.
@@ -143,6 +169,7 @@ export class HttpClient {
   private readonly authorization: Authorization;
   private readonly logger: HttpClientLogger | undefined;
   private readonly maxRetries: number;
+  private readonly scaMethod: string | undefined;
   private readonly userAgent: string;
 
   constructor(options: HttpClientOptions) {
@@ -150,6 +177,7 @@ export class HttpClient {
     this.authorization = options.authorization;
     this.logger = options.logger;
     this.maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
+    this.scaMethod = options.scaMethod;
     this.userAgent = buildUserAgent();
   }
 
@@ -166,6 +194,7 @@ export class HttpClient {
       readonly body?: unknown;
       readonly params?: QueryParams;
       readonly idempotencyKey?: string;
+      readonly scaSessionToken?: string;
     },
   ): Promise<T> {
     const response = await this.fetchWithRetry(method, path, options);
@@ -184,6 +213,7 @@ export class HttpClient {
       readonly body?: unknown;
       readonly params?: QueryParams;
       readonly idempotencyKey?: string;
+      readonly scaSessionToken?: string;
     },
   ): Promise<void> {
     await this.fetchWithRetry(method, path, options);
@@ -212,7 +242,11 @@ export class HttpClient {
     return this.request<T>("GET", path, params !== undefined ? { params } : undefined);
   }
 
-  async post<T>(path: string, body?: unknown, options?: { readonly idempotencyKey?: string }): Promise<T> {
+  async post<T>(
+    path: string,
+    body?: unknown,
+    options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
+  ): Promise<T> {
     return this.request<T>("POST", path, {
       ...(body !== undefined ? { body } : {}),
       ...options,
@@ -223,14 +257,21 @@ export class HttpClient {
     return this.requestBuffer("GET", path, params !== undefined ? { params } : undefined);
   }
 
-  async patch<T>(path: string, body?: unknown, options?: { readonly idempotencyKey?: string }): Promise<T> {
+  async patch<T>(
+    path: string,
+    body?: unknown,
+    options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
+  ): Promise<T> {
     return this.request<T>("PATCH", path, {
       ...(body !== undefined ? { body } : {}),
       ...options,
     });
   }
 
-  async delete(path: string, options?: { readonly idempotencyKey?: string }): Promise<void> {
+  async delete(
+    path: string,
+    options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
+  ): Promise<void> {
     return this.requestVoid("DELETE", path, options);
   }
 
@@ -240,7 +281,11 @@ export class HttpClient {
    * Unlike `post()`, this does NOT set `Content-Type` — the runtime sets it
    * automatically with the correct multipart boundary.
    */
-  async postFormData<T>(path: string, formData: FormData, options?: { readonly idempotencyKey?: string }): Promise<T> {
+  async postFormData<T>(
+    path: string,
+    formData: FormData,
+    options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
+  ): Promise<T> {
     const response = await this.fetchWithRetry("POST", path, {
       formData,
       ...options,
@@ -258,6 +303,7 @@ export class HttpClient {
       readonly formData?: FormData;
       readonly params?: QueryParams;
       readonly idempotencyKey?: string;
+      readonly scaSessionToken?: string;
       readonly accept?: string;
     },
   ): Promise<Response> {
@@ -268,15 +314,22 @@ export class HttpClient {
       : options?.body !== undefined
         ? JSON.stringify(options.body)
         : undefined;
-    const idempotencyKey = WRITE_METHODS.has(method.toUpperCase())
-      ? (options?.idempotencyKey ?? randomUUID())
-      : undefined;
+    const isWrite = WRITE_METHODS.has(method.toUpperCase());
+    const idempotencyKey = isWrite ? (options?.idempotencyKey ?? randomUUID()) : undefined;
 
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
       const headers = await this.buildHeaders(!isFormData && options?.body !== undefined, options?.accept);
 
       if (idempotencyKey !== undefined) {
         headers[IDEMPOTENCY_KEY_HEADER] = idempotencyKey;
+      }
+
+      if (isWrite && this.scaMethod !== undefined) {
+        headers[SCA_METHOD_HEADER] = this.scaMethod;
+      }
+
+      if (options?.scaSessionToken !== undefined) {
+        headers[SCA_SESSION_TOKEN_HEADER] = options.scaSessionToken;
       }
 
       this.logVerbose(`${method} ${url.toString()}${attempt > 0 ? ` (retry ${attempt})` : ""}`);
@@ -302,6 +355,12 @@ export class HttpClient {
         this.logVerbose(`Rate limited, waiting ${delay}ms before retry ${attempt + 1}`);
         await this.sleep(delay);
         continue;
+      }
+
+      if (response.status === 428) {
+        const errorBody = await this.safeReadJson(response);
+        const scaToken = this.extractScaSessionToken(errorBody);
+        throw new QontoScaRequiredError(scaToken);
       }
 
       if (!response.ok) {
@@ -358,6 +417,18 @@ export class HttpClient {
     }
     const seconds = Number(header);
     return Number.isFinite(seconds) && seconds > 0 ? seconds : undefined;
+  }
+
+  private extractScaSessionToken(body: unknown): string {
+    if (
+      typeof body === "object" &&
+      body !== null &&
+      "sca_session_token" in body &&
+      typeof (body as { sca_session_token: unknown }).sca_session_token === "string"
+    ) {
+      return (body as { sca_session_token: string }).sca_session_token;
+    }
+    return "unknown";
   }
 
   private extractErrors(body: unknown): readonly QontoApiErrorEntry[] {

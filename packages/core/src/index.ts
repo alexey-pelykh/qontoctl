@@ -5,6 +5,7 @@ export {
   HttpClient,
   QontoApiError,
   QontoRateLimitError,
+  QontoScaRequiredError,
   type Authorization,
   type HttpClientLogger,
   type HttpClientOptions,
@@ -122,3 +123,21 @@ export type { RecurringTransfer } from "./recurring-transfers/index.js";
 export { getBankAccount, getIbanCertificate, resolveDefaultBankAccount } from "./services/bank-accounts.js";
 export { getEInvoicingSettings } from "./services/einvoicing.js";
 export { getOrganization } from "./services/organization.js";
+
+export {
+  ScaDeniedError,
+  ScaTimeoutError,
+  getScaSession,
+  mockScaDecision,
+  pollScaSession,
+  executeWithSca,
+} from "./sca/index.js";
+
+export type {
+  ScaMethod,
+  ScaSession,
+  ScaSessionStatus,
+  PollScaSessionOptions,
+  ExecuteWithScaCallbacks,
+  ExecuteWithScaOptions,
+} from "./sca/index.js";

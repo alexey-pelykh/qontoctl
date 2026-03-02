@@ -23,6 +23,8 @@ export { createClient } from "./client.js";
 
 export { handleCliError } from "./error-handler.js";
 
+export { executeWithCliSca, type CliScaOptions } from "./sca.js";
+
 export { addInheritableOptions, addWriteOptions, resolveGlobalOptions } from "./inherited-options.js";
 
 export {
