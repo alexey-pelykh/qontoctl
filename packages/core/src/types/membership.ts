@@ -8,7 +8,8 @@ export interface Membership {
   readonly id: string;
   readonly first_name: string;
   readonly last_name: string;
-  readonly role: "owner" | "admin" | "manager" | "reporting" | "employee";
+  readonly email: string;
+  readonly role: "owner" | "admin" | "manager" | "reporting" | "employee" | "accountant";
   readonly team_id: string;
   readonly residence_country: string | null;
   readonly birthdate: string | null;

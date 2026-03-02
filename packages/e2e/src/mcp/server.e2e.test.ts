@@ -39,6 +39,8 @@ const EXPECTED_TOOLS = [
   "label_list",
   "label_show",
   "membership_list",
+  "membership_show",
+  "membership_invite",
   "quote_list",
   "quote_show",
   "quote_create",
