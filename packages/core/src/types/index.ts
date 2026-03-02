@@ -2,6 +2,14 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 export type { Beneficiary } from "./beneficiary.js";
+export type {
+  Card,
+  CardAppearance,
+  CardLevelAppearance,
+  CardLevelAppearances,
+  CardTypeAppearances,
+  ParentCardSummary,
+} from "./card.js";
 export type { Client, ClientAddress } from "./client.js";
 export type { CreditNote, CreditNoteAmount, CreditNoteClient, CreditNoteItem } from "./credit-note.js";
 export type { EInvoicingSettings } from "./einvoicing.js";
