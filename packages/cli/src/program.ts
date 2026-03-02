@@ -12,6 +12,7 @@ import { registerRecurringTransferCommands } from "./commands/recurring-transfer
 import { registerOrgCommands } from "./commands/org.js";
 import { registerAccountCommands } from "./commands/account.js";
 import { registerSupplierInvoiceCommands } from "./commands/supplier-invoice/index.js";
+import { createTeamCommand } from "./commands/team.js";
 import { registerAuthCommands } from "./commands/auth.js";
 import { OUTPUT_FORMATS } from "./options.js";
 
@@ -42,6 +43,7 @@ export function createProgram(): Command {
   registerOrgCommands(program);
   registerAccountCommands(program);
   registerSupplierInvoiceCommands(program);
+  program.addCommand(createTeamCommand());
 
   program.action(() => {
     program.outputHelp();

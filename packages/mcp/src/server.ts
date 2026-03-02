@@ -22,6 +22,7 @@ import {
   registerRequestTools,
   registerStatementTools,
   registerSupplierInvoiceTools,
+  registerTeamTools,
   registerTransactionTools,
   registerTransferTools,
 } from "./tools/index.js";
@@ -62,6 +63,7 @@ export function createServer(options?: CreateServerOptions): McpServer {
   registerRequestTools(server, getClient);
   registerStatementTools(server, getClient);
   registerSupplierInvoiceTools(server, getClient);
+  registerTeamTools(server, getClient);
   registerTransactionTools(server, getClient);
   registerTransferTools(server, getClient);
 
