@@ -26,6 +26,7 @@ export { handleCliError } from "./error-handler.js";
 export { addInheritableOptions, addWriteOptions, resolveGlobalOptions } from "./inherited-options.js";
 
 export {
+  createAttachmentCommand,
   createCreditNoteCommand,
   createInternalTransferCommand,
   createLabelCommand,

@@ -2,15 +2,17 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import type { Command } from "commander";
+import { registerTransactionAttachmentCommands } from "./attachment.js";
 import { registerTransactionListCommand } from "./list.js";
 import { registerTransactionShowCommand } from "./show.js";
 
 /**
- * Register the `transaction` command group with list and show subcommands.
+ * Register the `transaction` command group with list, show, and attachment subcommands.
  */
 export function registerTransactionCommands(program: Command): void {
   const txn = program.command("transaction").description("Manage transactions");
 
   registerTransactionListCommand(txn);
   registerTransactionShowCommand(txn);
+  registerTransactionAttachmentCommands(txn);
 }

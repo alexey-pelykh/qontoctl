@@ -119,6 +119,17 @@ export { getRecurringTransfer } from "./recurring-transfers/index.js";
 
 export type { RecurringTransfer } from "./recurring-transfers/index.js";
 
+export {
+  uploadAttachment,
+  getAttachment,
+  listTransactionAttachments,
+  addTransactionAttachment,
+  removeAllTransactionAttachments,
+  removeTransactionAttachment,
+} from "./attachments/index.js";
+
+export type { Attachment } from "./attachments/index.js";
+
 export { getBankAccount, getIbanCertificate, resolveDefaultBankAccount } from "./services/bank-accounts.js";
 export { getEInvoicingSettings } from "./services/einvoicing.js";
 export { getOrganization } from "./services/organization.js";
