@@ -63,6 +63,7 @@ export {
 } from "./constants.js";
 
 export type { Beneficiary } from "./types/index.js";
+export type { Client, ClientAddress } from "./types/index.js";
 export type { CreditNote, CreditNoteAmount, CreditNoteClient, CreditNoteItem } from "./types/index.js";
 export type {
   EInvoicingSettings,
