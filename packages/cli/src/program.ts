@@ -12,6 +12,7 @@ import { registerRecurringTransferCommands } from "./commands/recurring-transfer
 import { registerOrgCommands } from "./commands/org.js";
 import { registerAccountCommands } from "./commands/account.js";
 import { registerSupplierInvoiceCommands } from "./commands/supplier-invoice/index.js";
+import { registerAuthCommands } from "./commands/auth.js";
 import { OUTPUT_FORMATS } from "./options.js";
 
 const require = createRequire(import.meta.url);
@@ -34,6 +35,7 @@ export function createProgram(): Command {
   registerCompletionCommand(program);
   registerBeneficiaryCommands(program);
   registerEInvoicingCommands(program);
+  registerAuthCommands(program);
   registerTransactionCommands(program);
   registerBulkTransferCommands(program);
   registerRecurringTransferCommands(program);

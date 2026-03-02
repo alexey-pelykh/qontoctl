@@ -6,6 +6,9 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 const mocks = vi.hoisted(() => ({
   resolveConfig: vi.fn(),
   buildApiKeyAuthorization: vi.fn(),
+  buildOAuthAuthorization: vi.fn(),
+  refreshAccessToken: vi.fn(),
+  saveOAuthTokens: vi.fn(),
   httpClientConstructor: vi.fn(),
 }));
 
@@ -15,6 +18,9 @@ vi.mock("@qontoctl/core", async (importOriginal) => {
     ...original,
     resolveConfig: mocks.resolveConfig,
     buildApiKeyAuthorization: mocks.buildApiKeyAuthorization,
+    buildOAuthAuthorization: mocks.buildOAuthAuthorization,
+    refreshAccessToken: mocks.refreshAccessToken,
+    saveOAuthTokens: mocks.saveOAuthTokens,
     // eslint-disable-next-line @typescript-eslint/no-extraneous-class
     HttpClient: class MockHttpClient {
       constructor(options: unknown) {
@@ -86,5 +92,174 @@ describe("buildClient", () => {
     mocks.resolveConfig.mockRejectedValue(new ConfigError("No credentials found"));
 
     await expect(buildClient()).rejects.toThrow("No credentials found");
+  });
+
+  it("throws when config has no credentials", async () => {
+    mocks.resolveConfig.mockResolvedValue({
+      config: {},
+      endpoint: "https://thirdparty.qonto.com",
+      warnings: [],
+    });
+
+    await expect(buildClient()).rejects.toThrow("No credentials found in configuration");
+  });
+
+  it("uses OAuth authorization when oauth config is present", async () => {
+    mocks.resolveConfig.mockResolvedValue({
+      config: {
+        oauth: {
+          clientId: "client-id",
+          clientSecret: "client-secret",
+          accessToken: "access-token",
+          tokenExpiresAt: new Date(Date.now() + 3600_000).toISOString(),
+        },
+      },
+      endpoint: "https://thirdparty.qonto.com",
+      warnings: [],
+    });
+    mocks.buildOAuthAuthorization.mockReturnValue("Bearer access-token");
+
+    await buildClient();
+
+    expect(mocks.buildApiKeyAuthorization).not.toHaveBeenCalled();
+    const ctorArgs = mocks.httpClientConstructor.mock.calls[0] as [{ authorization: unknown }];
+    expect(typeof ctorArgs[0].authorization).toBe("function");
+
+    // Invoke the authorization function to verify it calls buildOAuthAuthorization
+    const authFn = ctorArgs[0].authorization as () => Promise<string>;
+    const result = await authFn();
+    expect(result).toBe("Bearer access-token");
+    expect(mocks.buildOAuthAuthorization).toHaveBeenCalled();
+  });
+
+  it("refreshes expired OAuth token", async () => {
+    const oauth = {
+      clientId: "client-id",
+      clientSecret: "client-secret",
+      accessToken: "old-token",
+      refreshToken: "refresh-token",
+      tokenExpiresAt: new Date(Date.now() - 1000).toISOString(), // already expired
+    };
+    mocks.resolveConfig.mockResolvedValue({
+      config: { oauth },
+      endpoint: "https://thirdparty.qonto.com",
+      warnings: [],
+    });
+    mocks.refreshAccessToken.mockResolvedValue({
+      accessToken: "new-access-token",
+      refreshToken: "new-refresh-token",
+      expiresIn: 3600,
+      tokenType: "Bearer",
+    });
+    mocks.buildOAuthAuthorization.mockReturnValue("Bearer new-access-token");
+    mocks.saveOAuthTokens.mockResolvedValue(undefined);
+
+    await buildClient();
+
+    const ctorArgs = mocks.httpClientConstructor.mock.calls[0] as [{ authorization: unknown }];
+    const authFn = ctorArgs[0].authorization as () => Promise<string>;
+    await authFn();
+
+    expect(mocks.refreshAccessToken).toHaveBeenCalled();
+    expect(mocks.saveOAuthTokens).toHaveBeenCalled();
+  });
+
+  it("uses sandbox token URL when sandbox is true", async () => {
+    const { OAUTH_TOKEN_SANDBOX_URL } = await import("@qontoctl/core");
+    const oauth = {
+      clientId: "client-id",
+      clientSecret: "client-secret",
+      accessToken: "old-token",
+      refreshToken: "refresh-token",
+      tokenExpiresAt: new Date(Date.now() - 1000).toISOString(),
+    };
+    mocks.resolveConfig.mockResolvedValue({
+      config: { oauth, sandbox: true },
+      endpoint: "https://thirdparty-sandbox.staging.qonto.co",
+      warnings: [],
+    });
+    mocks.refreshAccessToken.mockResolvedValue({
+      accessToken: "new-token",
+      expiresIn: 3600,
+      tokenType: "Bearer",
+    });
+    mocks.buildOAuthAuthorization.mockReturnValue("Bearer new-token");
+    mocks.saveOAuthTokens.mockResolvedValue(undefined);
+
+    await buildClient();
+
+    const ctorArgs = mocks.httpClientConstructor.mock.calls[0] as [{ authorization: unknown }];
+    const authFn = ctorArgs[0].authorization as () => Promise<string>;
+    await authFn();
+
+    expect(mocks.refreshAccessToken).toHaveBeenCalledWith(
+      OAUTH_TOKEN_SANDBOX_URL,
+      "client-id",
+      "client-secret",
+      "refresh-token",
+    );
+  });
+
+  it("does not refresh when token is still valid", async () => {
+    mocks.resolveConfig.mockResolvedValue({
+      config: {
+        oauth: {
+          clientId: "client-id",
+          clientSecret: "client-secret",
+          accessToken: "valid-token",
+          refreshToken: "refresh-token",
+          tokenExpiresAt: new Date(Date.now() + 3600_000).toISOString(),
+        },
+      },
+      endpoint: "https://thirdparty.qonto.com",
+      warnings: [],
+    });
+    mocks.buildOAuthAuthorization.mockReturnValue("Bearer valid-token");
+
+    await buildClient();
+
+    const ctorArgs = mocks.httpClientConstructor.mock.calls[0] as [{ authorization: unknown }];
+    const authFn = ctorArgs[0].authorization as () => Promise<string>;
+    await authFn();
+
+    expect(mocks.refreshAccessToken).not.toHaveBeenCalled();
+    expect(mocks.saveOAuthTokens).not.toHaveBeenCalled();
+  });
+
+  it("passes profile to saveOAuthTokens on refresh", async () => {
+    const oauth = {
+      clientId: "client-id",
+      clientSecret: "client-secret",
+      accessToken: "old-token",
+      refreshToken: "refresh-token",
+      tokenExpiresAt: new Date(Date.now() - 1000).toISOString(),
+    };
+    mocks.resolveConfig.mockResolvedValue({
+      config: { oauth },
+      endpoint: "https://thirdparty.qonto.com",
+      warnings: [],
+    });
+    mocks.refreshAccessToken.mockResolvedValue({
+      accessToken: "new-token",
+      refreshToken: "new-refresh",
+      expiresIn: 3600,
+      tokenType: "Bearer",
+    });
+    mocks.buildOAuthAuthorization.mockReturnValue("Bearer new-token");
+    mocks.saveOAuthTokens.mockResolvedValue(undefined);
+
+    await buildClient({ profile: "work" });
+
+    const ctorArgs = mocks.httpClientConstructor.mock.calls[0] as [{ authorization: unknown }];
+    const authFn = ctorArgs[0].authorization as () => Promise<string>;
+    await authFn();
+
+    expect(mocks.saveOAuthTokens).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accessToken: "new-token",
+        refreshToken: "new-refresh",
+      }),
+      { profile: "work" },
+    );
   });
 });

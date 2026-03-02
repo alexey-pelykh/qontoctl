@@ -31,6 +31,11 @@ npm install @qontoctl/cli
 | `profile show <name>`     | Show profile details               |
 | `profile remove <name>`   | Delete a named profile             |
 | `profile test`            | Test profile credentials           |
+| `auth setup`              | Configure OAuth client credentials |
+| `auth login`              | Start OAuth login flow             |
+| `auth status`             | Display OAuth token status         |
+| `auth refresh`            | Refresh OAuth access token         |
+| `auth revoke`             | Revoke tokens and clear session    |
 | `statement list`          | List bank statements               |
 | `statement show <id>`     | Show statement details             |
 | `statement download <id>` | Download statement PDF             |

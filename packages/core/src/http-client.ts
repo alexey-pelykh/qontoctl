@@ -51,12 +51,18 @@ export class QontoRateLimitError extends Error {
   }
 }
 
+/**
+ * Authorization value: either a static string or a function that resolves
+ * the authorization header dynamically (e.g., for OAuth auto-refresh).
+ */
+export type Authorization = string | (() => string | Promise<string>);
+
 export interface HttpClientOptions {
   /** Base URL for API requests. */
   readonly baseUrl: string;
 
-  /** Value for the Authorization header. */
-  readonly authorization: string;
+  /** Value for the Authorization header, or a function that resolves it dynamically. */
+  readonly authorization: Authorization;
 
   /** Logger for verbose/debug output. */
   readonly logger?: HttpClientLogger | undefined;
@@ -134,7 +140,7 @@ export type QueryParams = Readonly<Record<string, QueryParamValue>>;
  */
 export class HttpClient {
   private readonly baseUrl: string;
-  private readonly authorization: string;
+  private readonly authorization: Authorization;
   private readonly logger: HttpClientLogger | undefined;
   private readonly maxRetries: number;
   private readonly userAgent: string;
@@ -257,18 +263,22 @@ export class HttpClient {
   ): Promise<Response> {
     const url = this.buildUrl(path, options?.params);
     const isFormData = options?.formData !== undefined;
-    const headers = this.buildHeaders(!isFormData && options?.body !== undefined, options?.accept);
     const body: string | FormData | undefined = isFormData
       ? options.formData
       : options?.body !== undefined
         ? JSON.stringify(options.body)
         : undefined;
-
-    if (WRITE_METHODS.has(method.toUpperCase())) {
-      headers[IDEMPOTENCY_KEY_HEADER] = options?.idempotencyKey ?? randomUUID();
-    }
+    const idempotencyKey = WRITE_METHODS.has(method.toUpperCase())
+      ? (options?.idempotencyKey ?? randomUUID())
+      : undefined;
 
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
+      const headers = await this.buildHeaders(!isFormData && options?.body !== undefined, options?.accept);
+
+      if (idempotencyKey !== undefined) {
+        headers[IDEMPOTENCY_KEY_HEADER] = idempotencyKey;
+      }
+
       this.logVerbose(`${method} ${url.toString()}${attempt > 0 ? ` (retry ${attempt})` : ""}`);
       if (body !== undefined) {
         this.logDebug(isFormData ? "Request body: [FormData]" : `Request body: ${body as string}`);
@@ -323,9 +333,11 @@ export class HttpClient {
     return url;
   }
 
-  private buildHeaders(hasBody: boolean, accept?: string): Record<string, string> {
+  private async buildHeaders(hasBody: boolean, accept?: string): Promise<Record<string, string>> {
+    const authorization = typeof this.authorization === "function" ? await this.authorization() : this.authorization;
+
     const headers: Record<string, string> = {
-      Authorization: this.authorization,
+      Authorization: authorization,
       "User-Agent": this.userAgent,
       Accept: accept ?? "application/json",
     };

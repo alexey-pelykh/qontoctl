@@ -5,6 +5,7 @@ export {
   HttpClient,
   QontoApiError,
   QontoRateLimitError,
+  type Authorization,
   type HttpClientLogger,
   type HttpClientOptions,
   type QueryParams,
@@ -19,20 +20,46 @@ export {
   loadConfigFile,
   validateConfig,
   applyEnvOverlay,
+  saveOAuthTokens,
+  saveOAuthClientCredentials,
+  clearOAuthTokens,
 } from "./config/index.js";
 
 export type {
   ApiKeyCredentials,
+  OAuthCredentials,
   QontoctlConfig,
   ConfigResult,
   ResolveOptions,
   LoadResult,
   ValidationResult,
+  TokenUpdate,
 } from "./config/index.js";
 
-export { AuthError, buildApiKeyAuthorization } from "./auth/index.js";
+export {
+  AuthError,
+  buildApiKeyAuthorization,
+  buildOAuthAuthorization,
+  generateCodeVerifier,
+  generateCodeChallenge,
+  exchangeCode,
+  refreshAccessToken,
+  revokeToken,
+} from "./auth/index.js";
 
-export { API_BASE_URL, CONFIG_DIR, SANDBOX_BASE_URL } from "./constants.js";
+export type { OAuthTokens } from "./auth/index.js";
+
+export {
+  API_BASE_URL,
+  CONFIG_DIR,
+  SANDBOX_BASE_URL,
+  OAUTH_AUTH_URL,
+  OAUTH_AUTH_SANDBOX_URL,
+  OAUTH_TOKEN_URL,
+  OAUTH_TOKEN_SANDBOX_URL,
+  OAUTH_REVOKE_URL,
+  OAUTH_REVOKE_SANDBOX_URL,
+} from "./constants.js";
 
 export type { Beneficiary } from "./types/index.js";
 export type { CreditNote, CreditNoteAmount, CreditNoteClient, CreditNoteItem } from "./types/index.js";

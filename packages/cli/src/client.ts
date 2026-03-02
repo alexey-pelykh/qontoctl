@@ -1,7 +1,18 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import { type HttpClientLogger, HttpClient, resolveConfig, buildApiKeyAuthorization } from "@qontoctl/core";
+import {
+  type Authorization,
+  type HttpClientLogger,
+  HttpClient,
+  resolveConfig,
+  buildApiKeyAuthorization,
+  buildOAuthAuthorization,
+  refreshAccessToken,
+  saveOAuthTokens,
+  OAUTH_TOKEN_URL,
+  OAUTH_TOKEN_SANDBOX_URL,
+} from "@qontoctl/core";
 import type { GlobalOptions } from "./options.js";
 
 /**
@@ -9,6 +20,8 @@ import type { GlobalOptions } from "./options.js";
  *
  * Resolves configuration (profile, env), builds the authorization
  * header, and uses the resolved endpoint.
+ *
+ * Auth precedence: OAuth (with auto-refresh) > API key.
  */
 export async function createClient(options: GlobalOptions): Promise<HttpClient> {
   const { config, endpoint, warnings } = await resolveConfig({
@@ -19,10 +32,47 @@ export async function createClient(options: GlobalOptions): Promise<HttpClient> 
     process.stderr.write(`Warning: ${warning}\n`);
   }
 
-  if (config.apiKey === undefined) {
-    throw new Error("No API key credentials found in configuration");
+  let authorization: Authorization;
+
+  if (config.oauth !== undefined && config.oauth.clientId !== "" && config.oauth.accessToken !== undefined) {
+    // OAuth: use dynamic authorization with auto-refresh (requires an active session)
+    const oauth = config.oauth;
+    const tokenUrl = config.sandbox === true ? OAUTH_TOKEN_SANDBOX_URL : OAUTH_TOKEN_URL;
+    const profile = options.profile;
+
+    authorization = async () => {
+      // Check if token is expired and refresh if needed
+      if (oauth.tokenExpiresAt && oauth.refreshToken) {
+        const expiresAt = new Date(oauth.tokenExpiresAt);
+        const now = new Date();
+        // Refresh 60 seconds before expiration
+        if (expiresAt.getTime() - now.getTime() < 60_000) {
+          const tokens = await refreshAccessToken(tokenUrl, oauth.clientId, oauth.clientSecret, oauth.refreshToken);
+          oauth.accessToken = tokens.accessToken;
+          if (tokens.refreshToken) {
+            oauth.refreshToken = tokens.refreshToken;
+          }
+          oauth.tokenExpiresAt = new Date(Date.now() + tokens.expiresIn * 1000).toISOString();
+
+          // Persist refreshed tokens
+          await saveOAuthTokens(
+            {
+              accessToken: oauth.accessToken,
+              refreshToken: oauth.refreshToken,
+              tokenExpiresAt: oauth.tokenExpiresAt,
+            },
+            profile !== undefined ? { profile } : undefined,
+          );
+        }
+      }
+
+      return buildOAuthAuthorization(oauth);
+    };
+  } else if (config.apiKey !== undefined) {
+    authorization = buildApiKeyAuthorization(config.apiKey);
+  } else {
+    throw new Error("No credentials found in configuration");
   }
-  const authorization = buildApiKeyAuthorization(config.apiKey);
 
   let logger: HttpClientLogger | undefined;
   if (options.debug === true) {
