@@ -132,7 +132,16 @@ export {
 
 export type { Attachment } from "./attachments/index.js";
 
-export { getBankAccount, getIbanCertificate, resolveDefaultBankAccount } from "./services/bank-accounts.js";
+export {
+  createBankAccount,
+  getBankAccount,
+  getIbanCertificate,
+  updateBankAccount,
+  closeBankAccount,
+  resolveDefaultBankAccount,
+} from "./services/bank-accounts.js";
+
+export type { CreateBankAccountParams, UpdateBankAccountParams } from "./services/bank-accounts.js";
 export { getEInvoicingSettings } from "./services/einvoicing.js";
 export { getOrganization } from "./services/organization.js";
 

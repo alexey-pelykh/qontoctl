@@ -119,4 +119,123 @@ describe("account MCP tools", () => {
       expect(url.pathname).toBe("/v2/bank_accounts/acc-1/iban_certificate");
     });
   });
+
+  describe("account_create", () => {
+    it("creates an account and returns the result", async () => {
+      fetchSpy.mockReturnValue(
+        jsonResponse({
+          bank_account: { id: "acc-new", name: "New Account", status: "active" },
+        }),
+      );
+
+      const result = await mcpClient.callTool({
+        name: "account_create",
+        arguments: { name: "New Account" },
+      });
+
+      const content = result.content as { type: string; text: string }[];
+      expect(content).toHaveLength(1);
+      const parsed = JSON.parse((content[0] as { type: string; text: string }).text) as {
+        id: string;
+        name: string;
+      };
+      expect(parsed.id).toBe("acc-new");
+      expect(parsed.name).toBe("New Account");
+    });
+
+    it("sends POST with wrapped body to the correct endpoint", async () => {
+      fetchSpy.mockReturnValue(
+        jsonResponse({
+          bank_account: { id: "acc-new", name: "New Account" },
+        }),
+      );
+
+      await mcpClient.callTool({
+        name: "account_create",
+        arguments: { name: "New Account" },
+      });
+
+      const [url, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      expect(url.pathname).toBe("/v2/bank_accounts");
+      expect(opts.method).toBe("POST");
+      const body = JSON.parse(opts.body as string) as { bank_account: { name: string } };
+      expect(body.bank_account.name).toBe("New Account");
+    });
+  });
+
+  describe("account_update", () => {
+    it("updates an account and returns the result", async () => {
+      fetchSpy.mockReturnValue(
+        jsonResponse({
+          bank_account: { id: "acc-1", name: "Updated Name", status: "active" },
+        }),
+      );
+
+      const result = await mcpClient.callTool({
+        name: "account_update",
+        arguments: { id: "acc-1", name: "Updated Name" },
+      });
+
+      const content = result.content as { type: string; text: string }[];
+      expect(content).toHaveLength(1);
+      const parsed = JSON.parse((content[0] as { type: string; text: string }).text) as {
+        id: string;
+        name: string;
+      };
+      expect(parsed.id).toBe("acc-1");
+      expect(parsed.name).toBe("Updated Name");
+    });
+
+    it("sends PUT with wrapped body to the correct endpoint", async () => {
+      fetchSpy.mockReturnValue(
+        jsonResponse({
+          bank_account: { id: "acc-1", name: "Updated Name" },
+        }),
+      );
+
+      await mcpClient.callTool({
+        name: "account_update",
+        arguments: { id: "acc-1", name: "Updated Name" },
+      });
+
+      const [url, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      expect(url.pathname).toBe("/v2/bank_accounts/acc-1");
+      expect(opts.method).toBe("PUT");
+      const body = JSON.parse(opts.body as string) as { bank_account: { name: string } };
+      expect(body.bank_account.name).toBe("Updated Name");
+    });
+  });
+
+  describe("account_close", () => {
+    it("closes an account and returns confirmation", async () => {
+      fetchSpy.mockReturnValue(new Response(null, { status: 204 }));
+
+      const result = await mcpClient.callTool({
+        name: "account_close",
+        arguments: { id: "acc-1" },
+      });
+
+      const content = result.content as { type: string; text: string }[];
+      expect(content).toHaveLength(1);
+      const parsed = JSON.parse((content[0] as { type: string; text: string }).text) as {
+        closed: boolean;
+        id: string;
+      };
+      expect(parsed.closed).toBe(true);
+      expect(parsed.id).toBe("acc-1");
+    });
+
+    it("sends POST to the correct close endpoint", async () => {
+      fetchSpy.mockReturnValue(new Response(null, { status: 204 }));
+
+      await mcpClient.callTool({
+        name: "account_close",
+        arguments: { id: "acc-1" },
+      });
+
+      const [url, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      expect(url.pathname).toBe("/v2/bank_accounts/acc-1/close");
+      expect(opts.method).toBe("POST");
+    });
+  });
 });
