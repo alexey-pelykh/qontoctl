@@ -16,7 +16,7 @@ startCommand:
   commandFunction: |-
     (config) => ({
       command: 'npx',
-      args: ['-y', 'qontoctl@0.1.0', 'mcp'],
+      args: ['-y', 'qontoctl@0.2.0', 'mcp'],
       env: {
         QONTOCTL_ORGANIZATION_SLUG: config.organizationSlug,
         QONTOCTL_SECRET_KEY: config.secretKey
