@@ -24,9 +24,7 @@ export function createAttachmentCommand(): Command {
   const attachment = new Command("attachment").description("Manage attachments");
 
   // --- upload ---
-  const upload = attachment
-    .command("upload <file>")
-    .description("Upload an attachment file (PDF, JPEG, PNG)");
+  const upload = attachment.command("upload <file>").description("Upload an attachment file (PDF, JPEG, PNG)");
   addInheritableOptions(upload);
   addWriteOptions(upload);
   upload.action(async (file: string, _opts: unknown, cmd: Command) => {
@@ -49,9 +47,7 @@ export function createAttachmentCommand(): Command {
   });
 
   // --- show ---
-  const show = attachment
-    .command("show <id>")
-    .description("Show attachment details");
+  const show = attachment.command("show <id>").description("Show attachment details");
   addInheritableOptions(show);
   show.action(async (id: string, _opts: unknown, cmd: Command) => {
     const opts = resolveGlobalOptions<GlobalOptions>(cmd);

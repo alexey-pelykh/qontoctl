@@ -31,9 +31,7 @@ export function registerTransactionAttachmentCommands(parent: Command): void {
   const attachment = parent.command("attachment").description("Manage transaction attachments");
 
   // --- list ---
-  const list = attachment
-    .command("list <transaction-id>")
-    .description("List attachments for a transaction");
+  const list = attachment.command("list <transaction-id>").description("List attachments for a transaction");
   addInheritableOptions(list);
   list.action(async (transactionId: string, _opts: unknown, cmd: Command) => {
     const opts = resolveGlobalOptions<GlobalOptions>(cmd);
@@ -41,16 +39,13 @@ export function registerTransactionAttachmentCommands(parent: Command): void {
 
     const attachments = await listTransactionAttachments(client, transactionId);
 
-    const data =
-      opts.output === "json" || opts.output === "yaml" ? attachments : attachments.map(attachmentToTableRow);
+    const data = opts.output === "json" || opts.output === "yaml" ? attachments : attachments.map(attachmentToTableRow);
 
     process.stdout.write(formatOutput(data, opts.output) + "\n");
   });
 
   // --- add ---
-  const add = attachment
-    .command("add <transaction-id> <file>")
-    .description("Attach a file to a transaction");
+  const add = attachment.command("add <transaction-id> <file>").description("Attach a file to a transaction");
   addInheritableOptions(add);
   addWriteOptions(add);
   add.action(async (transactionId: string, file: string, _opts: unknown, cmd: Command) => {
@@ -83,17 +78,14 @@ export function registerTransactionAttachmentCommands(parent: Command): void {
     const opts = resolveGlobalOptions<GlobalOptions & WriteOptions>(cmd);
     const client = await createClient(opts);
 
-    const idempotencyOpts =
-      opts.idempotencyKey !== undefined ? { idempotencyKey: opts.idempotencyKey } : undefined;
+    const idempotencyOpts = opts.idempotencyKey !== undefined ? { idempotencyKey: opts.idempotencyKey } : undefined;
 
     if (attachmentId !== undefined) {
       await removeTransactionAttachment(client, transactionId, attachmentId, idempotencyOpts);
       process.stderr.write(`Attachment ${attachmentId} removed from transaction ${transactionId}.\n`);
     } else {
       const rl = createInterface({ input: process.stdin, output: process.stderr });
-      const answer = await rl.question(
-        `Remove ALL attachments from transaction ${transactionId}? (yes/no): `,
-      );
+      const answer = await rl.question(`Remove ALL attachments from transaction ${transactionId}? (yes/no): `);
       rl.close();
 
       if (answer.toLowerCase() !== "yes") {
