@@ -176,13 +176,9 @@ export function registerCardTools(server: McpServer, getClient: () => Promise<Ht
           ...(args.foreign_option !== undefined ? { foreign_option: args.foreign_option } : {}),
           ...(args.online_option !== undefined ? { online_option: args.online_option } : {}),
           ...(args.atm_monthly_limit !== undefined ? { atm_monthly_limit: args.atm_monthly_limit } : {}),
-          ...(args.atm_daily_limit_option !== undefined
-            ? { atm_daily_limit_option: args.atm_daily_limit_option }
-            : {}),
+          ...(args.atm_daily_limit_option !== undefined ? { atm_daily_limit_option: args.atm_daily_limit_option } : {}),
           ...(args.atm_daily_limit !== undefined ? { atm_daily_limit: args.atm_daily_limit } : {}),
-          ...(args.payment_monthly_limit !== undefined
-            ? { payment_monthly_limit: args.payment_monthly_limit }
-            : {}),
+          ...(args.payment_monthly_limit !== undefined ? { payment_monthly_limit: args.payment_monthly_limit } : {}),
           ...(args.payment_daily_limit_option !== undefined
             ? { payment_daily_limit_option: args.payment_daily_limit_option }
             : {}),
@@ -193,9 +189,7 @@ export function registerCardTools(server: McpServer, getClient: () => Promise<Ht
           ...(args.payment_transaction_limit !== undefined
             ? { payment_transaction_limit: args.payment_transaction_limit }
             : {}),
-          ...(args.payment_lifespan_limit !== undefined
-            ? { payment_lifespan_limit: args.payment_lifespan_limit }
-            : {}),
+          ...(args.payment_lifespan_limit !== undefined ? { payment_lifespan_limit: args.payment_lifespan_limit } : {}),
           ...(args.pre_expires_at !== undefined ? { pre_expires_at: args.pre_expires_at } : {}),
           ...(args.active_days !== undefined ? { active_days: args.active_days } : {}),
           ...(args.categories !== undefined ? { categories: args.categories } : {}),

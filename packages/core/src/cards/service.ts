@@ -199,10 +199,7 @@ export async function updateCardRestrictions(
 /**
  * Get the secure iframe URL for viewing card details.
  */
-export async function getCardIframeUrl(
-  client: HttpClient,
-  id: string,
-): Promise<string> {
+export async function getCardIframeUrl(client: HttpClient, id: string): Promise<string> {
   const response = await client.get<{ iframe_url: string }>(`/v2/cards/${encodeURIComponent(id)}/data_view`);
   return response.iframe_url;
 }
@@ -210,11 +207,7 @@ export async function getCardIframeUrl(
 /**
  * List available card appearances.
  */
-export async function listCardAppearances(
-  client: HttpClient,
-): Promise<readonly CardTypeAppearances[]> {
-  const response = await client.get<{ card_type_appearances: readonly CardTypeAppearances[] }>(
-    "/v2/cards/appearances",
-  );
+export async function listCardAppearances(client: HttpClient): Promise<readonly CardTypeAppearances[]> {
+  const response = await client.get<{ card_type_appearances: readonly CardTypeAppearances[] }>("/v2/cards/appearances");
   return response.card_type_appearances;
 }

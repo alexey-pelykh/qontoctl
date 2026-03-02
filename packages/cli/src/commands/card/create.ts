@@ -102,7 +102,9 @@ export function registerCardCreateCommand(parent: Command): void {
       ...(opts.foreignOption !== undefined ? { foreign_option: opts.foreignOption === "true" } : {}),
       ...(opts.onlineOption !== undefined ? { online_option: opts.onlineOption === "true" } : {}),
       ...(opts.atmMonthlyLimit !== undefined ? { atm_monthly_limit: Number(opts.atmMonthlyLimit) } : {}),
-      ...(opts.atmDailyLimitOption !== undefined ? { atm_daily_limit_option: opts.atmDailyLimitOption === "true" } : {}),
+      ...(opts.atmDailyLimitOption !== undefined
+        ? { atm_daily_limit_option: opts.atmDailyLimitOption === "true" }
+        : {}),
       ...(opts.atmDailyLimit !== undefined ? { atm_daily_limit: Number(opts.atmDailyLimit) } : {}),
       ...(opts.paymentMonthlyLimit !== undefined ? { payment_monthly_limit: Number(opts.paymentMonthlyLimit) } : {}),
       ...(opts.paymentDailyLimitOption !== undefined
@@ -115,9 +117,7 @@ export function registerCardCreateCommand(parent: Command): void {
       ...(opts.paymentTransactionLimit !== undefined
         ? { payment_transaction_limit: Number(opts.paymentTransactionLimit) }
         : {}),
-      ...(opts.paymentLifespanLimit !== undefined
-        ? { payment_lifespan_limit: Number(opts.paymentLifespanLimit) }
-        : {}),
+      ...(opts.paymentLifespanLimit !== undefined ? { payment_lifespan_limit: Number(opts.paymentLifespanLimit) } : {}),
       ...(opts.preExpiresAt !== undefined ? { pre_expires_at: opts.preExpiresAt } : {}),
       ...(opts.activeDays !== undefined ? { active_days: opts.activeDays.map(Number) } : {}),
       ...(opts.categories !== undefined ? { categories: opts.categories } : {}),

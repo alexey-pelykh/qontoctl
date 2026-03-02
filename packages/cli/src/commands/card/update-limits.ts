@@ -58,7 +58,9 @@ export function registerCardUpdateLimitsCommand(parent: Command): void {
 
     const params: UpdateCardLimitsParams = {
       ...(opts.atmMonthlyLimit !== undefined ? { atm_monthly_limit: Number(opts.atmMonthlyLimit) } : {}),
-      ...(opts.atmDailyLimitOption !== undefined ? { atm_daily_limit_option: opts.atmDailyLimitOption === "true" } : {}),
+      ...(opts.atmDailyLimitOption !== undefined
+        ? { atm_daily_limit_option: opts.atmDailyLimitOption === "true" }
+        : {}),
       ...(opts.atmDailyLimit !== undefined ? { atm_daily_limit: Number(opts.atmDailyLimit) } : {}),
       ...(opts.paymentMonthlyLimit !== undefined ? { payment_monthly_limit: Number(opts.paymentMonthlyLimit) } : {}),
       ...(opts.paymentDailyLimitOption !== undefined
@@ -71,9 +73,7 @@ export function registerCardUpdateLimitsCommand(parent: Command): void {
       ...(opts.paymentTransactionLimit !== undefined
         ? { payment_transaction_limit: Number(opts.paymentTransactionLimit) }
         : {}),
-      ...(opts.paymentLifespanLimit !== undefined
-        ? { payment_lifespan_limit: Number(opts.paymentLifespanLimit) }
-        : {}),
+      ...(opts.paymentLifespanLimit !== undefined ? { payment_lifespan_limit: Number(opts.paymentLifespanLimit) } : {}),
     };
 
     const card = await executeWithCliSca(
