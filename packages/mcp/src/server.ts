@@ -5,6 +5,7 @@ import { createRequire } from "node:module";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { HttpClient } from "@qontoctl/core";
 import {
+  registerAttachmentTools,
   registerAccountTools,
   registerBeneficiaryTools,
   registerBulkTransferTools,
@@ -42,6 +43,7 @@ export function createServer(options?: CreateServerOptions): McpServer {
       throw new Error("No credentials configured. Run 'qontoctl profile add' first.");
     });
 
+  registerAttachmentTools(server, getClient);
   registerAccountTools(server, getClient);
   registerBeneficiaryTools(server, getClient);
   registerBulkTransferTools(server, getClient);
