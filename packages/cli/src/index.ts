@@ -36,10 +36,10 @@ export {
   createLabelCommand,
   createMembershipCommand,
   createQuoteCommand,
-  createRequestCommand,
   createWebhookCommand,
 } from "./commands/index.js";
 
+export { registerRequestCommands } from "./commands/index.js";
 export { registerStatementCommands } from "./commands/index.js";
 
 export { registerBeneficiaryCommands } from "./commands/beneficiary/index.js";

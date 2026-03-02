@@ -14,10 +14,10 @@ import {
   createLabelCommand,
   createMembershipCommand,
   createQuoteCommand,
-  createRequestCommand,
   createWebhookCommand,
   handleCliError,
   registerProfileCommands,
+  registerRequestCommands,
   registerStatementCommands,
   registerTransferCommands,
   resolveGlobalOptions,
@@ -34,8 +34,8 @@ program.addCommand(createInternalTransferCommand());
 program.addCommand(createLabelCommand());
 program.addCommand(createMembershipCommand());
 program.addCommand(createQuoteCommand());
-program.addCommand(createRequestCommand());
 program.addCommand(createWebhookCommand());
+registerRequestCommands(program);
 registerProfileCommands(program);
 registerStatementCommands(program);
 registerTransferCommands(program);

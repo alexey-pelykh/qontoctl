@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import { Command } from "commander";
+import type { Command } from "commander";
 import type { Request } from "@qontoctl/core";
-import { createClient } from "../client.js";
-import { fetchPaginated } from "../pagination.js";
-import { formatOutput } from "../formatters/index.js";
-import { addInheritableOptions, resolveGlobalOptions } from "../inherited-options.js";
-import type { GlobalOptions, PaginationOptions } from "../options.js";
+import { createClient } from "../../client.js";
+import { fetchPaginated } from "../../pagination.js";
+import { formatOutput } from "../../formatters/index.js";
+import { addInheritableOptions, resolveGlobalOptions } from "../../inherited-options.js";
+import type { GlobalOptions, PaginationOptions } from "../../options.js";
 
 function getAmount(r: Request): string {
   switch (r.request_type) {
@@ -22,10 +22,8 @@ function getAmount(r: Request): string {
   }
 }
 
-export function createRequestCommand(): Command {
-  const request = new Command("request").description("Manage requests");
-
-  const list = request.command("list").description("List all requests");
+export function registerRequestListCommand(parent: Command): void {
+  const list = parent.command("list").description("List all requests");
   addInheritableOptions(list);
   list.action(async (_options: unknown, cmd: Command) => {
     const opts = resolveGlobalOptions<GlobalOptions & PaginationOptions>(cmd);
@@ -46,6 +44,4 @@ export function createRequestCommand(): Command {
 
     process.stdout.write(formatOutput(data, opts.output) + "\n");
   });
-
-  return request;
 }
