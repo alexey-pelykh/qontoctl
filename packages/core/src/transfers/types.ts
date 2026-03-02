@@ -39,3 +39,33 @@ export interface ListTransfersParams {
   readonly recurring_transfer_ids?: readonly string[];
   readonly sort_by?: string;
 }
+
+/**
+ * Parameters for creating a SEPA transfer.
+ */
+export interface CreateTransferParams {
+  readonly beneficiary_id: string;
+  readonly debit_account_id: string;
+  readonly reference: string;
+  readonly amount: number;
+  readonly currency: string;
+  readonly note?: string;
+  readonly scheduled_date?: string;
+}
+
+/**
+ * A single Verification of Payee (VoP) entry for bulk requests.
+ */
+export interface VopEntry {
+  readonly iban: string;
+  readonly name: string;
+}
+
+/**
+ * Verification of Payee (VoP) result returned by the Qonto API.
+ */
+export interface VopResult {
+  readonly iban: string;
+  readonly name: string;
+  readonly result: "match" | "mismatch" | "not_available";
+}

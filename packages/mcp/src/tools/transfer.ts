@@ -3,7 +3,14 @@
 
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { HttpClient, PaginationMeta, Transfer } from "@qontoctl/core";
+import type { CreateTransferParams, HttpClient, PaginationMeta, Transfer, VopResult } from "@qontoctl/core";
+import {
+  createTransfer,
+  cancelTransfer,
+  getTransferProof,
+  verifyPayee,
+  bulkVerifyPayee,
+} from "@qontoctl/core";
 import { withClient } from "../errors.js";
 
 interface PaginatedTransfersResponse {
@@ -79,6 +86,125 @@ export function registerTransferTools(server: McpServer, getClient: () => Promis
 
         return {
           content: [{ type: "text" as const, text: JSON.stringify(response.transfer, null, 2) }],
+        };
+      }),
+  );
+
+  server.registerTool(
+    "transfer_create",
+    {
+      description: "Create a SEPA transfer",
+      inputSchema: {
+        beneficiary_id: z.string().describe("Beneficiary UUID"),
+        debit_account_id: z.string().describe("Bank account UUID to debit"),
+        reference: z.string().describe("Transfer reference"),
+        amount: z.number().positive().describe("Amount to transfer"),
+        currency: z.string().optional().describe("Currency code (default: EUR)"),
+        note: z.string().optional().describe("Optional note"),
+        scheduled_date: z.string().optional().describe("Scheduled date (YYYY-MM-DD)"),
+      },
+    },
+    async (args) =>
+      withClient(getClient, async (client) => {
+        const params: CreateTransferParams = {
+          beneficiary_id: args.beneficiary_id,
+          debit_account_id: args.debit_account_id,
+          reference: args.reference,
+          amount: args.amount,
+          currency: args.currency ?? "EUR",
+          ...(args.note !== undefined ? { note: args.note } : {}),
+          ...(args.scheduled_date !== undefined ? { scheduled_date: args.scheduled_date } : {}),
+        };
+
+        const transfer = await createTransfer(client, params);
+
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify(transfer, null, 2) }],
+        };
+      }),
+  );
+
+  server.registerTool(
+    "transfer_cancel",
+    {
+      description: "Cancel a pending SEPA transfer",
+      inputSchema: {
+        id: z.string().describe("Transfer UUID"),
+      },
+    },
+    async ({ id }) =>
+      withClient(getClient, async (client) => {
+        await cancelTransfer(client, id);
+
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({ canceled: true, id }, null, 2) }],
+        };
+      }),
+  );
+
+  server.registerTool(
+    "transfer_proof",
+    {
+      description: "Download SEPA transfer proof PDF (returns base64-encoded content)",
+      inputSchema: {
+        id: z.string().describe("Transfer UUID"),
+      },
+    },
+    async ({ id }) =>
+      withClient(getClient, async (client) => {
+        const buffer = await getTransferProof(client, id);
+
+        return {
+          content: [
+            {
+              type: "resource" as const,
+              resource: {
+                uri: `transfer-proof://${id}`,
+                mimeType: "application/pdf",
+                blob: buffer.toString("base64"),
+              },
+            },
+          ],
+        };
+      }),
+  );
+
+  server.registerTool(
+    "transfer_verify_payee",
+    {
+      description: "Verify a payee (Verification of Payee / VoP)",
+      inputSchema: {
+        iban: z.string().describe("IBAN to verify"),
+        name: z.string().describe("Name to verify against the IBAN"),
+      },
+    },
+    async ({ iban, name }) =>
+      withClient(getClient, async (client) => {
+        const result: VopResult = await verifyPayee(client, { iban, name });
+
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
+        };
+      }),
+  );
+
+  server.registerTool(
+    "transfer_bulk_verify_payee",
+    {
+      description: "Bulk verify payees (Verification of Payee / VoP)",
+      inputSchema: {
+        entries: z
+          .array(z.object({ iban: z.string(), name: z.string() }))
+          .min(1)
+          .describe("Array of { iban, name } entries to verify"),
+      },
+    },
+    async ({ entries }) =>
+      withClient(getClient, async (client) => {
+        const results = await bulkVerifyPayee(client, entries);
+
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify(results, null, 2) }],
         };
       }),
   );

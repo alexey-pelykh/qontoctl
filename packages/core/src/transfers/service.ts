@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import type { HttpClient, QueryParams } from "../http-client.js";
-import type { ListTransfersParams, Transfer } from "./types.js";
+import type { CreateTransferParams, ListTransfersParams, Transfer, VopEntry, VopResult } from "./types.js";
 
 /**
  * Build query parameter record from typed list parameters.
@@ -49,4 +49,62 @@ export function buildTransferQueryParams(params: ListTransfersParams): QueryPara
 export async function getTransfer(client: HttpClient, id: string): Promise<Transfer> {
   const response = await client.get<{ transfer: Transfer }>(`/v2/sepa/transfers/${encodeURIComponent(id)}`);
   return response.transfer;
+}
+
+/**
+ * Create a new SEPA transfer.
+ */
+export async function createTransfer(
+  client: HttpClient,
+  params: CreateTransferParams,
+  options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
+): Promise<Transfer> {
+  const response = await client.post<{ transfer: Transfer }>("/v2/sepa/transfers", params, options);
+  return response.transfer;
+}
+
+/**
+ * Cancel a pending SEPA transfer.
+ */
+export async function cancelTransfer(
+  client: HttpClient,
+  id: string,
+  options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
+): Promise<void> {
+  await client.post("/v2/sepa/transfers/" + encodeURIComponent(id) + "/cancel", undefined, options);
+}
+
+/**
+ * Download a SEPA transfer proof as a PDF buffer.
+ */
+export async function getTransferProof(client: HttpClient, id: string): Promise<Buffer> {
+  return client.getBuffer(`/v2/sepa/transfers/${encodeURIComponent(id)}/proof`);
+}
+
+/**
+ * Verify a single payee (Verification of Payee / VoP).
+ */
+export async function verifyPayee(
+  client: HttpClient,
+  params: VopEntry,
+  options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
+): Promise<VopResult> {
+  const response = await client.post<{ verification: VopResult }>("/v2/sepa/verify_payee", params, options);
+  return response.verification;
+}
+
+/**
+ * Bulk verify payees (Verification of Payee / VoP).
+ */
+export async function bulkVerifyPayee(
+  client: HttpClient,
+  entries: readonly VopEntry[],
+  options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
+): Promise<readonly VopResult[]> {
+  const response = await client.post<{ verifications: readonly VopResult[] }>(
+    "/v2/sepa/bulk_verify_payee",
+    { entries },
+    options,
+  );
+  return response.verifications;
 }
