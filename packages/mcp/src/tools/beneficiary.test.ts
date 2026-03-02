@@ -181,4 +181,164 @@ describe("beneficiary MCP tools", () => {
       expect(url.pathname).toBe("/v2/sepa/beneficiaries/ben-1");
     });
   });
+
+  describe("beneficiary_add", () => {
+    const createdBeneficiary = {
+      id: "ben-new",
+      name: "New Corp",
+      iban: "FR7630001007941234567890185",
+      bic: "BNPAFRPP",
+      email: null,
+      activity_tag: null,
+      status: "pending",
+      trusted: false,
+      created_at: "2026-03-01T00:00:00.000Z",
+      updated_at: "2026-03-01T00:00:00.000Z",
+    };
+
+    it("creates a beneficiary and returns the result", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ beneficiary: createdBeneficiary }));
+
+      const result = await mcpClient.callTool({
+        name: "beneficiary_add",
+        arguments: { name: "New Corp", iban: "FR7630001007941234567890185" },
+      });
+
+      const content = result.content as { type: string; text: string }[];
+      expect(content).toHaveLength(1);
+      const first = content[0] as { type: string; text: string };
+      const parsed = JSON.parse(first.text) as { id: string; name: string };
+      expect(parsed.id).toBe("ben-new");
+      expect(parsed.name).toBe("New Corp");
+    });
+
+    it("sends POST with body to the correct endpoint", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ beneficiary: createdBeneficiary }));
+
+      await mcpClient.callTool({
+        name: "beneficiary_add",
+        arguments: { name: "New Corp", iban: "FR7630001007941234567890185", bic: "BNPAFRPP" },
+      });
+
+      const [url, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      expect(url.pathname).toBe("/v2/sepa/beneficiaries");
+      expect(opts.method).toBe("POST");
+      const body = JSON.parse(opts.body as string) as Record<string, unknown>;
+      expect(body).toHaveProperty("name", "New Corp");
+      expect(body).toHaveProperty("iban", "FR7630001007941234567890185");
+      expect(body).toHaveProperty("bic", "BNPAFRPP");
+    });
+  });
+
+  describe("beneficiary_update", () => {
+    const updatedBeneficiary = {
+      id: "ben-1",
+      name: "Updated Corp",
+      iban: "FR7630001007941234567890185",
+      bic: "BNPAFRPP",
+      email: null,
+      activity_tag: null,
+      status: "validated",
+      trusted: true,
+      created_at: "2025-01-01T00:00:00.000Z",
+      updated_at: "2026-03-01T00:00:00.000Z",
+    };
+
+    it("updates a beneficiary and returns the result", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ beneficiary: updatedBeneficiary }));
+
+      const result = await mcpClient.callTool({
+        name: "beneficiary_update",
+        arguments: { id: "ben-1", name: "Updated Corp" },
+      });
+
+      const content = result.content as { type: string; text: string }[];
+      expect(content).toHaveLength(1);
+      const first = content[0] as { type: string; text: string };
+      const parsed = JSON.parse(first.text) as { id: string; name: string };
+      expect(parsed.id).toBe("ben-1");
+      expect(parsed.name).toBe("Updated Corp");
+    });
+
+    it("sends PUT with body to the correct endpoint", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ beneficiary: updatedBeneficiary }));
+
+      await mcpClient.callTool({
+        name: "beneficiary_update",
+        arguments: { id: "ben-1", name: "Updated Corp" },
+      });
+
+      const [url, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      expect(url.pathname).toBe("/v2/sepa/beneficiaries/ben-1");
+      expect(opts.method).toBe("PUT");
+      const body = JSON.parse(opts.body as string) as Record<string, unknown>;
+      expect(body).toHaveProperty("name", "Updated Corp");
+    });
+  });
+
+  describe("beneficiary_trust", () => {
+    it("trusts beneficiaries and returns confirmation", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({}));
+
+      const result = await mcpClient.callTool({
+        name: "beneficiary_trust",
+        arguments: { ids: ["ben-1", "ben-2"] },
+      });
+
+      const content = result.content as { type: string; text: string }[];
+      expect(content).toHaveLength(1);
+      const first = content[0] as { type: string; text: string };
+      const parsed = JSON.parse(first.text) as { trusted: boolean; ids: string[] };
+      expect(parsed.trusted).toBe(true);
+      expect(parsed.ids).toEqual(["ben-1", "ben-2"]);
+    });
+
+    it("sends POST with ids to the correct endpoint", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({}));
+
+      await mcpClient.callTool({
+        name: "beneficiary_trust",
+        arguments: { ids: ["ben-1"] },
+      });
+
+      const [url, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      expect(url.pathname).toBe("/v2/sepa/beneficiaries/trust");
+      expect(opts.method).toBe("POST");
+      const body = JSON.parse(opts.body as string) as { ids: string[] };
+      expect(body.ids).toEqual(["ben-1"]);
+    });
+  });
+
+  describe("beneficiary_untrust", () => {
+    it("untrusts beneficiaries and returns confirmation", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({}));
+
+      const result = await mcpClient.callTool({
+        name: "beneficiary_untrust",
+        arguments: { ids: ["ben-1", "ben-2"] },
+      });
+
+      const content = result.content as { type: string; text: string }[];
+      expect(content).toHaveLength(1);
+      const first = content[0] as { type: string; text: string };
+      const parsed = JSON.parse(first.text) as { untrusted: boolean; ids: string[] };
+      expect(parsed.untrusted).toBe(true);
+      expect(parsed.ids).toEqual(["ben-1", "ben-2"]);
+    });
+
+    it("sends POST with ids to the correct endpoint", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({}));
+
+      await mcpClient.callTool({
+        name: "beneficiary_untrust",
+        arguments: { ids: ["ben-1"] },
+      });
+
+      const [url, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      expect(url.pathname).toBe("/v2/sepa/beneficiaries/untrust");
+      expect(opts.method).toBe("POST");
+      const body = JSON.parse(opts.body as string) as { ids: string[] };
+      expect(body.ids).toEqual(["ben-1"]);
+    });
+  });
 });
