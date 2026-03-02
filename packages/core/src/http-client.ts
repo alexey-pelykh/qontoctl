@@ -257,6 +257,17 @@ export class HttpClient {
     return this.requestBuffer("GET", path, params !== undefined ? { params } : undefined);
   }
 
+  async put<T>(
+    path: string,
+    body?: unknown,
+    options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
+  ): Promise<T> {
+    return this.request<T>("PUT", path, {
+      ...(body !== undefined ? { body } : {}),
+      ...options,
+    });
+  }
+
   async patch<T>(
     path: string,
     body?: unknown,

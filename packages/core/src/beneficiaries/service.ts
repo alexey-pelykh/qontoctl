@@ -3,7 +3,7 @@
 
 import type { HttpClient, QueryParams } from "../http-client.js";
 import type { Beneficiary } from "../types/beneficiary.js";
-import type { ListBeneficiariesParams } from "./types.js";
+import type { CreateBeneficiaryParams, ListBeneficiariesParams, UpdateBeneficiaryParams } from "./types.js";
 
 /**
  * Build query parameter record from typed list parameters.
@@ -41,4 +41,55 @@ export function buildBeneficiaryQueryParams(params: ListBeneficiariesParams): Qu
 export async function getBeneficiary(client: HttpClient, id: string): Promise<Beneficiary> {
   const response = await client.get<{ beneficiary: Beneficiary }>(`/v2/sepa/beneficiaries/${encodeURIComponent(id)}`);
   return response.beneficiary;
+}
+
+/**
+ * Create a new SEPA beneficiary.
+ */
+export async function createBeneficiary(
+  client: HttpClient,
+  params: CreateBeneficiaryParams,
+  options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
+): Promise<Beneficiary> {
+  const response = await client.post<{ beneficiary: Beneficiary }>("/v2/sepa/beneficiaries", params, options);
+  return response.beneficiary;
+}
+
+/**
+ * Update an existing SEPA beneficiary.
+ */
+export async function updateBeneficiary(
+  client: HttpClient,
+  id: string,
+  params: UpdateBeneficiaryParams,
+  options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
+): Promise<Beneficiary> {
+  const response = await client.put<{ beneficiary: Beneficiary }>(
+    `/v2/sepa/beneficiaries/${encodeURIComponent(id)}`,
+    params,
+    options,
+  );
+  return response.beneficiary;
+}
+
+/**
+ * Trust one or more SEPA beneficiaries.
+ */
+export async function trustBeneficiaries(
+  client: HttpClient,
+  ids: string[],
+  options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
+): Promise<void> {
+  await client.post("/v2/sepa/beneficiaries/trust", { ids }, options);
+}
+
+/**
+ * Untrust one or more SEPA beneficiaries.
+ */
+export async function untrustBeneficiaries(
+  client: HttpClient,
+  ids: string[],
+  options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
+): Promise<void> {
+  await client.post("/v2/sepa/beneficiaries/untrust", { ids }, options);
 }
