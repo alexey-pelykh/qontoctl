@@ -120,4 +120,6 @@ describe.skipIf(!hasCredentials())("MCP label & membership tools (e2e)", () => {
       }
     });
   });
+
+  // Note: membership_show and membership_invite require OAuth, skipped in API-key E2E
 });

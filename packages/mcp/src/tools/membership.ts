@@ -11,6 +11,10 @@ interface PaginatedMembershipsResponse {
   readonly meta: PaginationMeta;
 }
 
+interface SingleMembershipResponse {
+  readonly membership: Membership;
+}
+
 export function registerMembershipTools(server: McpServer, getClient: () => Promise<HttpClient>): void {
   server.registerTool(
     "membership_list",
@@ -37,6 +41,64 @@ export function registerMembershipTools(server: McpServer, getClient: () => Prom
             {
               type: "text" as const,
               text: JSON.stringify({ memberships: response.memberships, meta: response.meta }, null, 2),
+            },
+          ],
+        };
+      }),
+  );
+
+  server.registerTool(
+    "membership_show",
+    {
+      description: "Show the current authenticated user's membership",
+      inputSchema: {},
+    },
+    async () =>
+      withClient(getClient, async (client) => {
+        const response = await client.get<SingleMembershipResponse>("/v2/membership");
+
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(response.membership, null, 2),
+            },
+          ],
+        };
+      }),
+  );
+
+  server.registerTool(
+    "membership_invite",
+    {
+      description: "Invite a new member to the organization",
+      inputSchema: {
+        email: z.string().describe("Email address of the invitee"),
+        role: z
+          .enum(["admin", "manager", "reporting", "employee", "accountant"])
+          .describe("Role for the new member"),
+        first_name: z.string().optional().describe("First name"),
+        last_name: z.string().optional().describe("Last name"),
+        team_id: z.string().optional().describe("Team ID"),
+      },
+    },
+    async (args) =>
+      withClient(getClient, async (client) => {
+        const params: Record<string, string> = {
+          email: args.email,
+          role: args.role,
+        };
+        if (args.first_name !== undefined) params["first_name"] = args.first_name;
+        if (args.last_name !== undefined) params["last_name"] = args.last_name;
+        if (args.team_id !== undefined) params["team_id"] = args.team_id;
+
+        const response = await client.post<SingleMembershipResponse>("/v2/memberships", { membership: params });
+
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(response.membership, null, 2),
             },
           ],
         };

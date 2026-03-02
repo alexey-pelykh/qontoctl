@@ -27,6 +27,7 @@ describe("membership MCP tools", () => {
           id: "mem-1",
           first_name: "Alice",
           last_name: "Smith",
+          email: "alice@example.com",
           role: "owner",
           team_id: "team-1",
           residence_country: "FR",
@@ -106,6 +107,127 @@ describe("membership MCP tools", () => {
       await mcpClient.callTool({
         name: "membership_list",
         arguments: {},
+      });
+
+      const [url] = fetchSpy.mock.calls[0] as [URL];
+      expect(url.pathname).toBe("/v2/memberships");
+    });
+  });
+
+  describe("membership_show", () => {
+    const sampleMembership = {
+      id: "mem-1",
+      first_name: "Alice",
+      last_name: "Smith",
+      email: "alice@example.com",
+      role: "owner",
+      team_id: "team-1",
+      residence_country: "FR",
+      birthdate: "1990-01-01",
+      nationality: "FR",
+      birth_country: "FR",
+      ubo: true,
+      status: "active",
+    };
+
+    it("returns current user's membership", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ membership: sampleMembership }));
+
+      const result = await mcpClient.callTool({
+        name: "membership_show",
+        arguments: {},
+      });
+
+      const content = result.content as { type: string; text: string }[];
+      expect(content).toHaveLength(1);
+      const first = content[0] as { type: string; text: string };
+      const parsed = JSON.parse(first.text) as Record<string, unknown>;
+      expect(parsed).toHaveProperty("id", "mem-1");
+      expect(parsed).toHaveProperty("first_name", "Alice");
+      expect(parsed).toHaveProperty("email", "alice@example.com");
+      expect(parsed).toHaveProperty("role", "owner");
+    });
+
+    it("calls the correct API endpoint", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ membership: sampleMembership }));
+
+      await mcpClient.callTool({
+        name: "membership_show",
+        arguments: {},
+      });
+
+      const [url] = fetchSpy.mock.calls[0] as [URL];
+      expect(url.pathname).toBe("/v2/membership");
+    });
+  });
+
+  describe("membership_invite", () => {
+    const invitedMembership = {
+      id: "mem-new",
+      first_name: "Charlie",
+      last_name: "Brown",
+      email: "charlie@example.com",
+      role: "employee",
+      team_id: "team-1",
+      residence_country: null,
+      birthdate: null,
+      nationality: null,
+      birth_country: null,
+      ubo: null,
+      status: "pending",
+    };
+
+    it("invites a new member", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ membership: invitedMembership }));
+
+      const result = await mcpClient.callTool({
+        name: "membership_invite",
+        arguments: { email: "charlie@example.com", role: "employee" },
+      });
+
+      const content = result.content as { type: string; text: string }[];
+      expect(content).toHaveLength(1);
+      const first = content[0] as { type: string; text: string };
+      const parsed = JSON.parse(first.text) as Record<string, unknown>;
+      expect(parsed).toHaveProperty("id", "mem-new");
+      expect(parsed).toHaveProperty("email", "charlie@example.com");
+      expect(parsed).toHaveProperty("role", "employee");
+      expect(parsed).toHaveProperty("status", "pending");
+    });
+
+    it("sends POST with nested membership body", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ membership: invitedMembership }));
+
+      await mcpClient.callTool({
+        name: "membership_invite",
+        arguments: {
+          email: "charlie@example.com",
+          role: "employee",
+          first_name: "Charlie",
+          last_name: "Brown",
+          team_id: "team-1",
+        },
+      });
+
+      const [url, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      expect(url.pathname).toBe("/v2/memberships");
+      expect(opts.method).toBe("POST");
+      const body = JSON.parse(opts.body as string) as { membership: Record<string, unknown> };
+      expect(body.membership).toEqual({
+        email: "charlie@example.com",
+        role: "employee",
+        first_name: "Charlie",
+        last_name: "Brown",
+        team_id: "team-1",
+      });
+    });
+
+    it("calls the correct API endpoint", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ membership: invitedMembership }));
+
+      await mcpClient.callTool({
+        name: "membership_invite",
+        arguments: { email: "charlie@example.com", role: "employee" },
       });
 
       const [url] = fetchSpy.mock.calls[0] as [URL];

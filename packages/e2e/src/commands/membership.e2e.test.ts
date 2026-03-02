@@ -48,4 +48,6 @@ describe.skipIf(!hasCredentials())("membership commands (e2e)", () => {
       expect(parsed.length).toBeGreaterThanOrEqual(1);
     });
   });
+
+  // Note: membership show and invite require OAuth, skipped in API-key E2E
 });
