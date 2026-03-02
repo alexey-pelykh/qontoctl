@@ -63,6 +63,14 @@ export {
 } from "./constants.js";
 
 export type { Beneficiary } from "./types/index.js";
+export type {
+  Card,
+  CardAppearance,
+  CardLevelAppearance,
+  CardLevelAppearances,
+  CardTypeAppearances,
+  ParentCardSummary,
+} from "./types/index.js";
 export type { Client, ClientAddress } from "./types/index.js";
 export type { CreditNote, CreditNoteAmount, CreditNoteClient, CreditNoteItem } from "./types/index.js";
 export type {
@@ -91,6 +99,32 @@ export type {
   ListBeneficiariesParams,
   UpdateBeneficiaryParams,
 } from "./beneficiaries/index.js";
+
+export {
+  buildCardQueryParams,
+  createCard,
+  bulkCreateCards,
+  lockCard,
+  unlockCard,
+  reportCardLost,
+  reportCardStolen,
+  discardCard,
+  updateCardLimits,
+  updateCardNickname,
+  updateCardOptions,
+  updateCardRestrictions,
+  getCardIframeUrl,
+  listCardAppearances,
+} from "./cards/index.js";
+
+export type {
+  CreateCardParams,
+  ListCardsParams,
+  UpdateCardLimitsParams,
+  UpdateCardOptionsParams,
+  UpdateCardRestrictionsParams,
+  CardAddress,
+} from "./cards/index.js";
 
 export type { Quote, QuoteAddress, QuoteAmount, QuoteClient, QuoteDiscount, QuoteItem } from "./types/index.js";
 

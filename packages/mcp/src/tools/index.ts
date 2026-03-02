@@ -4,6 +4,7 @@
 export { registerAttachmentTools } from "./attachment.js";
 export { registerAccountTools } from "./accounts.js";
 export { registerBeneficiaryTools } from "./beneficiary.js";
+export { registerCardTools } from "./card.js";
 export { registerClientTools } from "./client.js";
 export { registerClientInvoiceTools } from "./client-invoice.js";
 export { registerBulkTransferTools } from "./bulk-transfer.js";

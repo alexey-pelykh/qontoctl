@@ -102,7 +102,7 @@ describe("createServer", () => {
       expect(toolNames).toContain("account_close");
       expect(toolNames).toContain("team_list");
       expect(toolNames).toContain("team_create");
-      expect(tools).toHaveLength(71);
+      expect(tools).toHaveLength(86);
     });
 
     it("tools have descriptions", async () => {
