@@ -3,6 +3,7 @@
 
 export { createAttachmentCommand } from "./attachment.js";
 export { createClientCommand } from "./client.js";
+export { createClientInvoiceCommand } from "./client-invoice.js";
 export { createCreditNoteCommand } from "./credit-note.js";
 export { registerEInvoicingCommands } from "./einvoicing.js";
 export { createInternalTransferCommand } from "./internal-transfer.js";

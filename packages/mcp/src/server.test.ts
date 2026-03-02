@@ -27,7 +27,7 @@ describe("createServer", () => {
       vi.restoreAllMocks();
     });
 
-    it("registers all 43 expected tools", async () => {
+    it("registers all 58 expected tools", async () => {
       const { tools } = await mcpClient.listTools();
       const toolNames = tools.map((t) => t.name);
 
@@ -44,6 +44,18 @@ describe("createServer", () => {
       expect(toolNames).toContain("client_create");
       expect(toolNames).toContain("client_update");
       expect(toolNames).toContain("client_delete");
+      expect(toolNames).toContain("client_invoice_list");
+      expect(toolNames).toContain("client_invoice_show");
+      expect(toolNames).toContain("client_invoice_create");
+      expect(toolNames).toContain("client_invoice_update");
+      expect(toolNames).toContain("client_invoice_delete");
+      expect(toolNames).toContain("client_invoice_finalize");
+      expect(toolNames).toContain("client_invoice_send");
+      expect(toolNames).toContain("client_invoice_mark_paid");
+      expect(toolNames).toContain("client_invoice_unmark_paid");
+      expect(toolNames).toContain("client_invoice_cancel");
+      expect(toolNames).toContain("client_invoice_upload");
+      expect(toolNames).toContain("client_invoice_upload_show");
       expect(toolNames).toContain("credit_note_list");
       expect(toolNames).toContain("credit_note_show");
       expect(toolNames).toContain("einvoicing_settings");
@@ -77,7 +89,7 @@ describe("createServer", () => {
       expect(toolNames).toContain("account_create");
       expect(toolNames).toContain("account_update");
       expect(toolNames).toContain("account_close");
-      expect(tools).toHaveLength(46);
+      expect(tools).toHaveLength(58);
     });
 
     it("tools have descriptions", async () => {

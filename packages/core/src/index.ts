@@ -107,6 +107,32 @@ export type {
   BulkCreateSupplierInvoicesResult,
 } from "./supplier-invoices/index.js";
 
+export {
+  buildClientInvoiceQueryParams,
+  getClientInvoice,
+  createClientInvoice,
+  updateClientInvoice,
+  deleteClientInvoice,
+  finalizeClientInvoice,
+  sendClientInvoice,
+  markClientInvoicePaid,
+  unmarkClientInvoicePaid,
+  cancelClientInvoice,
+  uploadClientInvoiceFile,
+  getClientInvoiceUpload,
+} from "./client-invoices/index.js";
+
+export type {
+  ClientInvoice,
+  ClientInvoiceAmount,
+  ClientInvoiceDiscount,
+  ClientInvoiceItem,
+  ClientInvoiceAddress,
+  ClientInvoiceClient,
+  ClientInvoiceUpload,
+  ListClientInvoicesParams,
+} from "./client-invoices/index.js";
+
 export type { BankAccount, Organization, PaginationMeta } from "./api-types.js";
 
 export { createInternalTransfer } from "./internal-transfers/index.js";

@@ -30,6 +30,7 @@ export { addInheritableOptions, addWriteOptions, resolveGlobalOptions } from "./
 export {
   createAttachmentCommand,
   createClientCommand,
+  createClientInvoiceCommand,
   createCreditNoteCommand,
   createInternalTransferCommand,
   createLabelCommand,
