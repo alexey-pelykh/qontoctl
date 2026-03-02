@@ -309,10 +309,9 @@ describe("membership commands", () => {
       program.addCommand(createMembershipCommand());
       program.exitOverride();
 
-      await program.parseAsync(
-        ["membership", "invite", "--email", "charlie@example.com", "--role", "employee"],
-        { from: "user" },
-      );
+      await program.parseAsync(["membership", "invite", "--email", "charlie@example.com", "--role", "employee"], {
+        from: "user",
+      });
 
       expect(stdoutSpy).toHaveBeenCalled();
       const output = stdoutSpy.mock.calls[0]?.[0] as string;

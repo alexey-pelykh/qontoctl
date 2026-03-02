@@ -74,9 +74,7 @@ export function registerMembershipTools(server: McpServer, getClient: () => Prom
       description: "Invite a new member to the organization",
       inputSchema: {
         email: z.string().describe("Email address of the invitee"),
-        role: z
-          .enum(["admin", "manager", "reporting", "employee", "accountant"])
-          .describe("Role for the new member"),
+        role: z.enum(["admin", "manager", "reporting", "employee", "accountant"]).describe("Role for the new member"),
         first_name: z.string().optional().describe("First name"),
         last_name: z.string().optional().describe("Last name"),
         team_id: z.string().optional().describe("Team ID"),
