@@ -2,7 +2,13 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import type { HttpClient, QueryParams } from "../http-client.js";
+import { z } from "zod";
+import { parseResponse } from "../response.js";
+import { ClientInvoiceSchema, ClientInvoiceUploadSchema } from "./schemas.js";
 import type { ClientInvoice, ClientInvoiceUpload, ListClientInvoicesParams } from "./types.js";
+
+const ClientInvoiceResponseSchema = z.object({ client_invoice: ClientInvoiceSchema });
+const ClientInvoiceUploadResponseSchema = z.object({ upload: ClientInvoiceUploadSchema });
 
 /**
  * Build query parameters for the client invoices list endpoint.
@@ -24,8 +30,9 @@ export function buildClientInvoiceQueryParams(params: ListClientInvoicesParams):
  * Retrieve a single client invoice by ID.
  */
 export async function getClientInvoice(client: HttpClient, id: string): Promise<ClientInvoice> {
-  const response = await client.get<{ client_invoice: ClientInvoice }>(`/v2/client_invoices/${encodeURIComponent(id)}`);
-  return response.client_invoice;
+  const endpointPath = `/v2/client_invoices/${encodeURIComponent(id)}`;
+  const response = await client.get(endpointPath);
+  return parseResponse(ClientInvoiceResponseSchema, response, endpointPath).client_invoice;
 }
 
 /**
@@ -36,8 +43,9 @@ export async function createClientInvoice(
   body: unknown,
   options?: { readonly idempotencyKey?: string },
 ): Promise<ClientInvoice> {
-  const response = await client.post<{ client_invoice: ClientInvoice }>("/v2/client_invoices", body, options);
-  return response.client_invoice;
+  const endpointPath = "/v2/client_invoices";
+  const response = await client.post(endpointPath, body, options);
+  return parseResponse(ClientInvoiceResponseSchema, response, endpointPath).client_invoice;
 }
 
 /**
@@ -49,12 +57,9 @@ export async function updateClientInvoice(
   body: unknown,
   options?: { readonly idempotencyKey?: string },
 ): Promise<ClientInvoice> {
-  const response = await client.patch<{ client_invoice: ClientInvoice }>(
-    `/v2/client_invoices/${encodeURIComponent(id)}`,
-    body,
-    options,
-  );
-  return response.client_invoice;
+  const endpointPath = `/v2/client_invoices/${encodeURIComponent(id)}`;
+  const response = await client.patch(endpointPath, body, options);
+  return parseResponse(ClientInvoiceResponseSchema, response, endpointPath).client_invoice;
 }
 
 /**
@@ -72,10 +77,9 @@ export async function deleteClientInvoice(
  * Finalize a client invoice (assign number, transition from draft to pending).
  */
 export async function finalizeClientInvoice(client: HttpClient, id: string): Promise<ClientInvoice> {
-  const response = await client.post<{ client_invoice: ClientInvoice }>(
-    `/v2/client_invoices/${encodeURIComponent(id)}/finalize`,
-  );
-  return response.client_invoice;
+  const endpointPath = `/v2/client_invoices/${encodeURIComponent(id)}/finalize`;
+  const response = await client.post(endpointPath);
+  return parseResponse(ClientInvoiceResponseSchema, response, endpointPath).client_invoice;
 }
 
 /**
@@ -89,30 +93,27 @@ export async function sendClientInvoice(client: HttpClient, id: string): Promise
  * Mark a client invoice as paid.
  */
 export async function markClientInvoicePaid(client: HttpClient, id: string): Promise<ClientInvoice> {
-  const response = await client.post<{ client_invoice: ClientInvoice }>(
-    `/v2/client_invoices/${encodeURIComponent(id)}/mark_as_paid`,
-  );
-  return response.client_invoice;
+  const endpointPath = `/v2/client_invoices/${encodeURIComponent(id)}/mark_as_paid`;
+  const response = await client.post(endpointPath);
+  return parseResponse(ClientInvoiceResponseSchema, response, endpointPath).client_invoice;
 }
 
 /**
  * Unmark a client invoice as paid (transition back to pending).
  */
 export async function unmarkClientInvoicePaid(client: HttpClient, id: string): Promise<ClientInvoice> {
-  const response = await client.post<{ client_invoice: ClientInvoice }>(
-    `/v2/client_invoices/${encodeURIComponent(id)}/unmark_as_paid`,
-  );
-  return response.client_invoice;
+  const endpointPath = `/v2/client_invoices/${encodeURIComponent(id)}/unmark_as_paid`;
+  const response = await client.post(endpointPath);
+  return parseResponse(ClientInvoiceResponseSchema, response, endpointPath).client_invoice;
 }
 
 /**
  * Cancel a finalized client invoice.
  */
 export async function cancelClientInvoice(client: HttpClient, id: string): Promise<ClientInvoice> {
-  const response = await client.post<{ client_invoice: ClientInvoice }>(
-    `/v2/client_invoices/${encodeURIComponent(id)}/mark_as_canceled`,
-  );
-  return response.client_invoice;
+  const endpointPath = `/v2/client_invoices/${encodeURIComponent(id)}/mark_as_canceled`;
+  const response = await client.post(endpointPath);
+  return parseResponse(ClientInvoiceResponseSchema, response, endpointPath).client_invoice;
 }
 
 /**
@@ -128,12 +129,9 @@ export async function uploadClientInvoiceFile(
   const formData = new FormData();
   formData.append("file", file, fileName);
 
-  const response = await client.postFormData<{ upload: ClientInvoiceUpload }>(
-    `/v2/client_invoices/${encodeURIComponent(invoiceId)}/uploads`,
-    formData,
-    options,
-  );
-  return response.upload;
+  const endpointPath = `/v2/client_invoices/${encodeURIComponent(invoiceId)}/uploads`;
+  const response = await client.postFormData(endpointPath, formData, options);
+  return parseResponse(ClientInvoiceUploadResponseSchema, response, endpointPath).upload;
 }
 
 /**
@@ -144,8 +142,7 @@ export async function getClientInvoiceUpload(
   invoiceId: string,
   uploadId: string,
 ): Promise<ClientInvoiceUpload> {
-  const response = await client.get<{ upload: ClientInvoiceUpload }>(
-    `/v2/client_invoices/${encodeURIComponent(invoiceId)}/uploads/${encodeURIComponent(uploadId)}`,
-  );
-  return response.upload;
+  const endpointPath = `/v2/client_invoices/${encodeURIComponent(invoiceId)}/uploads/${encodeURIComponent(uploadId)}`;
+  const response = await client.get(endpointPath);
+  return parseResponse(ClientInvoiceUploadResponseSchema, response, endpointPath).upload;
 }

@@ -1,8 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
+import { z } from "zod";
 import type { HttpClient } from "../http-client.js";
+import { parseResponse } from "../response.js";
 import type { RequestFlashCard, RequestMultiTransfer, RequestVirtualCard } from "../types/request.js";
+import {
+  RequestFlashCardSchema,
+  RequestMultiTransferSchema,
+  RequestVirtualCardSchema,
+} from "../types/request.schema.js";
 import type {
   ApproveRequestParams,
   CreateFlashCardRequestParams,
@@ -11,6 +18,10 @@ import type {
   DeclineRequestParams,
   RequestType,
 } from "./types.js";
+
+const FlashCardResponseSchema = z.object({ request_flash_card: RequestFlashCardSchema });
+const VirtualCardResponseSchema = z.object({ request_virtual_card: RequestVirtualCardSchema });
+const MultiTransferResponseSchema = z.object({ request_multi_transfer: RequestMultiTransferSchema });
 
 /**
  * Maps request type discriminants to their API path segments (plural forms).
@@ -58,12 +69,9 @@ export async function createFlashCardRequest(
   params: CreateFlashCardRequestParams,
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<RequestFlashCard> {
-  const response = await client.post<{ request_flash_card: RequestFlashCard }>(
-    "/v2/requests/flash_cards",
-    { request_flash_card: params },
-    options,
-  );
-  return response.request_flash_card;
+  const endpointPath = "/v2/requests/flash_cards";
+  const response = await client.post(endpointPath, { request_flash_card: params }, options);
+  return parseResponse(FlashCardResponseSchema, response, endpointPath).request_flash_card;
 }
 
 /**
@@ -74,12 +82,9 @@ export async function createVirtualCardRequest(
   params: CreateVirtualCardRequestParams,
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<RequestVirtualCard> {
-  const response = await client.post<{ request_virtual_card: RequestVirtualCard }>(
-    "/v2/requests/virtual_cards",
-    { request_virtual_card: params },
-    options,
-  );
-  return response.request_virtual_card;
+  const endpointPath = "/v2/requests/virtual_cards";
+  const response = await client.post(endpointPath, { request_virtual_card: params }, options);
+  return parseResponse(VirtualCardResponseSchema, response, endpointPath).request_virtual_card;
 }
 
 /**
@@ -90,10 +95,7 @@ export async function createMultiTransferRequest(
   params: CreateMultiTransferRequestParams,
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<RequestMultiTransfer> {
-  const response = await client.post<{ request_multi_transfer: RequestMultiTransfer }>(
-    "/v2/requests/multi_transfers",
-    { request_multi_transfer: params },
-    options,
-  );
-  return response.request_multi_transfer;
+  const endpointPath = "/v2/requests/multi_transfers";
+  const response = await client.post(endpointPath, { request_multi_transfer: params }, options);
+  return parseResponse(MultiTransferResponseSchema, response, endpointPath).request_multi_transfer;
 }
