@@ -231,6 +231,16 @@ export type {
 } from "./client-invoices/index.js";
 
 export {
+  ClientInvoiceAmountSchema,
+  ClientInvoiceDiscountSchema,
+  ClientInvoiceItemSchema,
+  ClientInvoiceAddressSchema,
+  ClientInvoiceClientSchema,
+  ClientInvoiceUploadSchema,
+  ClientInvoiceSchema,
+} from "./client-invoices/index.js";
+
+export {
   getWebhook,
   createWebhook,
   updateWebhook,
@@ -257,6 +267,14 @@ export type {
   CreateVirtualCardRequestParams,
   MultiTransferItem,
   CreateMultiTransferRequestParams,
+} from "./requests/index.js";
+
+export {
+  RequestFlashCardSchema,
+  RequestVirtualCardSchema,
+  RequestTransferSchema,
+  RequestMultiTransferSchema,
+  RequestSchema,
 } from "./requests/index.js";
 
 export { parseResponse } from "./response.js";

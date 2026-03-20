@@ -26,3 +26,13 @@ export type {
   ClientInvoiceUpload,
   ListClientInvoicesParams,
 } from "./types.js";
+
+export {
+  ClientInvoiceAmountSchema,
+  ClientInvoiceDiscountSchema,
+  ClientInvoiceItemSchema,
+  ClientInvoiceAddressSchema,
+  ClientInvoiceClientSchema,
+  ClientInvoiceUploadSchema,
+  ClientInvoiceSchema,
+} from "./schemas.js";

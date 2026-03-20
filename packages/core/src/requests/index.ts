@@ -18,3 +18,11 @@ export type {
   MultiTransferItem,
   CreateMultiTransferRequestParams,
 } from "./types.js";
+
+export {
+  RequestFlashCardSchema,
+  RequestVirtualCardSchema,
+  RequestTransferSchema,
+  RequestMultiTransferSchema,
+  RequestSchema,
+} from "../types/request.schema.js";
