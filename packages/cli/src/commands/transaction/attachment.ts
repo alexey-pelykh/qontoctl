@@ -63,9 +63,12 @@ export function registerTransactionAttachmentCommands(parent: Command): void {
       opts.idempotencyKey !== undefined ? { idempotencyKey: opts.idempotencyKey } : undefined,
     );
 
-    const data = opts.output === "json" || opts.output === "yaml" ? result : [attachmentToTableRow(result)];
-
-    process.stdout.write(formatOutput(data, opts.output) + "\n");
+    if (result !== undefined) {
+      const data = opts.output === "json" || opts.output === "yaml" ? result : [attachmentToTableRow(result)];
+      process.stdout.write(formatOutput(data, opts.output) + "\n");
+    } else {
+      process.stderr.write(`Attachment ${fileName} added to transaction ${transactionId}.\n`);
+    }
   });
 
   // --- remove ---
