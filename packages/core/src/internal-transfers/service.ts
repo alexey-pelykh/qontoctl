@@ -2,6 +2,8 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import type { HttpClient } from "../http-client.js";
+import { parseResponse } from "../response.js";
+import { InternalTransferResponseSchema } from "./schemas.js";
 import type { CreateInternalTransferParams, InternalTransfer } from "./types.js";
 
 /**
@@ -13,10 +15,7 @@ export async function createInternalTransfer(
   params: CreateInternalTransferParams,
   options?: { readonly idempotencyKey?: string },
 ): Promise<InternalTransfer> {
-  const response = await client.post<{ internal_transfer: InternalTransfer }>(
-    "/v2/internal_transfers",
-    { internal_transfer: params },
-    options,
-  );
-  return response.internal_transfer;
+  const endpointPath = "/v2/internal_transfers";
+  const response = await client.post(endpointPath, { internal_transfer: params }, options);
+  return parseResponse(InternalTransferResponseSchema, response, endpointPath).internal_transfer;
 }

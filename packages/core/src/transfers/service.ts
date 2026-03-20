@@ -2,6 +2,8 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import type { HttpClient, QueryParams } from "../http-client.js";
+import { parseResponse } from "../response.js";
+import { BulkVopResultResponseSchema, TransferResponseSchema, VopResultResponseSchema } from "./schemas.js";
 import type { CreateTransferParams, ListTransfersParams, Transfer, VopEntry, VopResult } from "./types.js";
 
 /**
@@ -47,8 +49,9 @@ export function buildTransferQueryParams(params: ListTransfersParams): QueryPara
  * Fetch a single SEPA transfer by ID.
  */
 export async function getTransfer(client: HttpClient, id: string): Promise<Transfer> {
-  const response = await client.get<{ transfer: Transfer }>(`/v2/sepa/transfers/${encodeURIComponent(id)}`);
-  return response.transfer;
+  const endpointPath = `/v2/sepa/transfers/${encodeURIComponent(id)}`;
+  const response = await client.get(endpointPath);
+  return parseResponse(TransferResponseSchema, response, endpointPath).transfer;
 }
 
 /**
@@ -59,8 +62,9 @@ export async function createTransfer(
   params: CreateTransferParams,
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<Transfer> {
-  const response = await client.post<{ transfer: Transfer }>("/v2/sepa/transfers", params, options);
-  return response.transfer;
+  const endpointPath = "/v2/sepa/transfers";
+  const response = await client.post(endpointPath, params, options);
+  return parseResponse(TransferResponseSchema, response, endpointPath).transfer;
 }
 
 /**
@@ -89,8 +93,9 @@ export async function verifyPayee(
   params: VopEntry,
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<VopResult> {
-  const response = await client.post<{ verification: VopResult }>("/v2/sepa/verify_payee", params, options);
-  return response.verification;
+  const endpointPath = "/v2/sepa/verify_payee";
+  const response = await client.post(endpointPath, params, options);
+  return parseResponse(VopResultResponseSchema, response, endpointPath).verification;
 }
 
 /**
@@ -101,10 +106,7 @@ export async function bulkVerifyPayee(
   entries: readonly VopEntry[],
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<readonly VopResult[]> {
-  const response = await client.post<{ verifications: readonly VopResult[] }>(
-    "/v2/sepa/bulk_verify_payee",
-    { entries },
-    options,
-  );
-  return response.verifications;
+  const endpointPath = "/v2/sepa/bulk_verify_payee";
+  const response = await client.post(endpointPath, { entries }, options);
+  return parseResponse(BulkVopResultResponseSchema, response, endpointPath).verifications;
 }

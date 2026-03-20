@@ -93,6 +93,8 @@ export {
   updateBeneficiary,
   trustBeneficiaries,
   untrustBeneficiaries,
+  BeneficiarySchema,
+  BeneficiaryResponseSchema,
 } from "./beneficiaries/index.js";
 
 export type {
@@ -141,6 +143,11 @@ export {
   getTransferProof,
   verifyPayee,
   bulkVerifyPayee,
+  TransferSchema,
+  TransferResponseSchema,
+  VopResultSchema,
+  VopResultResponseSchema,
+  BulkVopResultResponseSchema,
 } from "./transfers/index.js";
 
 export type { Transfer, ListTransfersParams, CreateTransferParams, VopEntry, VopResult } from "./transfers/index.js";
@@ -188,7 +195,14 @@ export type {
   ListClientInvoicesParams,
 } from "./client-invoices/index.js";
 
-export { getWebhook, createWebhook, updateWebhook, deleteWebhook } from "./webhooks/index.js";
+export {
+  getWebhook,
+  createWebhook,
+  updateWebhook,
+  deleteWebhook,
+  WebhookSubscriptionSchema,
+  WebhookSubscriptionResponseSchema,
+} from "./webhooks/index.js";
 
 export type { CreateWebhookParams, UpdateWebhookParams } from "./webhooks/index.js";
 
@@ -214,7 +228,7 @@ export { parseResponse } from "./response.js";
 
 export type { BankAccount, Organization, PaginationMeta } from "./api-types.js";
 
-export { createInternalTransfer } from "./internal-transfers/index.js";
+export { createInternalTransfer, InternalTransferSchema, InternalTransferResponseSchema } from "./internal-transfers/index.js";
 
 export type { InternalTransfer, CreateInternalTransferParams } from "./internal-transfers/index.js";
 

@@ -3,4 +3,6 @@
 
 export { createInternalTransfer } from "./service.js";
 
+export { InternalTransferSchema, InternalTransferResponseSchema } from "./schemas.js";
+
 export type { InternalTransfer, CreateInternalTransferParams } from "./types.js";

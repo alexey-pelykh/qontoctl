@@ -2,17 +2,18 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import type { HttpClient } from "../http-client.js";
+import { parseResponse } from "../response.js";
 import type { WebhookSubscription } from "../types/webhook-subscription.js";
+import { WebhookSubscriptionResponseSchema } from "./schemas.js";
 import type { CreateWebhookParams, UpdateWebhookParams } from "./types.js";
 
 /**
  * Fetch a single webhook subscription by ID.
  */
 export async function getWebhook(client: HttpClient, id: string): Promise<WebhookSubscription> {
-  const response = await client.get<{ webhook_subscription: WebhookSubscription }>(
-    `/v2/webhook_subscriptions/${encodeURIComponent(id)}`,
-  );
-  return response.webhook_subscription;
+  const endpointPath = `/v2/webhook_subscriptions/${encodeURIComponent(id)}`;
+  const response = await client.get(endpointPath);
+  return parseResponse(WebhookSubscriptionResponseSchema, response, endpointPath).webhook_subscription;
 }
 
 /**
@@ -23,12 +24,9 @@ export async function createWebhook(
   params: CreateWebhookParams,
   options?: { readonly idempotencyKey?: string },
 ): Promise<WebhookSubscription> {
-  const response = await client.post<{ webhook_subscription: WebhookSubscription }>(
-    "/v2/webhook_subscriptions",
-    params,
-    options,
-  );
-  return response.webhook_subscription;
+  const endpointPath = "/v2/webhook_subscriptions";
+  const response = await client.post(endpointPath, params, options);
+  return parseResponse(WebhookSubscriptionResponseSchema, response, endpointPath).webhook_subscription;
 }
 
 /**
@@ -40,12 +38,9 @@ export async function updateWebhook(
   params: UpdateWebhookParams,
   options?: { readonly idempotencyKey?: string },
 ): Promise<WebhookSubscription> {
-  const response = await client.put<{ webhook_subscription: WebhookSubscription }>(
-    `/v2/webhook_subscriptions/${encodeURIComponent(id)}`,
-    params,
-    options,
-  );
-  return response.webhook_subscription;
+  const endpointPath = `/v2/webhook_subscriptions/${encodeURIComponent(id)}`;
+  const response = await client.put(endpointPath, params, options);
+  return parseResponse(WebhookSubscriptionResponseSchema, response, endpointPath).webhook_subscription;
 }
 
 /**
