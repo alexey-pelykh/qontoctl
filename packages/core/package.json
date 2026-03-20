@@ -59,6 +59,7 @@
     "vitest": "catalog:"
   },
   "dependencies": {
-    "yaml": "catalog:"
+    "yaml": "catalog:",
+    "zod": "catalog:"
   }
 }
