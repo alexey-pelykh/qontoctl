@@ -130,6 +130,7 @@ export type {
 export type { Quote, QuoteAddress, QuoteAmount, QuoteClient, QuoteDiscount, QuoteItem } from "./types/index.js";
 
 export type { Statement, StatementFile } from "./statements/index.js";
+export { StatementFileSchema, StatementSchema } from "./statements/index.js";
 
 export { buildTransactionQueryParams, getTransaction } from "./transactions/index.js";
 
@@ -236,6 +237,7 @@ export {
 } from "./attachments/index.js";
 
 export type { Attachment } from "./attachments/index.js";
+export { AttachmentSchema } from "./attachments/index.js";
 
 export {
   createBankAccount,
@@ -253,6 +255,8 @@ export { getOrganization } from "./services/organization.js";
 export {
   ScaDeniedError,
   ScaTimeoutError,
+  ScaSessionSchema,
+  ScaSessionStatusSchema,
   getScaSession,
   mockScaDecision,
   pollScaSession,

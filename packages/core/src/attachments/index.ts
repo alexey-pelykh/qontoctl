@@ -11,3 +11,5 @@ export {
 } from "./service.js";
 
 export type { Attachment } from "./types.js";
+
+export { AttachmentSchema } from "./schemas.js";
