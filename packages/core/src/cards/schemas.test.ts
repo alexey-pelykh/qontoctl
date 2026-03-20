@@ -187,7 +187,8 @@ describe("CardSchema", () => {
   });
 
   it("rejects missing required field", () => {
-    const { id: _, ...cardWithoutId } = makeCard();
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { id: _id, ...cardWithoutId } = makeCard();
     expect(() => CardSchema.parse(cardWithoutId)).toThrow();
   });
 });
