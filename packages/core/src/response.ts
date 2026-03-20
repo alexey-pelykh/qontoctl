@@ -3,11 +3,7 @@
 
 import { z } from "zod";
 
-export function parseResponse<T extends z.ZodType>(
-  schema: T,
-  response: unknown,
-  endpointPath: string,
-): z.infer<T> {
+export function parseResponse<T extends z.ZodType>(schema: T, response: unknown, endpointPath: string): z.infer<T> {
   try {
     return schema.parse(response) as z.infer<T>;
   } catch (error) {
