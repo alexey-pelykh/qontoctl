@@ -209,9 +209,6 @@ export async function getCardIframeUrl(client: HttpClient, id: string): Promise<
 export async function listCardAppearances(client: HttpClient): Promise<readonly CardTypeAppearances[]> {
   const path = "/v2/cards/appearances";
   const response = await client.get<{ card_type_appearances: readonly CardTypeAppearances[] }>(path);
-  return parseResponse(
-    z.object({ card_type_appearances: z.array(CardTypeAppearancesSchema) }),
-    response,
-    path,
-  ).card_type_appearances;
+  return parseResponse(z.object({ card_type_appearances: z.array(CardTypeAppearancesSchema) }), response, path)
+    .card_type_appearances;
 }
