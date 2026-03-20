@@ -3,4 +3,6 @@
 
 export { getRecurringTransfer } from "./service.js";
 
+export { RecurringTransferSchema } from "./schemas.js";
+
 export type { RecurringTransfer } from "./types.js";

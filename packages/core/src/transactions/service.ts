@@ -2,6 +2,8 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import type { HttpClient, QueryParams } from "../http-client.js";
+import { parseResponse } from "../response.js";
+import { TransactionSchema } from "./schemas.js";
 import type { ListTransactionsParams, Transaction } from "./types.js";
 
 /**
@@ -71,9 +73,10 @@ export async function getTransaction(
     params["includes[]"] = includes;
   }
 
+  const endpointPath = `/v2/transactions/${encodeURIComponent(id)}`;
   const response = await client.get<{ transaction: Transaction }>(
-    `/v2/transactions/${encodeURIComponent(id)}`,
+    endpointPath,
     Object.keys(params).length > 0 ? params : undefined,
   );
-  return response.transaction;
+  return parseResponse(TransactionSchema, response.transaction, endpointPath) as Transaction;
 }

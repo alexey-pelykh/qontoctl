@@ -7,6 +7,43 @@ import { jsonResponse } from "../testing/json-response.js";
 import { buildTransactionQueryParams, getTransaction } from "./service.js";
 import type { ListTransactionsParams } from "./types.js";
 
+const validTransaction = {
+  id: "txn-1",
+  transaction_id: "tid-1",
+  amount: 4.5,
+  amount_cents: 450,
+  settled_balance: 1000.0,
+  settled_balance_cents: 100000,
+  local_amount: 4.5,
+  local_amount_cents: 450,
+  side: "debit",
+  operation_type: "card",
+  currency: "EUR",
+  local_currency: "EUR",
+  label: "Coffee Shop",
+  clean_counterparty_name: "Coffee Shop Inc",
+  settled_at: "2026-01-15T10:00:00Z",
+  emitted_at: "2026-01-15T09:00:00Z",
+  created_at: "2026-01-15T09:00:00Z",
+  updated_at: "2026-01-15T10:00:00Z",
+  status: "completed",
+  note: null,
+  reference: null,
+  vat_amount: null,
+  vat_amount_cents: null,
+  vat_rate: null,
+  initiator_id: "user-1",
+  label_ids: [],
+  attachment_ids: [],
+  attachment_lost: false,
+  attachment_required: false,
+  card_last_digits: "1234",
+  category: "meals_and_entertainment",
+  subject_type: "Card",
+  bank_account_id: "acc-1",
+  is_external_transaction: false,
+};
+
 describe("buildTransactionQueryParams", () => {
   it("returns empty object for empty params", () => {
     const result = buildTransactionQueryParams({});
@@ -78,18 +115,17 @@ describe("getTransaction", () => {
   });
 
   it("fetches a transaction by ID", async () => {
-    const txn = { id: "txn-1", label: "Coffee Shop", amount: 4.5 };
-    fetchSpy.mockReturnValue(jsonResponse({ transaction: txn }));
+    fetchSpy.mockReturnValue(jsonResponse({ transaction: validTransaction }));
 
     const result = await getTransaction(client, "txn-1");
-    expect(result).toEqual(txn);
+    expect(result).toEqual(validTransaction);
 
     const [url] = fetchSpy.mock.calls[0] as [URL];
     expect(url.pathname).toBe("/v2/transactions/txn-1");
   });
 
   it("encodes special characters in the ID", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({ transaction: { id: "a/b" } }));
+    fetchSpy.mockReturnValue(jsonResponse({ transaction: { ...validTransaction, id: "a/b" } }));
 
     await getTransaction(client, "a/b");
 
@@ -98,7 +134,7 @@ describe("getTransaction", () => {
   });
 
   it("passes includes as query params", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({ transaction: { id: "txn-1" } }));
+    fetchSpy.mockReturnValue(jsonResponse({ transaction: validTransaction }));
 
     await getTransaction(client, "txn-1", ["labels", "attachments"]);
 
@@ -107,7 +143,7 @@ describe("getTransaction", () => {
   });
 
   it("omits includes param when not provided", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({ transaction: { id: "txn-1" } }));
+    fetchSpy.mockReturnValue(jsonResponse({ transaction: validTransaction }));
 
     await getTransaction(client, "txn-1");
 

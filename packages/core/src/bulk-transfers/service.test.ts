@@ -45,7 +45,21 @@ describe("getBulkTransfer", () => {
   });
 
   it("encodes special characters in the ID", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({ bulk_transfer: { id: "a/b" } }));
+    fetchSpy.mockReturnValue(
+      jsonResponse({
+        bulk_transfer: {
+          id: "a/b",
+          initiator_id: "user-1",
+          created_at: "2026-01-15T10:00:00Z",
+          updated_at: "2026-01-15T10:05:00Z",
+          total_count: 0,
+          completed_count: 0,
+          pending_count: 0,
+          failed_count: 0,
+          results: [],
+        },
+      }),
+    );
 
     await getBulkTransfer(client, "a/b");
 
