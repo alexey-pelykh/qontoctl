@@ -131,7 +131,12 @@ export type { Quote, QuoteAddress, QuoteAmount, QuoteClient, QuoteDiscount, Quot
 
 export type { Statement, StatementFile } from "./statements/index.js";
 
-export { buildTransactionQueryParams, getTransaction, TransactionSchema, TransactionLabelSchema } from "./transactions/index.js";
+export {
+  buildTransactionQueryParams,
+  getTransaction,
+  TransactionSchema,
+  TransactionLabelSchema,
+} from "./transactions/index.js";
 
 export {
   buildTransferQueryParams,
