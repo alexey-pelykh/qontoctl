@@ -228,7 +228,11 @@ export { parseResponse } from "./response.js";
 
 export type { BankAccount, Organization, PaginationMeta } from "./api-types.js";
 
-export { createInternalTransfer, InternalTransferSchema, InternalTransferResponseSchema } from "./internal-transfers/index.js";
+export {
+  createInternalTransfer,
+  InternalTransferSchema,
+  InternalTransferResponseSchema,
+} from "./internal-transfers/index.js";
 
 export type { InternalTransfer, CreateInternalTransferParams } from "./internal-transfers/index.js";
 
