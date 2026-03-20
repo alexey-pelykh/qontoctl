@@ -72,7 +72,14 @@ export type {
   ParentCardSummary,
 } from "./types/index.js";
 export type { Client, ClientAddress } from "./types/index.js";
+export { ClientAddressSchema, ClientSchema } from "./types/index.js";
 export type { CreditNote, CreditNoteAmount, CreditNoteClient, CreditNoteItem } from "./types/index.js";
+export {
+  CreditNoteAmountSchema,
+  CreditNoteClientSchema,
+  CreditNoteItemSchema,
+  CreditNoteSchema,
+} from "./types/index.js";
 export type {
   EInvoicingSettings,
   Label,
@@ -85,6 +92,18 @@ export type {
   Team,
   WebhookSubscription,
 } from "./types/index.js";
+export { EInvoicingSettingsSchema } from "./types/index.js";
+export { LabelSchema } from "./types/index.js";
+export { MembershipSchema } from "./types/index.js";
+export {
+  QuoteAddressSchema,
+  QuoteAmountSchema,
+  QuoteClientSchema,
+  QuoteDiscountSchema,
+  QuoteItemSchema,
+  QuoteSchema,
+} from "./types/index.js";
+export { TeamSchema } from "./types/index.js";
 
 export {
   buildBeneficiaryQueryParams,
@@ -213,6 +232,7 @@ export type {
 export { parseResponse } from "./response.js";
 
 export type { BankAccount, Organization, PaginationMeta } from "./api-types.js";
+export { BankAccountSchema, OrganizationSchema, PaginationMetaSchema } from "./api-types.schema.js";
 
 export { createInternalTransfer } from "./internal-transfers/index.js";
 
