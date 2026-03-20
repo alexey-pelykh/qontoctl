@@ -3,6 +3,13 @@
 
 export { buildSupplierInvoiceQueryParams, getSupplierInvoice, bulkCreateSupplierInvoices } from "./service.js";
 
+export {
+  SupplierInvoiceAmountSchema,
+  SupplierInvoiceSchema,
+  BulkCreateSupplierInvoiceErrorSchema,
+  BulkCreateSupplierInvoicesResultSchema,
+} from "./schemas.js";
+
 export type {
   SupplierInvoice,
   SupplierInvoiceAmount,

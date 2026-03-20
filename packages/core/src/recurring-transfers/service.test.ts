@@ -52,7 +52,28 @@ describe("getRecurringTransfer", () => {
   });
 
   it("encodes special characters in the ID", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({ recurring_transfer: { id: "a/b" } }));
+    fetchSpy.mockReturnValue(
+      jsonResponse({
+        recurring_transfer: {
+          id: "a/b",
+          initiator_id: "user-1",
+          bank_account_id: "acc-1",
+          amount: 100,
+          amount_cents: 10000,
+          amount_currency: "EUR",
+          beneficiary_id: "ben-1",
+          reference: "ref",
+          note: "",
+          first_execution_date: "2026-01-01",
+          last_execution_date: null,
+          next_execution_date: "2026-02-01",
+          frequency: "monthly",
+          status: "active",
+          created_at: "2026-01-01T10:00:00Z",
+          updated_at: "2026-01-01T10:00:00Z",
+        },
+      }),
+    );
 
     await getRecurringTransfer(client, "a/b");
 

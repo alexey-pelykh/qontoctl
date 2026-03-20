@@ -131,7 +131,7 @@ export type { Quote, QuoteAddress, QuoteAmount, QuoteClient, QuoteDiscount, Quot
 
 export type { Statement, StatementFile } from "./statements/index.js";
 
-export { buildTransactionQueryParams, getTransaction } from "./transactions/index.js";
+export { buildTransactionQueryParams, getTransaction, TransactionSchema, TransactionLabelSchema } from "./transactions/index.js";
 
 export {
   buildTransferQueryParams,
@@ -151,6 +151,10 @@ export {
   buildSupplierInvoiceQueryParams,
   getSupplierInvoice,
   bulkCreateSupplierInvoices,
+  SupplierInvoiceAmountSchema,
+  SupplierInvoiceSchema,
+  BulkCreateSupplierInvoiceErrorSchema,
+  BulkCreateSupplierInvoicesResultSchema,
 } from "./supplier-invoices/index.js";
 
 export type {
@@ -218,11 +222,16 @@ export { createInternalTransfer } from "./internal-transfers/index.js";
 
 export type { InternalTransfer, CreateInternalTransferParams } from "./internal-transfers/index.js";
 
-export { getBulkTransfer } from "./bulk-transfers/index.js";
+export {
+  getBulkTransfer,
+  BulkTransferSchema,
+  BulkTransferResultSchema,
+  BulkTransferResultErrorSchema,
+} from "./bulk-transfers/index.js";
 
 export type { BulkTransfer, BulkTransferResult, BulkTransferResultError } from "./bulk-transfers/index.js";
 
-export { getRecurringTransfer } from "./recurring-transfers/index.js";
+export { getRecurringTransfer, RecurringTransferSchema } from "./recurring-transfers/index.js";
 
 export type { RecurringTransfer } from "./recurring-transfers/index.js";
 

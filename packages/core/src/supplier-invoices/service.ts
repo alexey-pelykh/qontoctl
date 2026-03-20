@@ -2,6 +2,8 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import type { HttpClient, QueryParams } from "../http-client.js";
+import { parseResponse } from "../response.js";
+import { BulkCreateSupplierInvoicesResultSchema, SupplierInvoiceSchema } from "./schemas.js";
 import type {
   BulkCreateSupplierInvoiceEntry,
   BulkCreateSupplierInvoicesResult,
@@ -49,10 +51,9 @@ export function buildSupplierInvoiceQueryParams(params: ListSupplierInvoicesPara
  * Fetch a single supplier invoice by ID.
  */
 export async function getSupplierInvoice(client: HttpClient, id: string): Promise<SupplierInvoice> {
-  const response = await client.get<{ supplier_invoice: SupplierInvoice }>(
-    `/v2/supplier_invoices/${encodeURIComponent(id)}`,
-  );
-  return response.supplier_invoice;
+  const endpointPath = `/v2/supplier_invoices/${encodeURIComponent(id)}`;
+  const response = await client.get<{ supplier_invoice: SupplierInvoice }>(endpointPath);
+  return parseResponse(SupplierInvoiceSchema, response.supplier_invoice, endpointPath);
 }
 
 /**
@@ -71,5 +72,11 @@ export async function bulkCreateSupplierInvoices(
     formData.append("supplier_invoices[][idempotency_key]", entry.idempotencyKey);
   }
 
-  return client.postFormData<BulkCreateSupplierInvoicesResult>("/v2/supplier_invoices/bulk", formData);
+  const endpointPath = "/v2/supplier_invoices/bulk";
+  const response = await client.postFormData<BulkCreateSupplierInvoicesResult>(endpointPath, formData);
+  return parseResponse(
+    BulkCreateSupplierInvoicesResultSchema,
+    response,
+    endpointPath,
+  ) as BulkCreateSupplierInvoicesResult;
 }

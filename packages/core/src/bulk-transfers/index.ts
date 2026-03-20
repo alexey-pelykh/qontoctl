@@ -3,4 +3,6 @@
 
 export { getBulkTransfer } from "./service.js";
 
+export { BulkTransferSchema, BulkTransferResultSchema, BulkTransferResultErrorSchema } from "./schemas.js";
+
 export type { BulkTransfer, BulkTransferResult, BulkTransferResultError } from "./types.js";
