@@ -71,7 +71,18 @@ describe("getBeneficiary", () => {
   });
 
   it("fetches a beneficiary by ID", async () => {
-    const beneficiary = { id: "ben-1", name: "Acme Corp", iban: "FR7630001007941234567890185" };
+    const beneficiary = {
+      id: "ben-1",
+      name: "Acme Corp",
+      iban: "FR7630001007941234567890185",
+      bic: "BNPAFRPP",
+      email: null,
+      activity_tag: null,
+      status: "validated",
+      trusted: true,
+      created_at: "2025-01-01T00:00:00Z",
+      updated_at: "2025-01-02T00:00:00Z",
+    };
     fetchSpy.mockReturnValue(jsonResponse({ beneficiary }));
 
     const result = await getBeneficiary(client, "ben-1");
@@ -82,7 +93,19 @@ describe("getBeneficiary", () => {
   });
 
   it("encodes special characters in the ID", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({ beneficiary: { id: "a/b" } }));
+    const beneficiary = {
+      id: "a/b",
+      name: "Test",
+      iban: "FR76X",
+      bic: "BNPAFRPP",
+      email: null,
+      activity_tag: null,
+      status: "pending",
+      trusted: false,
+      created_at: "2025-01-01T00:00:00Z",
+      updated_at: "2025-01-01T00:00:00Z",
+    };
+    fetchSpy.mockReturnValue(jsonResponse({ beneficiary }));
 
     await getBeneficiary(client, "a/b");
 

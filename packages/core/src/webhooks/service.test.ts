@@ -43,7 +43,16 @@ describe("getWebhook", () => {
   });
 
   it("encodes special characters in the ID", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({ webhook_subscription: { id: "a/b" } }));
+    const webhook = {
+      id: "a/b",
+      url: "https://example.com/hook",
+      event_types: ["transactions.created"],
+      status: "enabled",
+      secret: null,
+      created_at: "2026-01-01T00:00:00Z",
+      updated_at: "2026-01-01T00:00:00Z",
+    };
+    fetchSpy.mockReturnValue(jsonResponse({ webhook_subscription: webhook }));
 
     await getWebhook(client, "a/b");
 
@@ -75,6 +84,9 @@ describe("createWebhook", () => {
       url: "https://example.com/hook",
       event_types: ["transactions.created", "transactions.updated"],
       status: "enabled",
+      secret: "whsec_abc",
+      created_at: "2026-01-01T00:00:00Z",
+      updated_at: "2026-01-01T00:00:00Z",
     };
     fetchSpy.mockReturnValue(jsonResponse({ webhook_subscription: webhook }));
 
@@ -119,6 +131,9 @@ describe("updateWebhook", () => {
       url: "https://example.com/new-hook",
       event_types: ["transactions.created"],
       status: "enabled",
+      secret: null,
+      created_at: "2026-01-01T00:00:00Z",
+      updated_at: "2026-01-02T00:00:00Z",
     };
     fetchSpy.mockReturnValue(jsonResponse({ webhook_subscription: webhook }));
 
@@ -136,7 +151,16 @@ describe("updateWebhook", () => {
   });
 
   it("encodes special characters in the ID", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({ webhook_subscription: { id: "a/b" } }));
+    const webhook = {
+      id: "a/b",
+      url: "https://example.com/hook",
+      event_types: ["transactions.created"],
+      status: "enabled",
+      secret: null,
+      created_at: "2026-01-01T00:00:00Z",
+      updated_at: "2026-01-01T00:00:00Z",
+    };
+    fetchSpy.mockReturnValue(jsonResponse({ webhook_subscription: webhook }));
 
     await updateWebhook(client, "a/b", { url: "https://example.com" });
 

@@ -11,4 +11,12 @@ export {
   bulkVerifyPayee,
 } from "./service.js";
 
+export {
+  TransferSchema,
+  TransferResponseSchema,
+  VopResultSchema,
+  VopResultResponseSchema,
+  BulkVopResultResponseSchema,
+} from "./schemas.js";
+
 export type { Transfer, ListTransfersParams, CreateTransferParams, VopEntry, VopResult } from "./types.js";

@@ -2,7 +2,9 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import type { HttpClient, QueryParams } from "../http-client.js";
+import { parseResponse } from "../response.js";
 import type { Beneficiary } from "../types/beneficiary.js";
+import { BeneficiaryResponseSchema } from "./schemas.js";
 import type { CreateBeneficiaryParams, ListBeneficiariesParams, UpdateBeneficiaryParams } from "./types.js";
 
 /**
@@ -39,8 +41,9 @@ export function buildBeneficiaryQueryParams(params: ListBeneficiariesParams): Qu
  * Fetch a single SEPA beneficiary by ID.
  */
 export async function getBeneficiary(client: HttpClient, id: string): Promise<Beneficiary> {
-  const response = await client.get<{ beneficiary: Beneficiary }>(`/v2/sepa/beneficiaries/${encodeURIComponent(id)}`);
-  return response.beneficiary;
+  const endpointPath = `/v2/sepa/beneficiaries/${encodeURIComponent(id)}`;
+  const response = await client.get(endpointPath);
+  return parseResponse(BeneficiaryResponseSchema, response, endpointPath).beneficiary;
 }
 
 /**
@@ -51,8 +54,9 @@ export async function createBeneficiary(
   params: CreateBeneficiaryParams,
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<Beneficiary> {
-  const response = await client.post<{ beneficiary: Beneficiary }>("/v2/sepa/beneficiaries", params, options);
-  return response.beneficiary;
+  const endpointPath = "/v2/sepa/beneficiaries";
+  const response = await client.post(endpointPath, params, options);
+  return parseResponse(BeneficiaryResponseSchema, response, endpointPath).beneficiary;
 }
 
 /**
@@ -64,12 +68,9 @@ export async function updateBeneficiary(
   params: UpdateBeneficiaryParams,
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<Beneficiary> {
-  const response = await client.put<{ beneficiary: Beneficiary }>(
-    `/v2/sepa/beneficiaries/${encodeURIComponent(id)}`,
-    params,
-    options,
-  );
-  return response.beneficiary;
+  const endpointPath = `/v2/sepa/beneficiaries/${encodeURIComponent(id)}`;
+  const response = await client.put(endpointPath, params, options);
+  return parseResponse(BeneficiaryResponseSchema, response, endpointPath).beneficiary;
 }
 
 /**

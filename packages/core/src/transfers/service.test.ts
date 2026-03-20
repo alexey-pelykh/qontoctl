@@ -95,19 +95,39 @@ describe("getTransfer", () => {
     vi.restoreAllMocks();
   });
 
+  const completeTransfer = {
+    id: "txfr-1",
+    initiator_id: "user-1",
+    bank_account_id: "ba-1",
+    beneficiary_id: "ben-1",
+    amount: 100.5,
+    amount_cents: 10050,
+    amount_currency: "EUR",
+    status: "pending",
+    reference: "Invoice 001",
+    note: null,
+    scheduled_date: "2025-03-01",
+    created_at: "2025-01-01T00:00:00Z",
+    updated_at: "2025-01-01T00:00:00Z",
+    processed_at: null,
+    completed_at: null,
+    transaction_id: null,
+    recurring_transfer_id: null,
+    declined_reason: null,
+  };
+
   it("fetches a transfer by ID", async () => {
-    const transfer = { id: "txfr-1", reference: "Invoice 001", amount: 100.5 };
-    fetchSpy.mockReturnValue(jsonResponse({ transfer }));
+    fetchSpy.mockReturnValue(jsonResponse({ transfer: completeTransfer }));
 
     const result = await getTransfer(client, "txfr-1");
-    expect(result).toEqual(transfer);
+    expect(result).toEqual(completeTransfer);
 
     const [url] = fetchSpy.mock.calls[0] as [URL];
     expect(url.pathname).toBe("/v2/sepa/transfers/txfr-1");
   });
 
   it("encodes special characters in the ID", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({ transfer: { id: "a/b" } }));
+    fetchSpy.mockReturnValue(jsonResponse({ transfer: { ...completeTransfer, id: "a/b" } }));
 
     await getTransfer(client, "a/b");
 
@@ -133,9 +153,29 @@ describe("createTransfer", () => {
     vi.restoreAllMocks();
   });
 
+  const newTransfer = {
+    id: "txfr-new",
+    initiator_id: "user-1",
+    bank_account_id: "acc-1",
+    beneficiary_id: "ben-1",
+    amount: 500,
+    amount_cents: 50000,
+    amount_currency: "EUR",
+    status: "pending",
+    reference: "Test Payment",
+    note: null,
+    scheduled_date: "2025-03-01",
+    created_at: "2025-01-01T00:00:00Z",
+    updated_at: "2025-01-01T00:00:00Z",
+    processed_at: null,
+    completed_at: null,
+    transaction_id: null,
+    recurring_transfer_id: null,
+    declined_reason: null,
+  };
+
   it("posts to the correct endpoint and returns transfer", async () => {
-    const transfer = { id: "txfr-new", beneficiary_id: "ben-1", amount: 500, status: "pending" };
-    fetchSpy.mockReturnValue(jsonResponse({ transfer }));
+    fetchSpy.mockReturnValue(jsonResponse({ transfer: newTransfer }));
 
     const result = await createTransfer(client, {
       beneficiary_id: "ben-1",
@@ -144,7 +184,7 @@ describe("createTransfer", () => {
       amount: 500,
       currency: "EUR",
     });
-    expect(result).toEqual(transfer);
+    expect(result).toEqual(newTransfer);
 
     const [url, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
     expect(url.pathname).toBe("/v2/sepa/transfers");
@@ -161,7 +201,7 @@ describe("createTransfer", () => {
   });
 
   it("includes optional note and scheduled_date", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({ transfer: { id: "txfr-new" } }));
+    fetchSpy.mockReturnValue(jsonResponse({ transfer: newTransfer }));
 
     await createTransfer(client, {
       beneficiary_id: "ben-1",

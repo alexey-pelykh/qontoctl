@@ -35,16 +35,29 @@ describe("transfer show command", () => {
     await program.parseAsync(["node", "qontoctl", "transfer", "show", ...args]);
   }
 
+  const completeTransfer = {
+    id: "txfr-123",
+    initiator_id: "user-1",
+    bank_account_id: "ba-1",
+    beneficiary_id: "ben-1",
+    amount: 100.5,
+    amount_cents: 10050,
+    amount_currency: "EUR",
+    status: "settled",
+    reference: "Invoice 001",
+    note: null,
+    scheduled_date: "2025-03-01",
+    created_at: "2025-01-01T00:00:00Z",
+    updated_at: "2025-01-01T00:00:00Z",
+    processed_at: "2025-01-02T00:00:00Z",
+    completed_at: "2025-01-03T00:00:00Z",
+    transaction_id: "txn-1",
+    recurring_transfer_id: null,
+    declined_reason: null,
+  };
+
   it("fetches a transfer by ID", async () => {
-    const transfer = {
-      id: "txfr-123",
-      beneficiary_id: "ben-1",
-      amount: 100.5,
-      amount_currency: "EUR",
-      status: "settled",
-      reference: "Invoice 001",
-    };
-    fetchSpy.mockReturnValue(jsonResponse({ transfer }));
+    fetchSpy.mockReturnValue(jsonResponse({ transfer: completeTransfer }));
 
     await runCommand("txfr-123", "--output", "json");
 
@@ -53,16 +66,11 @@ describe("transfer show command", () => {
     expect(url.pathname).toBe("/v2/sepa/transfers/txfr-123");
 
     const parsed = JSON.parse(writtenOutput.join(""));
-    expect(parsed).toEqual(transfer);
+    expect(parsed).toEqual(completeTransfer);
   });
 
   it("outputs yaml format for single transfer", async () => {
-    const transfer = {
-      id: "txfr-1",
-      beneficiary_id: "ben-1",
-      amount: 1500,
-      reference: "Office Rent",
-    };
+    const transfer = { ...completeTransfer, id: "txfr-1", amount: 1500, reference: "Office Rent" };
     fetchSpy.mockReturnValue(jsonResponse({ transfer }));
 
     await runCommand("txfr-1", "--output", "yaml");
@@ -73,7 +81,7 @@ describe("transfer show command", () => {
   });
 
   it("calls the correct API endpoint with encoded ID", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({ transfer: { id: "a/b" } }));
+    fetchSpy.mockReturnValue(jsonResponse({ transfer: { ...completeTransfer, id: "a/b" } }));
 
     await runCommand("a/b", "--output", "json");
 

@@ -3,4 +3,6 @@
 
 export { getWebhook, createWebhook, updateWebhook, deleteWebhook } from "./service.js";
 
+export { WebhookSubscriptionSchema, WebhookSubscriptionResponseSchema } from "./schemas.js";
+
 export type { CreateWebhookParams, UpdateWebhookParams } from "./types.js";

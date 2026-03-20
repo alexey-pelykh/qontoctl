@@ -10,4 +10,6 @@ export {
   untrustBeneficiaries,
 } from "./service.js";
 
+export { BeneficiarySchema, BeneficiaryResponseSchema } from "./schemas.js";
+
 export type { CreateBeneficiaryParams, ListBeneficiariesParams, UpdateBeneficiaryParams } from "./types.js";
