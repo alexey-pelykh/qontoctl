@@ -7,6 +7,7 @@ import { binaryResponse } from "../testing/binary-response.js";
 import { jsonResponse } from "../testing/json-response.js";
 import {
   buildTransferQueryParams,
+  listTransfers,
   getTransfer,
   createTransfer,
   cancelTransfer,
@@ -75,6 +76,94 @@ describe("buildTransferQueryParams", () => {
       recurring_transfer_ids: [],
     });
     expect(result).toEqual({});
+  });
+});
+
+describe("listTransfers", () => {
+  let fetchSpy: ReturnType<typeof vi.fn>;
+  let client: HttpClient;
+
+  beforeEach(() => {
+    fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    client = new HttpClient({
+      baseUrl: "https://thirdparty.qonto.com",
+      authorization: "slug:secret",
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("lists transfers without params", async () => {
+    const body = {
+      transfers: [
+        {
+          id: "txfr-1",
+          initiator_id: "user-1",
+          bank_account_id: "ba-1",
+          beneficiary_id: "ben-1",
+          amount: 100,
+          amount_cents: 10000,
+          amount_currency: "EUR",
+          status: "pending",
+          reference: "Ref",
+          note: null,
+          scheduled_date: "2025-03-01",
+          created_at: "2025-01-01T00:00:00Z",
+          updated_at: "2025-01-01T00:00:00Z",
+          processed_at: null,
+          completed_at: null,
+          transaction_id: null,
+          recurring_transfer_id: null,
+          declined_reason: null,
+        },
+      ],
+      meta: { current_page: 1, next_page: null, prev_page: null, total_pages: 1, total_count: 1, per_page: 25 },
+    };
+    fetchSpy.mockReturnValue(jsonResponse(body));
+
+    const result = await listTransfers(client);
+    expect(result.transfers).toHaveLength(1);
+    expect(result.meta.current_page).toBe(1);
+
+    const [url] = fetchSpy.mock.calls[0] as [URL];
+    expect(url.pathname).toBe("/v2/sepa/transfers");
+    expect(url.search).toBe("");
+  });
+
+  it("passes filter and pagination params as query strings", async () => {
+    const body = {
+      transfers: [],
+      meta: { current_page: 2, next_page: null, prev_page: 1, total_pages: 2, total_count: 30, per_page: 10 },
+    };
+    fetchSpy.mockReturnValue(jsonResponse(body));
+
+    await listTransfers(client, {
+      status: ["pending"],
+      current_page: 2,
+      per_page: 10,
+    });
+
+    const [url] = fetchSpy.mock.calls[0] as [URL];
+    expect(url.searchParams.getAll("status[]")).toEqual(["pending"]);
+    expect(url.searchParams.get("current_page")).toBe("2");
+    expect(url.searchParams.get("per_page")).toBe("10");
+  });
+
+  it("omits undefined pagination params", async () => {
+    const body = {
+      transfers: [],
+      meta: { current_page: 1, next_page: null, prev_page: null, total_pages: 1, total_count: 0, per_page: 25 },
+    };
+    fetchSpy.mockReturnValue(jsonResponse(body));
+
+    await listTransfers(client, { current_page: 3 });
+
+    const [url] = fetchSpy.mock.calls[0] as [URL];
+    expect(url.searchParams.get("current_page")).toBe("3");
+    expect(url.searchParams.has("per_page")).toBe(false);
   });
 });
 

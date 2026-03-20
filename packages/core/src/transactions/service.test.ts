@@ -4,7 +4,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { HttpClient } from "../http-client.js";
 import { jsonResponse } from "../testing/json-response.js";
-import { buildTransactionQueryParams, getTransaction } from "./service.js";
+import { buildTransactionQueryParams, getTransaction, listTransactions } from "./service.js";
 import type { ListTransactionsParams } from "./types.js";
 
 const validTransaction = {
@@ -149,5 +149,74 @@ describe("getTransaction", () => {
 
     const [url] = fetchSpy.mock.calls[0] as [URL];
     expect(url.searchParams.has("includes[]")).toBe(false);
+  });
+});
+
+describe("listTransactions", () => {
+  let fetchSpy: ReturnType<typeof vi.fn>;
+  let client: HttpClient;
+
+  beforeEach(() => {
+    fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    client = new HttpClient({
+      baseUrl: "https://thirdparty.qonto.com",
+      authorization: "slug:secret",
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("lists transactions without params", async () => {
+    const body = {
+      transactions: [validTransaction],
+      meta: { current_page: 1, next_page: null, prev_page: null, total_pages: 1, total_count: 1, per_page: 25 },
+    };
+    fetchSpy.mockReturnValue(jsonResponse(body));
+
+    const result = await listTransactions(client);
+    expect(result.transactions).toHaveLength(1);
+    expect(result.meta.current_page).toBe(1);
+
+    const [url] = fetchSpy.mock.calls[0] as [URL];
+    expect(url.pathname).toBe("/v2/transactions");
+    expect(url.search).toBe("");
+  });
+
+  it("passes filter and pagination params as query strings", async () => {
+    const body = {
+      transactions: [],
+      meta: { current_page: 2, next_page: null, prev_page: 1, total_pages: 2, total_count: 30, per_page: 10 },
+    };
+    fetchSpy.mockReturnValue(jsonResponse(body));
+
+    await listTransactions(client, {
+      bank_account_id: "acc-1",
+      status: ["completed"],
+      current_page: 2,
+      per_page: 10,
+    });
+
+    const [url] = fetchSpy.mock.calls[0] as [URL];
+    expect(url.searchParams.get("bank_account_id")).toBe("acc-1");
+    expect(url.searchParams.getAll("status[]")).toEqual(["completed"]);
+    expect(url.searchParams.get("current_page")).toBe("2");
+    expect(url.searchParams.get("per_page")).toBe("10");
+  });
+
+  it("omits undefined pagination params", async () => {
+    const body = {
+      transactions: [],
+      meta: { current_page: 1, next_page: null, prev_page: null, total_pages: 1, total_count: 0, per_page: 25 },
+    };
+    fetchSpy.mockReturnValue(jsonResponse(body));
+
+    await listTransactions(client, { current_page: 3 });
+
+    const [url] = fetchSpy.mock.calls[0] as [URL];
+    expect(url.searchParams.get("current_page")).toBe("3");
+    expect(url.searchParams.has("per_page")).toBe(false);
   });
 });
