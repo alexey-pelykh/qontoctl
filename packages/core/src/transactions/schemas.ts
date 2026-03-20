@@ -2,6 +2,8 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { z } from "zod";
+
+import { PaginationMetaSchema } from "../api-types.schema.js";
 import type { Transaction, TransactionLabel } from "./types.js";
 
 /**
@@ -59,3 +61,12 @@ export const TransactionSchema = z
     vat_details: z.unknown().optional(),
   })
   .strip() satisfies z.ZodType<Omit<Transaction, "attachments" | "labels" | "vat_details">>;
+
+export const TransactionResponseSchema = z.object({
+  transaction: TransactionSchema,
+});
+
+export const TransactionListResponseSchema = z.object({
+  transactions: z.array(TransactionSchema),
+  meta: PaginationMetaSchema,
+});

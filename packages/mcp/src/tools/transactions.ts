@@ -3,7 +3,13 @@
 
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { type HttpClient, getOrganization, resolveDefaultBankAccount } from "@qontoctl/core";
+import {
+  type HttpClient,
+  getOrganization,
+  resolveDefaultBankAccount,
+  getTransaction,
+  listTransactions,
+} from "@qontoctl/core";
 import { withClient } from "../errors.js";
 
 export function registerTransactionTools(server: McpServer, getClient: () => Promise<HttpClient>): void {
@@ -29,8 +35,6 @@ export function registerTransactionTools(server: McpServer, getClient: () => Pro
     },
     async (args) =>
       withClient(getClient, async (client) => {
-        const params: Record<string, string> = {};
-
         let bankAccountId = args.bank_account_id;
         if (bankAccountId === undefined && args.iban === undefined) {
           const org = await getOrganization(client);
@@ -40,24 +44,23 @@ export function registerTransactionTools(server: McpServer, getClient: () => Pro
           }
         }
 
-        if (bankAccountId !== undefined) params["bank_account_id"] = bankAccountId;
-        if (args.iban !== undefined) params["iban"] = args.iban;
-        if (args.settled_at_from !== undefined) params["settled_at_from"] = args.settled_at_from;
-        if (args.settled_at_to !== undefined) params["settled_at_to"] = args.settled_at_to;
-        if (args.side !== undefined) params["side"] = args.side;
-        if (args.sort_by !== undefined) params["sort_by"] = args.sort_by;
-        if (args.current_page !== undefined) params["current_page"] = String(args.current_page);
-        if (args.per_page !== undefined) params["per_page"] = String(args.per_page);
-
-        if (args.status !== undefined) params["status[]"] = args.status;
-        if (args.operation_type !== undefined) params["operation_type[]"] = args.operation_type;
-
-        const response = await client.get<{ transactions: unknown[]; meta: unknown }>("/v2/transactions", params);
+        const result = await listTransactions(client, {
+          ...(bankAccountId !== undefined ? { bank_account_id: bankAccountId } : {}),
+          ...(args.iban !== undefined ? { iban: args.iban } : {}),
+          ...(args.settled_at_from !== undefined ? { settled_at_from: args.settled_at_from } : {}),
+          ...(args.settled_at_to !== undefined ? { settled_at_to: args.settled_at_to } : {}),
+          ...(args.side !== undefined ? { side: args.side } : {}),
+          ...(args.sort_by !== undefined ? { sort_by: args.sort_by } : {}),
+          ...(args.status !== undefined ? { status: [args.status] } : {}),
+          ...(args.operation_type !== undefined ? { operation_type: [args.operation_type] } : {}),
+          ...(args.current_page !== undefined ? { current_page: args.current_page } : {}),
+          ...(args.per_page !== undefined ? { per_page: args.per_page } : {}),
+        });
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify({ transactions: response.transactions, meta: response.meta }, null, 2),
+              text: JSON.stringify({ transactions: result.transactions, meta: result.meta }, null, 2),
             },
           ],
         };
@@ -74,9 +77,9 @@ export function registerTransactionTools(server: McpServer, getClient: () => Pro
     },
     async ({ id }) =>
       withClient(getClient, async (client) => {
-        const response = await client.get<{ transaction: unknown }>(`/v2/transactions/${encodeURIComponent(id)}`);
+        const transaction = await getTransaction(client, id);
         return {
-          content: [{ type: "text" as const, text: JSON.stringify(response.transaction, null, 2) }],
+          content: [{ type: "text" as const, text: JSON.stringify(transaction, null, 2) }],
         };
       }),
   );

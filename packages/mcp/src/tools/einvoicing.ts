@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { HttpClient } from "@qontoctl/core";
+import { type HttpClient, getEInvoicingSettings } from "@qontoctl/core";
 import { withClient } from "../errors.js";
 
 export function registerEInvoicingTools(server: McpServer, getClient: () => Promise<HttpClient>): void {
@@ -11,9 +11,9 @@ export function registerEInvoicingTools(server: McpServer, getClient: () => Prom
     { description: "Retrieve e-invoicing settings for the organization" },
     async () =>
       withClient(getClient, async (client) => {
-        const response = await client.get<unknown>("/v2/einvoicing/settings");
+        const settings = await getEInvoicingSettings(client);
         return {
-          content: [{ type: "text" as const, text: JSON.stringify(response, null, 2) }],
+          content: [{ type: "text" as const, text: JSON.stringify(settings, null, 2) }],
         };
       }),
   );

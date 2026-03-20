@@ -2,6 +2,8 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { z } from "zod";
+
+import { PaginationMetaSchema } from "../api-types.schema.js";
 import type { RecurringTransfer } from "./types.js";
 
 /**
@@ -27,3 +29,12 @@ export const RecurringTransferSchema = z
     updated_at: z.string(),
   })
   .strip() satisfies z.ZodType<RecurringTransfer>;
+
+export const RecurringTransferResponseSchema = z.object({
+  recurring_transfer: RecurringTransferSchema,
+});
+
+export const RecurringTransferListResponseSchema = z.object({
+  recurring_transfers: z.array(RecurringTransferSchema),
+  meta: PaginationMetaSchema,
+});

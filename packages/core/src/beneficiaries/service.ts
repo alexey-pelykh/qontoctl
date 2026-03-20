@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
+import type { PaginationMeta } from "../api-types.js";
 import type { HttpClient, QueryParams } from "../http-client.js";
 import { parseResponse } from "../response.js";
 import type { Beneficiary } from "../types/beneficiary.js";
-import { BeneficiaryResponseSchema } from "./schemas.js";
+import { BeneficiaryListResponseSchema, BeneficiaryResponseSchema } from "./schemas.js";
 import type { CreateBeneficiaryParams, ListBeneficiariesParams, UpdateBeneficiaryParams } from "./types.js";
 
 /**
@@ -35,6 +36,24 @@ export function buildBeneficiaryQueryParams(params: ListBeneficiariesParams): Qu
   }
 
   return query;
+}
+
+/**
+ * List SEPA beneficiaries with optional filtering and pagination.
+ */
+export async function listBeneficiaries(
+  client: HttpClient,
+  params?: ListBeneficiariesParams & { current_page?: number; per_page?: number },
+): Promise<{ beneficiaries: Beneficiary[]; meta: PaginationMeta }> {
+  const query: Record<string, string | readonly string[]> = {};
+  if (params) {
+    Object.assign(query, buildBeneficiaryQueryParams(params));
+    if (params.current_page !== undefined) query["current_page"] = String(params.current_page);
+    if (params.per_page !== undefined) query["per_page"] = String(params.per_page);
+  }
+  const endpointPath = "/v2/sepa/beneficiaries";
+  const response = await client.get(endpointPath, Object.keys(query).length > 0 ? query : undefined);
+  return parseResponse(BeneficiaryListResponseSchema, response, endpointPath);
 }
 
 /**

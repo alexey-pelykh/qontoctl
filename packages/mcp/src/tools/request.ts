@@ -3,8 +3,10 @@
 
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { HttpClient, PaginationMeta, Request } from "@qontoctl/core";
+import type { HttpClient } from "@qontoctl/core";
 import {
+  parseResponse,
+  RequestListResponseSchema,
   approveRequest,
   declineRequest,
   createFlashCardRequest,
@@ -12,11 +14,6 @@ import {
   createMultiTransferRequest,
 } from "@qontoctl/core";
 import { withClient } from "../errors.js";
-
-interface PaginatedRequestsResponse {
-  readonly requests: readonly Request[];
-  readonly meta: PaginationMeta;
-}
 
 const requestTypeEnum = z.enum(["flash_card", "virtual_card", "transfer", "multi_transfer"]);
 
@@ -36,16 +33,15 @@ export function registerRequestTools(server: McpServer, getClient: () => Promise
         if (current_page !== undefined) params["current_page"] = String(current_page);
         if (per_page !== undefined) params["per_page"] = String(per_page);
 
-        const response = await client.get<PaginatedRequestsResponse>(
-          "/v2/requests",
-          Object.keys(params).length > 0 ? params : undefined,
-        );
+        const endpointPath = "/v2/requests";
+        const response = await client.get(endpointPath, Object.keys(params).length > 0 ? params : undefined);
+        const result = parseResponse(RequestListResponseSchema, response, endpointPath);
 
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify({ requests: response.requests, meta: response.meta }, null, 2),
+              text: JSON.stringify({ requests: result.requests, meta: result.meta }, null, 2),
             },
           ],
         };

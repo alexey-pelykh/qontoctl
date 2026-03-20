@@ -3,17 +3,9 @@
 
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { CreditNote, HttpClient, PaginationMeta } from "@qontoctl/core";
+import type { HttpClient } from "@qontoctl/core";
+import { parseResponse, CreditNoteResponseSchema, CreditNoteListResponseSchema } from "@qontoctl/core";
 import { withClient } from "../errors.js";
-
-interface PaginatedCreditNotesResponse {
-  readonly credit_notes: readonly CreditNote[];
-  readonly meta: PaginationMeta;
-}
-
-interface SingleCreditNoteResponse {
-  readonly credit_note: CreditNote;
-}
 
 export function registerCreditNoteTools(server: McpServer, getClient: () => Promise<HttpClient>): void {
   server.registerTool(
@@ -31,16 +23,15 @@ export function registerCreditNoteTools(server: McpServer, getClient: () => Prom
         if (current_page !== undefined) params["current_page"] = String(current_page);
         if (per_page !== undefined) params["per_page"] = String(per_page);
 
-        const response = await client.get<PaginatedCreditNotesResponse>(
-          "/v2/credit_notes",
-          Object.keys(params).length > 0 ? params : undefined,
-        );
+        const endpointPath = "/v2/credit_notes";
+        const response = await client.get(endpointPath, Object.keys(params).length > 0 ? params : undefined);
+        const result = parseResponse(CreditNoteListResponseSchema, response, endpointPath);
 
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify({ credit_notes: response.credit_notes, meta: response.meta }, null, 2),
+              text: JSON.stringify({ credit_notes: result.credit_notes, meta: result.meta }, null, 2),
             },
           ],
         };
@@ -57,13 +48,15 @@ export function registerCreditNoteTools(server: McpServer, getClient: () => Prom
     },
     async ({ id }) =>
       withClient(getClient, async (client) => {
-        const response = await client.get<SingleCreditNoteResponse>(`/v2/credit_notes/${encodeURIComponent(id)}`);
+        const endpointPath = `/v2/credit_notes/${encodeURIComponent(id)}`;
+        const response = await client.get(endpointPath);
+        const result = parseResponse(CreditNoteResponseSchema, response, endpointPath);
 
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(response.credit_note, null, 2),
+              text: JSON.stringify(result.credit_note, null, 2),
             },
           ],
         };

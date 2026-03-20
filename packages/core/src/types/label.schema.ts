@@ -3,6 +3,7 @@
 
 import { z } from "zod";
 
+import { PaginationMetaSchema } from "../api-types.schema.js";
 import type { Label } from "./label.js";
 
 export const LabelSchema = z
@@ -12,3 +13,12 @@ export const LabelSchema = z
     parent_id: z.string().nullable(),
   })
   .strip() satisfies z.ZodType<Label>;
+
+export const LabelResponseSchema = z.object({
+  label: LabelSchema,
+});
+
+export const LabelListResponseSchema = z.object({
+  labels: z.array(LabelSchema),
+  meta: PaginationMetaSchema,
+});

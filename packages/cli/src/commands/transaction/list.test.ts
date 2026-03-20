@@ -21,7 +21,23 @@ const ORG_BODY = {
   organization: {
     slug: "test-org",
     legal_name: "Test Org",
-    bank_accounts: [{ id: "auto-acc-1", main: true }],
+    bank_accounts: [
+      {
+        id: "auto-acc-1",
+        name: "Main Account",
+        status: "active",
+        main: true,
+        organization_id: "org-1",
+        iban: "FR7630001007941234567890185",
+        bic: "BNPAFRPP",
+        currency: "EUR",
+        balance: 1000,
+        balance_cents: 100000,
+        authorized_balance: 1000,
+        authorized_balance_cents: 100000,
+        slug: "test-org-main",
+      },
+    ],
   },
 };
 

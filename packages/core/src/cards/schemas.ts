@@ -3,6 +3,8 @@
 
 import { z } from "zod";
 
+import { PaginationMetaSchema } from "../api-types.schema.js";
+
 /**
  * Visual appearance details for a card.
  */
@@ -96,6 +98,15 @@ export const CardSchema = z.object({
   reordered: z.boolean(),
   appearance: CardAppearanceSchema,
   has_only_user_liftable_locks: z.boolean(),
+});
+
+export const CardResponseSchema = z.object({
+  card: CardSchema,
+});
+
+export const CardListResponseSchema = z.object({
+  cards: z.array(CardSchema),
+  meta: PaginationMetaSchema,
 });
 
 /**

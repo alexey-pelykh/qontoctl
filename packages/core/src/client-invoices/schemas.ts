@@ -3,6 +3,7 @@
 
 import { z } from "zod";
 
+import { PaginationMetaSchema } from "../api-types.schema.js";
 import type {
   ClientInvoice,
   ClientInvoiceAddress,
@@ -104,3 +105,12 @@ export const ClientInvoiceSchema = z.object({
   items: z.array(ClientInvoiceItemSchema),
   client: ClientInvoiceClientSchema,
 }) satisfies z.ZodType<ClientInvoice>;
+
+export const ClientInvoiceResponseSchema = z.object({
+  client_invoice: ClientInvoiceSchema,
+});
+
+export const ClientInvoiceListResponseSchema = z.object({
+  client_invoices: z.array(ClientInvoiceSchema),
+  meta: PaginationMetaSchema,
+});

@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
+import type { PaginationMeta } from "../api-types.js";
 import type { HttpClient, QueryParams } from "../http-client.js";
 import { z } from "zod";
 import { parseResponse } from "../response.js";
-import { ClientInvoiceSchema, ClientInvoiceUploadSchema } from "./schemas.js";
+import { ClientInvoiceListResponseSchema, ClientInvoiceResponseSchema, ClientInvoiceUploadSchema } from "./schemas.js";
 import type { ClientInvoice, ClientInvoiceUpload, ListClientInvoicesParams } from "./types.js";
-
-const ClientInvoiceResponseSchema = z.object({ client_invoice: ClientInvoiceSchema });
 const ClientInvoiceUploadResponseSchema = z.object({ upload: ClientInvoiceUploadSchema });
 
 /**
@@ -24,6 +23,24 @@ export function buildClientInvoiceQueryParams(params: ListClientInvoicesParams):
   }
 
   return query;
+}
+
+/**
+ * List client invoices with optional filtering and pagination.
+ */
+export async function listClientInvoices(
+  client: HttpClient,
+  params?: ListClientInvoicesParams & { current_page?: number; per_page?: number },
+): Promise<{ client_invoices: ClientInvoice[]; meta: PaginationMeta }> {
+  const query: Record<string, string | readonly string[]> = {};
+  if (params) {
+    Object.assign(query, buildClientInvoiceQueryParams(params));
+    if (params.current_page !== undefined) query["current_page"] = String(params.current_page);
+    if (params.per_page !== undefined) query["per_page"] = String(params.per_page);
+  }
+  const endpointPath = "/v2/client_invoices";
+  const response = await client.get(endpointPath, Object.keys(query).length > 0 ? query : undefined);
+  return parseResponse(ClientInvoiceListResponseSchema, response, endpointPath);
 }
 
 /**

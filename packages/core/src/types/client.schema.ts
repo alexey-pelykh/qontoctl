@@ -3,6 +3,7 @@
 
 import { z } from "zod";
 
+import { PaginationMetaSchema } from "../api-types.schema.js";
 import type { Client, ClientAddress } from "./client.js";
 
 export const ClientAddressSchema = z
@@ -38,3 +39,12 @@ export const ClientSchema = z
     updated_at: z.string(),
   })
   .strip() satisfies z.ZodType<Client>;
+
+export const ClientResponseSchema = z.object({
+  client: ClientSchema,
+});
+
+export const ClientListResponseSchema = z.object({
+  clients: z.array(ClientSchema),
+  meta: PaginationMetaSchema,
+});

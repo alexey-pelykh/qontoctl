@@ -2,6 +2,8 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { z } from "zod";
+
+import { PaginationMetaSchema } from "../api-types.schema.js";
 import type { Statement, StatementFile } from "./types.js";
 
 /**
@@ -23,3 +25,12 @@ export const StatementSchema = z.object({
   period: z.string(),
   file: StatementFileSchema,
 }) satisfies z.ZodType<Statement>;
+
+export const StatementResponseSchema = z.object({
+  statement: StatementSchema,
+});
+
+export const StatementListResponseSchema = z.object({
+  statements: z.array(StatementSchema),
+  meta: PaginationMetaSchema,
+});

@@ -3,6 +3,7 @@
 
 import { z } from "zod";
 
+import { PaginationMetaSchema } from "../api-types.schema.js";
 import type { WebhookSubscription } from "../types/webhook-subscription.js";
 
 export const WebhookSubscriptionSchema = z.object({
@@ -17,4 +18,9 @@ export const WebhookSubscriptionSchema = z.object({
 
 export const WebhookSubscriptionResponseSchema = z.object({
   webhook_subscription: WebhookSubscriptionSchema,
+});
+
+export const WebhookSubscriptionListResponseSchema = z.object({
+  webhook_subscriptions: z.array(WebhookSubscriptionSchema),
+  meta: PaginationMetaSchema,
 });

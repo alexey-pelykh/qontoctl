@@ -1,9 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
+import type { PaginationMeta } from "../api-types.js";
 import type { HttpClient, QueryParams } from "../http-client.js";
 import { parseResponse } from "../response.js";
-import { BulkVopResultResponseSchema, TransferResponseSchema, VopResultResponseSchema } from "./schemas.js";
+import {
+  BulkVopResultResponseSchema,
+  TransferListResponseSchema,
+  TransferResponseSchema,
+  VopResultResponseSchema,
+} from "./schemas.js";
 import type { CreateTransferParams, ListTransfersParams, Transfer, VopEntry, VopResult } from "./types.js";
 
 /**
@@ -43,6 +49,24 @@ export function buildTransferQueryParams(params: ListTransfersParams): QueryPara
   }
 
   return query;
+}
+
+/**
+ * List SEPA transfers with optional filtering and pagination.
+ */
+export async function listTransfers(
+  client: HttpClient,
+  params?: ListTransfersParams & { current_page?: number; per_page?: number },
+): Promise<{ transfers: Transfer[]; meta: PaginationMeta }> {
+  const query: Record<string, string | readonly string[]> = {};
+  if (params) {
+    Object.assign(query, buildTransferQueryParams(params));
+    if (params.current_page !== undefined) query["current_page"] = String(params.current_page);
+    if (params.per_page !== undefined) query["per_page"] = String(params.per_page);
+  }
+  const endpointPath = "/v2/sepa/transfers";
+  const response = await client.get(endpointPath, Object.keys(query).length > 0 ? query : undefined);
+  return parseResponse(TransferListResponseSchema, response, endpointPath);
 }
 
 /**

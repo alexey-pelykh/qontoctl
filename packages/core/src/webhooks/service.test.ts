@@ -4,7 +4,79 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { HttpClient } from "../http-client.js";
 import { jsonResponse } from "../testing/json-response.js";
-import { getWebhook, createWebhook, updateWebhook, deleteWebhook } from "./service.js";
+import { listWebhooks, getWebhook, createWebhook, updateWebhook, deleteWebhook } from "./service.js";
+
+describe("listWebhooks", () => {
+  let fetchSpy: ReturnType<typeof vi.fn>;
+  let client: HttpClient;
+
+  beforeEach(() => {
+    fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    client = new HttpClient({
+      baseUrl: "https://thirdparty.qonto.com",
+      authorization: "slug:secret",
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("lists webhook subscriptions without params", async () => {
+    const body = {
+      webhook_subscriptions: [
+        {
+          id: "wh-1",
+          url: "https://example.com/hook",
+          event_types: ["transactions.created"],
+          status: "enabled",
+          secret: null,
+          created_at: "2026-01-01T00:00:00Z",
+          updated_at: "2026-01-01T00:00:00Z",
+        },
+      ],
+      meta: { current_page: 1, next_page: null, prev_page: null, total_pages: 1, total_count: 1, per_page: 25 },
+    };
+    fetchSpy.mockReturnValue(jsonResponse(body));
+
+    const result = await listWebhooks(client);
+    expect(result.webhook_subscriptions).toHaveLength(1);
+    expect(result.meta.current_page).toBe(1);
+
+    const [url] = fetchSpy.mock.calls[0] as [URL];
+    expect(url.pathname).toBe("/v2/webhook_subscriptions");
+    expect(url.search).toBe("");
+  });
+
+  it("passes pagination params as query strings", async () => {
+    const body = {
+      webhook_subscriptions: [],
+      meta: { current_page: 2, next_page: null, prev_page: 1, total_pages: 2, total_count: 30, per_page: 25 },
+    };
+    fetchSpy.mockReturnValue(jsonResponse(body));
+
+    await listWebhooks(client, { current_page: 2, per_page: 25 });
+
+    const [url] = fetchSpy.mock.calls[0] as [URL];
+    expect(url.searchParams.get("current_page")).toBe("2");
+    expect(url.searchParams.get("per_page")).toBe("25");
+  });
+
+  it("omits undefined pagination params", async () => {
+    const body = {
+      webhook_subscriptions: [],
+      meta: { current_page: 1, next_page: null, prev_page: null, total_pages: 1, total_count: 0, per_page: 25 },
+    };
+    fetchSpy.mockReturnValue(jsonResponse(body));
+
+    await listWebhooks(client, { current_page: 3 });
+
+    const [url] = fetchSpy.mock.calls[0] as [URL];
+    expect(url.searchParams.get("current_page")).toBe("3");
+    expect(url.searchParams.has("per_page")).toBe(false);
+  });
+});
 
 describe("getWebhook", () => {
   let fetchSpy: ReturnType<typeof vi.fn>;

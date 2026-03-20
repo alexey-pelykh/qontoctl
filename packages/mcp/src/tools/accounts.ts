@@ -3,19 +3,23 @@
 
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { type HttpClient, getIbanCertificate } from "@qontoctl/core";
+import {
+  type HttpClient,
+  getIbanCertificate,
+  listBankAccounts,
+  getBankAccount,
+  createBankAccount,
+  updateBankAccount,
+  closeBankAccount,
+} from "@qontoctl/core";
 import { withClient } from "../errors.js";
-
-interface BankAccountResponse {
-  readonly bank_account: unknown;
-}
 
 export function registerAccountTools(server: McpServer, getClient: () => Promise<HttpClient>): void {
   server.registerTool("account_list", { description: "List all bank accounts for the organization" }, async () =>
     withClient(getClient, async (client) => {
-      const response = await client.get<{ bank_accounts: unknown[] }>("/v2/bank_accounts");
+      const result = await listBankAccounts(client);
       return {
-        content: [{ type: "text" as const, text: JSON.stringify(response.bank_accounts, null, 2) }],
+        content: [{ type: "text" as const, text: JSON.stringify(result.bank_accounts, null, 2) }],
       };
     }),
   );
@@ -30,9 +34,9 @@ export function registerAccountTools(server: McpServer, getClient: () => Promise
     },
     async ({ id }) =>
       withClient(getClient, async (client) => {
-        const response = await client.get<{ bank_account: unknown }>(`/v2/bank_accounts/${encodeURIComponent(id)}`);
+        const bankAccount = await getBankAccount(client, id);
         return {
-          content: [{ type: "text" as const, text: JSON.stringify(response.bank_account, null, 2) }],
+          content: [{ type: "text" as const, text: JSON.stringify(bankAccount, null, 2) }],
         };
       }),
   );
@@ -73,11 +77,9 @@ export function registerAccountTools(server: McpServer, getClient: () => Promise
     },
     async ({ name }) =>
       withClient(getClient, async (client) => {
-        const response = await client.post<BankAccountResponse>("/v2/bank_accounts", {
-          bank_account: { name },
-        });
+        const bankAccount = await createBankAccount(client, { name });
         return {
-          content: [{ type: "text" as const, text: JSON.stringify(response.bank_account, null, 2) }],
+          content: [{ type: "text" as const, text: JSON.stringify(bankAccount, null, 2) }],
         };
       }),
   );
@@ -100,13 +102,9 @@ export function registerAccountTools(server: McpServer, getClient: () => Promise
           }
         }
 
-        const response = await client.request<BankAccountResponse>(
-          "PUT",
-          `/v2/bank_accounts/${encodeURIComponent(id)}`,
-          { body: { bank_account: body } },
-        );
+        const bankAccount = await updateBankAccount(client, id, body);
         return {
-          content: [{ type: "text" as const, text: JSON.stringify(response.bank_account, null, 2) }],
+          content: [{ type: "text" as const, text: JSON.stringify(bankAccount, null, 2) }],
         };
       }),
   );
@@ -121,7 +119,7 @@ export function registerAccountTools(server: McpServer, getClient: () => Promise
     },
     async ({ id }) =>
       withClient(getClient, async (client) => {
-        await client.requestVoid("POST", `/v2/bank_accounts/${encodeURIComponent(id)}/close`);
+        await closeBankAccount(client, id);
         return {
           content: [{ type: "text" as const, text: JSON.stringify({ closed: true, id }, null, 2) }],
         };

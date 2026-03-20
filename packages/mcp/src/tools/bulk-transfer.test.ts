@@ -6,6 +6,33 @@ import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { jsonResponse } from "@qontoctl/core/testing";
 import { connectInMemory } from "../testing/mcp-helpers.js";
 
+function makeMeta(overrides: Record<string, unknown> = {}) {
+  return {
+    current_page: 1,
+    next_page: null,
+    prev_page: null,
+    total_pages: 1,
+    total_count: 1,
+    per_page: 100,
+    ...overrides,
+  };
+}
+
+function makeBulkTransfer(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "bt-1",
+    initiator_id: "init-1",
+    created_at: "2026-01-01T00:00:00Z",
+    updated_at: "2026-01-01T00:00:00Z",
+    total_count: 5,
+    completed_count: 3,
+    pending_count: 1,
+    failed_count: 1,
+    results: [],
+    ...overrides,
+  };
+}
+
 describe("bulk-transfer MCP tools", () => {
   let fetchSpy: ReturnType<typeof vi.fn>;
   let mcpClient: Client;
@@ -24,8 +51,8 @@ describe("bulk-transfer MCP tools", () => {
     it("returns bulk transfers from API", async () => {
       fetchSpy.mockReturnValue(
         jsonResponse({
-          bulk_transfers: [{ id: "bt-1", total_count: 5 }],
-          meta: { current_page: 1, total_pages: 1, total_count: 1 },
+          bulk_transfers: [makeBulkTransfer()],
+          meta: makeMeta(),
         }),
       );
 
@@ -36,18 +63,18 @@ describe("bulk-transfer MCP tools", () => {
 
       const content = result.content as { type: string; text: string }[];
       expect(content).toHaveLength(1);
-      const parsed: unknown = JSON.parse((content[0] as { type: string; text: string }).text);
-      expect(parsed).toEqual({
-        bulk_transfers: [{ id: "bt-1", total_count: 5 }],
-        meta: { current_page: 1, total_pages: 1, total_count: 1 },
-      });
+      const parsed = JSON.parse((content[0] as { type: string; text: string }).text) as {
+        bulk_transfers: { id: string }[];
+      };
+      expect(parsed.bulk_transfers).toHaveLength(1);
+      expect(parsed.bulk_transfers[0]?.id).toBe("bt-1");
     });
 
     it("calls the correct API endpoint", async () => {
       fetchSpy.mockReturnValue(
         jsonResponse({
           bulk_transfers: [],
-          meta: { current_page: 1, total_pages: 0, total_count: 0 },
+          meta: makeMeta({ total_count: 0 }),
         }),
       );
 
@@ -64,7 +91,7 @@ describe("bulk-transfer MCP tools", () => {
       fetchSpy.mockReturnValue(
         jsonResponse({
           bulk_transfers: [],
-          meta: { current_page: 2, total_pages: 3, total_count: 10 },
+          meta: makeMeta({ current_page: 2, total_pages: 3, total_count: 10 }),
         }),
       );
 
@@ -83,7 +110,7 @@ describe("bulk-transfer MCP tools", () => {
     it("returns a single bulk transfer", async () => {
       fetchSpy.mockReturnValue(
         jsonResponse({
-          bulk_transfer: { id: "bt-1", total_count: 5 },
+          bulk_transfer: makeBulkTransfer(),
         }),
       );
 
@@ -94,14 +121,14 @@ describe("bulk-transfer MCP tools", () => {
 
       const content = result.content as { type: string; text: string }[];
       expect(content).toHaveLength(1);
-      const parsed: unknown = JSON.parse((content[0] as { type: string; text: string }).text);
-      expect(parsed).toEqual({ id: "bt-1", total_count: 5 });
+      const parsed = JSON.parse((content[0] as { type: string; text: string }).text) as { id: string };
+      expect(parsed.id).toBe("bt-1");
     });
 
     it("calls the correct API endpoint", async () => {
       fetchSpy.mockReturnValue(
         jsonResponse({
-          bulk_transfer: { id: "bt-1", total_count: 5 },
+          bulk_transfer: makeBulkTransfer(),
         }),
       );
 

@@ -3,6 +3,7 @@
 
 import { z } from "zod";
 
+import { PaginationMetaSchema } from "../api-types.schema.js";
 import type { Quote, QuoteAddress, QuoteAmount, QuoteClient, QuoteDiscount, QuoteItem } from "./quote.js";
 
 export const QuoteAmountSchema = z
@@ -101,3 +102,12 @@ export const QuoteSchema = z
     invoice_ids: z.array(z.string()).readonly(),
   })
   .strip() satisfies z.ZodType<Quote>;
+
+export const QuoteResponseSchema = z.object({
+  quote: QuoteSchema,
+});
+
+export const QuoteListResponseSchema = z.object({
+  quotes: z.array(QuoteSchema),
+  meta: PaginationMetaSchema,
+});

@@ -3,24 +3,16 @@
 
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type {
-  Beneficiary,
-  CreateBeneficiaryParams,
-  HttpClient,
-  PaginationMeta,
-  UpdateBeneficiaryParams,
+import type { CreateBeneficiaryParams, HttpClient, UpdateBeneficiaryParams } from "@qontoctl/core";
+import {
+  getBeneficiary,
+  listBeneficiaries,
+  createBeneficiary,
+  updateBeneficiary,
+  trustBeneficiaries,
+  untrustBeneficiaries,
 } from "@qontoctl/core";
-import { createBeneficiary, updateBeneficiary, trustBeneficiaries, untrustBeneficiaries } from "@qontoctl/core";
 import { withClient } from "../errors.js";
-
-interface PaginatedBeneficiariesResponse {
-  readonly beneficiaries: readonly Beneficiary[];
-  readonly meta: PaginationMeta;
-}
-
-interface SingleBeneficiaryResponse {
-  readonly beneficiary: Beneficiary;
-}
 
 export function registerBeneficiaryTools(server: McpServer, getClient: () => Promise<HttpClient>): void {
   server.registerTool(
@@ -40,27 +32,22 @@ export function registerBeneficiaryTools(server: McpServer, getClient: () => Pro
     },
     async (args) =>
       withClient(getClient, async (client) => {
-        const params: Record<string, string> = {};
-
-        if (args.status !== undefined) params["status[]"] = args.status;
-        if (args.trusted !== undefined) params["trusted"] = String(args.trusted);
-        if (args.iban !== undefined) params["iban[]"] = args.iban;
-        if (args.updated_at_from !== undefined) params["updated_at_from"] = args.updated_at_from;
-        if (args.updated_at_to !== undefined) params["updated_at_to"] = args.updated_at_to;
-        if (args.sort_by !== undefined) params["sort_by"] = args.sort_by;
-        if (args.current_page !== undefined) params["current_page"] = String(args.current_page);
-        if (args.per_page !== undefined) params["per_page"] = String(args.per_page);
-
-        const response = await client.get<PaginatedBeneficiariesResponse>(
-          "/v2/sepa/beneficiaries",
-          Object.keys(params).length > 0 ? params : undefined,
-        );
+        const result = await listBeneficiaries(client, {
+          ...(args.status !== undefined ? { status: [args.status] } : {}),
+          ...(args.trusted !== undefined ? { trusted: args.trusted } : {}),
+          ...(args.iban !== undefined ? { iban: [args.iban] } : {}),
+          ...(args.updated_at_from !== undefined ? { updated_at_from: args.updated_at_from } : {}),
+          ...(args.updated_at_to !== undefined ? { updated_at_to: args.updated_at_to } : {}),
+          ...(args.sort_by !== undefined ? { sort_by: args.sort_by } : {}),
+          ...(args.current_page !== undefined ? { current_page: args.current_page } : {}),
+          ...(args.per_page !== undefined ? { per_page: args.per_page } : {}),
+        });
 
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify({ beneficiaries: response.beneficiaries, meta: response.meta }, null, 2),
+              text: JSON.stringify({ beneficiaries: result.beneficiaries, meta: result.meta }, null, 2),
             },
           ],
         };
@@ -77,15 +64,13 @@ export function registerBeneficiaryTools(server: McpServer, getClient: () => Pro
     },
     async ({ id }) =>
       withClient(getClient, async (client) => {
-        const response = await client.get<SingleBeneficiaryResponse>(
-          `/v2/sepa/beneficiaries/${encodeURIComponent(id)}`,
-        );
+        const beneficiary = await getBeneficiary(client, id);
 
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(response.beneficiary, null, 2),
+              text: JSON.stringify(beneficiary, null, 2),
             },
           ],
         };

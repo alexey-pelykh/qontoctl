@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { HttpClient } from "@qontoctl/core";
+import { type HttpClient, getOrganization } from "@qontoctl/core";
 import { withClient } from "../errors.js";
 
 export function registerOrgTools(server: McpServer, getClient: () => Promise<HttpClient>): void {
@@ -11,9 +11,9 @@ export function registerOrgTools(server: McpServer, getClient: () => Promise<Htt
     { description: "Show organization details including name, slug, and bank accounts" },
     async () =>
       withClient(getClient, async (client) => {
-        const response = await client.get<{ organization: unknown }>("/v2/organization");
+        const organization = await getOrganization(client);
         return {
-          content: [{ type: "text" as const, text: JSON.stringify(response.organization, null, 2) }],
+          content: [{ type: "text" as const, text: JSON.stringify(organization, null, 2) }],
         };
       }),
   );

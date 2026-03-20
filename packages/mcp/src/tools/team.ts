@@ -3,13 +3,9 @@
 
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { HttpClient, PaginationMeta, Team } from "@qontoctl/core";
+import type { HttpClient } from "@qontoctl/core";
+import { parseResponse, TeamResponseSchema, TeamListResponseSchema } from "@qontoctl/core";
 import { withClient } from "../errors.js";
-
-interface PaginatedTeamsResponse {
-  readonly teams: readonly Team[];
-  readonly meta: PaginationMeta;
-}
 
 export function registerTeamTools(server: McpServer, getClient: () => Promise<HttpClient>): void {
   server.registerTool(
@@ -27,16 +23,15 @@ export function registerTeamTools(server: McpServer, getClient: () => Promise<Ht
         if (current_page !== undefined) params["current_page"] = String(current_page);
         if (per_page !== undefined) params["per_page"] = String(per_page);
 
-        const response = await client.get<PaginatedTeamsResponse>(
-          "/v2/teams",
-          Object.keys(params).length > 0 ? params : undefined,
-        );
+        const endpointPath = "/v2/teams";
+        const response = await client.get(endpointPath, Object.keys(params).length > 0 ? params : undefined);
+        const result = parseResponse(TeamListResponseSchema, response, endpointPath);
 
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify({ teams: response.teams, meta: response.meta }, null, 2),
+              text: JSON.stringify({ teams: result.teams, meta: result.meta }, null, 2),
             },
           ],
         };
@@ -53,13 +48,15 @@ export function registerTeamTools(server: McpServer, getClient: () => Promise<Ht
     },
     async ({ name }) =>
       withClient(getClient, async (client) => {
-        const response = await client.post<{ team: Team }>("/v2/teams", { name });
+        const endpointPath = "/v2/teams";
+        const response = await client.post(endpointPath, { name });
+        const result = parseResponse(TeamResponseSchema, response, endpointPath);
 
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(response.team, null, 2),
+              text: JSON.stringify(result.team, null, 2),
             },
           ],
         };

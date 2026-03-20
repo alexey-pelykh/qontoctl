@@ -2,10 +2,11 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { z } from "zod";
+import type { PaginationMeta } from "../api-types.js";
 import type { HttpClient, QueryParams } from "../http-client.js";
 import { parseResponse } from "../response.js";
 import type { Card, CardTypeAppearances } from "../types/card.js";
-import { CardSchema, CardTypeAppearancesSchema } from "./schemas.js";
+import { CardListResponseSchema, CardResponseSchema, CardSchema, CardTypeAppearancesSchema } from "./schemas.js";
 import type {
   CreateCardParams,
   ListCardsParams,
@@ -45,6 +46,33 @@ export function buildCardQueryParams(params: ListCardsParams): QueryParams {
   }
 
   return query;
+}
+
+/**
+ * Fetch a single card by ID.
+ */
+export async function getCard(client: HttpClient, id: string): Promise<Card> {
+  const endpointPath = `/v2/cards/${encodeURIComponent(id)}`;
+  const response = await client.get(endpointPath);
+  return parseResponse(CardResponseSchema, response, endpointPath).card;
+}
+
+/**
+ * List cards with optional filtering and pagination.
+ */
+export async function listCards(
+  client: HttpClient,
+  params?: ListCardsParams & { current_page?: number; per_page?: number },
+): Promise<{ cards: Card[]; meta: PaginationMeta }> {
+  const query: Record<string, string | readonly string[]> = {};
+  if (params) {
+    Object.assign(query, buildCardQueryParams(params));
+    if (params.current_page !== undefined) query["current_page"] = String(params.current_page);
+    if (params.per_page !== undefined) query["per_page"] = String(params.per_page);
+  }
+  const endpointPath = "/v2/cards";
+  const response = await client.get(endpointPath, Object.keys(query).length > 0 ? query : undefined);
+  return parseResponse(CardListResponseSchema, response, endpointPath);
 }
 
 /**

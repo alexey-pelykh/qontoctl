@@ -4,7 +4,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { HttpClient } from "../http-client.js";
 import { jsonResponse } from "../testing/json-response.js";
-import { getRecurringTransfer } from "./service.js";
+import { getRecurringTransfer, listRecurringTransfers } from "./service.js";
 
 describe("getRecurringTransfer", () => {
   let fetchSpy: ReturnType<typeof vi.fn>;
@@ -79,5 +79,86 @@ describe("getRecurringTransfer", () => {
 
     const [url] = fetchSpy.mock.calls[0] as [URL];
     expect(url.pathname).toBe("/v2/sepa/recurring_transfers/a%2Fb");
+  });
+});
+
+describe("listRecurringTransfers", () => {
+  let fetchSpy: ReturnType<typeof vi.fn>;
+  let client: HttpClient;
+
+  beforeEach(() => {
+    fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    client = new HttpClient({
+      baseUrl: "https://thirdparty.qonto.com",
+      authorization: "slug:secret",
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("lists recurring transfers without params", async () => {
+    const body = {
+      recurring_transfers: [
+        {
+          id: "rt-1",
+          initiator_id: "user-1",
+          bank_account_id: "acc-1",
+          amount: 100,
+          amount_cents: 10000,
+          amount_currency: "EUR",
+          beneficiary_id: "ben-1",
+          reference: "Rent",
+          note: "",
+          first_execution_date: "2026-01-01",
+          last_execution_date: null,
+          next_execution_date: "2026-02-01",
+          frequency: "monthly",
+          status: "active",
+          created_at: "2026-01-01T10:00:00Z",
+          updated_at: "2026-01-01T10:00:00Z",
+        },
+      ],
+      meta: { current_page: 1, next_page: null, prev_page: null, total_pages: 1, total_count: 1, per_page: 25 },
+    };
+    fetchSpy.mockReturnValue(jsonResponse(body));
+
+    const result = await listRecurringTransfers(client);
+    expect(result.recurring_transfers).toHaveLength(1);
+    expect(result.meta.current_page).toBe(1);
+
+    const [url] = fetchSpy.mock.calls[0] as [URL];
+    expect(url.pathname).toBe("/v2/sepa/recurring_transfers");
+    expect(url.search).toBe("");
+  });
+
+  it("passes pagination params as query strings", async () => {
+    const body = {
+      recurring_transfers: [],
+      meta: { current_page: 2, next_page: null, prev_page: 1, total_pages: 2, total_count: 30, per_page: 10 },
+    };
+    fetchSpy.mockReturnValue(jsonResponse(body));
+
+    await listRecurringTransfers(client, { current_page: 2, per_page: 10 });
+
+    const [url] = fetchSpy.mock.calls[0] as [URL];
+    expect(url.searchParams.get("current_page")).toBe("2");
+    expect(url.searchParams.get("per_page")).toBe("10");
+  });
+
+  it("omits undefined pagination params", async () => {
+    const body = {
+      recurring_transfers: [],
+      meta: { current_page: 1, next_page: null, prev_page: null, total_pages: 1, total_count: 0, per_page: 25 },
+    };
+    fetchSpy.mockReturnValue(jsonResponse(body));
+
+    await listRecurringTransfers(client, { per_page: 5 });
+
+    const [url] = fetchSpy.mock.calls[0] as [URL];
+    expect(url.searchParams.has("current_page")).toBe(false);
+    expect(url.searchParams.get("per_page")).toBe("5");
   });
 });

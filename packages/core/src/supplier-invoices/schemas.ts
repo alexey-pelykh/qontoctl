@@ -2,6 +2,8 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { z } from "zod";
+
+import { PaginationMetaSchema } from "../api-types.schema.js";
 import type {
   BulkCreateSupplierInvoiceError,
   BulkCreateSupplierInvoicesResult,
@@ -48,6 +50,15 @@ export const SupplierInvoiceSchema = z
     updated_at: z.string(),
   })
   .strip() satisfies z.ZodType<SupplierInvoice>;
+
+export const SupplierInvoiceResponseSchema = z.object({
+  supplier_invoice: SupplierInvoiceSchema,
+});
+
+export const SupplierInvoiceListResponseSchema = z.object({
+  supplier_invoices: z.array(SupplierInvoiceSchema),
+  meta: PaginationMetaSchema,
+});
 
 /**
  * Schema for an error from the bulk create response.

@@ -3,18 +3,9 @@
 
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { HttpClient, PaginationMeta, WebhookSubscription } from "@qontoctl/core";
-import { createWebhook, updateWebhook, deleteWebhook } from "@qontoctl/core";
+import type { HttpClient } from "@qontoctl/core";
+import { getWebhook, listWebhooks, createWebhook, updateWebhook, deleteWebhook } from "@qontoctl/core";
 import { withClient } from "../errors.js";
-
-interface PaginatedWebhookSubscriptionsResponse {
-  readonly webhook_subscriptions: readonly WebhookSubscription[];
-  readonly meta: PaginationMeta;
-}
-
-interface SingleWebhookSubscriptionResponse {
-  readonly webhook_subscription: WebhookSubscription;
-}
 
 export function registerWebhookTools(server: McpServer, getClient: () => Promise<HttpClient>): void {
   server.registerTool(
@@ -28,24 +19,16 @@ export function registerWebhookTools(server: McpServer, getClient: () => Promise
     },
     async ({ current_page, per_page }) =>
       withClient(getClient, async (client) => {
-        const params: Record<string, string> = {};
-        if (current_page !== undefined) params["current_page"] = String(current_page);
-        if (per_page !== undefined) params["per_page"] = String(per_page);
-
-        const response = await client.get<PaginatedWebhookSubscriptionsResponse>(
-          "/v2/webhook_subscriptions",
-          Object.keys(params).length > 0 ? params : undefined,
-        );
+        const result = await listWebhooks(client, {
+          ...(current_page !== undefined ? { current_page } : {}),
+          ...(per_page !== undefined ? { per_page } : {}),
+        });
 
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(
-                { webhook_subscriptions: response.webhook_subscriptions, meta: response.meta },
-                null,
-                2,
-              ),
+              text: JSON.stringify({ webhook_subscriptions: result.webhook_subscriptions, meta: result.meta }, null, 2),
             },
           ],
         };
@@ -62,15 +45,13 @@ export function registerWebhookTools(server: McpServer, getClient: () => Promise
     },
     async ({ id }) =>
       withClient(getClient, async (client) => {
-        const response = await client.get<SingleWebhookSubscriptionResponse>(
-          `/v2/webhook_subscriptions/${encodeURIComponent(id)}`,
-        );
+        const webhookSubscription = await getWebhook(client, id);
 
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(response.webhook_subscription, null, 2),
+              text: JSON.stringify(webhookSubscription, null, 2),
             },
           ],
         };

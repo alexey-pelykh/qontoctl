@@ -3,6 +3,7 @@
 
 import { z } from "zod";
 
+import { PaginationMetaSchema } from "../api-types.schema.js";
 import type { CreditNote, CreditNoteAmount, CreditNoteClient, CreditNoteItem } from "./credit-note.js";
 
 export const CreditNoteAmountSchema = z
@@ -74,3 +75,12 @@ export const CreditNoteSchema = z
     client: CreditNoteClientSchema,
   })
   .strip() satisfies z.ZodType<CreditNote>;
+
+export const CreditNoteResponseSchema = z.object({
+  credit_note: CreditNoteSchema,
+});
+
+export const CreditNoteListResponseSchema = z.object({
+  credit_notes: z.array(CreditNoteSchema),
+  meta: PaginationMetaSchema,
+});

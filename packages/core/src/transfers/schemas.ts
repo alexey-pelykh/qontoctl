@@ -3,6 +3,7 @@
 
 import { z } from "zod";
 
+import { PaginationMetaSchema } from "../api-types.schema.js";
 import type { Transfer, VopResult } from "./types.js";
 
 export const TransferSchema = z.object({
@@ -28,6 +29,11 @@ export const TransferSchema = z.object({
 
 export const TransferResponseSchema = z.object({
   transfer: TransferSchema,
+});
+
+export const TransferListResponseSchema = z.object({
+  transfers: z.array(TransferSchema),
+  meta: PaginationMetaSchema,
 });
 
 export const VopResultSchema = z.object({
