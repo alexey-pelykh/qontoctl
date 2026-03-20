@@ -107,7 +107,10 @@ export function registerAttachmentTools(server: McpServer, getClient: () => Prom
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(attachment, null, 2),
+              text:
+                attachment !== undefined
+                  ? JSON.stringify(attachment, null, 2)
+                  : `Attachment ${fileName} added to transaction ${transaction_id}.`,
             },
           ],
         };

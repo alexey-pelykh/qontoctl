@@ -107,6 +107,21 @@ describe("transaction attachment commands", () => {
       expect(opts.method).toBe("POST");
       expect(opts.body).toBeInstanceOf(FormData);
     });
+
+    it("prints success to stderr when API returns no attachment data", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({}));
+      const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation((() => true) as never);
+
+      const { createProgram } = await import("../../program.js");
+      const program = createProgram();
+      program.exitOverride();
+
+      await program.parseAsync(["transaction", "attachment", "add", "tx-1", "package.json"], { from: "user" });
+
+      expect(stdoutSpy).not.toHaveBeenCalled();
+      expect(stderrSpy).toHaveBeenCalledWith("Attachment package.json added to transaction tx-1.\n");
+      stderrSpy.mockRestore();
+    });
   });
 
   describe("transaction attachment remove (specific)", () => {

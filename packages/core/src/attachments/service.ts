@@ -42,6 +42,9 @@ export async function listTransactionAttachments(client: HttpClient, transaction
 
 /**
  * Attach a file to a transaction via multipart form-data.
+ *
+ * Returns the attachment details when the API includes them in the response,
+ * or `undefined` when the API responds without attachment data.
  */
 export async function addTransactionAttachment(
   client: HttpClient,
@@ -49,11 +52,11 @@ export async function addTransactionAttachment(
   file: Blob,
   fileName: string,
   options?: { readonly idempotencyKey?: string },
-): Promise<Attachment> {
+): Promise<Attachment | undefined> {
   const formData = new FormData();
   formData.append("file", file, fileName);
 
-  const response = await client.postFormData<{ attachment: Attachment }>(
+  const response = await client.postFormData<{ attachment?: Attachment }>(
     `/v2/transactions/${encodeURIComponent(transactionId)}/attachments`,
     formData,
     options,
