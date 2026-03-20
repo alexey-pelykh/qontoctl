@@ -210,6 +210,8 @@ export type {
   CreateMultiTransferRequestParams,
 } from "./requests/index.js";
 
+export { parseResponse } from "./response.js";
+
 export type { BankAccount, Organization, PaginationMeta } from "./api-types.js";
 
 export { createInternalTransfer } from "./internal-transfers/index.js";
