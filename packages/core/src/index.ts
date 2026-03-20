@@ -96,11 +96,7 @@ export type {
 } from "./types/index.js";
 export { EInvoicingSettingsSchema } from "./types/index.js";
 export { LabelSchema, LabelResponseSchema, LabelListResponseSchema } from "./types/index.js";
-export {
-  MembershipSchema,
-  MembershipResponseSchema,
-  MembershipListResponseSchema,
-} from "./types/index.js";
+export { MembershipSchema, MembershipResponseSchema, MembershipListResponseSchema } from "./types/index.js";
 export {
   QuoteAddressSchema,
   QuoteAmountSchema,

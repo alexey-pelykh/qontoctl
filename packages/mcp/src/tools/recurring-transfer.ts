@@ -26,11 +26,7 @@ export function registerRecurringTransferTools(server: McpServer, getClient: () 
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(
-                { recurring_transfers: result.recurring_transfers, meta: result.meta },
-                null,
-                2,
-              ),
+              text: JSON.stringify({ recurring_transfers: result.recurring_transfers, meta: result.meta }, null, 2),
             },
           ],
         };

@@ -28,11 +28,7 @@ export function registerWebhookTools(server: McpServer, getClient: () => Promise
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(
-                { webhook_subscriptions: result.webhook_subscriptions, meta: result.meta },
-                null,
-                2,
-              ),
+              text: JSON.stringify({ webhook_subscriptions: result.webhook_subscriptions, meta: result.meta }, null, 2),
             },
           ],
         };

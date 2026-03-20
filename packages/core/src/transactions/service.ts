@@ -75,10 +75,7 @@ export async function getTransaction(
   }
 
   const endpointPath = `/v2/transactions/${encodeURIComponent(id)}`;
-  const response = await client.get(
-    endpointPath,
-    Object.keys(params).length > 0 ? params : undefined,
-  );
+  const response = await client.get(endpointPath, Object.keys(params).length > 0 ? params : undefined);
   return parseResponse(TransactionResponseSchema, response, endpointPath).transaction as Transaction;
 }
 
