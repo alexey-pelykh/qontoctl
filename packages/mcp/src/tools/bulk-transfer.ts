@@ -3,7 +3,7 @@
 
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { HttpClient } from "@qontoctl/core";
+import { type HttpClient, getBulkTransfer, listBulkTransfers } from "@qontoctl/core";
 import { withClient } from "../errors.js";
 
 export function registerBulkTransferTools(server: McpServer, getClient: () => Promise<HttpClient>): void {
@@ -18,20 +18,15 @@ export function registerBulkTransferTools(server: McpServer, getClient: () => Pr
     },
     async (args) =>
       withClient(getClient, async (client) => {
-        const params: Record<string, string> = {};
-
-        if (args.current_page !== undefined) params["current_page"] = String(args.current_page);
-        if (args.per_page !== undefined) params["per_page"] = String(args.per_page);
-
-        const response = await client.get<{ bulk_transfers: unknown[]; meta: unknown }>(
-          "/v2/sepa/bulk_transfers",
-          Object.keys(params).length > 0 ? params : undefined,
-        );
+        const result = await listBulkTransfers(client, {
+          ...(args.current_page !== undefined ? { current_page: args.current_page } : {}),
+          ...(args.per_page !== undefined ? { per_page: args.per_page } : {}),
+        });
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify({ bulk_transfers: response.bulk_transfers, meta: response.meta }, null, 2),
+              text: JSON.stringify({ bulk_transfers: result.bulk_transfers, meta: result.meta }, null, 2),
             },
           ],
         };
@@ -48,11 +43,9 @@ export function registerBulkTransferTools(server: McpServer, getClient: () => Pr
     },
     async ({ id }) =>
       withClient(getClient, async (client) => {
-        const response = await client.get<{ bulk_transfer: unknown }>(
-          `/v2/sepa/bulk_transfers/${encodeURIComponent(id)}`,
-        );
+        const bulkTransfer = await getBulkTransfer(client, id);
         return {
-          content: [{ type: "text" as const, text: JSON.stringify(response.bulk_transfer, null, 2) }],
+          content: [{ type: "text" as const, text: JSON.stringify(bulkTransfer, null, 2) }],
         };
       }),
   );

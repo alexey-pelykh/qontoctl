@@ -3,17 +3,9 @@
 
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { HttpClient, PaginationMeta, Quote } from "@qontoctl/core";
+import type { HttpClient } from "@qontoctl/core";
+import { parseResponse, QuoteResponseSchema, QuoteListResponseSchema } from "@qontoctl/core";
 import { withClient } from "../errors.js";
-
-interface PaginatedQuotesResponse {
-  readonly quotes: readonly Quote[];
-  readonly meta: PaginationMeta;
-}
-
-interface SingleQuoteResponse {
-  readonly quote: Quote;
-}
 
 export function registerQuoteTools(server: McpServer, getClient: () => Promise<HttpClient>): void {
   server.registerTool(
@@ -42,16 +34,15 @@ export function registerQuoteTools(server: McpServer, getClient: () => Promise<H
         if (args.current_page !== undefined) params["current_page"] = String(args.current_page);
         if (args.per_page !== undefined) params["per_page"] = String(args.per_page);
 
-        const response = await client.get<PaginatedQuotesResponse>(
-          "/v2/quotes",
-          Object.keys(params).length > 0 ? params : undefined,
-        );
+        const endpointPath = "/v2/quotes";
+        const response = await client.get(endpointPath, Object.keys(params).length > 0 ? params : undefined);
+        const result = parseResponse(QuoteListResponseSchema, response, endpointPath);
 
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify({ quotes: response.quotes, meta: response.meta }, null, 2),
+              text: JSON.stringify({ quotes: result.quotes, meta: result.meta }, null, 2),
             },
           ],
         };
@@ -68,13 +59,15 @@ export function registerQuoteTools(server: McpServer, getClient: () => Promise<H
     },
     async ({ id }) =>
       withClient(getClient, async (client) => {
-        const response = await client.get<SingleQuoteResponse>(`/v2/quotes/${encodeURIComponent(id)}`);
+        const endpointPath = `/v2/quotes/${encodeURIComponent(id)}`;
+        const response = await client.get(endpointPath);
+        const result = parseResponse(QuoteResponseSchema, response, endpointPath);
 
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(response.quote, null, 2),
+              text: JSON.stringify(result.quote, null, 2),
             },
           ],
         };
@@ -133,13 +126,15 @@ export function registerQuoteTools(server: McpServer, getClient: () => Promise<H
         if (args.footer !== undefined) body["footer"] = args.footer;
         if (args.discount !== undefined) body["discount"] = args.discount;
 
-        const response = await client.post<SingleQuoteResponse>("/v2/quotes", body);
+        const endpointPath = "/v2/quotes";
+        const response = await client.post(endpointPath, body);
+        const result = parseResponse(QuoteResponseSchema, response, endpointPath);
 
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(response.quote, null, 2),
+              text: JSON.stringify(result.quote, null, 2),
             },
           ],
         };
@@ -193,13 +188,15 @@ export function registerQuoteTools(server: McpServer, getClient: () => Promise<H
           }
         }
 
-        const response = await client.patch<SingleQuoteResponse>(`/v2/quotes/${encodeURIComponent(id)}`, body);
+        const endpointPath = `/v2/quotes/${encodeURIComponent(id)}`;
+        const response = await client.patch(endpointPath, body);
+        const result = parseResponse(QuoteResponseSchema, response, endpointPath);
 
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(response.quote, null, 2),
+              text: JSON.stringify(result.quote, null, 2),
             },
           ],
         };

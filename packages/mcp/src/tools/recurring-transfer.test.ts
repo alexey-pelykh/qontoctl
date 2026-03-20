@@ -6,6 +6,40 @@ import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { jsonResponse } from "@qontoctl/core/testing";
 import { connectInMemory } from "../testing/mcp-helpers.js";
 
+function makeMeta(overrides: Record<string, unknown> = {}) {
+  return {
+    current_page: 1,
+    next_page: null,
+    prev_page: null,
+    total_pages: 1,
+    total_count: 1,
+    per_page: 100,
+    ...overrides,
+  };
+}
+
+function makeRecurringTransfer(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "rt-1",
+    initiator_id: "user-1",
+    bank_account_id: "acc-1",
+    amount: 100,
+    amount_cents: 10000,
+    amount_currency: "EUR",
+    beneficiary_id: "ben-1",
+    reference: "Monthly rent",
+    note: "",
+    first_execution_date: "2026-01-01",
+    last_execution_date: null,
+    next_execution_date: "2026-02-01",
+    frequency: "monthly",
+    status: "active",
+    created_at: "2026-01-01T00:00:00Z",
+    updated_at: "2026-01-01T00:00:00Z",
+    ...overrides,
+  };
+}
+
 describe("recurring-transfer MCP tools", () => {
   let fetchSpy: ReturnType<typeof vi.fn>;
   let mcpClient: Client;
@@ -24,8 +58,8 @@ describe("recurring-transfer MCP tools", () => {
     it("returns recurring transfers from API", async () => {
       fetchSpy.mockReturnValue(
         jsonResponse({
-          recurring_transfers: [{ id: "rt-1", amount: 100, frequency: "monthly" }],
-          meta: { current_page: 1, total_pages: 1, total_count: 1 },
+          recurring_transfers: [makeRecurringTransfer()],
+          meta: makeMeta(),
         }),
       );
 
@@ -36,18 +70,18 @@ describe("recurring-transfer MCP tools", () => {
 
       const content = result.content as { type: string; text: string }[];
       expect(content).toHaveLength(1);
-      const parsed: unknown = JSON.parse((content[0] as { type: string; text: string }).text);
-      expect(parsed).toEqual({
-        recurring_transfers: [{ id: "rt-1", amount: 100, frequency: "monthly" }],
-        meta: { current_page: 1, total_pages: 1, total_count: 1 },
-      });
+      const parsed = JSON.parse((content[0] as { type: string; text: string }).text) as {
+        recurring_transfers: { id: string }[];
+      };
+      expect(parsed.recurring_transfers).toHaveLength(1);
+      expect(parsed.recurring_transfers[0]?.id).toBe("rt-1");
     });
 
     it("calls the correct API endpoint", async () => {
       fetchSpy.mockReturnValue(
         jsonResponse({
           recurring_transfers: [],
-          meta: { current_page: 1, total_pages: 0, total_count: 0 },
+          meta: makeMeta({ total_count: 0 }),
         }),
       );
 
@@ -64,7 +98,7 @@ describe("recurring-transfer MCP tools", () => {
       fetchSpy.mockReturnValue(
         jsonResponse({
           recurring_transfers: [],
-          meta: { current_page: 2, total_pages: 3, total_count: 10 },
+          meta: makeMeta({ current_page: 2, total_pages: 3, total_count: 10 }),
         }),
       );
 
@@ -83,7 +117,7 @@ describe("recurring-transfer MCP tools", () => {
     it("returns a single recurring transfer", async () => {
       fetchSpy.mockReturnValue(
         jsonResponse({
-          recurring_transfer: { id: "rt-1", amount: 100, frequency: "monthly" },
+          recurring_transfer: makeRecurringTransfer(),
         }),
       );
 
@@ -94,14 +128,14 @@ describe("recurring-transfer MCP tools", () => {
 
       const content = result.content as { type: string; text: string }[];
       expect(content).toHaveLength(1);
-      const parsed: unknown = JSON.parse((content[0] as { type: string; text: string }).text);
-      expect(parsed).toEqual({ id: "rt-1", amount: 100, frequency: "monthly" });
+      const parsed = JSON.parse((content[0] as { type: string; text: string }).text) as { id: string };
+      expect(parsed.id).toBe("rt-1");
     });
 
     it("calls the correct API endpoint", async () => {
       fetchSpy.mockReturnValue(
         jsonResponse({
-          recurring_transfer: { id: "rt-1", amount: 100, frequency: "monthly" },
+          recurring_transfer: makeRecurringTransfer(),
         }),
       );
 

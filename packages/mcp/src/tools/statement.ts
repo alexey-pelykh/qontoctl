@@ -3,13 +3,9 @@
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import type { HttpClient, PaginationMeta, Statement } from "@qontoctl/core";
+import type { HttpClient } from "@qontoctl/core";
+import { parseResponse, StatementResponseSchema, StatementListResponseSchema } from "@qontoctl/core";
 import { withClient } from "../errors.js";
-
-interface StatementsResponse {
-  readonly statements: readonly Statement[];
-  readonly meta: PaginationMeta;
-}
 
 /**
  * Register statement-related MCP tools on the server.
@@ -47,16 +43,15 @@ export function registerStatementTools(server: McpServer, getClient: () => Promi
           params["per_page"] = String(args.per_page);
         }
 
-        const response = await client.get<StatementsResponse>(
-          "/v2/statements",
-          Object.keys(params).length > 0 ? params : undefined,
-        );
+        const endpointPath = "/v2/statements";
+        const response = await client.get(endpointPath, Object.keys(params).length > 0 ? params : undefined);
+        const result = parseResponse(StatementListResponseSchema, response, endpointPath);
 
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(response, null, 2),
+              text: JSON.stringify(result, null, 2),
             },
           ],
         };
@@ -73,13 +68,15 @@ export function registerStatementTools(server: McpServer, getClient: () => Promi
     },
     async (args) =>
       withClient(getClient, async (client) => {
-        const response = await client.get<{ statement: Statement }>(`/v2/statements/${encodeURIComponent(args.id)}`);
+        const endpointPath = `/v2/statements/${encodeURIComponent(args.id)}`;
+        const response = await client.get(endpointPath);
+        const result = parseResponse(StatementResponseSchema, response, endpointPath);
 
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(response.statement, null, 2),
+              text: JSON.stringify(result.statement, null, 2),
             },
           ],
         };

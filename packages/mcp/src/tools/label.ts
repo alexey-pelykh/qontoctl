@@ -3,17 +3,9 @@
 
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { HttpClient, Label, PaginationMeta } from "@qontoctl/core";
+import type { HttpClient } from "@qontoctl/core";
+import { parseResponse, LabelResponseSchema, LabelListResponseSchema } from "@qontoctl/core";
 import { withClient } from "../errors.js";
-
-interface PaginatedLabelsResponse {
-  readonly labels: readonly Label[];
-  readonly meta: PaginationMeta;
-}
-
-interface SingleLabelResponse {
-  readonly label: Label;
-}
 
 export function registerLabelTools(server: McpServer, getClient: () => Promise<HttpClient>): void {
   server.registerTool(
@@ -31,16 +23,15 @@ export function registerLabelTools(server: McpServer, getClient: () => Promise<H
         if (current_page !== undefined) params["current_page"] = String(current_page);
         if (per_page !== undefined) params["per_page"] = String(per_page);
 
-        const response = await client.get<PaginatedLabelsResponse>(
-          "/v2/labels",
-          Object.keys(params).length > 0 ? params : undefined,
-        );
+        const endpointPath = "/v2/labels";
+        const response = await client.get(endpointPath, Object.keys(params).length > 0 ? params : undefined);
+        const result = parseResponse(LabelListResponseSchema, response, endpointPath);
 
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify({ labels: response.labels, meta: response.meta }, null, 2),
+              text: JSON.stringify({ labels: result.labels, meta: result.meta }, null, 2),
             },
           ],
         };
@@ -57,13 +48,15 @@ export function registerLabelTools(server: McpServer, getClient: () => Promise<H
     },
     async ({ id }) =>
       withClient(getClient, async (client) => {
-        const response = await client.get<SingleLabelResponse>(`/v2/labels/${encodeURIComponent(id)}`);
+        const endpointPath = `/v2/labels/${encodeURIComponent(id)}`;
+        const response = await client.get(endpointPath);
+        const result = parseResponse(LabelResponseSchema, response, endpointPath);
 
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(response.label, null, 2),
+              text: JSON.stringify(result.label, null, 2),
             },
           ],
         };

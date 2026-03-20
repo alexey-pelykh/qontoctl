@@ -3,6 +3,8 @@
 
 export {
   buildCardQueryParams,
+  getCard,
+  listCards,
   createCard,
   bulkCreateCards,
   lockCard,
@@ -22,6 +24,8 @@ export {
   CardAppearanceSchema,
   CardLevelAppearanceSchema,
   CardLevelAppearancesSchema,
+  CardListResponseSchema,
+  CardResponseSchema,
   CardSchema,
   CardTypeAppearancesSchema,
   ParentCardSummarySchema,

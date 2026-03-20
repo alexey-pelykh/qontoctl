@@ -2,6 +2,8 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { z } from "zod";
+
+import { PaginationMetaSchema } from "../api-types.schema.js";
 import type { BulkTransfer, BulkTransferResult, BulkTransferResultError } from "./types.js";
 
 /**
@@ -42,3 +44,12 @@ export const BulkTransferSchema = z
     results: z.array(BulkTransferResultSchema).readonly(),
   })
   .strip() satisfies z.ZodType<BulkTransfer>;
+
+export const BulkTransferResponseSchema = z.object({
+  bulk_transfer: BulkTransferSchema,
+});
+
+export const BulkTransferListResponseSchema = z.object({
+  bulk_transfers: z.array(BulkTransferSchema),
+  meta: PaginationMetaSchema,
+});

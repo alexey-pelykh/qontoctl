@@ -3,6 +3,7 @@
 
 export {
   buildBeneficiaryQueryParams,
+  listBeneficiaries,
   getBeneficiary,
   createBeneficiary,
   updateBeneficiary,
@@ -10,6 +11,6 @@ export {
   untrustBeneficiaries,
 } from "./service.js";
 
-export { BeneficiarySchema, BeneficiaryResponseSchema } from "./schemas.js";
+export { BeneficiarySchema, BeneficiaryResponseSchema, BeneficiaryListResponseSchema } from "./schemas.js";
 
 export type { CreateBeneficiaryParams, ListBeneficiariesParams, UpdateBeneficiaryParams } from "./types.js";

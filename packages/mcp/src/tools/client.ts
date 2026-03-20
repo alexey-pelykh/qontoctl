@@ -3,17 +3,9 @@
 
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { Client, HttpClient, PaginationMeta } from "@qontoctl/core";
+import type { HttpClient } from "@qontoctl/core";
+import { parseResponse, ClientResponseSchema, ClientListResponseSchema } from "@qontoctl/core";
 import { withClient } from "../errors.js";
-
-interface PaginatedClientsResponse {
-  readonly clients: readonly Client[];
-  readonly meta: PaginationMeta;
-}
-
-interface SingleClientResponse {
-  readonly client: Client;
-}
 
 export function registerClientTools(server: McpServer, getClient: () => Promise<HttpClient>): void {
   server.registerTool(
@@ -31,16 +23,15 @@ export function registerClientTools(server: McpServer, getClient: () => Promise<
         if (args.current_page !== undefined) params["current_page"] = String(args.current_page);
         if (args.per_page !== undefined) params["per_page"] = String(args.per_page);
 
-        const response = await client.get<PaginatedClientsResponse>(
-          "/v2/clients",
-          Object.keys(params).length > 0 ? params : undefined,
-        );
+        const endpointPath = "/v2/clients";
+        const response = await client.get(endpointPath, Object.keys(params).length > 0 ? params : undefined);
+        const result = parseResponse(ClientListResponseSchema, response, endpointPath);
 
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify({ clients: response.clients, meta: response.meta }, null, 2),
+              text: JSON.stringify({ clients: result.clients, meta: result.meta }, null, 2),
             },
           ],
         };
@@ -57,13 +48,15 @@ export function registerClientTools(server: McpServer, getClient: () => Promise<
     },
     async ({ id }) =>
       withClient(getClient, async (client) => {
-        const response = await client.get<SingleClientResponse>(`/v2/clients/${encodeURIComponent(id)}`);
+        const endpointPath = `/v2/clients/${encodeURIComponent(id)}`;
+        const response = await client.get(endpointPath);
+        const result = parseResponse(ClientResponseSchema, response, endpointPath);
 
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(response.client, null, 2),
+              text: JSON.stringify(result.client, null, 2),
             },
           ],
         };
@@ -109,13 +102,15 @@ export function registerClientTools(server: McpServer, getClient: () => Promise<
         if (args.locale !== undefined) body["locale"] = args.locale;
         if (args.currency !== undefined) body["currency"] = args.currency;
 
-        const response = await client.post<SingleClientResponse>("/v2/clients", body);
+        const endpointPath = "/v2/clients";
+        const response = await client.post(endpointPath, body);
+        const result = parseResponse(ClientResponseSchema, response, endpointPath);
 
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(response.client, null, 2),
+              text: JSON.stringify(result.client, null, 2),
             },
           ],
         };
@@ -151,13 +146,15 @@ export function registerClientTools(server: McpServer, getClient: () => Promise<
           }
         }
 
-        const response = await client.patch<SingleClientResponse>(`/v2/clients/${encodeURIComponent(id)}`, body);
+        const endpointPath = `/v2/clients/${encodeURIComponent(id)}`;
+        const response = await client.patch(endpointPath, body);
+        const result = parseResponse(ClientResponseSchema, response, endpointPath);
 
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(response.client, null, 2),
+              text: JSON.stringify(result.client, null, 2),
             },
           ],
         };

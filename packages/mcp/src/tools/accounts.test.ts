@@ -6,6 +6,25 @@ import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { binaryResponse, jsonResponse } from "@qontoctl/core/testing";
 import { connectInMemory } from "../testing/mcp-helpers.js";
 
+function makeBankAccount(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "acc-1",
+    name: "Main",
+    status: "active",
+    main: true,
+    organization_id: "org-1",
+    iban: "FR7630001007941234567890185",
+    bic: "BNPAFRPP",
+    currency: "EUR",
+    balance: 1000,
+    balance_cents: 100000,
+    authorized_balance: 1000,
+    authorized_balance_cents: 100000,
+    slug: "test-org-main",
+    ...overrides,
+  };
+}
+
 describe("account MCP tools", () => {
   let fetchSpy: ReturnType<typeof vi.fn>;
   let mcpClient: Client;
@@ -24,7 +43,7 @@ describe("account MCP tools", () => {
     it("returns accounts from API", async () => {
       fetchSpy.mockReturnValue(
         jsonResponse({
-          bank_accounts: [{ id: "acc-1", name: "Main", balance: 1000 }],
+          bank_accounts: [makeBankAccount()],
         }),
       );
 
@@ -35,8 +54,9 @@ describe("account MCP tools", () => {
 
       const content = result.content as { type: string; text: string }[];
       expect(content).toHaveLength(1);
-      const parsed: unknown = JSON.parse((content[0] as { type: string; text: string }).text);
-      expect(parsed).toEqual([{ id: "acc-1", name: "Main", balance: 1000 }]);
+      const parsed = JSON.parse((content[0] as { type: string; text: string }).text) as { id: string }[];
+      expect(parsed).toHaveLength(1);
+      expect(parsed[0]?.id).toBe("acc-1");
     });
 
     it("calls the correct API endpoint", async () => {
@@ -56,7 +76,7 @@ describe("account MCP tools", () => {
     it("returns a single account", async () => {
       fetchSpy.mockReturnValue(
         jsonResponse({
-          bank_account: { id: "acc-1", name: "Main", balance: 1000 },
+          bank_account: makeBankAccount(),
         }),
       );
 
@@ -67,14 +87,14 @@ describe("account MCP tools", () => {
 
       const content = result.content as { type: string; text: string }[];
       expect(content).toHaveLength(1);
-      const parsed: unknown = JSON.parse((content[0] as { type: string; text: string }).text);
-      expect(parsed).toEqual({ id: "acc-1", name: "Main", balance: 1000 });
+      const parsed = JSON.parse((content[0] as { type: string; text: string }).text) as { id: string };
+      expect(parsed.id).toBe("acc-1");
     });
 
     it("calls the correct API endpoint", async () => {
       fetchSpy.mockReturnValue(
         jsonResponse({
-          bank_account: { id: "acc-1", name: "Main", balance: 1000 },
+          bank_account: makeBankAccount(),
         }),
       );
 
@@ -124,7 +144,7 @@ describe("account MCP tools", () => {
     it("creates an account and returns the result", async () => {
       fetchSpy.mockReturnValue(
         jsonResponse({
-          bank_account: { id: "acc-new", name: "New Account", status: "active" },
+          bank_account: makeBankAccount({ id: "acc-new", name: "New Account" }),
         }),
       );
 
@@ -146,7 +166,7 @@ describe("account MCP tools", () => {
     it("sends POST with wrapped body to the correct endpoint", async () => {
       fetchSpy.mockReturnValue(
         jsonResponse({
-          bank_account: { id: "acc-new", name: "New Account" },
+          bank_account: makeBankAccount({ id: "acc-new", name: "New Account" }),
         }),
       );
 
@@ -167,7 +187,7 @@ describe("account MCP tools", () => {
     it("updates an account and returns the result", async () => {
       fetchSpy.mockReturnValue(
         jsonResponse({
-          bank_account: { id: "acc-1", name: "Updated Name", status: "active" },
+          bank_account: makeBankAccount({ name: "Updated Name" }),
         }),
       );
 
@@ -189,7 +209,7 @@ describe("account MCP tools", () => {
     it("sends PUT with wrapped body to the correct endpoint", async () => {
       fetchSpy.mockReturnValue(
         jsonResponse({
-          bank_account: { id: "acc-1", name: "Updated Name" },
+          bank_account: makeBankAccount({ name: "Updated Name" }),
         }),
       );
 

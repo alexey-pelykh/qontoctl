@@ -72,13 +72,15 @@ export type {
   ParentCardSummary,
 } from "./types/index.js";
 export type { Client, ClientAddress } from "./types/index.js";
-export { ClientAddressSchema, ClientSchema } from "./types/index.js";
+export { ClientAddressSchema, ClientSchema, ClientResponseSchema, ClientListResponseSchema } from "./types/index.js";
 export type { CreditNote, CreditNoteAmount, CreditNoteClient, CreditNoteItem } from "./types/index.js";
 export {
   CreditNoteAmountSchema,
   CreditNoteClientSchema,
   CreditNoteItemSchema,
   CreditNoteSchema,
+  CreditNoteResponseSchema,
+  CreditNoteListResponseSchema,
 } from "./types/index.js";
 export type {
   EInvoicingSettings,
@@ -93,8 +95,12 @@ export type {
   WebhookSubscription,
 } from "./types/index.js";
 export { EInvoicingSettingsSchema } from "./types/index.js";
-export { LabelSchema } from "./types/index.js";
-export { MembershipSchema } from "./types/index.js";
+export { LabelSchema, LabelResponseSchema, LabelListResponseSchema } from "./types/index.js";
+export {
+  MembershipSchema,
+  MembershipResponseSchema,
+  MembershipListResponseSchema,
+} from "./types/index.js";
 export {
   QuoteAddressSchema,
   QuoteAmountSchema,
@@ -102,11 +108,14 @@ export {
   QuoteDiscountSchema,
   QuoteItemSchema,
   QuoteSchema,
+  QuoteResponseSchema,
+  QuoteListResponseSchema,
 } from "./types/index.js";
-export { TeamSchema } from "./types/index.js";
+export { TeamSchema, TeamResponseSchema, TeamListResponseSchema } from "./types/index.js";
 
 export {
   buildBeneficiaryQueryParams,
+  listBeneficiaries,
   getBeneficiary,
   createBeneficiary,
   updateBeneficiary,
@@ -114,6 +123,7 @@ export {
   untrustBeneficiaries,
   BeneficiarySchema,
   BeneficiaryResponseSchema,
+  BeneficiaryListResponseSchema,
 } from "./beneficiaries/index.js";
 
 export type {
@@ -124,6 +134,8 @@ export type {
 
 export {
   buildCardQueryParams,
+  getCard,
+  listCards,
   createCard,
   bulkCreateCards,
   lockCard,
@@ -140,6 +152,8 @@ export {
   CardAppearanceSchema,
   CardLevelAppearanceSchema,
   CardLevelAppearancesSchema,
+  CardListResponseSchema,
+  CardResponseSchema,
   CardSchema,
   CardTypeAppearancesSchema,
   ParentCardSummarySchema,
@@ -157,17 +171,26 @@ export type {
 export type { Quote, QuoteAddress, QuoteAmount, QuoteClient, QuoteDiscount, QuoteItem } from "./types/index.js";
 
 export type { Statement, StatementFile } from "./statements/index.js";
-export { StatementFileSchema, StatementSchema } from "./statements/index.js";
+export {
+  StatementFileSchema,
+  StatementSchema,
+  StatementResponseSchema,
+  StatementListResponseSchema,
+} from "./statements/index.js";
 
 export {
   buildTransactionQueryParams,
   getTransaction,
+  listTransactions,
   TransactionSchema,
   TransactionLabelSchema,
+  TransactionResponseSchema,
+  TransactionListResponseSchema,
 } from "./transactions/index.js";
 
 export {
   buildTransferQueryParams,
+  listTransfers,
   getTransfer,
   createTransfer,
   cancelTransfer,
@@ -176,6 +199,7 @@ export {
   bulkVerifyPayee,
   TransferSchema,
   TransferResponseSchema,
+  TransferListResponseSchema,
   VopResultSchema,
   VopResultResponseSchema,
   BulkVopResultResponseSchema,
@@ -188,9 +212,12 @@ export type { Transaction, TransactionLabel, ListTransactionsParams } from "./tr
 export {
   buildSupplierInvoiceQueryParams,
   getSupplierInvoice,
+  listSupplierInvoices,
   bulkCreateSupplierInvoices,
   SupplierInvoiceAmountSchema,
   SupplierInvoiceSchema,
+  SupplierInvoiceResponseSchema,
+  SupplierInvoiceListResponseSchema,
   BulkCreateSupplierInvoiceErrorSchema,
   BulkCreateSupplierInvoicesResultSchema,
 } from "./supplier-invoices/index.js";
@@ -206,6 +233,7 @@ export type {
 
 export {
   buildClientInvoiceQueryParams,
+  listClientInvoices,
   getClientInvoice,
   createClientInvoice,
   updateClientInvoice,
@@ -238,15 +266,19 @@ export {
   ClientInvoiceClientSchema,
   ClientInvoiceUploadSchema,
   ClientInvoiceSchema,
+  ClientInvoiceResponseSchema,
+  ClientInvoiceListResponseSchema,
 } from "./client-invoices/index.js";
 
 export {
+  listWebhooks,
   getWebhook,
   createWebhook,
   updateWebhook,
   deleteWebhook,
   WebhookSubscriptionSchema,
   WebhookSubscriptionResponseSchema,
+  WebhookSubscriptionListResponseSchema,
 } from "./webhooks/index.js";
 
 export type { CreateWebhookParams, UpdateWebhookParams } from "./webhooks/index.js";
@@ -275,6 +307,7 @@ export {
   RequestTransferSchema,
   RequestMultiTransferSchema,
   RequestSchema,
+  RequestListResponseSchema,
 } from "./requests/index.js";
 
 export { parseResponse } from "./response.js";
@@ -292,14 +325,23 @@ export type { InternalTransfer, CreateInternalTransferParams } from "./internal-
 
 export {
   getBulkTransfer,
+  listBulkTransfers,
   BulkTransferSchema,
+  BulkTransferResponseSchema,
+  BulkTransferListResponseSchema,
   BulkTransferResultSchema,
   BulkTransferResultErrorSchema,
 } from "./bulk-transfers/index.js";
 
 export type { BulkTransfer, BulkTransferResult, BulkTransferResultError } from "./bulk-transfers/index.js";
 
-export { getRecurringTransfer, RecurringTransferSchema } from "./recurring-transfers/index.js";
+export {
+  getRecurringTransfer,
+  listRecurringTransfers,
+  RecurringTransferSchema,
+  RecurringTransferResponseSchema,
+  RecurringTransferListResponseSchema,
+} from "./recurring-transfers/index.js";
 
 export type { RecurringTransfer } from "./recurring-transfers/index.js";
 
@@ -318,6 +360,7 @@ export { AttachmentSchema } from "./attachments/index.js";
 export {
   createBankAccount,
   getBankAccount,
+  listBankAccounts,
   getIbanCertificate,
   updateBankAccount,
   closeBankAccount,

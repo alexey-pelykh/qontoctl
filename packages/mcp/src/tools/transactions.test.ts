@@ -10,9 +10,77 @@ const ORG_BODY = {
   organization: {
     slug: "test-org",
     legal_name: "Test Org",
-    bank_accounts: [{ id: "auto-acc-1", main: true }],
+    bank_accounts: [
+      {
+        id: "auto-acc-1",
+        name: "Main Account",
+        status: "active",
+        main: true,
+        organization_id: "org-1",
+        iban: "FR7630001007941234567890185",
+        bic: "BNPAFRPP",
+        currency: "EUR",
+        balance: 1000,
+        balance_cents: 100000,
+        authorized_balance: 1000,
+        authorized_balance_cents: 100000,
+        slug: "test-org-main",
+      },
+    ],
   },
 };
+
+function makeMeta(overrides: Record<string, unknown> = {}) {
+  return {
+    current_page: 1,
+    next_page: null,
+    prev_page: null,
+    total_pages: 1,
+    total_count: 1,
+    per_page: 100,
+    ...overrides,
+  };
+}
+
+function makeTransaction(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "txn-1",
+    transaction_id: "txn-1",
+    amount: 42.0,
+    amount_cents: 4200,
+    settled_balance: null,
+    settled_balance_cents: null,
+    local_amount: 42.0,
+    local_amount_cents: 4200,
+    side: "debit",
+    operation_type: "card",
+    currency: "EUR",
+    local_currency: "EUR",
+    label: "Payment",
+    clean_counterparty_name: "Store",
+    settled_at: "2026-01-01T00:00:00Z",
+    emitted_at: "2026-01-01T00:00:00Z",
+    created_at: "2026-01-01T00:00:00Z",
+    updated_at: "2026-01-01T00:00:00Z",
+    status: "completed",
+    note: null,
+    reference: null,
+    vat_amount: null,
+    vat_amount_cents: null,
+    vat_rate: null,
+    initiator_id: null,
+    label_ids: [],
+    attachment_ids: [],
+    attachment_lost: false,
+    attachment_required: false,
+    card_last_digits: null,
+    category: "other",
+    subject_type: "Card",
+    bank_account_id: "acc-1",
+    is_external_transaction: false,
+    ...overrides,
+  };
+}
 
 describe("transaction MCP tools", () => {
   let fetchSpy: ReturnType<typeof vi.fn>;
@@ -32,8 +100,8 @@ describe("transaction MCP tools", () => {
     it("returns transactions from API", async () => {
       fetchSpy.mockReturnValue(
         jsonResponse({
-          transactions: [{ id: "txn-1", amount: 42.0, side: "debit" }],
-          meta: { current_page: 1, total_pages: 1, total_count: 1 },
+          transactions: [makeTransaction()],
+          meta: makeMeta(),
         }),
       );
 
@@ -56,7 +124,7 @@ describe("transaction MCP tools", () => {
       fetchSpy.mockReturnValue(
         jsonResponse({
           transactions: [],
-          meta: { current_page: 1, total_pages: 1, total_count: 0 },
+          meta: makeMeta({ total_count: 0 }),
         }),
       );
 
@@ -74,7 +142,7 @@ describe("transaction MCP tools", () => {
     it("passes pagination params as strings", async () => {
       fetchSpy.mockImplementation((input: URL) => {
         if (input.pathname === "/v2/organization") return jsonResponse(ORG_BODY);
-        return jsonResponse({ transactions: [], meta: {} });
+        return jsonResponse({ transactions: [], meta: makeMeta() });
       });
 
       await mcpClient.callTool({
@@ -95,8 +163,8 @@ describe("transaction MCP tools", () => {
       fetchSpy.mockImplementation((input: URL) => {
         if (input.pathname === "/v2/organization") return jsonResponse(ORG_BODY);
         return jsonResponse({
-          transactions: [{ id: "txn-1", amount: 42.0, side: "debit" }],
-          meta: { current_page: 1, total_pages: 1, total_count: 1 },
+          transactions: [makeTransaction()],
+          meta: makeMeta(),
         });
       });
 
@@ -120,7 +188,7 @@ describe("transaction MCP tools", () => {
     it("returns a single transaction", async () => {
       fetchSpy.mockReturnValue(
         jsonResponse({
-          transaction: { id: "txn-1", amount: 42.0, side: "debit" },
+          transaction: makeTransaction(),
         }),
       );
 
@@ -131,14 +199,14 @@ describe("transaction MCP tools", () => {
 
       const content = result.content as { type: string; text: string }[];
       expect(content).toHaveLength(1);
-      const parsed: unknown = JSON.parse((content[0] as { type: string; text: string }).text);
-      expect(parsed).toEqual({ id: "txn-1", amount: 42.0, side: "debit" });
+      const parsed = JSON.parse((content[0] as { type: string; text: string }).text) as { id: string };
+      expect(parsed.id).toBe("txn-1");
     });
 
     it("calls the correct API endpoint", async () => {
       fetchSpy.mockReturnValue(
         jsonResponse({
-          transaction: { id: "txn-1", amount: 42.0, side: "debit" },
+          transaction: makeTransaction(),
         }),
       );
 

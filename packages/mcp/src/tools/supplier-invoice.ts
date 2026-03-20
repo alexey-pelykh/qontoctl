@@ -8,21 +8,12 @@ import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
   type HttpClient,
-  type PaginationMeta,
-  type SupplierInvoice,
+  getSupplierInvoice,
+  listSupplierInvoices,
   bulkCreateSupplierInvoices,
   type BulkCreateSupplierInvoiceEntry,
 } from "@qontoctl/core";
 import { withClient } from "../errors.js";
-
-interface PaginatedSupplierInvoicesResponse {
-  readonly supplier_invoices: readonly SupplierInvoice[];
-  readonly meta: PaginationMeta;
-}
-
-interface SingleSupplierInvoiceResponse {
-  readonly supplier_invoice: SupplierInvoice;
-}
 
 export function registerSupplierInvoiceTools(server: McpServer, getClient: () => Promise<HttpClient>): void {
   server.registerTool(
@@ -56,25 +47,20 @@ export function registerSupplierInvoiceTools(server: McpServer, getClient: () =>
     },
     async (args) =>
       withClient(getClient, async (client) => {
-        const params: Record<string, string> = {};
-
-        if (args.status !== undefined) params["filter[status][]"] = args.status;
-        if (args.due_date !== undefined) params["filter[due_date]"] = args.due_date;
-        if (args.query !== undefined) params["query"] = args.query;
-        if (args.sort_by !== undefined) params["sort_by"] = args.sort_by;
-        if (args.current_page !== undefined) params["current_page"] = String(args.current_page);
-        if (args.per_page !== undefined) params["per_page"] = String(args.per_page);
-
-        const response = await client.get<PaginatedSupplierInvoicesResponse>(
-          "/v2/supplier_invoices",
-          Object.keys(params).length > 0 ? params : undefined,
-        );
+        const result = await listSupplierInvoices(client, {
+          ...(args.status !== undefined ? { status: [args.status] } : {}),
+          ...(args.due_date !== undefined ? { due_date: args.due_date } : {}),
+          ...(args.query !== undefined ? { query: args.query } : {}),
+          ...(args.sort_by !== undefined ? { sort_by: args.sort_by } : {}),
+          ...(args.current_page !== undefined ? { current_page: args.current_page } : {}),
+          ...(args.per_page !== undefined ? { per_page: args.per_page } : {}),
+        });
 
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify({ supplier_invoices: response.supplier_invoices, meta: response.meta }, null, 2),
+              text: JSON.stringify({ supplier_invoices: result.supplier_invoices, meta: result.meta }, null, 2),
             },
           ],
         };
@@ -91,15 +77,13 @@ export function registerSupplierInvoiceTools(server: McpServer, getClient: () =>
     },
     async ({ id }) =>
       withClient(getClient, async (client) => {
-        const response = await client.get<SingleSupplierInvoiceResponse>(
-          `/v2/supplier_invoices/${encodeURIComponent(id)}`,
-        );
+        const supplierInvoice = await getSupplierInvoice(client, id);
 
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(response.supplier_invoice, null, 2),
+              text: JSON.stringify(supplierInvoice, null, 2),
             },
           ],
         };

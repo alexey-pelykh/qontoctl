@@ -3,6 +3,7 @@
 
 import { z } from "zod";
 
+import { PaginationMetaSchema } from "../api-types.schema.js";
 import type { Beneficiary } from "../types/beneficiary.js";
 
 export const BeneficiarySchema = z.object({
@@ -20,4 +21,9 @@ export const BeneficiarySchema = z.object({
 
 export const BeneficiaryResponseSchema = z.object({
   beneficiary: BeneficiarySchema,
+});
+
+export const BeneficiaryListResponseSchema = z.object({
+  beneficiaries: z.array(BeneficiarySchema),
+  meta: PaginationMetaSchema,
 });

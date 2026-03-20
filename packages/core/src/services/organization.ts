@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import type { Organization } from "../api-types.js";
-import type { HttpClient } from "../http-client.js";
+import { z } from "zod";
 
-interface OrganizationResponse {
-  readonly organization: Organization;
-}
+import type { Organization } from "../api-types.js";
+import { OrganizationSchema } from "../api-types.schema.js";
+import type { HttpClient } from "../http-client.js";
+import { parseResponse } from "../response.js";
+
+const OrganizationResponseSchema = z.object({ organization: OrganizationSchema });
 
 /**
  * Fetch the authenticated organization details, including its bank accounts.
@@ -15,6 +17,7 @@ interface OrganizationResponse {
  * @returns The organization object with nested bank accounts.
  */
 export async function getOrganization(client: HttpClient): Promise<Organization> {
-  const response = await client.get<OrganizationResponse>("/v2/organization");
-  return response.organization;
+  const endpointPath = "/v2/organization";
+  const response = await client.get(endpointPath);
+  return parseResponse(OrganizationResponseSchema, response, endpointPath).organization;
 }

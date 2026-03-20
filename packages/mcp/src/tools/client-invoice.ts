@@ -5,8 +5,9 @@ import { readFile } from "node:fs/promises";
 import { basename } from "node:path";
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { ClientInvoice, HttpClient, PaginationMeta } from "@qontoctl/core";
+import type { HttpClient } from "@qontoctl/core";
 import {
+  listClientInvoices,
   getClientInvoice,
   createClientInvoice,
   updateClientInvoice,
@@ -20,11 +21,6 @@ import {
   getClientInvoiceUpload,
 } from "@qontoctl/core";
 import { withClient } from "../errors.js";
-
-interface PaginatedClientInvoicesResponse {
-  readonly client_invoices: readonly ClientInvoice[];
-  readonly meta: PaginationMeta;
-}
 
 export function registerClientInvoiceTools(server: McpServer, getClient: () => Promise<HttpClient>): void {
   server.registerTool(
@@ -40,22 +36,18 @@ export function registerClientInvoiceTools(server: McpServer, getClient: () => P
     },
     async (args) =>
       withClient(getClient, async (client) => {
-        const params: Record<string, string> = {};
-        if (args.status !== undefined) params["filter[status]"] = args.status;
-        if (args.client_id !== undefined) params["filter[client_id]"] = args.client_id;
-        if (args.current_page !== undefined) params["current_page"] = String(args.current_page);
-        if (args.per_page !== undefined) params["per_page"] = String(args.per_page);
-
-        const response = await client.get<PaginatedClientInvoicesResponse>(
-          "/v2/client_invoices",
-          Object.keys(params).length > 0 ? params : undefined,
-        );
+        const result = await listClientInvoices(client, {
+          ...(args.status !== undefined ? { status: [args.status] } : {}),
+          ...(args.client_id !== undefined ? { client_id: args.client_id } : {}),
+          ...(args.current_page !== undefined ? { current_page: args.current_page } : {}),
+          ...(args.per_page !== undefined ? { per_page: args.per_page } : {}),
+        });
 
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify({ client_invoices: response.client_invoices, meta: response.meta }, null, 2),
+              text: JSON.stringify({ client_invoices: result.client_invoices, meta: result.meta }, null, 2),
             },
           ],
         };

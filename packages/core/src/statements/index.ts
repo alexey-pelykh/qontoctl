@@ -3,4 +3,9 @@
 
 export type { Statement, StatementFile } from "./types.js";
 
-export { StatementFileSchema, StatementSchema } from "./schemas.js";
+export {
+  StatementFileSchema,
+  StatementSchema,
+  StatementResponseSchema,
+  StatementListResponseSchema,
+} from "./schemas.js";

@@ -3,6 +3,7 @@
 
 import { z } from "zod";
 
+import { PaginationMetaSchema } from "../api-types.schema.js";
 import type { Team } from "./team.js";
 
 export const TeamSchema = z
@@ -11,3 +12,12 @@ export const TeamSchema = z
     name: z.string(),
   })
   .strip() satisfies z.ZodType<Team>;
+
+export const TeamResponseSchema = z.object({
+  team: TeamSchema,
+});
+
+export const TeamListResponseSchema = z.object({
+  teams: z.array(TeamSchema),
+  meta: PaginationMetaSchema,
+});

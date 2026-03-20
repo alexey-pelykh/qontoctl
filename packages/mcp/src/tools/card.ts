@@ -4,15 +4,15 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type {
-  Card,
   CreateCardParams,
   HttpClient,
-  PaginationMeta,
   UpdateCardLimitsParams,
   UpdateCardOptionsParams,
   UpdateCardRestrictionsParams,
 } from "@qontoctl/core";
 import {
+  getCard,
+  listCards,
   createCard,
   bulkCreateCards,
   lockCard,
@@ -28,15 +28,6 @@ import {
   listCardAppearances,
 } from "@qontoctl/core";
 import { withClient } from "../errors.js";
-
-interface PaginatedCardsResponse {
-  readonly cards: readonly Card[];
-  readonly meta: PaginationMeta;
-}
-
-interface SingleCardResponse {
-  readonly card: Card;
-}
 
 export function registerCardTools(server: McpServer, getClient: () => Promise<HttpClient>): void {
   server.registerTool(
@@ -78,28 +69,24 @@ export function registerCardTools(server: McpServer, getClient: () => Promise<Ht
     },
     async (args) =>
       withClient(getClient, async (client) => {
-        const params: Record<string, string | readonly string[]> = {};
-
-        if (args.query !== undefined) params["query"] = args.query;
-        if (args.holder_ids !== undefined && args.holder_ids.length > 0) params["holder_ids[]"] = args.holder_ids;
-        if (args.statuses !== undefined && args.statuses.length > 0) params["statuses[]"] = args.statuses;
-        if (args.bank_account_ids !== undefined && args.bank_account_ids.length > 0)
-          params["bank_account_ids[]"] = args.bank_account_ids;
-        if (args.card_levels !== undefined && args.card_levels.length > 0) params["card_levels[]"] = args.card_levels;
-        if (args.sort_by !== undefined) params["sort_by"] = args.sort_by;
-        if (args.current_page !== undefined) params["current_page"] = String(args.current_page);
-        if (args.per_page !== undefined) params["per_page"] = String(args.per_page);
-
-        const response = await client.get<PaginatedCardsResponse>(
-          "/v2/cards",
-          Object.keys(params).length > 0 ? params : undefined,
-        );
+        const result = await listCards(client, {
+          ...(args.query !== undefined ? { query: args.query } : {}),
+          ...(args.holder_ids !== undefined && args.holder_ids.length > 0 ? { holder_ids: args.holder_ids } : {}),
+          ...(args.statuses !== undefined && args.statuses.length > 0 ? { statuses: args.statuses } : {}),
+          ...(args.bank_account_ids !== undefined && args.bank_account_ids.length > 0
+            ? { bank_account_ids: args.bank_account_ids }
+            : {}),
+          ...(args.card_levels !== undefined && args.card_levels.length > 0 ? { card_levels: args.card_levels } : {}),
+          ...(args.sort_by !== undefined ? { sort_by: args.sort_by } : {}),
+          ...(args.current_page !== undefined ? { current_page: args.current_page } : {}),
+          ...(args.per_page !== undefined ? { per_page: args.per_page } : {}),
+        });
 
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify({ cards: response.cards, meta: response.meta }, null, 2),
+              text: JSON.stringify({ cards: result.cards, meta: result.meta }, null, 2),
             },
           ],
         };
@@ -116,13 +103,13 @@ export function registerCardTools(server: McpServer, getClient: () => Promise<Ht
     },
     async ({ id }) =>
       withClient(getClient, async (client) => {
-        const response = await client.get<SingleCardResponse>(`/v2/cards/${encodeURIComponent(id)}`);
+        const card = await getCard(client, id);
 
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(response.card, null, 2),
+              text: JSON.stringify(card, null, 2),
             },
           ],
         };

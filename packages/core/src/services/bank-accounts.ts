@@ -1,12 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import type { BankAccount, Organization } from "../api-types.js";
-import type { HttpClient } from "../http-client.js";
+import { z } from "zod";
 
-interface BankAccountResponse {
-  readonly bank_account: BankAccount;
-}
+import type { BankAccount, Organization } from "../api-types.js";
+import { BankAccountSchema } from "../api-types.schema.js";
+import type { HttpClient } from "../http-client.js";
+import { parseResponse } from "../response.js";
+
+const BankAccountResponseSchema = z.object({ bank_account: BankAccountSchema });
+const BankAccountListResponseSchema = z.object({
+  bank_accounts: z.array(BankAccountSchema),
+});
 
 export interface CreateBankAccountParams {
   readonly name: string;
@@ -24,8 +29,9 @@ export interface UpdateBankAccountParams {
  * @returns The bank account details.
  */
 export async function getBankAccount(client: HttpClient, id: string): Promise<BankAccount> {
-  const response = await client.get<BankAccountResponse>(`/v2/bank_accounts/${encodeURIComponent(id)}`);
-  return response.bank_account;
+  const endpointPath = `/v2/bank_accounts/${encodeURIComponent(id)}`;
+  const response = await client.get(endpointPath);
+  return parseResponse(BankAccountResponseSchema, response, endpointPath).bank_account;
 }
 
 /**
@@ -52,8 +58,9 @@ export async function createBankAccount(
   params: CreateBankAccountParams,
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<BankAccount> {
-  const response = await client.post<BankAccountResponse>("/v2/bank_accounts", { bank_account: params }, options);
-  return response.bank_account;
+  const endpointPath = "/v2/bank_accounts";
+  const response = await client.post(endpointPath, { bank_account: params }, options);
+  return parseResponse(BankAccountResponseSchema, response, endpointPath).bank_account;
 }
 
 /**
@@ -71,11 +78,24 @@ export async function updateBankAccount(
   params: UpdateBankAccountParams,
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<BankAccount> {
-  const response = await client.request<BankAccountResponse>("PUT", `/v2/bank_accounts/${encodeURIComponent(id)}`, {
+  const endpointPath = `/v2/bank_accounts/${encodeURIComponent(id)}`;
+  const response = await client.request("PUT", endpointPath, {
     body: { bank_account: params },
     ...options,
   });
-  return response.bank_account;
+  return parseResponse(BankAccountResponseSchema, response, endpointPath).bank_account;
+}
+
+/**
+ * List all bank accounts for the organization.
+ *
+ * @param client - The HTTP client to use for the request.
+ * @returns The bank accounts.
+ */
+export async function listBankAccounts(client: HttpClient): Promise<{ bank_accounts: BankAccount[] }> {
+  const endpointPath = "/v2/bank_accounts";
+  const response = await client.get(endpointPath);
+  return parseResponse(BankAccountListResponseSchema, response, endpointPath);
 }
 
 /**

@@ -3,6 +3,7 @@
 
 export {
   buildClientInvoiceQueryParams,
+  listClientInvoices,
   getClientInvoice,
   createClientInvoice,
   updateClientInvoice,
@@ -35,4 +36,6 @@ export {
   ClientInvoiceClientSchema,
   ClientInvoiceUploadSchema,
   ClientInvoiceSchema,
+  ClientInvoiceResponseSchema,
+  ClientInvoiceListResponseSchema,
 } from "./schemas.js";

@@ -3,17 +3,9 @@
 
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { HttpClient, Membership, PaginationMeta } from "@qontoctl/core";
+import type { HttpClient } from "@qontoctl/core";
+import { parseResponse, MembershipResponseSchema, MembershipListResponseSchema } from "@qontoctl/core";
 import { withClient } from "../errors.js";
-
-interface PaginatedMembershipsResponse {
-  readonly memberships: readonly Membership[];
-  readonly meta: PaginationMeta;
-}
-
-interface SingleMembershipResponse {
-  readonly membership: Membership;
-}
 
 export function registerMembershipTools(server: McpServer, getClient: () => Promise<HttpClient>): void {
   server.registerTool(
@@ -31,16 +23,15 @@ export function registerMembershipTools(server: McpServer, getClient: () => Prom
         if (current_page !== undefined) params["current_page"] = String(current_page);
         if (per_page !== undefined) params["per_page"] = String(per_page);
 
-        const response = await client.get<PaginatedMembershipsResponse>(
-          "/v2/memberships",
-          Object.keys(params).length > 0 ? params : undefined,
-        );
+        const endpointPath = "/v2/memberships";
+        const response = await client.get(endpointPath, Object.keys(params).length > 0 ? params : undefined);
+        const result = parseResponse(MembershipListResponseSchema, response, endpointPath);
 
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify({ memberships: response.memberships, meta: response.meta }, null, 2),
+              text: JSON.stringify({ memberships: result.memberships, meta: result.meta }, null, 2),
             },
           ],
         };
@@ -55,13 +46,15 @@ export function registerMembershipTools(server: McpServer, getClient: () => Prom
     },
     async () =>
       withClient(getClient, async (client) => {
-        const response = await client.get<SingleMembershipResponse>("/v2/membership");
+        const endpointPath = "/v2/membership";
+        const response = await client.get(endpointPath);
+        const result = parseResponse(MembershipResponseSchema, response, endpointPath);
 
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(response.membership, null, 2),
+              text: JSON.stringify(result.membership, null, 2),
             },
           ],
         };
@@ -82,21 +75,23 @@ export function registerMembershipTools(server: McpServer, getClient: () => Prom
     },
     async (args) =>
       withClient(getClient, async (client) => {
-        const params: Record<string, string> = {
+        const body: Record<string, string> = {
           email: args.email,
           role: args.role,
         };
-        if (args.first_name !== undefined) params["first_name"] = args.first_name;
-        if (args.last_name !== undefined) params["last_name"] = args.last_name;
-        if (args.team_id !== undefined) params["team_id"] = args.team_id;
+        if (args.first_name !== undefined) body["first_name"] = args.first_name;
+        if (args.last_name !== undefined) body["last_name"] = args.last_name;
+        if (args.team_id !== undefined) body["team_id"] = args.team_id;
 
-        const response = await client.post<SingleMembershipResponse>("/v2/memberships", { membership: params });
+        const endpointPath = "/v2/memberships";
+        const response = await client.post(endpointPath, { membership: body });
+        const result = parseResponse(MembershipResponseSchema, response, endpointPath);
 
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(response.membership, null, 2),
+              text: JSON.stringify(result.membership, null, 2),
             },
           ],
         };

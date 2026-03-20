@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
+import type { PaginationMeta } from "../api-types.js";
 import type { HttpClient, QueryParams } from "../http-client.js";
 import { parseResponse } from "../response.js";
-import { TransactionSchema } from "./schemas.js";
+import { TransactionListResponseSchema, TransactionResponseSchema } from "./schemas.js";
 import type { ListTransactionsParams, Transaction } from "./types.js";
 
 /**
@@ -74,9 +75,30 @@ export async function getTransaction(
   }
 
   const endpointPath = `/v2/transactions/${encodeURIComponent(id)}`;
-  const response = await client.get<{ transaction: Transaction }>(
+  const response = await client.get(
     endpointPath,
     Object.keys(params).length > 0 ? params : undefined,
   );
-  return parseResponse(TransactionSchema, response.transaction, endpointPath) as Transaction;
+  return parseResponse(TransactionResponseSchema, response, endpointPath).transaction as Transaction;
+}
+
+/**
+ * List transactions with optional filtering and pagination.
+ */
+export async function listTransactions(
+  client: HttpClient,
+  params?: ListTransactionsParams & { current_page?: number; per_page?: number },
+): Promise<{ transactions: Transaction[]; meta: PaginationMeta }> {
+  const query: Record<string, string | readonly string[]> = {};
+  if (params) {
+    Object.assign(query, buildTransactionQueryParams(params));
+    if (params.current_page !== undefined) query["current_page"] = String(params.current_page);
+    if (params.per_page !== undefined) query["per_page"] = String(params.per_page);
+  }
+  const endpointPath = "/v2/transactions";
+  const response = await client.get(endpointPath, Object.keys(query).length > 0 ? query : undefined);
+  return parseResponse(TransactionListResponseSchema, response, endpointPath) as {
+    transactions: Transaction[];
+    meta: PaginationMeta;
+  };
 }

@@ -24,7 +24,11 @@ describe("org MCP tools", () => {
     it("returns organization from API", async () => {
       fetchSpy.mockReturnValue(
         jsonResponse({
-          organization: { name: "Acme Corp", slug: "acme-corp" },
+          organization: {
+            slug: "acme-corp",
+            legal_name: "Acme Corp",
+            bank_accounts: [],
+          },
         }),
       );
 
@@ -35,14 +39,14 @@ describe("org MCP tools", () => {
 
       const content = result.content as { type: string; text: string }[];
       expect(content).toHaveLength(1);
-      const parsed: unknown = JSON.parse((content[0] as { type: string; text: string }).text);
-      expect(parsed).toEqual({ name: "Acme Corp", slug: "acme-corp" });
+      const parsed = JSON.parse((content[0] as { type: string; text: string }).text) as { slug: string };
+      expect(parsed.slug).toBe("acme-corp");
     });
 
     it("calls the correct API endpoint", async () => {
       fetchSpy.mockReturnValue(
         jsonResponse({
-          organization: { name: "Acme Corp", slug: "acme-corp" },
+          organization: { slug: "acme-corp", legal_name: "Acme Corp", bank_accounts: [] },
         }),
       );
 

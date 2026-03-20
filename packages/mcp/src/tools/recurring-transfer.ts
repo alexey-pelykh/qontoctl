@@ -3,7 +3,7 @@
 
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { HttpClient } from "@qontoctl/core";
+import { type HttpClient, getRecurringTransfer, listRecurringTransfers } from "@qontoctl/core";
 import { withClient } from "../errors.js";
 
 export function registerRecurringTransferTools(server: McpServer, getClient: () => Promise<HttpClient>): void {
@@ -18,20 +18,19 @@ export function registerRecurringTransferTools(server: McpServer, getClient: () 
     },
     async (args) =>
       withClient(getClient, async (client) => {
-        const params: Record<string, string> = {};
-
-        if (args.current_page !== undefined) params["current_page"] = String(args.current_page);
-        if (args.per_page !== undefined) params["per_page"] = String(args.per_page);
-
-        const response = await client.get<{ recurring_transfers: unknown[]; meta: unknown }>(
-          "/v2/sepa/recurring_transfers",
-          Object.keys(params).length > 0 ? params : undefined,
-        );
+        const result = await listRecurringTransfers(client, {
+          ...(args.current_page !== undefined ? { current_page: args.current_page } : {}),
+          ...(args.per_page !== undefined ? { per_page: args.per_page } : {}),
+        });
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify({ recurring_transfers: response.recurring_transfers, meta: response.meta }, null, 2),
+              text: JSON.stringify(
+                { recurring_transfers: result.recurring_transfers, meta: result.meta },
+                null,
+                2,
+              ),
             },
           ],
         };
@@ -48,11 +47,9 @@ export function registerRecurringTransferTools(server: McpServer, getClient: () 
     },
     async ({ id }) =>
       withClient(getClient, async (client) => {
-        const response = await client.get<{ recurring_transfer: unknown }>(
-          `/v2/sepa/recurring_transfers/${encodeURIComponent(id)}`,
-        );
+        const recurringTransfer = await getRecurringTransfer(client, id);
         return {
-          content: [{ type: "text" as const, text: JSON.stringify(response.recurring_transfer, null, 2) }],
+          content: [{ type: "text" as const, text: JSON.stringify(recurringTransfer, null, 2) }],
         };
       }),
   );

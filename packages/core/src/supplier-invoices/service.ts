@@ -1,9 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
+import type { PaginationMeta } from "../api-types.js";
 import type { HttpClient, QueryParams } from "../http-client.js";
 import { parseResponse } from "../response.js";
-import { BulkCreateSupplierInvoicesResultSchema, SupplierInvoiceSchema } from "./schemas.js";
+import {
+  BulkCreateSupplierInvoicesResultSchema,
+  SupplierInvoiceListResponseSchema,
+  SupplierInvoiceResponseSchema,
+} from "./schemas.js";
 import type {
   BulkCreateSupplierInvoiceEntry,
   BulkCreateSupplierInvoicesResult,
@@ -52,8 +57,26 @@ export function buildSupplierInvoiceQueryParams(params: ListSupplierInvoicesPara
  */
 export async function getSupplierInvoice(client: HttpClient, id: string): Promise<SupplierInvoice> {
   const endpointPath = `/v2/supplier_invoices/${encodeURIComponent(id)}`;
-  const response = await client.get<{ supplier_invoice: SupplierInvoice }>(endpointPath);
-  return parseResponse(SupplierInvoiceSchema, response.supplier_invoice, endpointPath);
+  const response = await client.get(endpointPath);
+  return parseResponse(SupplierInvoiceResponseSchema, response, endpointPath).supplier_invoice;
+}
+
+/**
+ * List supplier invoices with optional filtering and pagination.
+ */
+export async function listSupplierInvoices(
+  client: HttpClient,
+  params?: ListSupplierInvoicesParams & { current_page?: number; per_page?: number },
+): Promise<{ supplier_invoices: SupplierInvoice[]; meta: PaginationMeta }> {
+  const query: Record<string, string | readonly string[]> = {};
+  if (params) {
+    Object.assign(query, buildSupplierInvoiceQueryParams(params));
+    if (params.current_page !== undefined) query["current_page"] = String(params.current_page);
+    if (params.per_page !== undefined) query["per_page"] = String(params.per_page);
+  }
+  const endpointPath = "/v2/supplier_invoices";
+  const response = await client.get(endpointPath, Object.keys(query).length > 0 ? query : undefined);
+  return parseResponse(SupplierInvoiceListResponseSchema, response, endpointPath);
 }
 
 /**

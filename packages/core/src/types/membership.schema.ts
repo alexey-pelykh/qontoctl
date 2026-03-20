@@ -3,6 +3,7 @@
 
 import { z } from "zod";
 
+import { PaginationMetaSchema } from "../api-types.schema.js";
 import type { Membership } from "./membership.js";
 
 export const MembershipSchema = z
@@ -21,3 +22,12 @@ export const MembershipSchema = z
     status: z.string(),
   })
   .strip() satisfies z.ZodType<Membership>;
+
+export const MembershipResponseSchema = z.object({
+  membership: MembershipSchema,
+});
+
+export const MembershipListResponseSchema = z.object({
+  memberships: z.array(MembershipSchema),
+  meta: PaginationMetaSchema,
+});

@@ -3,12 +3,8 @@
 
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { HttpClient, InternalTransfer } from "@qontoctl/core";
+import { type HttpClient, createInternalTransfer } from "@qontoctl/core";
 import { withClient } from "../errors.js";
-
-interface SingleInternalTransferResponse {
-  readonly internal_transfer: InternalTransfer;
-}
 
 export function registerInternalTransferTools(server: McpServer, getClient: () => Promise<HttpClient>): void {
   server.registerTool(
@@ -25,21 +21,19 @@ export function registerInternalTransferTools(server: McpServer, getClient: () =
     },
     async (args) =>
       withClient(getClient, async (client) => {
-        const response = await client.post<SingleInternalTransferResponse>("/v2/internal_transfers", {
-          internal_transfer: {
-            debit_iban: args.debit_iban,
-            credit_iban: args.credit_iban,
-            reference: args.reference,
-            amount: args.amount,
-            currency: args.currency,
-          },
+        const internalTransfer = await createInternalTransfer(client, {
+          debit_iban: args.debit_iban,
+          credit_iban: args.credit_iban,
+          reference: args.reference,
+          amount: args.amount,
+          currency: args.currency,
         });
 
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(response.internal_transfer, null, 2),
+              text: JSON.stringify(internalTransfer, null, 2),
             },
           ],
         };

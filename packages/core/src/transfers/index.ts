@@ -3,6 +3,7 @@
 
 export {
   buildTransferQueryParams,
+  listTransfers,
   getTransfer,
   createTransfer,
   cancelTransfer,
@@ -14,6 +15,7 @@ export {
 export {
   TransferSchema,
   TransferResponseSchema,
+  TransferListResponseSchema,
   VopResultSchema,
   VopResultResponseSchema,
   BulkVopResultResponseSchema,

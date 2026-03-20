@@ -3,18 +3,17 @@
 
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { CreateTransferParams, HttpClient, PaginationMeta, Transfer, VopResult } from "@qontoctl/core";
-import { createTransfer, cancelTransfer, getTransferProof, verifyPayee, bulkVerifyPayee } from "@qontoctl/core";
+import type { CreateTransferParams, HttpClient, VopResult } from "@qontoctl/core";
+import {
+  getTransfer,
+  listTransfers,
+  createTransfer,
+  cancelTransfer,
+  getTransferProof,
+  verifyPayee,
+  bulkVerifyPayee,
+} from "@qontoctl/core";
 import { withClient } from "../errors.js";
-
-interface PaginatedTransfersResponse {
-  readonly transfers: readonly Transfer[];
-  readonly meta: PaginationMeta;
-}
-
-interface SingleTransferResponse {
-  readonly transfer: Transfer;
-}
 
 export function registerTransferTools(server: McpServer, getClient: () => Promise<HttpClient>): void {
   server.registerTool(
@@ -38,28 +37,23 @@ export function registerTransferTools(server: McpServer, getClient: () => Promis
     },
     async (args) =>
       withClient(getClient, async (client) => {
-        const params: Record<string, string> = {};
-
-        if (args.status !== undefined) params["status[]"] = args.status;
-        if (args.beneficiary_id !== undefined) params["beneficiary_ids[]"] = args.beneficiary_id;
-        if (args.updated_at_from !== undefined) params["updated_at_from"] = args.updated_at_from;
-        if (args.updated_at_to !== undefined) params["updated_at_to"] = args.updated_at_to;
-        if (args.scheduled_date_from !== undefined) params["scheduled_date_from"] = args.scheduled_date_from;
-        if (args.scheduled_date_to !== undefined) params["scheduled_date_to"] = args.scheduled_date_to;
-        if (args.sort_by !== undefined) params["sort_by"] = args.sort_by;
-        if (args.current_page !== undefined) params["current_page"] = String(args.current_page);
-        if (args.per_page !== undefined) params["per_page"] = String(args.per_page);
-
-        const response = await client.get<PaginatedTransfersResponse>(
-          "/v2/sepa/transfers",
-          Object.keys(params).length > 0 ? params : undefined,
-        );
+        const result = await listTransfers(client, {
+          ...(args.status !== undefined ? { status: [args.status] } : {}),
+          ...(args.beneficiary_id !== undefined ? { beneficiary_ids: [args.beneficiary_id] } : {}),
+          ...(args.updated_at_from !== undefined ? { updated_at_from: args.updated_at_from } : {}),
+          ...(args.updated_at_to !== undefined ? { updated_at_to: args.updated_at_to } : {}),
+          ...(args.scheduled_date_from !== undefined ? { scheduled_date_from: args.scheduled_date_from } : {}),
+          ...(args.scheduled_date_to !== undefined ? { scheduled_date_to: args.scheduled_date_to } : {}),
+          ...(args.sort_by !== undefined ? { sort_by: args.sort_by } : {}),
+          ...(args.current_page !== undefined ? { current_page: args.current_page } : {}),
+          ...(args.per_page !== undefined ? { per_page: args.per_page } : {}),
+        });
 
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify({ transfers: response.transfers, meta: response.meta }, null, 2),
+              text: JSON.stringify({ transfers: result.transfers, meta: result.meta }, null, 2),
             },
           ],
         };
@@ -76,10 +70,10 @@ export function registerTransferTools(server: McpServer, getClient: () => Promis
     },
     async ({ id }) =>
       withClient(getClient, async (client) => {
-        const response = await client.get<SingleTransferResponse>(`/v2/sepa/transfers/${encodeURIComponent(id)}`);
+        const transfer = await getTransfer(client, id);
 
         return {
-          content: [{ type: "text" as const, text: JSON.stringify(response.transfer, null, 2) }],
+          content: [{ type: "text" as const, text: JSON.stringify(transfer, null, 2) }],
         };
       }),
   );

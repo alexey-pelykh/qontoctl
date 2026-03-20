@@ -3,6 +3,7 @@
 
 import { z } from "zod";
 
+import { PaginationMetaSchema } from "../api-types.schema.js";
 import type {
   Request,
   RequestFlashCard,
@@ -62,3 +63,8 @@ export const RequestSchema = z.discriminatedUnion("request_type", [
   RequestTransferSchema,
   RequestMultiTransferSchema,
 ]) satisfies z.ZodType<Request>;
+
+export const RequestListResponseSchema = z.object({
+  requests: z.array(RequestSchema),
+  meta: PaginationMetaSchema,
+});

@@ -18,6 +18,30 @@ function makeMeta(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function makeTransfer(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "txfr-1",
+    initiator_id: "user-1",
+    bank_account_id: "acc-1",
+    beneficiary_id: "ben-1",
+    amount: 100.5,
+    amount_cents: 10050,
+    amount_currency: "EUR",
+    status: "settled",
+    reference: "Invoice 001",
+    note: null,
+    scheduled_date: "2026-01-15",
+    created_at: "2026-01-01T00:00:00Z",
+    updated_at: "2026-01-01T00:00:00Z",
+    processed_at: "2026-01-15T10:00:00Z",
+    completed_at: "2026-01-15T10:00:00Z",
+    transaction_id: "txn-1",
+    recurring_transfer_id: null,
+    declined_reason: null,
+    ...overrides,
+  };
+}
+
 describe("transfer MCP tools", () => {
   let fetchSpy: ReturnType<typeof vi.fn>;
   let mcpClient: Client;
@@ -34,27 +58,12 @@ describe("transfer MCP tools", () => {
 
   describe("transfer_list", () => {
     it("returns transfers from API", async () => {
-      const transfers = [
-        {
-          id: "txfr-1",
-          beneficiary_id: "ben-1",
-          amount: 100.5,
-          amount_currency: "EUR",
-          status: "settled",
-          reference: "Invoice 001",
-        },
-        {
-          id: "txfr-2",
-          beneficiary_id: "ben-2",
-          amount: 200.0,
-          amount_currency: "EUR",
-          status: "pending",
-          reference: "Invoice 002",
-        },
-      ];
       fetchSpy.mockReturnValue(
         jsonResponse({
-          transfers,
+          transfers: [
+            makeTransfer(),
+            makeTransfer({ id: "txfr-2", amount: 200.0, amount_cents: 20000, status: "pending" }),
+          ],
           meta: makeMeta({ total_count: 2 }),
         }),
       );
@@ -112,15 +121,7 @@ describe("transfer MCP tools", () => {
 
   describe("transfer_show", () => {
     it("returns a single transfer", async () => {
-      const transfer = {
-        id: "txfr-123",
-        beneficiary_id: "ben-1",
-        amount: 100.5,
-        amount_currency: "EUR",
-        status: "settled",
-        reference: "Invoice 001",
-      };
-      fetchSpy.mockReturnValue(jsonResponse({ transfer }));
+      fetchSpy.mockReturnValue(jsonResponse({ transfer: makeTransfer({ id: "txfr-123" }) }));
 
       const result = await mcpClient.callTool({
         name: "transfer_show",
@@ -137,7 +138,7 @@ describe("transfer MCP tools", () => {
     it("calls the correct API endpoint", async () => {
       fetchSpy.mockReturnValue(
         jsonResponse({
-          transfer: { id: "txfr-123", reference: "Test" },
+          transfer: makeTransfer({ id: "txfr-123" }),
         }),
       );
 
