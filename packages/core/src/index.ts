@@ -116,6 +116,12 @@ export {
   updateCardRestrictions,
   getCardIframeUrl,
   listCardAppearances,
+  CardAppearanceSchema,
+  CardLevelAppearanceSchema,
+  CardLevelAppearancesSchema,
+  CardSchema,
+  CardTypeAppearancesSchema,
+  ParentCardSummarySchema,
 } from "./cards/index.js";
 
 export type {

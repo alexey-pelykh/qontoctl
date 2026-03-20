@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
+import { z } from "zod";
 import type { HttpClient, QueryParams } from "../http-client.js";
+import { parseResponse } from "../response.js";
 import type { Card, CardTypeAppearances } from "../types/card.js";
+import { CardSchema, CardTypeAppearancesSchema } from "./schemas.js";
 import type {
   CreateCardParams,
   ListCardsParams,
@@ -52,8 +55,9 @@ export async function createCard(
   params: CreateCardParams,
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<Card> {
-  const response = await client.post<{ card: Card }>("/v2/cards", params, options);
-  return response.card;
+  const path = "/v2/cards";
+  const response = await client.post<{ card: Card }>(path, params, options);
+  return parseResponse(z.object({ card: CardSchema }), response, path).card;
 }
 
 /**
@@ -64,8 +68,9 @@ export async function bulkCreateCards(
   cards: readonly CreateCardParams[],
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<readonly Card[]> {
-  const response = await client.post<{ cards: readonly Card[] }>("/v2/cards/bulk", { cards }, options);
-  return response.cards;
+  const path = "/v2/cards/bulk";
+  const response = await client.post<{ cards: readonly Card[] }>(path, { cards }, options);
+  return parseResponse(z.object({ cards: z.array(CardSchema) }), response, path).cards;
 }
 
 /**
@@ -76,8 +81,9 @@ export async function lockCard(
   id: string,
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<Card> {
-  const response = await client.put<{ card: Card }>(`/v2/cards/${encodeURIComponent(id)}/lock`, undefined, options);
-  return response.card;
+  const path = `/v2/cards/${encodeURIComponent(id)}/lock`;
+  const response = await client.put<{ card: Card }>(path, undefined, options);
+  return parseResponse(z.object({ card: CardSchema }), response, path).card;
 }
 
 /**
@@ -88,8 +94,9 @@ export async function unlockCard(
   id: string,
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<Card> {
-  const response = await client.put<{ card: Card }>(`/v2/cards/${encodeURIComponent(id)}/unlock`, undefined, options);
-  return response.card;
+  const path = `/v2/cards/${encodeURIComponent(id)}/unlock`;
+  const response = await client.put<{ card: Card }>(path, undefined, options);
+  return parseResponse(z.object({ card: CardSchema }), response, path).card;
 }
 
 /**
@@ -100,8 +107,9 @@ export async function reportCardLost(
   id: string,
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<Card> {
-  const response = await client.put<{ card: Card }>(`/v2/cards/${encodeURIComponent(id)}/lost`, undefined, options);
-  return response.card;
+  const path = `/v2/cards/${encodeURIComponent(id)}/lost`;
+  const response = await client.put<{ card: Card }>(path, undefined, options);
+  return parseResponse(z.object({ card: CardSchema }), response, path).card;
 }
 
 /**
@@ -112,8 +120,9 @@ export async function reportCardStolen(
   id: string,
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<Card> {
-  const response = await client.put<{ card: Card }>(`/v2/cards/${encodeURIComponent(id)}/stolen`, undefined, options);
-  return response.card;
+  const path = `/v2/cards/${encodeURIComponent(id)}/stolen`;
+  const response = await client.put<{ card: Card }>(path, undefined, options);
+  return parseResponse(z.object({ card: CardSchema }), response, path).card;
 }
 
 /**
@@ -124,8 +133,9 @@ export async function discardCard(
   id: string,
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<Card> {
-  const response = await client.put<{ card: Card }>(`/v2/cards/${encodeURIComponent(id)}/discard`, undefined, options);
-  return response.card;
+  const path = `/v2/cards/${encodeURIComponent(id)}/discard`;
+  const response = await client.put<{ card: Card }>(path, undefined, options);
+  return parseResponse(z.object({ card: CardSchema }), response, path).card;
 }
 
 /**
@@ -137,12 +147,9 @@ export async function updateCardLimits(
   params: UpdateCardLimitsParams,
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<Card> {
-  const response = await client.patch<{ card: Card }>(
-    `/v2/cards/${encodeURIComponent(id)}/limits`,
-    { card: params },
-    options,
-  );
-  return response.card;
+  const path = `/v2/cards/${encodeURIComponent(id)}/limits`;
+  const response = await client.patch<{ card: Card }>(path, { card: params }, options);
+  return parseResponse(z.object({ card: CardSchema }), response, path).card;
 }
 
 /**
@@ -154,12 +161,9 @@ export async function updateCardNickname(
   nickname: string,
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<Card> {
-  const response = await client.patch<{ card: Card }>(
-    `/v2/cards/${encodeURIComponent(id)}/nickname`,
-    { card: { nickname } },
-    options,
-  );
-  return response.card;
+  const path = `/v2/cards/${encodeURIComponent(id)}/nickname`;
+  const response = await client.patch<{ card: Card }>(path, { card: { nickname } }, options);
+  return parseResponse(z.object({ card: CardSchema }), response, path).card;
 }
 
 /**
@@ -171,12 +175,9 @@ export async function updateCardOptions(
   params: UpdateCardOptionsParams,
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<Card> {
-  const response = await client.patch<{ card: Card }>(
-    `/v2/cards/${encodeURIComponent(id)}/options`,
-    { card: params },
-    options,
-  );
-  return response.card;
+  const path = `/v2/cards/${encodeURIComponent(id)}/options`;
+  const response = await client.patch<{ card: Card }>(path, { card: params }, options);
+  return parseResponse(z.object({ card: CardSchema }), response, path).card;
 }
 
 /**
@@ -188,26 +189,29 @@ export async function updateCardRestrictions(
   params: UpdateCardRestrictionsParams,
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<Card> {
-  const response = await client.patch<{ card: Card }>(
-    `/v2/cards/${encodeURIComponent(id)}/restrictions`,
-    { card: params },
-    options,
-  );
-  return response.card;
+  const path = `/v2/cards/${encodeURIComponent(id)}/restrictions`;
+  const response = await client.patch<{ card: Card }>(path, { card: params }, options);
+  return parseResponse(z.object({ card: CardSchema }), response, path).card;
 }
 
 /**
  * Get the secure iframe URL for viewing card details.
  */
 export async function getCardIframeUrl(client: HttpClient, id: string): Promise<string> {
-  const response = await client.get<{ iframe_url: string }>(`/v2/cards/${encodeURIComponent(id)}/data_view`);
-  return response.iframe_url;
+  const path = `/v2/cards/${encodeURIComponent(id)}/data_view`;
+  const response = await client.get<{ iframe_url: string }>(path);
+  return parseResponse(z.object({ iframe_url: z.string() }), response, path).iframe_url;
 }
 
 /**
  * List available card appearances.
  */
 export async function listCardAppearances(client: HttpClient): Promise<readonly CardTypeAppearances[]> {
-  const response = await client.get<{ card_type_appearances: readonly CardTypeAppearances[] }>("/v2/cards/appearances");
-  return response.card_type_appearances;
+  const path = "/v2/cards/appearances";
+  const response = await client.get<{ card_type_appearances: readonly CardTypeAppearances[] }>(path);
+  return parseResponse(
+    z.object({ card_type_appearances: z.array(CardTypeAppearancesSchema) }),
+    response,
+    path,
+  ).card_type_appearances;
 }

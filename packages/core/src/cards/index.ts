@@ -18,6 +18,15 @@ export {
   listCardAppearances,
 } from "./service.js";
 
+export {
+  CardAppearanceSchema,
+  CardLevelAppearanceSchema,
+  CardLevelAppearancesSchema,
+  CardSchema,
+  CardTypeAppearancesSchema,
+  ParentCardSummarySchema,
+} from "./schemas.js";
+
 export type {
   CreateCardParams,
   ListCardsParams,
