@@ -3,7 +3,13 @@
 
 import { z } from "zod";
 
-import type { Request, RequestFlashCard, RequestMultiTransfer, RequestTransfer, RequestVirtualCard } from "./request.js";
+import type {
+  Request,
+  RequestFlashCard,
+  RequestMultiTransfer,
+  RequestTransfer,
+  RequestVirtualCard,
+} from "./request.js";
 
 const RequestBaseSchema = z.object({
   id: z.string(),
