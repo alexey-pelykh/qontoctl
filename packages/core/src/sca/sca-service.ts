@@ -1,22 +1,25 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
+import { z } from "zod";
 import type { HttpClient } from "../http-client.js";
-import type { ScaSession, ScaSessionStatus } from "./types.js";
+import { parseResponse } from "../response.js";
+import type { ScaSession } from "./types.js";
 import { ScaDeniedError, ScaTimeoutError } from "./errors.js";
-
-interface ScaSessionResponse {
-  readonly sca_session: {
-    readonly status: ScaSessionStatus;
-  };
-}
+import { ScaSessionStatusSchema } from "./schemas.js";
 
 /**
  * Retrieve the current status of an SCA session.
  */
 export async function getScaSession(client: HttpClient, token: string): Promise<ScaSession> {
-  const response = await client.get<ScaSessionResponse>(`/v2/sca/sessions/${encodeURIComponent(token)}`);
-  return { token, status: response.sca_session.status };
+  const endpointPath = `/v2/sca/sessions/${encodeURIComponent(token)}`;
+  const response = await client.get(endpointPath);
+  const parsed = parseResponse(
+    z.object({ sca_session: z.object({ status: ScaSessionStatusSchema }) }),
+    response,
+    endpointPath,
+  );
+  return { token, status: parsed.sca_session.status };
 }
 
 /**

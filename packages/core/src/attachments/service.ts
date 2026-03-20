@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
+import { z } from "zod";
 import type { HttpClient } from "../http-client.js";
+import { parseResponse } from "../response.js";
+import { AttachmentSchema } from "./schemas.js";
 import type { Attachment } from "./types.js";
 
 /**
@@ -18,26 +21,26 @@ export async function uploadAttachment(
   const formData = new FormData();
   formData.append("file", file, fileName);
 
-  const response = await client.postFormData<{ attachment: Attachment }>("/v2/attachments", formData, options);
-  return response.attachment;
+  const response = await client.postFormData("/v2/attachments", formData, options);
+  return parseResponse(z.object({ attachment: AttachmentSchema }), response, "/v2/attachments").attachment;
 }
 
 /**
  * Retrieve attachment details by ID.
  */
 export async function getAttachment(client: HttpClient, id: string): Promise<Attachment> {
-  const response = await client.get<{ attachment: Attachment }>(`/v2/attachments/${encodeURIComponent(id)}`);
-  return response.attachment;
+  const endpointPath = `/v2/attachments/${encodeURIComponent(id)}`;
+  const response = await client.get(endpointPath);
+  return parseResponse(z.object({ attachment: AttachmentSchema }), response, endpointPath).attachment;
 }
 
 /**
  * List attachments for a transaction.
  */
 export async function listTransactionAttachments(client: HttpClient, transactionId: string): Promise<Attachment[]> {
-  const response = await client.get<{ attachments: Attachment[] }>(
-    `/v2/transactions/${encodeURIComponent(transactionId)}/attachments`,
-  );
-  return response.attachments;
+  const endpointPath = `/v2/transactions/${encodeURIComponent(transactionId)}/attachments`;
+  const response = await client.get(endpointPath);
+  return parseResponse(z.object({ attachments: z.array(AttachmentSchema) }), response, endpointPath).attachments;
 }
 
 /**
@@ -56,12 +59,9 @@ export async function addTransactionAttachment(
   const formData = new FormData();
   formData.append("file", file, fileName);
 
-  const response = await client.postFormData<{ attachment?: Attachment }>(
-    `/v2/transactions/${encodeURIComponent(transactionId)}/attachments`,
-    formData,
-    options,
-  );
-  return response.attachment;
+  const endpointPath = `/v2/transactions/${encodeURIComponent(transactionId)}/attachments`;
+  const response = await client.postFormData(endpointPath, formData, options);
+  return parseResponse(z.object({ attachment: AttachmentSchema.optional() }), response, endpointPath).attachment;
 }
 
 /**

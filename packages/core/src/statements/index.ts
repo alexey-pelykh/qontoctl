@@ -2,3 +2,5 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 export type { Statement, StatementFile } from "./types.js";
+
+export { StatementFileSchema, StatementSchema } from "./schemas.js";
