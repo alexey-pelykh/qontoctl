@@ -69,9 +69,7 @@ describe.skipIf(!hasCredentials())("attachment MCP tools (e2e)", () => {
     const textContent = result.content[0] as { type: string; text: string };
     const parsed = JSON.parse(textContent.text) as TransactionListResponse;
 
-    return parsed.transactions.find(
-      (txn) => txn.attachment_ids !== undefined && txn.attachment_ids.length > 0,
-    );
+    return parsed.transactions.find((txn) => txn.attachment_ids !== undefined && txn.attachment_ids.length > 0);
   }
 
   describe("transaction_attachment_list", () => {
