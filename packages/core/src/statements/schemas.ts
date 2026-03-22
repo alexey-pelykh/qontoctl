@@ -12,7 +12,7 @@ import type { Statement, StatementFile } from "./types.js";
 export const StatementFileSchema = z.object({
   file_name: z.string(),
   file_content_type: z.string(),
-  file_size: z.string(),
+  file_size: z.coerce.string(),
   file_url: z.string(),
 }) satisfies z.ZodType<StatementFile>;
 

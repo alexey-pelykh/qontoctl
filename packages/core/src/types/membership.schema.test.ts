@@ -53,6 +53,24 @@ describe("MembershipSchema", () => {
     expect(result).not.toHaveProperty("extra");
   });
 
+  it("accepts missing optional fields (API omits them)", () => {
+    const input = {
+      id: validMembership.id,
+      first_name: validMembership.first_name,
+      last_name: validMembership.last_name,
+      role: validMembership.role,
+      team_id: validMembership.team_id,
+      status: validMembership.status,
+    };
+    const result = MembershipSchema.parse(input);
+    expect(result.email).toBeUndefined();
+    expect(result.residence_country).toBeUndefined();
+    expect(result.birthdate).toBeUndefined();
+    expect(result.nationality).toBeUndefined();
+    expect(result.birth_country).toBeUndefined();
+    expect(result.ubo).toBeUndefined();
+  });
+
   it("rejects missing required fields", () => {
     expect(() => MembershipSchema.parse({ id: "member-1" })).toThrow();
   });

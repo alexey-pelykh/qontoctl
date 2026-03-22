@@ -106,6 +106,13 @@ describe("PaginationMetaSchema", () => {
     expect(result.next_page).toBeNull();
   });
 
+  it("accepts missing prev_page (API returns previous_page which gets stripped)", () => {
+    const input = { ...validMeta };
+    delete (input as Record<string, unknown>).prev_page;
+    const result = PaginationMetaSchema.parse(input);
+    expect(result.prev_page).toBeUndefined();
+  });
+
   it("strips unknown fields", () => {
     const result = PaginationMetaSchema.parse({ ...validMeta, extra: true });
     expect(result).not.toHaveProperty("extra");

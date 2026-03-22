@@ -117,6 +117,31 @@ describe("ClientSchema", () => {
     expect(result.currency).toBeNull();
   });
 
+  it("accepts missing optional fields (API omits them)", () => {
+    const input = {
+      id: validClient.id,
+      name: validClient.name,
+      first_name: validClient.first_name,
+      last_name: validClient.last_name,
+      kind: validClient.kind,
+      email: validClient.email,
+      billing_address: validClient.billing_address,
+      created_at: validClient.created_at,
+      updated_at: validClient.updated_at,
+    };
+    const result = ClientSchema.parse(input);
+    expect(result.vat_number).toBeUndefined();
+    expect(result.tax_identification_number).toBeUndefined();
+    expect(result.address).toBeUndefined();
+    expect(result.city).toBeUndefined();
+    expect(result.zip_code).toBeUndefined();
+    expect(result.province_code).toBeUndefined();
+    expect(result.country_code).toBeUndefined();
+    expect(result.delivery_address).toBeUndefined();
+    expect(result.locale).toBeUndefined();
+    expect(result.currency).toBeUndefined();
+  });
+
   it("rejects missing required fields", () => {
     expect(() => ClientSchema.parse({ id: "client-1" })).toThrow();
   });
