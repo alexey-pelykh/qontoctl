@@ -26,6 +26,29 @@ describe("BankAccountSchema", () => {
     expect(result).toEqual(validBankAccount);
   });
 
+  it("coerces string balance fields to numbers", () => {
+    const result = BankAccountSchema.parse({
+      ...validBankAccount,
+      balance: "10000.50",
+      balance_cents: "1000050",
+      authorized_balance: "9500.00",
+      authorized_balance_cents: "950000",
+    });
+    expect(result.balance).toBe(10000.5);
+    expect(result.balance_cents).toBe(1000050);
+    expect(result.authorized_balance).toBe(9500);
+    expect(result.authorized_balance_cents).toBe(950000);
+  });
+
+  it("accepts missing optional slug and organization_id", () => {
+    const input = { ...validBankAccount };
+    delete (input as Record<string, unknown>).slug;
+    delete (input as Record<string, unknown>).organization_id;
+    const result = BankAccountSchema.parse(input);
+    expect(result.slug).toBeUndefined();
+    expect(result.organization_id).toBeUndefined();
+  });
+
   it("strips unknown fields", () => {
     const result = BankAccountSchema.parse({ ...validBankAccount, extra: true });
     expect(result).not.toHaveProperty("extra");
