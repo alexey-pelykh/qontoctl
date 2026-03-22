@@ -4,6 +4,7 @@
 import { resolve } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { BeneficiaryListResponseSchema, BeneficiarySchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { cliEnv, hasCredentials } from "../sandbox.js";
 
@@ -51,6 +52,7 @@ describe.skipIf(!hasCredentials())("MCP beneficiary tools (e2e)", () => {
         beneficiaries: unknown[];
         meta: Record<string, unknown>;
       };
+      BeneficiaryListResponseSchema.parse(parsed);
       expect(parsed).toHaveProperty("beneficiaries");
       expect(parsed).toHaveProperty("meta");
       expect(Array.isArray(parsed.beneficiaries)).toBe(true);
@@ -90,6 +92,7 @@ describe.skipIf(!hasCredentials())("MCP beneficiary tools (e2e)", () => {
       });
 
       const parsed = JSON.parse(firstText(result)) as Record<string, unknown>;
+      BeneficiarySchema.parse(parsed);
       expect(parsed).toHaveProperty("id", beneficiaryId);
       expect(parsed).toHaveProperty("name");
       expect(parsed).toHaveProperty("iban");

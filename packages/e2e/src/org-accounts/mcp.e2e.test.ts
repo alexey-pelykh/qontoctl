@@ -4,6 +4,7 @@
 import { resolve } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { BankAccountSchema, OrganizationSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { cliEnv, hasCredentials } from "../sandbox.js";
 
@@ -44,6 +45,7 @@ describe.skipIf(!hasCredentials())("organization & accounts MCP (e2e)", () => {
     expect((content[0] as { type: string }).type).toBe("text");
 
     const org = JSON.parse((content[0] as { text: string }).text) as Record<string, unknown>;
+    OrganizationSchema.parse(org);
     expect(org).toHaveProperty("slug");
     expect(org).toHaveProperty("legal_name");
     expect(org).toHaveProperty("bank_accounts");
@@ -104,6 +106,7 @@ describe.skipIf(!hasCredentials())("organization & accounts MCP (e2e)", () => {
     expect((content[0] as { type: string }).type).toBe("text");
 
     const account = JSON.parse((content[0] as { text: string }).text) as Record<string, unknown>;
+    BankAccountSchema.parse(account);
     expect(account).toHaveProperty("id", accountId);
     expect(account).toHaveProperty("name");
     expect(account).toHaveProperty("iban");

@@ -4,6 +4,7 @@
 import { resolve } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { ClientInvoiceListResponseSchema, ClientInvoiceSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { cliEnv, hasCredentials } from "../sandbox.js";
 
@@ -49,6 +50,7 @@ describe.skipIf(!hasCredentials())("MCP client invoice tools (e2e)", () => {
         client_invoices: unknown[];
         meta: Record<string, unknown>;
       };
+      ClientInvoiceListResponseSchema.parse(parsed);
       expect(parsed).toHaveProperty("client_invoices");
       expect(parsed).toHaveProperty("meta");
       expect(Array.isArray(parsed.client_invoices)).toBe(true);
@@ -77,6 +79,7 @@ describe.skipIf(!hasCredentials())("MCP client invoice tools (e2e)", () => {
 
       expect(result.isError).toBeFalsy();
       const parsed = JSON.parse(firstText(result)) as Record<string, unknown>;
+      ClientInvoiceSchema.parse(parsed);
       expect(parsed).toHaveProperty("id", invoiceId);
       expect(parsed).toHaveProperty("status");
       expect(parsed).toHaveProperty("items");

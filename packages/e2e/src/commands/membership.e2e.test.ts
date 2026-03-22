@@ -3,6 +3,7 @@
 
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
+import { MembershipSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
 import { cliEnv, hasCredentials } from "../sandbox.js";
 
@@ -32,6 +33,7 @@ describe.skipIf(!hasCredentials())("membership commands (e2e)", () => {
       const parsed = JSON.parse(output) as unknown[];
       expect(Array.isArray(parsed)).toBe(true);
       for (const item of parsed) {
+        MembershipSchema.parse(item);
         const membership = item as Record<string, unknown>;
         expect(membership).toHaveProperty("id");
         expect(membership).toHaveProperty("first_name");

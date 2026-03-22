@@ -3,6 +3,7 @@
 
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
+import { BeneficiarySchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
 import { cliEnv, hasCredentials } from "../sandbox.js";
 
@@ -56,6 +57,7 @@ describe.skipIf(!hasCredentials())("beneficiary commands (e2e)", () => {
       const beneficiaryId = (first as { id: string }).id;
       const output = cli("--output", "json", "beneficiary", "show", beneficiaryId);
       const parsed = JSON.parse(output) as Record<string, unknown>;
+      BeneficiarySchema.parse(parsed);
       expect(parsed).toHaveProperty("id", beneficiaryId);
       expect(parsed).toHaveProperty("name");
       expect(parsed).toHaveProperty("iban");

@@ -5,11 +5,11 @@
  * Address associated with a client (billing or delivery).
  */
 export interface ClientAddress {
-  readonly street_address: string | null;
-  readonly city: string | null;
-  readonly zip_code: string | null;
-  readonly province_code: string | null;
-  readonly country_code: string | null;
+  readonly street_address?: string | null | undefined;
+  readonly city?: string | null | undefined;
+  readonly zip_code?: string | null | undefined;
+  readonly province_code?: string | null | undefined;
+  readonly country_code?: string | null | undefined;
 }
 
 /**
@@ -19,8 +19,8 @@ export interface Client {
   readonly id: string;
   readonly type?: string | undefined;
   readonly name: string | null;
-  readonly first_name: string | null;
-  readonly last_name: string | null;
+  readonly first_name?: string | null | undefined;
+  readonly last_name?: string | null | undefined;
   readonly kind: "company" | "individual" | "freelancer";
   readonly email: string | null;
   readonly vat_number?: string | null | undefined;

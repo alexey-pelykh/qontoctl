@@ -3,6 +3,7 @@
 
 import { type ExecFileSyncOptionsWithStringEncoding, execFileSync } from "node:child_process";
 import { resolve } from "node:path";
+import { RequestSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
 import { cliEnv, hasCredentials } from "../sandbox.js";
 
@@ -43,6 +44,7 @@ describe.skipIf(!hasCredentials())("request commands (e2e)", () => {
       const parsed = JSON.parse(output) as unknown[];
       expect(Array.isArray(parsed)).toBe(true);
       for (const item of parsed) {
+        RequestSchema.parse(item);
         const request = item as Record<string, unknown>;
         expect(request).toHaveProperty("id");
         expect(request).toHaveProperty("request_type");

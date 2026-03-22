@@ -3,6 +3,7 @@
 
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
+import { ClientSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
 import { cliEnv, hasCredentials } from "../sandbox.js";
 
@@ -49,6 +50,7 @@ describe.skipIf(!hasCredentials())("client commands (e2e)", () => {
         "FR",
       );
       const parsed = JSON.parse(output) as Record<string, unknown>;
+      ClientSchema.parse(parsed);
       expect(parsed).toHaveProperty("id");
       expect(parsed).toHaveProperty("name", "E2E Test Client");
       expect(parsed).toHaveProperty("kind", "company");

@@ -4,6 +4,7 @@
 import { resolve } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { LabelListResponseSchema, LabelSchema, MembershipListResponseSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { cliEnv, hasCredentials } from "../sandbox.js";
 
@@ -51,6 +52,7 @@ describe.skipIf(!hasCredentials())("MCP label & membership tools (e2e)", () => {
         labels: unknown[];
         meta: Record<string, unknown>;
       };
+      LabelListResponseSchema.parse(parsed);
       expect(parsed).toHaveProperty("labels");
       expect(parsed).toHaveProperty("meta");
       expect(Array.isArray(parsed.labels)).toBe(true);
@@ -88,6 +90,7 @@ describe.skipIf(!hasCredentials())("MCP label & membership tools (e2e)", () => {
       });
 
       const parsed = JSON.parse(firstText(result)) as Record<string, unknown>;
+      LabelSchema.parse(parsed);
       expect(parsed).toHaveProperty("id", labelId);
       expect(parsed).toHaveProperty("name");
       expect(parsed).toHaveProperty("parent_id");
@@ -105,6 +108,7 @@ describe.skipIf(!hasCredentials())("MCP label & membership tools (e2e)", () => {
         memberships: unknown[];
         meta: Record<string, unknown>;
       };
+      MembershipListResponseSchema.parse(parsed);
       expect(parsed).toHaveProperty("memberships");
       expect(parsed).toHaveProperty("meta");
       expect(Array.isArray(parsed.memberships)).toBe(true);

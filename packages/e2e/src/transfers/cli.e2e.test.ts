@@ -3,6 +3,7 @@
 
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
+import { TransferSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
 import { cliEnv, hasCredentials } from "../sandbox.js";
 
@@ -49,6 +50,7 @@ describe.skipIf(!hasCredentials())("transfer CLI commands (e2e)", () => {
       expect(Array.isArray(transfers)).toBe(true);
       const t = firstTransfer(transfers);
       if (t !== undefined) {
+        TransferSchema.parse(t);
         expect(t).toHaveProperty("id");
         expect(t).toHaveProperty("amount");
         expect(t).toHaveProperty("beneficiary_id");
@@ -100,6 +102,7 @@ describe.skipIf(!hasCredentials())("transfer CLI commands (e2e)", () => {
 
       const transferId = first.id;
       const transfer = cliJson<TransferItem>("transfer", "show", transferId);
+      TransferSchema.parse(transfer);
       expect(transfer.id).toBe(transferId);
       expect(transfer).toHaveProperty("amount");
       expect(transfer).toHaveProperty("beneficiary_id");

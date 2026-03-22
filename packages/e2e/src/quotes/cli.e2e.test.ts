@@ -3,6 +3,7 @@
 
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
+import { QuoteSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
 import { cliEnv, hasCredentials } from "../sandbox.js";
 
@@ -83,6 +84,7 @@ describe.skipIf(!hasCredentials())("quote commands (e2e)", () => {
 
       const output = cli("--output", "json", "quote", "show", createdQuoteId);
       const parsed = JSON.parse(output) as Record<string, unknown>;
+      QuoteSchema.parse(parsed);
       expect(parsed).toHaveProperty("id", createdQuoteId);
       expect(parsed).toHaveProperty("items");
     });

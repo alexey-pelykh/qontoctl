@@ -3,6 +3,7 @@
 
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
+import { LabelSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
 import { cliEnv, hasCredentials } from "../sandbox.js";
 
@@ -57,6 +58,7 @@ describe.skipIf(!hasCredentials())("label commands (e2e)", () => {
       expect(parsed).toHaveLength(1);
 
       const label = parsed[0] as Record<string, unknown>;
+      LabelSchema.parse(label);
       expect(label).toHaveProperty("id", labelId);
       expect(label).toHaveProperty("name");
       expect(label).toHaveProperty("parent_id");

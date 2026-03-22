@@ -4,6 +4,7 @@
 import { resolve } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { RecurringTransferListResponseSchema, RecurringTransferSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { cliEnv, hasCredentials } from "../sandbox.js";
 
@@ -69,6 +70,7 @@ describe.skipIf(!hasCredentials())("recurring-transfer MCP tools (e2e)", () => {
       expect(textContent.type).toBe("text");
 
       const parsed = JSON.parse(textContent.text) as RecurringTransferListResponse;
+      RecurringTransferListResponseSchema.parse(parsed);
       expect(parsed).toHaveProperty("recurring_transfers");
       expect(parsed).toHaveProperty("meta");
       expect(Array.isArray(parsed.recurring_transfers)).toBe(true);
@@ -117,6 +119,7 @@ describe.skipIf(!hasCredentials())("recurring-transfer MCP tools (e2e)", () => {
       expect(textContent.type).toBe("text");
 
       const rt = JSON.parse(textContent.text) as RecurringTransferItem;
+      RecurringTransferSchema.parse(rt);
       expect(rt.id).toBe(first.id);
       expect(rt).toHaveProperty("amount");
       expect(rt).toHaveProperty("frequency");

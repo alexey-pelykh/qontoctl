@@ -3,6 +3,7 @@
 
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
+import { TransactionSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
 import { cliEnv, hasCredentials } from "../sandbox.js";
 
@@ -55,6 +56,7 @@ describe.skipIf(!hasCredentials())("transaction CLI commands (e2e)", () => {
       expect(Array.isArray(transactions)).toBe(true);
       const txn = firstTransaction(transactions);
       if (txn !== undefined) {
+        TransactionSchema.parse(txn);
         expect(txn).toHaveProperty("id");
         expect(txn).toHaveProperty("amount");
         expect(txn).toHaveProperty("side");
@@ -226,6 +228,7 @@ describe.skipIf(!hasCredentials())("transaction CLI commands (e2e)", () => {
 
       const txnId = first.id;
       const transaction = cliJson<TransactionItem>("transaction", "show", txnId);
+      TransactionSchema.parse(transaction);
       expect(transaction.id).toBe(txnId);
       expect(transaction).toHaveProperty("amount");
       expect(transaction).toHaveProperty("side");

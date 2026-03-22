@@ -4,6 +4,7 @@
 import { resolve } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { SupplierInvoiceListResponseSchema, SupplierInvoiceSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { cliEnv, hasCredentials } from "../sandbox.js";
 
@@ -48,6 +49,7 @@ describe.skipIf(!hasCredentials())("MCP supplier invoice tools (e2e)", () => {
         supplier_invoices: unknown[];
         meta: Record<string, unknown>;
       };
+      SupplierInvoiceListResponseSchema.parse(parsed);
       expect(parsed).toHaveProperty("supplier_invoices");
       expect(parsed).toHaveProperty("meta");
       expect(Array.isArray(parsed.supplier_invoices)).toBe(true);
@@ -83,6 +85,7 @@ describe.skipIf(!hasCredentials())("MCP supplier invoice tools (e2e)", () => {
       });
 
       const parsed = JSON.parse(firstText(result)) as Record<string, unknown>;
+      SupplierInvoiceSchema.parse(parsed);
       expect(parsed).toHaveProperty("id", invoiceId);
       expect(parsed).toHaveProperty("status");
     });

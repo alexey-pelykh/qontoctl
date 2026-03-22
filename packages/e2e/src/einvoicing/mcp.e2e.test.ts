@@ -4,6 +4,7 @@
 import { resolve } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { EInvoicingSettingsSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { cliEnv, hasCredentials } from "../sandbox.js";
 
@@ -42,6 +43,7 @@ describe.skipIf(!hasCredentials())("e-invoicing MCP (e2e)", () => {
     expect((content[0] as { type: string }).type).toBe("text");
 
     const settings = JSON.parse((content[0] as { text: string }).text) as Record<string, unknown>;
+    EInvoicingSettingsSchema.parse(settings);
     expect(settings).toHaveProperty("sending_status");
     expect(settings).toHaveProperty("receiving_status");
     expect(typeof settings["sending_status"]).toBe("string");

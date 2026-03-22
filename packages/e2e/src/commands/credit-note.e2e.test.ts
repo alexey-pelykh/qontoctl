@@ -3,6 +3,7 @@
 
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
+import { CreditNoteSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
 import { cliEnv, hasCredentials } from "../sandbox.js";
 
@@ -47,6 +48,7 @@ describe.skipIf(!hasCredentials())("credit-note commands (e2e)", () => {
       const creditNoteId = (firstCreditNote as { id: string }).id;
       const output = cli("--output", "json", "credit-note", "show", creditNoteId);
       const parsed = JSON.parse(output) as Record<string, unknown>;
+      CreditNoteSchema.parse(parsed);
       expect(parsed).toHaveProperty("id", creditNoteId);
       expect(parsed).toHaveProperty("number");
       expect(parsed).toHaveProperty("currency");
