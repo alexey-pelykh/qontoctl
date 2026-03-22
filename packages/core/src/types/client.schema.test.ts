@@ -118,12 +118,20 @@ describe("ClientSchema", () => {
   });
 
   it("accepts missing optional fields (API omits them)", () => {
-    const { // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      vat_number: _, tax_identification_number: _2, address: _3, city: _4,
+    const {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      zip_code: _5, province_code: _6, country_code: _7, delivery_address: _8,
+      vat_number: _,
+      tax_identification_number: _2,
+      address: _3,
+      city: _4,
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      locale: _9, currency: _10,
+      zip_code: _5,
+      province_code: _6,
+      country_code: _7,
+      delivery_address: _8,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      locale: _9,
+      currency: _10,
       ...input
     } = validClient;
     const result = ClientSchema.parse(input);
