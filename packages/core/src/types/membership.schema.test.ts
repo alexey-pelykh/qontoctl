@@ -53,6 +53,19 @@ describe("MembershipSchema", () => {
     expect(result).not.toHaveProperty("extra");
   });
 
+  it("accepts missing optional fields (API omits them)", () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { email: _, residence_country: _2, birthdate: _3, nationality: _4, birth_country: _5, ubo: _6, ...input } =
+      validMembership;
+    const result = MembershipSchema.parse(input);
+    expect(result.email).toBeUndefined();
+    expect(result.residence_country).toBeUndefined();
+    expect(result.birthdate).toBeUndefined();
+    expect(result.nationality).toBeUndefined();
+    expect(result.birth_country).toBeUndefined();
+    expect(result.ubo).toBeUndefined();
+  });
+
   it("rejects missing required fields", () => {
     expect(() => MembershipSchema.parse({ id: "member-1" })).toThrow();
   });

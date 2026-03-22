@@ -35,7 +35,7 @@ export interface Organization {
 export interface PaginationMeta {
   readonly current_page: number;
   readonly next_page: number | null;
-  readonly prev_page: number | null;
+  readonly prev_page?: number | null | undefined;
   readonly total_pages: number;
   readonly total_count: number;
   readonly per_page: number;

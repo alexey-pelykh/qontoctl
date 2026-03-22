@@ -18,6 +18,11 @@ describe("StatementFileSchema", () => {
     expect(result).toEqual(validFile);
   });
 
+  it("coerces numeric file_size to string", () => {
+    const result = StatementFileSchema.parse({ ...validFile, file_size: 45678 });
+    expect(result.file_size).toBe("45678");
+  });
+
   it("strips unknown fields", () => {
     const result = StatementFileSchema.parse({ ...validFile, extra: "field" });
     expect(result).toEqual(validFile);

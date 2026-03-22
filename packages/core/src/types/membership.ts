@@ -8,13 +8,13 @@ export interface Membership {
   readonly id: string;
   readonly first_name: string;
   readonly last_name: string;
-  readonly email: string;
+  readonly email?: string | undefined;
   readonly role: "owner" | "admin" | "manager" | "reporting" | "employee" | "accountant";
   readonly team_id: string;
-  readonly residence_country: string | null;
-  readonly birthdate: string | null;
-  readonly nationality: string | null;
-  readonly birth_country: string | null;
-  readonly ubo: boolean | null;
+  readonly residence_country?: string | null | undefined;
+  readonly birthdate?: string | null | undefined;
+  readonly nationality?: string | null | undefined;
+  readonly birth_country?: string | null | undefined;
+  readonly ubo?: boolean | null | undefined;
   readonly status: string;
 }

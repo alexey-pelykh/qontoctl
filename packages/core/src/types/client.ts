@@ -17,22 +17,23 @@ export interface ClientAddress {
  */
 export interface Client {
   readonly id: string;
+  readonly type?: string | undefined;
   readonly name: string | null;
   readonly first_name: string | null;
   readonly last_name: string | null;
   readonly kind: "company" | "individual" | "freelancer";
   readonly email: string | null;
-  readonly vat_number: string | null;
-  readonly tax_identification_number: string | null;
-  readonly address: string | null;
-  readonly city: string | null;
-  readonly zip_code: string | null;
-  readonly province_code: string | null;
-  readonly country_code: string | null;
+  readonly vat_number?: string | null | undefined;
+  readonly tax_identification_number?: string | null | undefined;
+  readonly address?: string | null | undefined;
+  readonly city?: string | null | undefined;
+  readonly zip_code?: string | null | undefined;
+  readonly province_code?: string | null | undefined;
+  readonly country_code?: string | null | undefined;
   readonly billing_address: ClientAddress | null;
-  readonly delivery_address: ClientAddress | null;
-  readonly locale: string | null;
-  readonly currency: string | null;
+  readonly delivery_address?: ClientAddress | null | undefined;
+  readonly locale?: string | null | undefined;
+  readonly currency?: string | null | undefined;
   readonly created_at: string;
   readonly updated_at: string;
 }
