@@ -21,8 +21,12 @@ interface TransactionListOptions extends GlobalOptions, PaginationOptions {
   readonly status?: string[] | undefined;
   readonly side?: string | undefined;
   readonly operationType?: string[] | undefined;
-  readonly from?: string | undefined;
-  readonly to?: string | undefined;
+  readonly settledFrom?: string | undefined;
+  readonly settledTo?: string | undefined;
+  readonly emittedFrom?: string | undefined;
+  readonly emittedTo?: string | undefined;
+  readonly updatedFrom?: string | undefined;
+  readonly updatedTo?: string | undefined;
   readonly include?: string[] | undefined;
   readonly withAttachments?: true | undefined;
   readonly sortBy?: string | undefined;
@@ -47,8 +51,12 @@ function buildParams(opts: TransactionListOptions): ListTransactionsParams {
     ...(opts.status !== undefined && { status: opts.status }),
     ...(opts.side !== undefined && { side: opts.side }),
     ...(opts.operationType !== undefined && { operation_type: opts.operationType }),
-    ...(opts.from !== undefined && { settled_at_from: opts.from }),
-    ...(opts.to !== undefined && { settled_at_to: opts.to }),
+    ...(opts.settledFrom !== undefined && { settled_at_from: opts.settledFrom }),
+    ...(opts.settledTo !== undefined && { settled_at_to: opts.settledTo }),
+    ...(opts.emittedFrom !== undefined && { emitted_at_from: opts.emittedFrom }),
+    ...(opts.emittedTo !== undefined && { emitted_at_to: opts.emittedTo }),
+    ...(opts.updatedFrom !== undefined && { updated_at_from: opts.updatedFrom }),
+    ...(opts.updatedTo !== undefined && { updated_at_to: opts.updatedTo }),
     ...(opts.include !== undefined && { includes: opts.include }),
     ...(opts.withAttachments !== undefined && { with_attachments: opts.withAttachments }),
     ...(opts.sortBy !== undefined && { sort_by: opts.sortBy }),
@@ -63,8 +71,12 @@ export function registerTransactionListCommand(parent: Command): void {
     .addOption(new Option("--status <status...>", "filter by status").choices(["pending", "declined", "completed"]))
     .addOption(new Option("--side <side>", "filter by side").choices(["credit", "debit"]))
     .addOption(new Option("--operation-type <type...>", "filter by operation type"))
-    .addOption(new Option("--from <date>", "settled from date (ISO 8601)"))
-    .addOption(new Option("--to <date>", "settled to date (ISO 8601)"))
+    .addOption(new Option("--settled-from <date>", "settled from date (ISO 8601)"))
+    .addOption(new Option("--settled-to <date>", "settled to date (ISO 8601)"))
+    .addOption(new Option("--emitted-from <date>", "emitted from date (ISO 8601)"))
+    .addOption(new Option("--emitted-to <date>", "emitted to date (ISO 8601)"))
+    .addOption(new Option("--updated-from <date>", "updated from date (ISO 8601)"))
+    .addOption(new Option("--updated-to <date>", "updated to date (ISO 8601)"))
     .addOption(
       new Option("--include <resources...>", "include nested resources").choices([
         "labels",
@@ -73,7 +85,12 @@ export function registerTransactionListCommand(parent: Command): void {
       ]),
     )
     .addOption(new Option("--with-attachments", "filter to transactions with attachments"))
-    .addOption(new Option("--sort-by <sort>", "sort order (e.g. settled_at:desc)"));
+    .addOption(
+      new Option(
+        "--sort-by <sort>",
+        "sort order (e.g. settled_at:desc, emitted_at:asc, updated_at:desc, created_at:asc)",
+      ),
+    );
   addInheritableOptions(list);
   list.action(async (_opts: unknown, cmd: Command) => {
     const opts = resolveGlobalOptions<TransactionListOptions>(cmd);

@@ -112,9 +112,9 @@ describe.skipIf(!hasCredentials())("transaction CLI commands (e2e)", () => {
         "list",
         "--status",
         "completed",
-        "--from",
+        "--settled-from",
         fromDate,
-        "--to",
+        "--settled-to",
         toDate,
         "--no-paginate",
       );
