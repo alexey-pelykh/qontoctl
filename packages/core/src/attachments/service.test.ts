@@ -16,7 +16,7 @@ import {
 const sampleAttachment = {
   id: "att-1",
   file_name: "invoice.pdf",
-  file_size: 12345,
+  file_size: "12345",
   file_content_type: "application/pdf",
   url: "https://example.com/attachments/att-1",
   created_at: "2026-03-01T10:00:00Z",

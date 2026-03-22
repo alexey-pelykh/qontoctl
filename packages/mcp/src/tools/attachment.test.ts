@@ -11,7 +11,7 @@ function makeAttachment(overrides: Record<string, unknown> = {}) {
     id: "att-1",
     created_at: "2026-01-15T10:00:00Z",
     file_name: "receipt.pdf",
-    file_size: 12345,
+    file_size: "12345",
     file_content_type: "application/pdf",
     url: "https://example.com/files/receipt.pdf",
     ...overrides,

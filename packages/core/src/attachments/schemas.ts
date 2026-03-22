@@ -10,7 +10,7 @@ import type { Attachment } from "./types.js";
 export const AttachmentSchema = z.object({
   id: z.string(),
   file_name: z.string(),
-  file_size: z.number(),
+  file_size: z.coerce.string(),
   file_content_type: z.string(),
   url: z.string(),
   created_at: z.string(),
