@@ -14,7 +14,7 @@ import { HttpClient } from "@qontoctl/core";
 const sampleAttachment = {
   id: "att-123",
   file_name: "receipt.png",
-  file_size: 5678,
+  file_size: "5678",
   file_content_type: "image/png",
   url: "https://example.com/attachments/att-123",
   created_at: "2026-03-01T10:00:00Z",

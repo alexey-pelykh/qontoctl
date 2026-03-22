@@ -9,7 +9,7 @@ describe("AttachmentSchema", () => {
   const validAttachment = {
     id: "att-1",
     file_name: "invoice.pdf",
-    file_size: 12345,
+    file_size: "12345",
     file_content_type: "application/pdf",
     url: "https://example.com/attachments/att-1",
     created_at: "2026-03-01T10:00:00Z",
@@ -32,7 +32,8 @@ describe("AttachmentSchema", () => {
     expect(() => AttachmentSchema.parse(withoutId)).toThrow(z.ZodError);
   });
 
-  it("rejects when field has wrong type", () => {
-    expect(() => AttachmentSchema.parse({ ...validAttachment, file_size: "not-a-number" })).toThrow(z.ZodError);
+  it("coerces numeric file_size to string", () => {
+    const result = AttachmentSchema.parse({ ...validAttachment, file_size: 12345 });
+    expect(result.file_size).toBe("12345");
   });
 });

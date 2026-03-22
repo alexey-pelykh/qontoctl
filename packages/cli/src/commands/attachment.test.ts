@@ -15,7 +15,7 @@ import { HttpClient } from "@qontoctl/core";
 const sampleAttachment = {
   id: "att-123",
   file_name: "invoice.pdf",
-  file_size: 12345,
+  file_size: "12345",
   file_content_type: "application/pdf",
   url: "https://example.com/attachments/att-123",
   created_at: "2026-03-01T10:00:00Z",
@@ -74,7 +74,7 @@ describe("attachment commands", () => {
       const parsed = JSON.parse(output) as Record<string, unknown>;
       expect(parsed).toHaveProperty("id", "att-123");
       expect(parsed).toHaveProperty("file_name", "invoice.pdf");
-      expect(parsed).toHaveProperty("file_size", 12345);
+      expect(parsed).toHaveProperty("file_size", "12345");
       expect(parsed).toHaveProperty("file_content_type", "application/pdf");
     });
 

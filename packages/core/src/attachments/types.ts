@@ -7,7 +7,7 @@
 export interface Attachment {
   readonly id: string;
   readonly file_name: string;
-  readonly file_size: number;
+  readonly file_size: string;
   readonly file_content_type: string;
   readonly url: string;
   readonly created_at: string;
