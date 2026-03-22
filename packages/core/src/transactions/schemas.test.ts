@@ -82,11 +82,15 @@ describe("TransactionSchema", () => {
       vat_rate: null,
       initiator_id: null,
       card_last_digits: null,
+      clean_counterparty_name: null,
+      created_at: null,
     };
     const result = TransactionSchema.parse(txn);
     expect(result.settled_balance).toBeNull();
     expect(result.note).toBeNull();
     expect(result.card_last_digits).toBeNull();
+    expect(result.clean_counterparty_name).toBeNull();
+    expect(result.created_at).toBeNull();
   });
 
   it("handles optional embedded labels", () => {

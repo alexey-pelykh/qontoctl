@@ -11,15 +11,15 @@ export const BankAccountSchema = z
     name: z.string(),
     status: z.string(),
     main: z.boolean(),
-    organization_id: z.string(),
+    organization_id: z.string().optional(),
     iban: z.string(),
     bic: z.string(),
     currency: z.string(),
-    balance: z.number(),
-    balance_cents: z.number(),
-    authorized_balance: z.number(),
-    authorized_balance_cents: z.number(),
-    slug: z.string(),
+    balance: z.coerce.number(),
+    balance_cents: z.coerce.number(),
+    authorized_balance: z.coerce.number(),
+    authorized_balance_cents: z.coerce.number(),
+    slug: z.string().optional(),
   })
   .strip() satisfies z.ZodType<BankAccount>;
 

@@ -9,7 +9,7 @@ export interface BankAccount {
   readonly name: string;
   readonly status: string;
   readonly main: boolean;
-  readonly organization_id: string;
+  readonly organization_id?: string | undefined;
   readonly iban: string;
   readonly bic: string;
   readonly currency: string;
@@ -17,7 +17,7 @@ export interface BankAccount {
   readonly balance_cents: number;
   readonly authorized_balance: number;
   readonly authorized_balance_cents: number;
-  readonly slug: string;
+  readonly slug?: string | undefined;
 }
 
 /**

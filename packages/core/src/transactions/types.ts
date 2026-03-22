@@ -18,10 +18,10 @@ export interface Transaction {
   readonly currency: string;
   readonly local_currency: string;
   readonly label: string;
-  readonly clean_counterparty_name: string;
+  readonly clean_counterparty_name: string | null;
   readonly settled_at: string | null;
   readonly emitted_at: string;
-  readonly created_at: string;
+  readonly created_at: string | null;
   readonly updated_at: string;
   readonly status: "pending" | "declined" | "completed";
   readonly note: string | null;
