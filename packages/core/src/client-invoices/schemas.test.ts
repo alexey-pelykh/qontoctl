@@ -166,6 +166,35 @@ describe("ClientInvoiceClientSchema", () => {
     expect(ClientInvoiceClientSchema.parse(client)).toEqual(client);
   });
 
+  it("accepts all nullable fields set to null", () => {
+    const result = ClientInvoiceClientSchema.parse({
+      ...validClient,
+      name: null,
+      first_name: null,
+      last_name: null,
+      email: null,
+      vat_number: null,
+      tax_identification_number: null,
+      address: null,
+      city: null,
+      zip_code: null,
+      province_code: null,
+      country_code: null,
+      recipient_code: null,
+      locale: null,
+      billing_address: null,
+      delivery_address: null,
+    });
+    expect(result.name).toBeNull();
+    expect(result.email).toBeNull();
+    expect(result.vat_number).toBeNull();
+    expect(result.address).toBeNull();
+    expect(result.city).toBeNull();
+    expect(result.zip_code).toBeNull();
+    expect(result.country_code).toBeNull();
+    expect(result.locale).toBeNull();
+  });
+
   it("rejects invalid client type", () => {
     expect(() => ClientInvoiceClientSchema.parse({ ...validClient, type: "unknown" })).toThrow();
   });
@@ -260,6 +289,25 @@ describe("ClientInvoiceSchema", () => {
 
   it("rejects invalid status", () => {
     expect(() => ClientInvoiceSchema.parse({ ...validInvoice, status: "unknown" })).toThrow();
+  });
+
+  it("accepts all nullable fields set to null", () => {
+    const result = ClientInvoiceSchema.parse({
+      ...validInvoice,
+      invoice_number: null,
+      issue_date: null,
+      due_date: null,
+      attachment_id: null,
+      contact_email: null,
+      terms_and_conditions: null,
+      header: null,
+      footer: null,
+      discount: null,
+    });
+    expect(result.invoice_number).toBeNull();
+    expect(result.issue_date).toBeNull();
+    expect(result.due_date).toBeNull();
+    expect(result.contact_email).toBeNull();
   });
 
   it("strips unknown fields from nested objects", () => {

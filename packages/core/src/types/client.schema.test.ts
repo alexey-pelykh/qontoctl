@@ -86,6 +86,37 @@ describe("ClientSchema", () => {
     expect(result.billing_address).not.toHaveProperty("extra");
   });
 
+  it("accepts all nullable fields set to null", () => {
+    const result = ClientSchema.parse({
+      ...validClient,
+      name: null,
+      first_name: null,
+      last_name: null,
+      email: null,
+      vat_number: null,
+      tax_identification_number: null,
+      address: null,
+      city: null,
+      zip_code: null,
+      province_code: null,
+      country_code: null,
+      billing_address: null,
+      delivery_address: null,
+      locale: null,
+      currency: null,
+    });
+    expect(result.name).toBeNull();
+    expect(result.email).toBeNull();
+    expect(result.vat_number).toBeNull();
+    expect(result.address).toBeNull();
+    expect(result.city).toBeNull();
+    expect(result.zip_code).toBeNull();
+    expect(result.country_code).toBeNull();
+    expect(result.billing_address).toBeNull();
+    expect(result.locale).toBeNull();
+    expect(result.currency).toBeNull();
+  });
+
   it("rejects missing required fields", () => {
     expect(() => ClientSchema.parse({ id: "client-1" })).toThrow();
   });

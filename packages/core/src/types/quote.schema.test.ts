@@ -156,6 +156,36 @@ describe("QuoteClientSchema", () => {
     expect(() => QuoteClientSchema.parse({ ...client, type: "other" })).toThrow();
   });
 
+  it("accepts all nullable fields set to null", () => {
+    const result = QuoteClientSchema.parse({
+      ...client,
+      name: null,
+      first_name: null,
+      last_name: null,
+      email: null,
+      vat_number: null,
+      tax_identification_number: null,
+      address: null,
+      city: null,
+      zip_code: null,
+      province_code: null,
+      country_code: null,
+      recipient_code: null,
+      locale: null,
+      billing_address: null,
+      delivery_address: null,
+    });
+    expect(result.name).toBeNull();
+    expect(result.email).toBeNull();
+    expect(result.vat_number).toBeNull();
+    expect(result.address).toBeNull();
+    expect(result.city).toBeNull();
+    expect(result.zip_code).toBeNull();
+    expect(result.country_code).toBeNull();
+    expect(result.locale).toBeNull();
+    expect(result.billing_address).toBeNull();
+  });
+
   it("strips unknown fields from nested address", () => {
     const result = QuoteClientSchema.parse({
       ...client,
@@ -188,6 +218,23 @@ describe("QuoteSchema", () => {
     expect(result).not.toHaveProperty("extra");
     expect(result.client).not.toHaveProperty("extra");
     expect(result.items[0]).not.toHaveProperty("extra");
+  });
+
+  it("accepts all nullable fields set to null", () => {
+    const result = QuoteSchema.parse({
+      ...validQuote,
+      approved_at: null,
+      canceled_at: null,
+      attachment_id: null,
+      quote_url: null,
+      contact_email: null,
+      terms_and_conditions: null,
+      header: null,
+      footer: null,
+      discount: null,
+    });
+    expect(result.contact_email).toBeNull();
+    expect(result.terms_and_conditions).toBeNull();
   });
 
   it("rejects missing required fields", () => {
