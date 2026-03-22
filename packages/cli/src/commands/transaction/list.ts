@@ -86,7 +86,10 @@ export function registerTransactionListCommand(parent: Command): void {
     )
     .addOption(new Option("--with-attachments", "filter to transactions with attachments"))
     .addOption(
-      new Option("--sort-by <sort>", "sort order (e.g. settled_at:desc, emitted_at:asc, updated_at:desc, created_at:asc)"),
+      new Option(
+        "--sort-by <sort>",
+        "sort order (e.g. settled_at:desc, emitted_at:asc, updated_at:desc, created_at:asc)",
+      ),
     );
   addInheritableOptions(list);
   list.action(async (_opts: unknown, cmd: Command) => {
