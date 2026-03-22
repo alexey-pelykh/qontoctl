@@ -3,6 +3,7 @@
 
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
+import { RecurringTransferSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
 import { cliEnv, hasCredentials } from "../sandbox.js";
 
@@ -78,6 +79,7 @@ describe.skipIf(!hasCredentials())("recurring-transfer CLI commands (e2e)", () =
       if (first === undefined) return;
 
       const rt = cliJson<RecurringTransferItem>("recurring-transfer", "show", first.id);
+      RecurringTransferSchema.parse(rt);
       expect(rt.id).toBe(first.id);
       expect(rt).toHaveProperty("amount");
       expect(rt).toHaveProperty("frequency");

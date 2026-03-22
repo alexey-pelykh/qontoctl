@@ -4,6 +4,7 @@
 import { resolve } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { StatementListResponseSchema, StatementSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { cliEnv, hasCredentials } from "../sandbox.js";
 
@@ -43,6 +44,7 @@ describe.skipIf(!hasCredentials())("statement MCP tools (e2e)", () => {
         statements: Record<string, unknown>[];
         meta: Record<string, unknown>;
       };
+      StatementListResponseSchema.parse(parsed);
       expect(parsed.statements.length).toBeGreaterThan(0);
       expect(parsed.meta).toHaveProperty("current_page");
 
@@ -97,6 +99,7 @@ describe.skipIf(!hasCredentials())("statement MCP tools (e2e)", () => {
 
       const showText = (showResult.content[0] as { type: string; text: string }).text;
       const showParsed = JSON.parse(showText) as Record<string, unknown>;
+      StatementSchema.parse(showParsed);
       expect(showParsed["id"]).toBe(statementId);
       expect(showParsed).toHaveProperty("bank_account_id");
       expect(showParsed).toHaveProperty("period");

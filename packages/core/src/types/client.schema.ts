@@ -8,11 +8,11 @@ import type { Client, ClientAddress } from "./client.js";
 
 export const ClientAddressSchema = z
   .object({
-    street_address: z.string().nullable(),
-    city: z.string().nullable(),
-    zip_code: z.string().nullable(),
-    province_code: z.string().nullable(),
-    country_code: z.string().nullable(),
+    street_address: z.string().nullable().optional(),
+    city: z.string().nullable().optional(),
+    zip_code: z.string().nullable().optional(),
+    province_code: z.string().nullable().optional(),
+    country_code: z.string().nullable().optional(),
   })
   .strip() satisfies z.ZodType<ClientAddress>;
 
@@ -21,8 +21,8 @@ export const ClientSchema = z
     id: z.string(),
     type: z.string().optional(),
     name: z.string().nullable(),
-    first_name: z.string().nullable(),
-    last_name: z.string().nullable(),
+    first_name: z.string().nullable().optional(),
+    last_name: z.string().nullable().optional(),
     kind: z.enum(["company", "individual", "freelancer"]),
     email: z.string().nullable(),
     vat_number: z.string().nullable().optional(),

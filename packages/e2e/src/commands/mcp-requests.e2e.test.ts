@@ -4,6 +4,7 @@
 import { resolve } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { RequestListResponseSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { cliEnv, hasCredentials } from "../sandbox.js";
 
@@ -49,6 +50,7 @@ describe.skipIf(!hasCredentials())("MCP request tools (e2e)", () => {
         requests: unknown[];
         meta: Record<string, unknown>;
       };
+      RequestListResponseSchema.parse(parsed);
       expect(parsed).toHaveProperty("requests");
       expect(parsed).toHaveProperty("meta");
       expect(Array.isArray(parsed.requests)).toBe(true);

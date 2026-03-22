@@ -3,6 +3,7 @@
 
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
+import { EInvoicingSettingsSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
 import { cliEnv, hasCredentials } from "../sandbox.js";
 
@@ -25,6 +26,7 @@ describe.skipIf(!hasCredentials())("e-invoicing CLI (e2e)", () => {
   it("einvoicing settings --output json produces valid JSON with expected fields", () => {
     const output = cli(["einvoicing", "settings", "--output", "json"]);
     const settings = JSON.parse(output) as Record<string, unknown>;
+    EInvoicingSettingsSchema.parse(settings);
     expect(settings).toHaveProperty("sending_status");
     expect(settings).toHaveProperty("receiving_status");
     expect(typeof settings["sending_status"]).toBe("string");

@@ -3,6 +3,7 @@
 
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
+import { BulkTransferSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
 import { cliEnv, hasCredentials } from "../sandbox.js";
 
@@ -63,6 +64,7 @@ describe.skipIf(!hasCredentials())("bulk-transfer CLI commands (e2e)", () => {
       if (first === undefined) return;
 
       const bt = cliJson<BulkTransferItem>("bulk-transfer", "show", first.id);
+      BulkTransferSchema.parse(bt);
       expect(bt.id).toBe(first.id);
       expect(bt).toHaveProperty("total_count");
       expect(bt).toHaveProperty("completed_count");

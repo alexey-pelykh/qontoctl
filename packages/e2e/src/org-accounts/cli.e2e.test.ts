@@ -5,6 +5,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, unlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { BankAccountSchema, OrganizationSchema } from "@qontoctl/core";
 import { beforeAll, describe, expect, it } from "vitest";
 import { cliEnv, hasCredentials } from "../sandbox.js";
 
@@ -40,6 +41,7 @@ describe.skipIf(!hasCredentials())("organization & accounts CLI (e2e)", () => {
   it("org show --output json produces valid JSON with expected fields", () => {
     const output = cli(["org", "show", "--output", "json"]);
     const org = JSON.parse(output) as Record<string, unknown>;
+    OrganizationSchema.parse(org);
     expect(org).toHaveProperty("slug");
     expect(org).toHaveProperty("legal_name");
     expect(org).toHaveProperty("bank_accounts");
@@ -87,6 +89,7 @@ describe.skipIf(!hasCredentials())("organization & accounts CLI (e2e)", () => {
   it("account show --output json produces valid JSON object", () => {
     const output = cli(["account", "show", knownAccountId, "--output", "json"]);
     const account = JSON.parse(output) as Record<string, unknown>;
+    BankAccountSchema.parse(account);
     expect(account).toHaveProperty("id", knownAccountId);
     expect(account).toHaveProperty("name");
     expect(account).toHaveProperty("iban");

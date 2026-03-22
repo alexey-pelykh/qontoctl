@@ -3,6 +3,7 @@
 
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
+import { SupplierInvoiceSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
 import { cliEnv, hasCredentials } from "../sandbox.js";
 
@@ -54,6 +55,7 @@ describe.skipIf(!hasCredentials())("supplier-invoice commands (e2e)", () => {
       const invoiceId = (firstInvoice as { id: string }).id;
       const output = cli("--output", "json", "supplier-invoice", "show", invoiceId);
       const parsed = JSON.parse(output) as Record<string, unknown>;
+      SupplierInvoiceSchema.parse(parsed);
       expect(parsed).toHaveProperty("id", invoiceId);
       expect(parsed).toHaveProperty("status");
     });

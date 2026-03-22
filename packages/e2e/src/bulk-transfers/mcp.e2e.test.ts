@@ -4,6 +4,7 @@
 import { resolve } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { BulkTransferListResponseSchema, BulkTransferSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { cliEnv, hasCredentials } from "../sandbox.js";
 
@@ -68,6 +69,7 @@ describe.skipIf(!hasCredentials())("bulk-transfer MCP tools (e2e)", () => {
       expect(textContent.type).toBe("text");
 
       const parsed = JSON.parse(textContent.text) as BulkTransferListResponse;
+      BulkTransferListResponseSchema.parse(parsed);
       expect(parsed).toHaveProperty("bulk_transfers");
       expect(parsed).toHaveProperty("meta");
       expect(Array.isArray(parsed.bulk_transfers)).toBe(true);
@@ -116,6 +118,7 @@ describe.skipIf(!hasCredentials())("bulk-transfer MCP tools (e2e)", () => {
       expect(textContent.type).toBe("text");
 
       const bt = JSON.parse(textContent.text) as BulkTransferItem;
+      BulkTransferSchema.parse(bt);
       expect(bt.id).toBe(first.id);
       expect(bt).toHaveProperty("total_count");
     });

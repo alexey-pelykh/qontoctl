@@ -4,6 +4,7 @@
 import { resolve } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { ClientListResponseSchema, ClientSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { cliEnv, hasCredentials } from "../sandbox.js";
 
@@ -49,6 +50,7 @@ describe.skipIf(!hasCredentials())("MCP client tools (e2e)", () => {
         clients: unknown[];
         meta: Record<string, unknown>;
       };
+      ClientListResponseSchema.parse(parsed);
       expect(parsed).toHaveProperty("clients");
       expect(parsed).toHaveProperty("meta");
       expect(Array.isArray(parsed.clients)).toBe(true);
@@ -77,6 +79,7 @@ describe.skipIf(!hasCredentials())("MCP client tools (e2e)", () => {
 
       expect(result.isError).toBeFalsy();
       const parsed = JSON.parse(firstText(result)) as Record<string, unknown>;
+      ClientSchema.parse(parsed);
       expect(parsed).toHaveProperty("id", clientId);
       expect(parsed).toHaveProperty("name");
       expect(parsed).toHaveProperty("type");
