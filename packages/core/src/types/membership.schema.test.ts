@@ -54,16 +54,14 @@ describe("MembershipSchema", () => {
   });
 
   it("accepts missing optional fields (API omits them)", () => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const {
-      email: _,
-      residence_country: _2,
-      birthdate: _3,
-      nationality: _4,
-      birth_country: _5,
-      ubo: _6,
-      ...input
-    } = validMembership;
+    const input = {
+      id: validMembership.id,
+      first_name: validMembership.first_name,
+      last_name: validMembership.last_name,
+      role: validMembership.role,
+      team_id: validMembership.team_id,
+      status: validMembership.status,
+    };
     const result = MembershipSchema.parse(input);
     expect(result.email).toBeUndefined();
     expect(result.residence_country).toBeUndefined();

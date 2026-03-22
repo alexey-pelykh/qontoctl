@@ -118,22 +118,17 @@ describe("ClientSchema", () => {
   });
 
   it("accepts missing optional fields (API omits them)", () => {
-    const {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      vat_number: _,
-      tax_identification_number: _2,
-      address: _3,
-      city: _4,
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      zip_code: _5,
-      province_code: _6,
-      country_code: _7,
-      delivery_address: _8,
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      locale: _9,
-      currency: _10,
-      ...input
-    } = validClient;
+    const input = {
+      id: validClient.id,
+      name: validClient.name,
+      first_name: validClient.first_name,
+      last_name: validClient.last_name,
+      kind: validClient.kind,
+      email: validClient.email,
+      billing_address: validClient.billing_address,
+      created_at: validClient.created_at,
+      updated_at: validClient.updated_at,
+    };
     const result = ClientSchema.parse(input);
     expect(result.vat_number).toBeUndefined();
     expect(result.tax_identification_number).toBeUndefined();
