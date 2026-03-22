@@ -94,7 +94,7 @@ describe("transaction list command", () => {
     expect(url.searchParams.get("bank_account_id")).toBe("acc-123");
   });
 
-  it("passes filter options as query params", async () => {
+  it("passes settled date filter options as query params", async () => {
     fetchSpy.mockReturnValue(jsonResponse({ transactions: [], meta: makeMeta() }));
 
     await runCommand(
@@ -102,9 +102,9 @@ describe("transaction list command", () => {
       "acc-1",
       "--side",
       "debit",
-      "--from",
+      "--settled-from",
       "2025-01-01",
-      "--to",
+      "--settled-to",
       "2025-01-31",
       "--sort-by",
       "settled_at:desc",
@@ -116,6 +116,26 @@ describe("transaction list command", () => {
     expect(url.searchParams.get("settled_at_from")).toBe("2025-01-01");
     expect(url.searchParams.get("settled_at_to")).toBe("2025-01-31");
     expect(url.searchParams.get("sort_by")).toBe("settled_at:desc");
+  });
+
+  it("passes emitted date filter options as query params", async () => {
+    fetchSpy.mockReturnValue(jsonResponse({ transactions: [], meta: makeMeta() }));
+
+    await runCommand("--bank-account", "acc-1", "--emitted-from", "2025-02-01", "--emitted-to", "2025-02-28");
+
+    const [url] = fetchSpy.mock.calls[0] as [URL];
+    expect(url.searchParams.get("emitted_at_from")).toBe("2025-02-01");
+    expect(url.searchParams.get("emitted_at_to")).toBe("2025-02-28");
+  });
+
+  it("passes updated date filter options as query params", async () => {
+    fetchSpy.mockReturnValue(jsonResponse({ transactions: [], meta: makeMeta() }));
+
+    await runCommand("--bank-account", "acc-1", "--updated-from", "2025-03-01", "--updated-to", "2025-03-31");
+
+    const [url] = fetchSpy.mock.calls[0] as [URL];
+    expect(url.searchParams.get("updated_at_from")).toBe("2025-03-01");
+    expect(url.searchParams.get("updated_at_to")).toBe("2025-03-31");
   });
 
   it("passes status filter as array param", async () => {

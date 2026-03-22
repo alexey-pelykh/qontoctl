@@ -23,6 +23,10 @@ export function registerTransactionTools(server: McpServer, getClient: () => Pro
         status: z.enum(["pending", "declined", "completed"]).optional().describe("Filter by status"),
         settled_at_from: z.string().optional().describe("Start of settlement date range (ISO 8601)"),
         settled_at_to: z.string().optional().describe("End of settlement date range (ISO 8601)"),
+        emitted_at_from: z.string().optional().describe("Start of emission date range (ISO 8601)"),
+        emitted_at_to: z.string().optional().describe("End of emission date range (ISO 8601)"),
+        updated_at_from: z.string().optional().describe("Start of update date range (ISO 8601)"),
+        updated_at_to: z.string().optional().describe("End of update date range (ISO 8601)"),
         side: z.enum(["credit", "debit"]).optional().describe("Filter by side (credit or debit)"),
         operation_type: z
           .string()
@@ -49,6 +53,10 @@ export function registerTransactionTools(server: McpServer, getClient: () => Pro
           ...(args.iban !== undefined ? { iban: args.iban } : {}),
           ...(args.settled_at_from !== undefined ? { settled_at_from: args.settled_at_from } : {}),
           ...(args.settled_at_to !== undefined ? { settled_at_to: args.settled_at_to } : {}),
+          ...(args.emitted_at_from !== undefined ? { emitted_at_from: args.emitted_at_from } : {}),
+          ...(args.emitted_at_to !== undefined ? { emitted_at_to: args.emitted_at_to } : {}),
+          ...(args.updated_at_from !== undefined ? { updated_at_from: args.updated_at_from } : {}),
+          ...(args.updated_at_to !== undefined ? { updated_at_to: args.updated_at_to } : {}),
           ...(args.side !== undefined ? { side: args.side } : {}),
           ...(args.sort_by !== undefined ? { sort_by: args.sort_by } : {}),
           ...(args.status !== undefined ? { status: [args.status] } : {}),
