@@ -24,8 +24,8 @@ export interface SupplierInvoice {
   readonly invoice_number: string | null;
   readonly supplier_name: string | null;
   readonly total_amount: SupplierInvoiceAmount | null;
-  readonly total_amount_excluding_taxes: SupplierInvoiceAmount | null;
-  readonly total_tax_amount: SupplierInvoiceAmount | null;
+  readonly total_amount_excluding_taxes?: SupplierInvoiceAmount | null | undefined;
+  readonly total_tax_amount?: SupplierInvoiceAmount | null | undefined;
   readonly payable_amount: SupplierInvoiceAmount | null;
   readonly issue_date: string | null;
   readonly due_date: string | null;

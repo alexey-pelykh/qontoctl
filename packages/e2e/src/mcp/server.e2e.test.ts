@@ -71,6 +71,11 @@ const EXPECTED_TOOLS = [
   "quote_delete",
   "quote_send",
   "request_list",
+  "request_approve",
+  "request_decline",
+  "request_create_flash_card",
+  "request_create_virtual_card",
+  "request_create_multi_transfer",
   "supplier_invoice_list",
   "supplier_invoice_show",
   "supplier_invoice_bulk_create",
@@ -96,6 +101,13 @@ const EXPECTED_TOOLS = [
   "client_invoice_cancel",
   "client_invoice_upload",
   "client_invoice_upload_show",
+  "team_list",
+  "team_create",
+  "webhook_list",
+  "webhook_show",
+  "webhook_create",
+  "webhook_update",
+  "webhook_delete",
 ] as const;
 
 describe("MCP server via stdio (e2e)", () => {
