@@ -30,9 +30,9 @@ export const ClientInvoiceItemSchema = z.object({
   title: z.string(),
   description: z.string().nullable(),
   quantity: z.string(),
-  unit: z.string().nullable(),
+  unit: z.string().nullable().optional(),
   vat_rate: z.string(),
-  vat_exemption_reason: z.string().nullable(),
+  vat_exemption_reason: z.string().nullable().optional(),
   unit_price: ClientInvoiceAmountSchema,
   unit_price_cents: z.number(),
   total_amount: ClientInvoiceAmountSchema,
@@ -41,14 +41,14 @@ export const ClientInvoiceItemSchema = z.object({
   total_vat_cents: z.number(),
   subtotal: ClientInvoiceAmountSchema,
   subtotal_cents: z.number(),
-  discount: ClientInvoiceDiscountSchema.nullable(),
+  discount: ClientInvoiceDiscountSchema.nullable().optional(),
 }) satisfies z.ZodType<ClientInvoiceItem>;
 
 export const ClientInvoiceAddressSchema = z.object({
   street_address: z.string().nullable(),
   city: z.string().nullable(),
   zip_code: z.string().nullable(),
-  province_code: z.string().nullable(),
+  province_code: z.string().nullable().optional(),
   country_code: z.string().nullable(),
 }) satisfies z.ZodType<ClientInvoiceAddress>;
 
@@ -64,12 +64,12 @@ export const ClientInvoiceClientSchema = z.object({
   address: z.string().nullable(),
   city: z.string().nullable(),
   zip_code: z.string().nullable(),
-  province_code: z.string().nullable(),
+  province_code: z.string().nullable().optional(),
   country_code: z.string().nullable(),
-  recipient_code: z.string().nullable(),
+  recipient_code: z.string().nullable().optional(),
   locale: z.string().nullable(),
   billing_address: ClientInvoiceAddressSchema.nullable(),
-  delivery_address: ClientInvoiceAddressSchema.nullable(),
+  delivery_address: ClientInvoiceAddressSchema.nullable().optional(),
 }) satisfies z.ZodType<ClientInvoiceClient>;
 
 export const ClientInvoiceUploadSchema = z.object({
@@ -84,9 +84,9 @@ export const ClientInvoiceUploadSchema = z.object({
 export const ClientInvoiceSchema = z.object({
   id: z.string(),
   organization_id: z.string(),
-  invoice_number: z.string().nullable(),
-  status: z.enum(["draft", "pending", "paid", "cancelled"]),
-  client_id: z.string(),
+  invoice_number: z.string().nullable().optional(),
+  status: z.string(),
+  client_id: z.string().optional(),
   currency: z.string(),
   total_amount: ClientInvoiceAmountSchema,
   total_amount_cents: z.number(),
@@ -101,7 +101,7 @@ export const ClientInvoiceSchema = z.object({
   terms_and_conditions: z.string().nullable(),
   header: z.string().nullable(),
   footer: z.string().nullable(),
-  discount: ClientInvoiceDiscountSchema.nullable(),
+  discount: ClientInvoiceDiscountSchema.nullable().optional(),
   items: z.array(ClientInvoiceItemSchema),
   client: ClientInvoiceClientSchema,
 }) satisfies z.ZodType<ClientInvoice>;

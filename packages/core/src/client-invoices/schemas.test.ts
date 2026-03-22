@@ -258,8 +258,9 @@ describe("ClientInvoiceSchema", () => {
     expect(result.client_invoice).toEqual(validInvoice);
   });
 
-  it("rejects invalid status", () => {
-    expect(() => ClientInvoiceSchema.parse({ ...validInvoice, status: "unknown" })).toThrow();
+  it("accepts any string status", () => {
+    const result = ClientInvoiceSchema.parse({ ...validInvoice, status: "unknown" });
+    expect(result.status).toBe("unknown");
   });
 
   it("strips unknown fields from nested objects", () => {
