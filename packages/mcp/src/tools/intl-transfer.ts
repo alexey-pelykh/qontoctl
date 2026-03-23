@@ -38,10 +38,7 @@ export function registerIntlTransferTools(server: McpServer, getClient: () => Pr
       inputSchema: {
         beneficiary_id: z.string().describe("International beneficiary ID (UUID)"),
         quote_id: z.string().describe("Quote ID (UUID)"),
-        fields: z
-          .record(z.string(), z.unknown())
-          .optional()
-          .describe("Additional transfer fields as key-value pairs"),
+        fields: z.record(z.string(), z.unknown()).optional().describe("Additional transfer fields as key-value pairs"),
       },
     },
     async (args) =>
