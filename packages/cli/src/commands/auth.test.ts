@@ -5,6 +5,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { Command } from "commander";
 
 const CANCEL_SYMBOL = Symbol("cancel");
+const { mockSpinner } = vi.hoisted(() => ({
+  mockSpinner: { start: vi.fn(), stop: vi.fn(), message: vi.fn() },
+}));
 vi.mock("@clack/prompts", () => ({
   intro: vi.fn(),
   outro: vi.fn(),
@@ -12,6 +15,7 @@ vi.mock("@clack/prompts", () => ({
   cancel: vi.fn(),
   text: vi.fn(),
   multiselect: vi.fn(),
+  spinner: vi.fn(() => mockSpinner),
   isCancel: (value: unknown) => value === CANCEL_SYMBOL,
 }));
 
@@ -725,7 +729,11 @@ describe("registerAuthCommands", () => {
   describe("auth login", () => {
     const defaultOAuthConfig = {
       config: {
-        oauth: { clientId: "test-client-id", clientSecret: "test-client-secret" },
+        oauth: {
+          clientId: "test-client-id",
+          clientSecret: "test-client-secret",
+          scopes: ["offline_access", "organization.read"],
+        },
       },
       endpoint: "https://thirdparty.qonto.com",
       warnings: [] as string[],
@@ -926,7 +934,11 @@ describe("registerAuthCommands", () => {
     it("uses sandbox endpoints when configured", async () => {
       resolveConfigMock.mockResolvedValue({
         config: {
-          oauth: { clientId: "test-client-id", clientSecret: "test-client-secret" },
+          oauth: {
+            clientId: "test-client-id",
+            clientSecret: "test-client-secret",
+            scopes: ["offline_access", "organization.read"],
+          },
           sandbox: true,
         },
         endpoint: "https://thirdparty-sandbox.staging.qonto.co",
@@ -1008,7 +1020,7 @@ describe("registerAuthCommands", () => {
       );
     });
 
-    it("outputs login progress messages", async () => {
+    it("shows spinner during authorization and token exchange", async () => {
       const program = new Command();
       program.option("-o, --output <format>", "", "table");
       registerAuthCommands(program);
@@ -1018,11 +1030,172 @@ describe("registerAuthCommands", () => {
       simulateCallback("auth-code", MOCK_STATE_HEX);
       await parsePromise;
 
-      const output = stderrSpy.mock.calls.map((c) => c[0]).join("");
-      expect(output).toContain("Opening browser for authorization");
-      expect(output).toContain("Waiting for callback");
-      expect(output).toContain("Exchanging authorization code for tokens");
-      expect(output).toContain("Login successful! Tokens saved.");
+      expect(mockSpinner.start).toHaveBeenCalledWith("Opening browser for authorization...");
+      expect(mockSpinner.message).toHaveBeenCalledWith(
+        expect.stringContaining("Waiting for authorization"),
+      );
+      expect(mockSpinner.stop).toHaveBeenCalledWith("Authorization received.");
+      expect(mockSpinner.start).toHaveBeenCalledWith("Exchanging authorization code for tokens...");
+      expect(mockSpinner.stop).toHaveBeenCalledWith("Login successful! Tokens saved.");
+    });
+
+    it("uses stored scopes in authorization URL", async () => {
+      resolveConfigMock.mockResolvedValue({
+        config: {
+          oauth: {
+            clientId: "test-client-id",
+            clientSecret: "test-client-secret",
+            scopes: ["offline_access", "organization.read", "payment.write"],
+          },
+        },
+        endpoint: "https://thirdparty.qonto.com",
+        warnings: [],
+      });
+
+      const program = new Command();
+      program.option("-o, --output <format>", "", "table");
+      registerAuthCommands(program);
+
+      const parsePromise = program.parseAsync(["auth", "login"], { from: "user" });
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      simulateCallback("auth-code", MOCK_STATE_HEX);
+      await parsePromise;
+
+      const execCommand = mockExec.mock.calls[0]?.[0] as string;
+      const urlMatch = execCommand.match(/"([^"]+)"/);
+      expect(urlMatch).toBeDefined();
+      const authUrl = new URL(String(urlMatch?.[1]));
+      expect(authUrl.searchParams.get("scope")).toBe("offline_access organization.read payment.write");
+    });
+
+    it("ensures offline_access in stored scopes missing it", async () => {
+      resolveConfigMock.mockResolvedValue({
+        config: {
+          oauth: {
+            clientId: "test-client-id",
+            clientSecret: "test-client-secret",
+            scopes: ["organization.read"],
+          },
+        },
+        endpoint: "https://thirdparty.qonto.com",
+        warnings: [],
+      });
+
+      const program = new Command();
+      program.option("-o, --output <format>", "", "table");
+      registerAuthCommands(program);
+
+      const parsePromise = program.parseAsync(["auth", "login"], { from: "user" });
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      simulateCallback("auth-code", MOCK_STATE_HEX);
+      await parsePromise;
+
+      const execCommand = mockExec.mock.calls[0]?.[0] as string;
+      const urlMatch = execCommand.match(/"([^"]+)"/);
+      expect(urlMatch).toBeDefined();
+      const authUrl = new URL(String(urlMatch?.[1]));
+      expect(authUrl.searchParams.get("scope")).toBe("offline_access organization.read");
+    });
+
+    it("prompts for scopes when none stored and saves them", async () => {
+      resolveConfigMock.mockResolvedValue({
+        config: {
+          oauth: { clientId: "test-client-id", clientSecret: "test-client-secret" },
+        },
+        endpoint: "https://thirdparty.qonto.com",
+        warnings: [],
+      });
+      multiselectMock.mockResolvedValueOnce(["offline_access", "organization.read"]);
+
+      const program = new Command();
+      program.option("-o, --output <format>", "", "table");
+      registerAuthCommands(program);
+
+      const parsePromise = program.parseAsync(["auth", "login"], { from: "user" });
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      simulateCallback("auth-code", MOCK_STATE_HEX);
+      await parsePromise;
+
+      expect(multiselectMock).toHaveBeenCalledWith(
+        expect.objectContaining({ message: "Select OAuth scopes" }),
+      );
+      expect(saveOAuthScopesMock).toHaveBeenCalledWith(
+        ["offline_access", "organization.read"],
+        undefined,
+      );
+    });
+
+    it("ensures offline_access when interactively selected scopes omit it", async () => {
+      resolveConfigMock.mockResolvedValue({
+        config: {
+          oauth: { clientId: "test-client-id", clientSecret: "test-client-secret" },
+        },
+        endpoint: "https://thirdparty.qonto.com",
+        warnings: [],
+      });
+      multiselectMock.mockResolvedValueOnce(["organization.read"]);
+
+      const program = new Command();
+      program.option("-o, --output <format>", "", "table");
+      registerAuthCommands(program);
+
+      const parsePromise = program.parseAsync(["auth", "login"], { from: "user" });
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      simulateCallback("auth-code", MOCK_STATE_HEX);
+      await parsePromise;
+
+      expect(saveOAuthScopesMock).toHaveBeenCalledWith(
+        ["offline_access", "organization.read"],
+        undefined,
+      );
+    });
+
+    it("exits cleanly when scope selection is cancelled during login", async () => {
+      resolveConfigMock.mockResolvedValue({
+        config: {
+          oauth: { clientId: "test-client-id", clientSecret: "test-client-secret" },
+        },
+        endpoint: "https://thirdparty.qonto.com",
+        warnings: [],
+      });
+      multiselectMock.mockResolvedValueOnce(CANCEL_SYMBOL);
+
+      const program = new Command();
+      program.option("-o, --output <format>", "", "table");
+      registerAuthCommands(program);
+
+      await program.parseAsync(["auth", "login"], { from: "user" });
+
+      expect(cancelMock).toHaveBeenCalledWith("Login cancelled.");
+      expect(exchangeCodeMock).not.toHaveBeenCalled();
+    });
+
+    it("prompts for scopes when stored scopes array is empty", async () => {
+      resolveConfigMock.mockResolvedValue({
+        config: {
+          oauth: {
+            clientId: "test-client-id",
+            clientSecret: "test-client-secret",
+            scopes: [],
+          },
+        },
+        endpoint: "https://thirdparty.qonto.com",
+        warnings: [],
+      });
+      multiselectMock.mockResolvedValueOnce(["offline_access"]);
+
+      const program = new Command();
+      program.option("-o, --output <format>", "", "table");
+      registerAuthCommands(program);
+
+      const parsePromise = program.parseAsync(["auth", "login"], { from: "user" });
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      simulateCallback("auth-code", MOCK_STATE_HEX);
+      await parsePromise;
+
+      expect(multiselectMock).toHaveBeenCalledWith(
+        expect.objectContaining({ message: "Select OAuth scopes" }),
+      );
     });
   });
 });
