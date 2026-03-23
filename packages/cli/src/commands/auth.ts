@@ -259,12 +259,12 @@ export function registerAuthCommands(program: Command): void {
     }
 
     const selectedScopes = await multiselect({
-      message: "Select OAuth scopes",
+      message: "Select OAuth scopes (press Enter when done)",
       options: DEFAULT_SCOPES.map((scope) => {
         const hint = SCOPE_DESCRIPTIONS[scope];
         return { value: scope, label: scope, ...(hint !== undefined ? { hint } : {}) };
       }),
-      initialValues: existingOAuth?.scopes ?? [...DEFAULT_SCOPES],
+      initialValues: existingOAuth?.scopes ?? ["offline_access"],
       required: true,
     });
     if (isCancel(selectedScopes)) {
@@ -306,12 +306,12 @@ export function registerAuthCommands(program: Command): void {
       scopes = oauth.scopes;
     } else {
       const selectedScopes = await multiselect({
-        message: "Select OAuth scopes",
+        message: "Select OAuth scopes (press Enter when done)",
         options: DEFAULT_SCOPES.map((scope) => {
           const hint = SCOPE_DESCRIPTIONS[scope];
           return { value: scope, label: scope, ...(hint !== undefined ? { hint } : {}) };
         }),
-        initialValues: [...DEFAULT_SCOPES],
+        initialValues: ["offline_access"],
         required: true,
       });
       if (isCancel(selectedScopes)) {

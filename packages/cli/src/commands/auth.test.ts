@@ -196,7 +196,7 @@ describe("registerAuthCommands", () => {
       );
     });
 
-    it("defaults all scopes selected when no existing scopes", async () => {
+    it("defaults only offline_access selected when no existing scopes", async () => {
       textMock.mockResolvedValueOnce("id").mockResolvedValueOnce("secret");
       multiselectMock.mockResolvedValueOnce(["offline_access"]);
 
@@ -207,7 +207,7 @@ describe("registerAuthCommands", () => {
       await program.parseAsync(["auth", "setup"], { from: "user" });
 
       const multiselectCall = multiselectMock.mock.calls[0]?.[0] as { initialValues?: string[] } | undefined;
-      expect(multiselectCall?.initialValues).toHaveLength(16);
+      expect(multiselectCall?.initialValues).toEqual(["offline_access"]);
     });
 
     it("ensures offline_access is always included in saved scopes", async () => {
@@ -1114,7 +1114,9 @@ describe("registerAuthCommands", () => {
       simulateCallback("auth-code", MOCK_STATE_HEX);
       await parsePromise;
 
-      expect(multiselectMock).toHaveBeenCalledWith(expect.objectContaining({ message: "Select OAuth scopes" }));
+      expect(multiselectMock).toHaveBeenCalledWith(
+        expect.objectContaining({ message: "Select OAuth scopes (press Enter when done)" }),
+      );
       expect(saveOAuthScopesMock).toHaveBeenCalledWith(["offline_access", "organization.read"], undefined);
     });
 
@@ -1183,7 +1185,9 @@ describe("registerAuthCommands", () => {
       simulateCallback("auth-code", MOCK_STATE_HEX);
       await parsePromise;
 
-      expect(multiselectMock).toHaveBeenCalledWith(expect.objectContaining({ message: "Select OAuth scopes" }));
+      expect(multiselectMock).toHaveBeenCalledWith(
+        expect.objectContaining({ message: "Select OAuth scopes (press Enter when done)" }),
+      );
     });
   });
 });
