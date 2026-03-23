@@ -84,7 +84,7 @@ export async function createCard(
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<Card> {
   const path = "/v2/cards";
-  const response = await client.post<{ card: Card }>(path, params, options);
+  const response = await client.post<{ card: Card }>(path, { card: params }, options);
   return parseResponse(z.object({ card: CardSchema }), response, path).card;
 }
 

@@ -294,8 +294,8 @@ describe("card commands", () => {
       const [url, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
       expect(url.pathname).toBe("/v2/cards");
       expect(opts.method).toBe("POST");
-      const body = JSON.parse(opts.body as string) as Record<string, unknown>;
-      expect(body).toEqual(
+      const body = JSON.parse(opts.body as string) as { card: Record<string, unknown> };
+      expect(body.card).toEqual(
         expect.objectContaining({
           holder_id: "mem-1",
           initiator_id: "mem-2",
@@ -406,8 +406,8 @@ describe("card commands", () => {
       );
 
       const [, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
-      const body = JSON.parse(opts.body as string) as Record<string, unknown>;
-      expect(body).toEqual(
+      const body = JSON.parse(opts.body as string) as { card: Record<string, unknown> };
+      expect(body.card).toEqual(
         expect.objectContaining({
           ship_to_business: true,
           atm_option: true,

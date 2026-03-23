@@ -250,14 +250,14 @@ describe("card MCP tools", () => {
       const [url, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
       expect(url.pathname).toBe("/v2/cards");
       expect(opts.method).toBe("POST");
-      const body = JSON.parse(opts.body as string) as Record<string, unknown>;
-      expect(body).toHaveProperty("holder_id", "member-1");
-      expect(body).toHaveProperty("initiator_id", "member-1");
-      expect(body).toHaveProperty("organization_id", "org-1");
-      expect(body).toHaveProperty("bank_account_id", "acct-1");
-      expect(body).toHaveProperty("card_level", "virtual");
-      expect(body).toHaveProperty("atm_option", true);
-      expect(body).toHaveProperty("payment_monthly_limit", 5000);
+      const body = JSON.parse(opts.body as string) as { card: Record<string, unknown> };
+      expect(body.card).toHaveProperty("holder_id", "member-1");
+      expect(body.card).toHaveProperty("initiator_id", "member-1");
+      expect(body.card).toHaveProperty("organization_id", "org-1");
+      expect(body.card).toHaveProperty("bank_account_id", "acct-1");
+      expect(body.card).toHaveProperty("card_level", "virtual");
+      expect(body.card).toHaveProperty("atm_option", true);
+      expect(body.card).toHaveProperty("payment_monthly_limit", 5000);
     });
   });
 
