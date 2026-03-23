@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { HttpClient } from "../http-client.js";
+import { HttpClient, QontoApiError } from "../http-client.js";
 import { binaryResponse } from "../testing/binary-response.js";
 import { jsonResponse } from "../testing/json-response.js";
 import {
@@ -426,6 +426,103 @@ describe("verifyPayee", () => {
     expect(url.pathname).toBe("/v2/sepa/verify_payee");
     expect(init.method).toBe("POST");
   });
+
+  const vopBankErrorCodes = [
+    { status: 400, code: "BAD_REQUEST_ERROR_RESPONDING_BANK_NOT_AVAILABLE" },
+    { status: 400, code: "BAD_REQUEST_ERROR_5XX_RESPONDING_BANK" },
+    { status: 400, code: "BAD_REQUEST_ERROR_RESPONDING_BANK_INVALID_RESPONSE" },
+    { status: 500, code: "INTERNAL_SERVER_ERROR_4XX_RESPONDING_BANK" },
+    { status: 503, code: "BAD_GATEWAY_ERROR_RESPONDING_BANK" },
+    { status: 503, code: "GATEWAY_TIMEOUT_ERROR_RESPONDING_BANK" },
+  ];
+
+  it.each(vopBankErrorCodes)(
+    "extracts proof token from $code ($status) error",
+    async ({ status, code }) => {
+      fetchSpy.mockImplementation(() =>
+        jsonResponse(
+          {
+            errors: [
+              {
+                code,
+                detail: "Bank error",
+                meta: { proof_token: { token: "tok_from_error" } },
+              },
+            ],
+          },
+          { status },
+        ),
+      );
+
+      const result = await verifyPayee(client, {
+        iban: "FR7612345000010009876543210",
+        name: "John Doe",
+      });
+      expect(result).toEqual({
+        iban: "FR7612345000010009876543210",
+        name: "John Doe",
+        result: "not_available",
+        vop_proof_token: "tok_from_error",
+      });
+    },
+  );
+
+  const vopNonTokenErrorCodes = [
+    { status: 400, code: "BAD_REQUEST_ERROR_UNSPECIFIED" },
+    { status: 400, code: "BAD_REQUEST_ERROR_FORMAT" },
+    { status: 500, code: "INTERNAL_SERVER_ERROR_UNSPECIFIED" },
+    { status: 501, code: "NOT_IMPLEMENTED_ERROR_FEATURE_NOT_AVAILABLE" },
+  ];
+
+  it.each(vopNonTokenErrorCodes)(
+    "re-throws $code ($status) error without token extraction",
+    async ({ status, code }) => {
+      fetchSpy.mockImplementation(() =>
+        jsonResponse(
+          {
+            errors: [
+              {
+                code,
+                detail: "Non-bank error",
+              },
+            ],
+          },
+          { status },
+        ),
+      );
+
+      await expect(
+        verifyPayee(client, {
+          iban: "FR7612345000010009876543210",
+          name: "John Doe",
+        }),
+      ).rejects.toThrow(QontoApiError);
+    },
+  );
+
+  it("re-throws bank error when meta.proof_token.token is missing", async () => {
+    fetchSpy.mockImplementation(() =>
+      jsonResponse(
+        {
+          errors: [
+            {
+              code: "BAD_GATEWAY_ERROR_RESPONDING_BANK",
+              detail: "Bank error",
+              meta: {},
+            },
+          ],
+        },
+        { status: 503 },
+      ),
+    );
+
+    await expect(
+      verifyPayee(client, {
+        iban: "FR7612345000010009876543210",
+        name: "John Doe",
+      }),
+    ).rejects.toThrow(QontoApiError);
+  });
 });
 
 describe("bulkVerifyPayee", () => {
@@ -469,5 +566,56 @@ describe("bulkVerifyPayee", () => {
         { iban: "DE89370400440532013000", name: "Jane Smith" },
       ],
     });
+  });
+
+  it("extracts proof token from bank error and returns not_available for all entries", async () => {
+    fetchSpy.mockImplementation(() =>
+      jsonResponse(
+        {
+          errors: [
+            {
+              code: "BAD_GATEWAY_ERROR_RESPONDING_BANK",
+              detail: "Bank error",
+              meta: { proof_token: { token: "tok_bulk_error" } },
+            },
+          ],
+        },
+        { status: 503 },
+      ),
+    );
+
+    const result = await bulkVerifyPayee(client, [
+      { iban: "FR7612345000010009876543210", name: "John Doe" },
+      { iban: "DE89370400440532013000", name: "Jane Smith" },
+    ]);
+    expect(result).toEqual([
+      {
+        iban: "FR7612345000010009876543210",
+        name: "John Doe",
+        result: "not_available",
+        vop_proof_token: "tok_bulk_error",
+      },
+      {
+        iban: "DE89370400440532013000",
+        name: "Jane Smith",
+        result: "not_available",
+        vop_proof_token: "tok_bulk_error",
+      },
+    ]);
+  });
+
+  it("re-throws non-bank errors", async () => {
+    fetchSpy.mockImplementation(() =>
+      jsonResponse(
+        {
+          errors: [{ code: "BAD_REQUEST_ERROR_UNSPECIFIED", detail: "Bad request" }],
+        },
+        { status: 400 },
+      ),
+    );
+
+    await expect(
+      bulkVerifyPayee(client, [{ iban: "FR7612345000010009876543210", name: "John Doe" }]),
+    ).rejects.toThrow(QontoApiError);
   });
 });

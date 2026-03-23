@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import type { PaginationMeta } from "../api-types.js";
+import { QontoApiError } from "../http-client.js";
 import type { HttpClient, QueryParams } from "../http-client.js";
 import { parseResponse } from "../response.js";
 import {
@@ -11,6 +12,38 @@ import {
   VopResultResponseSchema,
 } from "./schemas.js";
 import type { CreateTransferParams, ListTransfersParams, Transfer, VopEntry, VopResult } from "./types.js";
+
+/**
+ * VoP error codes where the bank failed but Qonto still provides a
+ * `proof_token` in `meta` that is valid for transfer creation.
+ */
+const VOP_BANK_ERROR_CODES: ReadonlySet<string> = new Set([
+  "BAD_REQUEST_ERROR_RESPONDING_BANK_NOT_AVAILABLE",
+  "BAD_REQUEST_ERROR_5XX_RESPONDING_BANK",
+  "BAD_REQUEST_ERROR_RESPONDING_BANK_INVALID_RESPONSE",
+  "INTERNAL_SERVER_ERROR_4XX_RESPONDING_BANK",
+  "BAD_GATEWAY_ERROR_RESPONDING_BANK",
+  "GATEWAY_TIMEOUT_ERROR_RESPONDING_BANK",
+]);
+
+/**
+ * Extract the VoP proof token from a {@link QontoApiError} if the error
+ * is a bank-related VoP failure that still carries a usable token.
+ *
+ * Returns the token string or `undefined` when not applicable.
+ */
+function extractVopProofToken(error: QontoApiError): string | undefined {
+  for (const entry of error.errors) {
+    if (!VOP_BANK_ERROR_CODES.has(entry.code)) continue;
+    const meta = entry.meta;
+    if (meta === undefined) continue;
+    const proofToken = meta["proof_token"];
+    if (typeof proofToken !== "object" || proofToken === null) continue;
+    const token = (proofToken as Record<string, unknown>)["token"];
+    if (typeof token === "string") return token;
+  }
+  return undefined;
+}
 
 /**
  * Build query parameter record from typed list parameters.
@@ -111,6 +144,10 @@ export async function getTransferProof(client: HttpClient, id: string): Promise<
 
 /**
  * Verify a single payee (Verification of Payee / VoP).
+ *
+ * When the responding bank fails but Qonto still provides a proof token
+ * in the error body, this returns a `VopResult` with `result: "not_available"`
+ * and the extracted token instead of throwing.
  */
 export async function verifyPayee(
   client: HttpClient,
@@ -118,12 +155,31 @@ export async function verifyPayee(
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<VopResult> {
   const endpointPath = "/v2/sepa/verify_payee";
-  const response = await client.post(endpointPath, params, options);
-  return parseResponse(VopResultResponseSchema, response, endpointPath).verification;
+  try {
+    const response = await client.post(endpointPath, params, options);
+    return parseResponse(VopResultResponseSchema, response, endpointPath).verification;
+  } catch (error: unknown) {
+    if (error instanceof QontoApiError) {
+      const token = extractVopProofToken(error);
+      if (token !== undefined) {
+        return {
+          iban: params.iban,
+          name: params.name,
+          result: "not_available",
+          vop_proof_token: token,
+        };
+      }
+    }
+    throw error;
+  }
 }
 
 /**
  * Bulk verify payees (Verification of Payee / VoP).
+ *
+ * When the responding bank fails but Qonto still provides a proof token
+ * in the error body, this returns `VopResult[]` entries with
+ * `result: "not_available"` and the extracted token instead of throwing.
  */
 export async function bulkVerifyPayee(
   client: HttpClient,
@@ -131,6 +187,21 @@ export async function bulkVerifyPayee(
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<readonly VopResult[]> {
   const endpointPath = "/v2/sepa/bulk_verify_payee";
-  const response = await client.post(endpointPath, { entries }, options);
-  return parseResponse(BulkVopResultResponseSchema, response, endpointPath).verifications;
+  try {
+    const response = await client.post(endpointPath, { entries }, options);
+    return parseResponse(BulkVopResultResponseSchema, response, endpointPath).verifications;
+  } catch (error: unknown) {
+    if (error instanceof QontoApiError) {
+      const token = extractVopProofToken(error);
+      if (token !== undefined) {
+        return entries.map((entry) => ({
+          iban: entry.iban,
+          name: entry.name,
+          result: "not_available" as const,
+          vop_proof_token: token,
+        }));
+      }
+    }
+    throw error;
+  }
 }

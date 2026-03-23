@@ -25,6 +25,7 @@ export interface QontoApiErrorEntry {
     readonly pointer?: string;
     readonly parameter?: string;
   };
+  readonly meta?: Readonly<Record<string, unknown>>;
 }
 
 /**
@@ -555,7 +556,22 @@ export class HttpClient {
       "errors" in body &&
       Array.isArray((body as { errors: unknown }).errors)
     ) {
-      return (body as { errors: QontoApiErrorEntry[] }).errors;
+      return ((body as { errors: unknown[] }).errors).map((entry: unknown) => {
+        const e = entry as Record<string, unknown>;
+        const base = {
+          code: typeof e["code"] === "string" ? e["code"] : "unknown",
+          detail: typeof e["detail"] === "string" ? e["detail"] : "Unknown error",
+        };
+        const source =
+          typeof e["source"] === "object" && e["source"] !== null
+            ? { source: e["source"] as QontoApiErrorEntry["source"] }
+            : {};
+        const meta =
+          typeof e["meta"] === "object" && e["meta"] !== null
+            ? { meta: e["meta"] as QontoApiErrorEntry["meta"] }
+            : {};
+        return { ...base, ...source, ...meta } as QontoApiErrorEntry;
+      });
     }
     return [{ code: "unknown", detail: "Unknown error" }];
   }
