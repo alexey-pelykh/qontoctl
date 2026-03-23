@@ -90,6 +90,10 @@ describe("beneficiary update command", () => {
     expect(url.pathname).toBe("/v2/sepa/beneficiaries/ben-1");
     expect(opts.method).toBe("PUT");
     const body = JSON.parse(opts.body as string) as Record<string, unknown>;
-    expect(body).toHaveProperty("name", "Updated Corp");
+    expect(body).toEqual({
+      beneficiary: {
+        name: "Updated Corp",
+      },
+    });
   });
 });

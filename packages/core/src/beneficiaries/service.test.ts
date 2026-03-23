@@ -4,7 +4,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { HttpClient } from "../http-client.js";
 import { jsonResponse } from "../testing/json-response.js";
-import { buildBeneficiaryQueryParams, getBeneficiary } from "./service.js";
+import { buildBeneficiaryQueryParams, createBeneficiary, getBeneficiary, updateBeneficiary } from "./service.js";
 import type { ListBeneficiariesParams } from "./types.js";
 
 describe("buildBeneficiaryQueryParams", () => {
@@ -111,5 +111,109 @@ describe("getBeneficiary", () => {
 
     const [url] = fetchSpy.mock.calls[0] as [URL];
     expect(url.pathname).toBe("/v2/sepa/beneficiaries/a%2Fb");
+  });
+});
+
+describe("createBeneficiary", () => {
+  let fetchSpy: ReturnType<typeof vi.fn>;
+  let client: HttpClient;
+
+  beforeEach(() => {
+    fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    client = new HttpClient({
+      baseUrl: "https://thirdparty.qonto.com",
+      authorization: "slug:secret",
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("wraps params in a beneficiary key", async () => {
+    const beneficiary = {
+      id: "ben-new",
+      name: "Acme Corp",
+      iban: "FR7630001007941234567890185",
+      bic: "BNPAFRPP",
+      email: null,
+      activity_tag: null,
+      status: "pending",
+      trusted: false,
+      created_at: "2025-01-01T00:00:00Z",
+      updated_at: "2025-01-01T00:00:00Z",
+    };
+    fetchSpy.mockReturnValue(jsonResponse({ beneficiary }));
+
+    const result = await createBeneficiary(client, {
+      name: "Acme Corp",
+      iban: "FR7630001007941234567890185",
+      bic: "BNPAFRPP",
+    });
+
+    expect(result).toEqual(beneficiary);
+
+    const [url, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+    expect(url.pathname).toBe("/v2/sepa/beneficiaries");
+    expect(opts.method).toBe("POST");
+    const body = JSON.parse(opts.body as string) as Record<string, unknown>;
+    expect(body).toEqual({
+      beneficiary: {
+        name: "Acme Corp",
+        iban: "FR7630001007941234567890185",
+        bic: "BNPAFRPP",
+      },
+    });
+  });
+});
+
+describe("updateBeneficiary", () => {
+  let fetchSpy: ReturnType<typeof vi.fn>;
+  let client: HttpClient;
+
+  beforeEach(() => {
+    fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    client = new HttpClient({
+      baseUrl: "https://thirdparty.qonto.com",
+      authorization: "slug:secret",
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("wraps params in a beneficiary key", async () => {
+    const beneficiary = {
+      id: "ben-1",
+      name: "Updated Corp",
+      iban: "FR7630001007941234567890185",
+      bic: "BNPAFRPP",
+      email: null,
+      activity_tag: null,
+      status: "validated",
+      trusted: true,
+      created_at: "2025-01-01T00:00:00Z",
+      updated_at: "2025-01-02T00:00:00Z",
+    };
+    fetchSpy.mockReturnValue(jsonResponse({ beneficiary }));
+
+    const result = await updateBeneficiary(client, "ben-1", {
+      name: "Updated Corp",
+    });
+
+    expect(result).toEqual(beneficiary);
+
+    const [url, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+    expect(url.pathname).toBe("/v2/sepa/beneficiaries/ben-1");
+    expect(opts.method).toBe("PUT");
+    const body = JSON.parse(opts.body as string) as Record<string, unknown>;
+    expect(body).toEqual({
+      beneficiary: {
+        name: "Updated Corp",
+      },
+    });
   });
 });
