@@ -17,4 +17,5 @@ catalog:
   commander: "^14.0.3"
   turbo: "^2.8.9"
   typedoc: "^0.28.17"
+  "@clack/prompts": "^1.1.0"
   yaml: "^2.7.1"
