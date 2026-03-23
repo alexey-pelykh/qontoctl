@@ -48,9 +48,7 @@ describe("listIntlBeneficiaries", () => {
   });
 
   it("calls the correct endpoint", async () => {
-    fetchSpy.mockReturnValue(
-      jsonResponse({ international_beneficiaries: [sampleBeneficiary], meta: sampleMeta }),
-    );
+    fetchSpy.mockReturnValue(jsonResponse({ international_beneficiaries: [sampleBeneficiary], meta: sampleMeta }));
 
     const result = await listIntlBeneficiaries(client);
 
@@ -62,9 +60,7 @@ describe("listIntlBeneficiaries", () => {
   });
 
   it("passes pagination params", async () => {
-    fetchSpy.mockReturnValue(
-      jsonResponse({ international_beneficiaries: [], meta: sampleMeta }),
-    );
+    fetchSpy.mockReturnValue(jsonResponse({ international_beneficiaries: [], meta: sampleMeta }));
 
     await listIntlBeneficiaries(client, { current_page: 2, per_page: 10 });
 
