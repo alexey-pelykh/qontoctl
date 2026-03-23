@@ -273,15 +273,10 @@ export function registerAuthCommands(program: Command): void {
     }
 
     // Ensure offline_access is always included
-    const scopes = selectedScopes.includes("offline_access")
-      ? selectedScopes
-      : ["offline_access", ...selectedScopes];
+    const scopes = selectedScopes.includes("offline_access") ? selectedScopes : ["offline_access", ...selectedScopes];
 
     const profileOpts = opts.profile !== undefined ? { profile: opts.profile } : undefined;
-    await saveOAuthClientCredentials(
-      { clientId: clientId.trim(), clientSecret: clientSecret.trim() },
-      profileOpts,
-    );
+    await saveOAuthClientCredentials({ clientId: clientId.trim(), clientSecret: clientSecret.trim() }, profileOpts);
     await saveOAuthScopes(scopes, profileOpts);
 
     outro('Credentials saved. Run "qontoctl auth login" to authenticate.');
