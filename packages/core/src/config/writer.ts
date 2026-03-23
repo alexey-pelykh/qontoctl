@@ -16,7 +16,7 @@ const FILE_MODE = 0o600;
 export interface TokenUpdate {
   readonly accessToken: string;
   readonly refreshToken?: string;
-  readonly tokenExpiresAt: string;
+  readonly accessTokenExpiresAt: string;
 }
 
 /**
@@ -63,10 +63,13 @@ export async function saveOAuthTokens(
       ? (doc["oauth"] as Record<string, unknown>)
       : {};
 
+  // Remove legacy key if present
+  delete existingOAuth["token-expires-at"];
+
   doc["oauth"] = {
     ...existingOAuth,
     "access-token": tokens.accessToken,
-    "token-expires-at": tokens.tokenExpiresAt,
+    "access-token-expires-at": tokens.accessTokenExpiresAt,
     ...(tokens.refreshToken !== undefined ? { "refresh-token": tokens.refreshToken } : {}),
   };
 
@@ -153,6 +156,48 @@ export async function clearOAuthTokens(options?: {
   delete oauth["access-token"];
   delete oauth["refresh-token"];
   delete oauth["token-expires-at"];
+  delete oauth["access-token-expires-at"];
+
+  const yaml = stringifyYaml(doc);
+  await writeFile(path, yaml, { mode: FILE_MODE });
+}
+
+/**
+ * Saves OAuth scopes to the user's config file.
+ *
+ * Reads the existing YAML file, updates the `oauth.scopes` field,
+ * and writes it back. Creates the file and directory if they don't exist.
+ */
+export async function saveOAuthScopes(
+  scopes: readonly string[],
+  options?: { readonly profile?: string; readonly home?: string; readonly cwd?: string },
+): Promise<void> {
+  const path = await resolveConfigPath(options?.profile, options?.home, options?.cwd);
+
+  await mkdir(dirname(path), { recursive: true });
+
+  let doc: Record<string, unknown> = {};
+  try {
+    const content = await readFile(path, "utf-8");
+    const parsed: unknown = parseYaml(content);
+    if (parsed !== null && parsed !== undefined && typeof parsed === "object" && !Array.isArray(parsed)) {
+      doc = parsed as Record<string, unknown>;
+    }
+  } catch (error: unknown) {
+    if (!isNodeError(error) || error.code !== "ENOENT") {
+      throw error;
+    }
+  }
+
+  const existingOAuth =
+    typeof doc["oauth"] === "object" && doc["oauth"] !== null && !Array.isArray(doc["oauth"])
+      ? (doc["oauth"] as Record<string, unknown>)
+      : {};
+
+  doc["oauth"] = {
+    ...existingOAuth,
+    scopes: [...scopes],
+  };
 
   const yaml = stringifyYaml(doc);
   await writeFile(path, yaml, { mode: FILE_MODE });

@@ -37,8 +37,8 @@ export async function buildClient(options?: ClientOptions): Promise<HttpClient> 
     const profile = options?.profile;
 
     authorization = async () => {
-      if (oauth.tokenExpiresAt && oauth.refreshToken) {
-        const expiresAt = new Date(oauth.tokenExpiresAt);
+      if (oauth.accessTokenExpiresAt && oauth.refreshToken) {
+        const expiresAt = new Date(oauth.accessTokenExpiresAt);
         const now = new Date();
         if (expiresAt.getTime() - now.getTime() < 60_000) {
           const tokens = await refreshAccessToken(tokenUrl, oauth.clientId, oauth.clientSecret, oauth.refreshToken);
@@ -46,13 +46,13 @@ export async function buildClient(options?: ClientOptions): Promise<HttpClient> 
           if (tokens.refreshToken) {
             oauth.refreshToken = tokens.refreshToken;
           }
-          oauth.tokenExpiresAt = new Date(Date.now() + tokens.expiresIn * 1000).toISOString();
+          oauth.accessTokenExpiresAt = new Date(Date.now() + tokens.expiresIn * 1000).toISOString();
 
           await saveOAuthTokens(
             {
               accessToken: oauth.accessToken,
               refreshToken: oauth.refreshToken,
-              tokenExpiresAt: oauth.tokenExpiresAt,
+              accessTokenExpiresAt: oauth.accessTokenExpiresAt,
             },
             profile !== undefined ? { profile } : undefined,
           );

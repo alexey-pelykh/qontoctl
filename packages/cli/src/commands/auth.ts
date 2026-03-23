@@ -302,7 +302,7 @@ export function registerAuthCommands(program: Command): void {
         {
           accessToken: tokens.accessToken,
           ...(tokens.refreshToken !== undefined ? { refreshToken: tokens.refreshToken } : {}),
-          tokenExpiresAt: expiresAt,
+          accessTokenExpiresAt: expiresAt,
         },
         opts.profile !== undefined ? { profile: opts.profile } : undefined,
       );
@@ -334,7 +334,7 @@ export function registerAuthCommands(program: Command): void {
       {
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken ?? oauth.refreshToken,
-        tokenExpiresAt: expiresAt,
+        accessTokenExpiresAt: expiresAt,
       },
       opts.profile !== undefined ? { profile: opts.profile } : undefined,
     );
@@ -357,14 +357,14 @@ export function registerAuthCommands(program: Command): void {
 
     const hasRefreshToken = Boolean(oauth.refreshToken);
 
-    if (oauth.tokenExpiresAt) {
-      const expiresAt = new Date(oauth.tokenExpiresAt);
+    if (oauth.accessTokenExpiresAt) {
+      const expiresAt = new Date(oauth.accessTokenExpiresAt);
       const now = new Date();
       const isExpired = expiresAt <= now;
       const remainingMs = expiresAt.getTime() - now.getTime();
 
       process.stdout.write(`Status: ${isExpired ? "Expired" : "Active"}\n`);
-      process.stdout.write(`Expires: ${oauth.tokenExpiresAt}\n`);
+      process.stdout.write(`Expires: ${oauth.accessTokenExpiresAt}\n`);
 
       if (!isExpired) {
         const minutes = Math.floor(remainingMs / 60000);

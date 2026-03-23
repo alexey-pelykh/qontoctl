@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { parse as parseYaml } from "yaml";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { saveOAuthTokens, saveOAuthClientCredentials, clearOAuthTokens } from "./writer.js";
+import { saveOAuthTokens, saveOAuthClientCredentials, clearOAuthTokens, saveOAuthScopes } from "./writer.js";
 
 describe("saveOAuthTokens", () => {
   let tempDir: string;
@@ -24,7 +24,7 @@ describe("saveOAuthTokens", () => {
       {
         accessToken: "access-123",
         refreshToken: "refresh-456",
-        tokenExpiresAt: "2026-02-28T16:00:00Z",
+        accessTokenExpiresAt: "2026-02-28T16:00:00Z",
       },
       { home: tempDir, cwd: tempDir },
     );
@@ -34,7 +34,7 @@ describe("saveOAuthTokens", () => {
     const oauth = doc["oauth"] as Record<string, unknown>;
     expect(oauth["access-token"]).toBe("access-123");
     expect(oauth["refresh-token"]).toBe("refresh-456");
-    expect(oauth["token-expires-at"]).toBe("2026-02-28T16:00:00Z");
+    expect(oauth["access-token-expires-at"]).toBe("2026-02-28T16:00:00Z");
   });
 
   it("preserves existing config fields", async () => {
@@ -44,7 +44,7 @@ describe("saveOAuthTokens", () => {
     await saveOAuthTokens(
       {
         accessToken: "access-123",
-        tokenExpiresAt: "2026-02-28T16:00:00Z",
+        accessTokenExpiresAt: "2026-02-28T16:00:00Z",
       },
       { home: tempDir, cwd: tempDir },
     );
@@ -63,7 +63,7 @@ describe("saveOAuthTokens", () => {
     await saveOAuthTokens(
       {
         accessToken: "access-123",
-        tokenExpiresAt: "2026-02-28T16:00:00Z",
+        accessTokenExpiresAt: "2026-02-28T16:00:00Z",
       },
       { home: tempDir, cwd: tempDir },
     );
@@ -82,7 +82,7 @@ describe("saveOAuthTokens", () => {
     await saveOAuthTokens(
       {
         accessToken: "access-123",
-        tokenExpiresAt: "2026-02-28T16:00:00Z",
+        accessTokenExpiresAt: "2026-02-28T16:00:00Z",
       },
       { profile: "acme", home: tempDir },
     );
@@ -97,7 +97,7 @@ describe("saveOAuthTokens", () => {
     await saveOAuthTokens(
       {
         accessToken: "access-123",
-        tokenExpiresAt: "2026-02-28T16:00:00Z",
+        accessTokenExpiresAt: "2026-02-28T16:00:00Z",
       },
       { home: tempDir, cwd: tempDir },
     );
@@ -162,7 +162,7 @@ describe("clearOAuthTokens", () => {
 
   it("removes token fields but preserves client credentials", async () => {
     const content =
-      'oauth:\n  client-id: my-client\n  client-secret: my-secret\n  access-token: old-token\n  refresh-token: old-refresh\n  token-expires-at: "2026-02-28T15:00:00Z"\n';
+      'oauth:\n  client-id: my-client\n  client-secret: my-secret\n  access-token: old-token\n  refresh-token: old-refresh\n  access-token-expires-at: "2026-02-28T15:00:00Z"\n';
     await writeFile(join(tempDir, ".qontoctl.yaml"), content);
 
     await clearOAuthTokens({ home: tempDir, cwd: tempDir });
@@ -174,7 +174,22 @@ describe("clearOAuthTokens", () => {
     expect(oauth["client-secret"]).toBe("my-secret");
     expect(oauth["access-token"]).toBeUndefined();
     expect(oauth["refresh-token"]).toBeUndefined();
+    expect(oauth["access-token-expires-at"]).toBeUndefined();
+  });
+
+  it("removes legacy token-expires-at key", async () => {
+    const content =
+      'oauth:\n  client-id: my-client\n  client-secret: my-secret\n  access-token: old-token\n  token-expires-at: "2026-02-28T15:00:00Z"\n';
+    await writeFile(join(tempDir, ".qontoctl.yaml"), content);
+
+    await clearOAuthTokens({ home: tempDir, cwd: tempDir });
+
+    const result = await readFile(join(tempDir, ".qontoctl.yaml"), "utf-8");
+    const doc = parseYaml(result) as Record<string, unknown>;
+    const oauth = doc["oauth"] as Record<string, unknown>;
+    expect(oauth["client-id"]).toBe("my-client");
     expect(oauth["token-expires-at"]).toBeUndefined();
+    expect(oauth["access-token-expires-at"]).toBeUndefined();
   });
 
   it("does nothing when config file does not exist", async () => {
@@ -190,5 +205,40 @@ describe("clearOAuthTokens", () => {
     const result = await readFile(join(tempDir, ".qontoctl.yaml"), "utf-8");
     const doc = parseYaml(result) as Record<string, unknown>;
     expect(doc["api-key"]).toBeDefined();
+  });
+});
+
+describe("saveOAuthScopes", () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "qontoctl-writer-test-"));
+  });
+
+  afterEach(async () => {
+    await rm(tempDir, { recursive: true, force: true });
+  });
+
+  it("writes scopes to oauth section", async () => {
+    const existingContent = "oauth:\n  client-id: my-client\n  client-secret: my-secret\n";
+    await writeFile(join(tempDir, ".qontoctl.yaml"), existingContent);
+
+    await saveOAuthScopes(["offline_access", "payment.write"], { home: tempDir, cwd: tempDir });
+
+    const content = await readFile(join(tempDir, ".qontoctl.yaml"), "utf-8");
+    const doc = parseYaml(content) as Record<string, unknown>;
+    const oauth = doc["oauth"] as Record<string, unknown>;
+    expect(oauth["client-id"]).toBe("my-client");
+    expect(oauth["client-secret"]).toBe("my-secret");
+    expect(oauth["scopes"]).toEqual(["offline_access", "payment.write"]);
+  });
+
+  it("creates config file when it does not exist", async () => {
+    await saveOAuthScopes(["offline_access"], { home: tempDir, cwd: tempDir });
+
+    const content = await readFile(join(tempDir, ".qontoctl.yaml"), "utf-8");
+    const doc = parseYaml(content) as Record<string, unknown>;
+    const oauth = doc["oauth"] as Record<string, unknown>;
+    expect(oauth["scopes"]).toEqual(["offline_access"]);
   });
 });

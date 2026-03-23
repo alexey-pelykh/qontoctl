@@ -15,7 +15,15 @@ export function isValidProfileName(name: string): boolean {
 
 const KNOWN_TOP_LEVEL_KEYS = new Set(["api-key", "oauth", "endpoint", "sandbox"]);
 const KNOWN_API_KEY_KEYS = new Set(["organization-slug", "secret-key"]);
-const KNOWN_OAUTH_KEYS = new Set(["client-id", "client-secret", "access-token", "refresh-token", "token-expires-at"]);
+const KNOWN_OAUTH_KEYS = new Set([
+  "client-id",
+  "client-secret",
+  "access-token",
+  "refresh-token",
+  "token-expires-at",
+  "access-token-expires-at",
+  "scopes",
+]);
 
 export interface ValidationResult {
   config: QontoctlConfig;
@@ -108,7 +116,9 @@ export function validateConfig(raw: unknown): ValidationResult {
       const clientSecret = oauth["client-secret"];
       const accessToken = oauth["access-token"];
       const refreshToken = oauth["refresh-token"];
-      const tokenExpiresAt = oauth["token-expires-at"];
+      // Prefer new key; fall back to legacy key for backward compat
+      const accessTokenExpiresAt = oauth["access-token-expires-at"] ?? oauth["token-expires-at"];
+      const scopes = oauth["scopes"];
 
       if (clientId !== undefined && typeof clientId !== "string") {
         errors.push('"oauth.client-id" must be a string');
@@ -126,8 +136,12 @@ export function validateConfig(raw: unknown): ValidationResult {
         errors.push('"oauth.refresh-token" must be a string');
       }
 
-      if (tokenExpiresAt !== undefined && typeof tokenExpiresAt !== "string") {
-        errors.push('"oauth.token-expires-at" must be a string');
+      if (accessTokenExpiresAt !== undefined && typeof accessTokenExpiresAt !== "string") {
+        errors.push('"oauth.access-token-expires-at" must be a string');
+      }
+
+      if (scopes !== undefined && (!Array.isArray(scopes) || !scopes.every((s: unknown) => typeof s === "string"))) {
+        errors.push('"oauth.scopes" must be an array of strings');
       }
 
       if (typeof clientId === "string" || typeof clientSecret === "string") {
@@ -136,7 +150,8 @@ export function validateConfig(raw: unknown): ValidationResult {
           clientSecret: typeof clientSecret === "string" ? clientSecret : "",
           ...(typeof accessToken === "string" ? { accessToken } : {}),
           ...(typeof refreshToken === "string" ? { refreshToken } : {}),
-          ...(typeof tokenExpiresAt === "string" ? { tokenExpiresAt } : {}),
+          ...(typeof accessTokenExpiresAt === "string" ? { accessTokenExpiresAt } : {}),
+          ...(Array.isArray(scopes) && scopes.every((s: unknown) => typeof s === "string") ? { scopes } : {}),
         };
       }
     }

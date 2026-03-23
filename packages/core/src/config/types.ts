@@ -18,7 +18,9 @@ export interface OAuthCredentials {
   accessToken?: string;
   refreshToken?: string;
   /** ISO 8601 timestamp of when the access token expires. */
-  tokenExpiresAt?: string;
+  accessTokenExpiresAt?: string;
+  /** OAuth scopes granted to the access token. */
+  scopes?: string[];
 }
 
 /**
