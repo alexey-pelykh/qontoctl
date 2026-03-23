@@ -54,18 +54,22 @@ describe("webhook commands", () => {
       const webhooks = [
         {
           id: "wh-1",
-          url: "https://example.com/hook1",
-          event_types: ["transactions.created"],
-          status: "enabled",
+          organization_id: "org-1",
+          membership_id: "mem-1",
+          callback_url: "https://example.com/hook1",
+          types: ["transactions.created"],
+          description: null,
           secret: null,
           created_at: "2026-01-01T00:00:00Z",
           updated_at: "2026-01-01T00:00:00Z",
         },
         {
           id: "wh-2",
-          url: "https://example.com/hook2",
-          event_types: ["transactions.created", "transactions.updated"],
-          status: "enabled",
+          organization_id: "org-1",
+          membership_id: "mem-1",
+          callback_url: "https://example.com/hook2",
+          types: ["transactions.created", "transactions.updated"],
+          description: "Second hook",
           secret: null,
           created_at: "2026-01-02T00:00:00Z",
           updated_at: "2026-01-02T00:00:00Z",
@@ -97,9 +101,11 @@ describe("webhook commands", () => {
       const webhooks = [
         {
           id: "wh-1",
-          url: "https://example.com/hook",
-          event_types: ["transactions.created"],
-          status: "enabled",
+          organization_id: "org-1",
+          membership_id: "mem-1",
+          callback_url: "https://example.com/hook",
+          types: ["transactions.created"],
+          description: null,
           secret: null,
           created_at: "2026-01-01T00:00:00Z",
           updated_at: "2026-01-01T00:00:00Z",
@@ -127,9 +133,11 @@ describe("webhook commands", () => {
       expect(parsed).toHaveLength(1);
       expect(parsed[0]).toEqual({
         id: "wh-1",
-        url: "https://example.com/hook",
-        event_types: ["transactions.created"],
-        status: "enabled",
+        organization_id: "org-1",
+        membership_id: "mem-1",
+        callback_url: "https://example.com/hook",
+        types: ["transactions.created"],
+        description: null,
         secret: null,
         created_at: "2026-01-01T00:00:00Z",
         updated_at: "2026-01-01T00:00:00Z",
@@ -179,9 +187,11 @@ describe("webhook commands", () => {
   describe("webhook show", () => {
     const sampleWebhook = {
       id: "wh-1",
-      url: "https://example.com/hook",
-      event_types: ["transactions.created"],
-      status: "enabled",
+      organization_id: "org-1",
+      membership_id: "mem-1",
+      callback_url: "https://example.com/hook",
+      types: ["transactions.created"],
+      description: null,
       secret: null,
       created_at: "2026-01-01T00:00:00Z",
       updated_at: "2026-01-01T00:00:00Z",
@@ -201,9 +211,8 @@ describe("webhook commands", () => {
       const output = stdoutSpy.mock.calls[0]?.[0] as string;
       const parsed = JSON.parse(output) as Record<string, unknown>;
       expect(parsed).toHaveProperty("id", "wh-1");
-      expect(parsed).toHaveProperty("url", "https://example.com/hook");
-      expect(parsed).toHaveProperty("event_types", ["transactions.created"]);
-      expect(parsed).toHaveProperty("status", "enabled");
+      expect(parsed).toHaveProperty("callback_url", "https://example.com/hook");
+      expect(parsed).toHaveProperty("types", ["transactions.created"]);
     });
 
     it("shows webhook details in table format", async () => {
@@ -221,7 +230,6 @@ describe("webhook commands", () => {
       expect(output).toContain("wh-1");
       expect(output).toContain("https://example.com/hook");
       expect(output).toContain("transactions.created");
-      expect(output).toContain("enabled");
     });
 
     it("calls the correct API endpoint", async () => {
@@ -242,9 +250,11 @@ describe("webhook commands", () => {
   describe("webhook create", () => {
     const createdWebhook = {
       id: "wh-new",
-      url: "https://example.com/hook",
-      event_types: ["transactions.created", "transactions.updated"],
-      status: "enabled",
+      organization_id: "org-1",
+      membership_id: "mem-1",
+      callback_url: "https://example.com/hook",
+      types: ["transactions.created", "transactions.updated"],
+      description: null,
       secret: "generated-secret",
       created_at: "2026-03-01T00:00:00Z",
       updated_at: "2026-03-01T00:00:00Z",
@@ -277,8 +287,8 @@ describe("webhook commands", () => {
       const output = stdoutSpy.mock.calls[0]?.[0] as string;
       const parsed = JSON.parse(output) as Record<string, unknown>;
       expect(parsed).toHaveProperty("id", "wh-new");
-      expect(parsed).toHaveProperty("url", "https://example.com/hook");
-      expect(parsed).toHaveProperty("event_types", ["transactions.created", "transactions.updated"]);
+      expect(parsed).toHaveProperty("callback_url", "https://example.com/hook");
+      expect(parsed).toHaveProperty("types", ["transactions.created", "transactions.updated"]);
     });
 
     it("sends POST to the correct endpoint with body", async () => {
@@ -299,8 +309,8 @@ describe("webhook commands", () => {
       expect(opts.method).toBe("POST");
       const body = JSON.parse(opts.body as string) as Record<string, unknown>;
       expect(body).toEqual({
-        url: "https://example.com/hook",
-        event_types: ["transactions.created"],
+        callback_url: "https://example.com/hook",
+        types: ["transactions.created"],
       });
     });
 
@@ -335,9 +345,11 @@ describe("webhook commands", () => {
   describe("webhook update", () => {
     const updatedWebhook = {
       id: "wh-1",
-      url: "https://example.com/new-hook",
-      event_types: ["transactions.created"],
-      status: "enabled",
+      organization_id: "org-1",
+      membership_id: "mem-1",
+      callback_url: "https://example.com/new-hook",
+      types: ["transactions.created"],
+      description: null,
       secret: null,
       created_at: "2026-01-01T00:00:00Z",
       updated_at: "2026-03-01T00:00:00Z",
@@ -360,7 +372,7 @@ describe("webhook commands", () => {
       const output = stdoutSpy.mock.calls[0]?.[0] as string;
       const parsed = JSON.parse(output) as Record<string, unknown>;
       expect(parsed).toHaveProperty("id", "wh-1");
-      expect(parsed).toHaveProperty("url", "https://example.com/new-hook");
+      expect(parsed).toHaveProperty("callback_url", "https://example.com/new-hook");
     });
 
     it("sends PUT to the correct endpoint with body", async () => {
@@ -390,8 +402,8 @@ describe("webhook commands", () => {
       expect(opts.method).toBe("PUT");
       const body = JSON.parse(opts.body as string) as Record<string, unknown>;
       expect(body).toEqual({
-        url: "https://example.com/new-hook",
-        event_types: ["transactions.created", "transactions.updated"],
+        callback_url: "https://example.com/new-hook",
+        types: ["transactions.created", "transactions.updated"],
       });
     });
   });

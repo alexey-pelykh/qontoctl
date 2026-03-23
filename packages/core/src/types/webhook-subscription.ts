@@ -6,9 +6,11 @@
  */
 export interface WebhookSubscription {
   readonly id: string;
-  readonly url: string;
-  readonly event_types: readonly string[];
-  readonly status: string;
+  readonly organization_id: string;
+  readonly membership_id: string;
+  readonly callback_url: string;
+  readonly types: readonly string[];
+  readonly description: string | null;
   readonly secret: string | null;
   readonly created_at: string;
   readonly updated_at: string;

@@ -8,9 +8,11 @@ import type { WebhookSubscription } from "../types/webhook-subscription.js";
 
 export const WebhookSubscriptionSchema = z.object({
   id: z.string(),
-  url: z.string(),
-  event_types: z.array(z.string()),
-  status: z.string(),
+  organization_id: z.string(),
+  membership_id: z.string(),
+  callback_url: z.string(),
+  types: z.array(z.string()),
+  description: z.nullable(z.string()),
   secret: z.nullable(z.string()),
   created_at: z.string(),
   updated_at: z.string(),
