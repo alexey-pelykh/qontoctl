@@ -120,7 +120,8 @@ export async function createTransfer(
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<Transfer> {
   const endpointPath = "/v2/sepa/transfers";
-  const response = await client.post(endpointPath, { transfer: params }, options);
+  const { vop_proof_token, ...transferFields } = params;
+  const response = await client.post(endpointPath, { vop_proof_token, transfer: transferFields }, options);
   return parseResponse(TransferResponseSchema, response, endpointPath).transfer;
 }
 
