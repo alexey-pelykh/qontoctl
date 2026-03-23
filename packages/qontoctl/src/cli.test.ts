@@ -270,6 +270,16 @@ describe("qontoctl CLI", () => {
       expect(transfer.commands).toHaveLength(7);
     });
 
+    it("registers expected intl subcommands", () => {
+      const program = createUmbrellaProgram();
+      const intl = findCommand(program, "intl");
+      const names = intl.commands.map((c) => c.name());
+
+      expect(names).toContain("beneficiary");
+      expect(names).toContain("transfer");
+      expect(intl.commands).toHaveLength(2);
+    });
+
     it("subcommands have descriptions", () => {
       const program = createUmbrellaProgram();
 

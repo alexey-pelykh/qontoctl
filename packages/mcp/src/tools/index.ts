@@ -11,6 +11,7 @@ export { registerBulkTransferTools } from "./bulk-transfer.js";
 export { registerCreditNoteTools } from "./credit-note.js";
 export { registerEInvoicingTools } from "./einvoicing.js";
 export { registerIntlBeneficiaryTools } from "./intl-beneficiary.js";
+export { registerIntlTransferTools } from "./intl-transfer.js";
 export { registerInternalTransferTools } from "./internal-transfer.js";
 export { registerLabelTools } from "./label.js";
 export { registerMembershipTools } from "./membership.js";

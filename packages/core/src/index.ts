@@ -331,6 +331,23 @@ export type {
   UpdateIntlBeneficiaryParams,
 } from "./international-beneficiaries/index.js";
 
+export {
+  getIntlTransferRequirements,
+  createIntlTransfer,
+  IntlTransferRequirementFieldSchema,
+  IntlTransferRequirementsSchema,
+  IntlTransferRequirementsResponseSchema,
+  IntlTransferSchema,
+  IntlTransferResponseSchema,
+} from "./international-transfers/index.js";
+
+export type {
+  IntlTransfer,
+  IntlTransferRequirementField,
+  IntlTransferRequirements,
+  CreateIntlTransferParams,
+} from "./international-transfers/index.js";
+
 export { parseResponse } from "./response.js";
 
 export type { BankAccount, Organization, PaginationMeta } from "./api-types.js";
