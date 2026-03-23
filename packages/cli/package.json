@@ -50,6 +50,7 @@
     "dev": "tsc --watch"
   },
   "dependencies": {
+    "@clack/prompts": "catalog:",
     "@qontoctl/core": "workspace:^",
     "commander": "catalog:",
     "yaml": "catalog:"
