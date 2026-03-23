@@ -7,9 +7,11 @@ import { WebhookSubscriptionSchema, WebhookSubscriptionResponseSchema } from "./
 describe("WebhookSubscriptionSchema", () => {
   const validWebhook = {
     id: "wh-1",
-    url: "https://example.com/webhook",
-    event_types: ["transfer.created", "transfer.updated"],
-    status: "enabled",
+    organization_id: "org-1",
+    membership_id: "mem-1",
+    callback_url: "https://example.com/webhook",
+    types: ["transfer.created", "transfer.updated"],
+    description: "My webhook",
     secret: "whsec_abc123",
     created_at: "2025-01-01T00:00:00.000Z",
     updated_at: "2025-01-01T00:00:00.000Z",
@@ -25,9 +27,14 @@ describe("WebhookSubscriptionSchema", () => {
     expect(result.secret).toBeNull();
   });
 
-  it("accepts empty event_types array", () => {
-    const result = WebhookSubscriptionSchema.parse({ ...validWebhook, event_types: [] });
-    expect(result.event_types).toHaveLength(0);
+  it("accepts null for description", () => {
+    const result = WebhookSubscriptionSchema.parse({ ...validWebhook, description: null });
+    expect(result.description).toBeNull();
+  });
+
+  it("accepts empty types array", () => {
+    const result = WebhookSubscriptionSchema.parse({ ...validWebhook, types: [] });
+    expect(result.types).toHaveLength(0);
   });
 
   it("strips extra fields", () => {
@@ -45,9 +52,11 @@ describe("WebhookSubscriptionResponseSchema", () => {
     const response = {
       webhook_subscription: {
         id: "wh-1",
-        url: "https://example.com/webhook",
-        event_types: ["transfer.created"],
-        status: "enabled",
+        organization_id: "org-1",
+        membership_id: "mem-1",
+        callback_url: "https://example.com/webhook",
+        types: ["transfer.created"],
+        description: null,
         secret: null,
         created_at: "2025-01-01T00:00:00.000Z",
         updated_at: "2025-01-01T00:00:00.000Z",

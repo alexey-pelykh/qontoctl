@@ -8,9 +8,11 @@ import { connectInMemory } from "../testing/mcp-helpers.js";
 
 const sampleWebhook = {
   id: "wh-123",
-  url: "https://example.com/webhook",
-  event_types: ["transaction.created", "transaction.updated"],
-  status: "enabled",
+  organization_id: "org-1",
+  membership_id: "mem-1",
+  callback_url: "https://example.com/webhook",
+  types: ["transaction.created", "transaction.updated"],
+  description: null,
   secret: "whsec_abc123",
   created_at: "2026-01-15T10:00:00Z",
   updated_at: "2026-01-15T10:00:00Z",
@@ -96,9 +98,9 @@ describe("webhook MCP tools", () => {
       const content = result.content as { type: string; text: string }[];
       expect(content).toHaveLength(1);
       const first = content[0] as { type: string; text: string };
-      const parsed = JSON.parse(first.text) as { id: string; url: string };
+      const parsed = JSON.parse(first.text) as { id: string; callback_url: string };
       expect(parsed.id).toBe("wh-123");
-      expect(parsed.url).toBe("https://example.com/webhook");
+      expect(parsed.callback_url).toBe("https://example.com/webhook");
     });
 
     it("calls the correct API endpoint", async () => {
@@ -121,8 +123,8 @@ describe("webhook MCP tools", () => {
       const result = await mcpClient.callTool({
         name: "webhook_create",
         arguments: {
-          url: "https://example.com/webhook",
-          event_types: ["transaction.created"],
+          callback_url: "https://example.com/webhook",
+          types: ["transaction.created"],
         },
       });
 
@@ -139,8 +141,8 @@ describe("webhook MCP tools", () => {
       await mcpClient.callTool({
         name: "webhook_create",
         arguments: {
-          url: "https://example.com/webhook",
-          event_types: ["transaction.created"],
+          callback_url: "https://example.com/webhook",
+          types: ["transaction.created"],
         },
       });
 
@@ -153,14 +155,14 @@ describe("webhook MCP tools", () => {
   describe("webhook_update", () => {
     it("updates a webhook and returns the result", async () => {
       fetchSpy.mockReturnValue(
-        jsonResponse({ webhook_subscription: { ...sampleWebhook, url: "https://example.com/new" } }),
+        jsonResponse({ webhook_subscription: { ...sampleWebhook, callback_url: "https://example.com/new" } }),
       );
 
       const result = await mcpClient.callTool({
         name: "webhook_update",
         arguments: {
           id: "wh-123",
-          url: "https://example.com/new",
+          callback_url: "https://example.com/new",
         },
       });
 
@@ -178,7 +180,7 @@ describe("webhook MCP tools", () => {
         name: "webhook_update",
         arguments: {
           id: "wh-123",
-          url: "https://example.com/new",
+          callback_url: "https://example.com/new",
         },
       });
 

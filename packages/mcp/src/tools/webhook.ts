@@ -63,15 +63,19 @@ export function registerWebhookTools(server: McpServer, getClient: () => Promise
     {
       description: "Create a new webhook subscription",
       inputSchema: {
-        url: z.string().describe("Callback URL for webhook delivery"),
-        event_types: z.array(z.string()).min(1).describe("Event types to subscribe to"),
+        callback_url: z.string().describe("Callback URL for webhook delivery"),
+        types: z.array(z.string()).min(1).describe("Event types to subscribe to"),
+        secret: z.string().optional().describe("Secret for webhook signature verification"),
+        description: z.string().optional().describe("Description of the webhook subscription"),
       },
     },
     async (args) =>
       withClient(getClient, async (client) => {
         const webhook = await createWebhook(client, {
-          url: args.url,
-          event_types: args.event_types,
+          callback_url: args.callback_url,
+          types: args.types,
+          ...(args.secret !== undefined ? { secret: args.secret } : {}),
+          ...(args.description !== undefined ? { description: args.description } : {}),
         });
 
         return {
@@ -91,15 +95,19 @@ export function registerWebhookTools(server: McpServer, getClient: () => Promise
       description: "Update an existing webhook subscription",
       inputSchema: {
         id: z.string().describe("Webhook subscription ID (UUID)"),
-        url: z.string().optional().describe("Callback URL for webhook delivery"),
-        event_types: z.array(z.string()).min(1).optional().describe("Event types to subscribe to"),
+        callback_url: z.string().optional().describe("Callback URL for webhook delivery"),
+        types: z.array(z.string()).min(1).optional().describe("Event types to subscribe to"),
+        secret: z.string().optional().describe("Secret for webhook signature verification"),
+        description: z.string().optional().describe("Description of the webhook subscription"),
       },
     },
     async ({ id, ...fields }) =>
       withClient(getClient, async (client) => {
         const params = {
-          ...(fields.url !== undefined ? { url: fields.url } : {}),
-          ...(fields.event_types !== undefined ? { event_types: fields.event_types } : {}),
+          ...(fields.callback_url !== undefined ? { callback_url: fields.callback_url } : {}),
+          ...(fields.types !== undefined ? { types: fields.types } : {}),
+          ...(fields.secret !== undefined ? { secret: fields.secret } : {}),
+          ...(fields.description !== undefined ? { description: fields.description } : {}),
         };
 
         const webhook = await updateWebhook(client, id, params);

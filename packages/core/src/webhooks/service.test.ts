@@ -28,9 +28,11 @@ describe("listWebhooks", () => {
       webhook_subscriptions: [
         {
           id: "wh-1",
-          url: "https://example.com/hook",
-          event_types: ["transactions.created"],
-          status: "enabled",
+          organization_id: "org-1",
+          membership_id: "mem-1",
+          callback_url: "https://example.com/hook",
+          types: ["transactions.created"],
+          description: null,
           secret: null,
           created_at: "2026-01-01T00:00:00Z",
           updated_at: "2026-01-01T00:00:00Z",
@@ -98,9 +100,11 @@ describe("getWebhook", () => {
   it("fetches a webhook subscription by ID", async () => {
     const webhook = {
       id: "wh-1",
-      url: "https://example.com/hook",
-      event_types: ["transactions.created"],
-      status: "enabled",
+      organization_id: "org-1",
+      membership_id: "mem-1",
+      callback_url: "https://example.com/hook",
+      types: ["transactions.created"],
+      description: null,
       secret: null,
       created_at: "2026-01-01T00:00:00Z",
       updated_at: "2026-01-01T00:00:00Z",
@@ -117,9 +121,11 @@ describe("getWebhook", () => {
   it("encodes special characters in the ID", async () => {
     const webhook = {
       id: "a/b",
-      url: "https://example.com/hook",
-      event_types: ["transactions.created"],
-      status: "enabled",
+      organization_id: "org-1",
+      membership_id: "mem-1",
+      callback_url: "https://example.com/hook",
+      types: ["transactions.created"],
+      description: null,
       secret: null,
       created_at: "2026-01-01T00:00:00Z",
       updated_at: "2026-01-01T00:00:00Z",
@@ -153,9 +159,11 @@ describe("createWebhook", () => {
   it("posts to the correct endpoint and returns webhook", async () => {
     const webhook = {
       id: "wh-new",
-      url: "https://example.com/hook",
-      event_types: ["transactions.created", "transactions.updated"],
-      status: "enabled",
+      organization_id: "org-1",
+      membership_id: "mem-1",
+      callback_url: "https://example.com/hook",
+      types: ["transactions.created", "transactions.updated"],
+      description: null,
       secret: "whsec_abc",
       created_at: "2026-01-01T00:00:00Z",
       updated_at: "2026-01-01T00:00:00Z",
@@ -163,8 +171,8 @@ describe("createWebhook", () => {
     fetchSpy.mockReturnValue(jsonResponse({ webhook_subscription: webhook }));
 
     const result = await createWebhook(client, {
-      url: "https://example.com/hook",
-      event_types: ["transactions.created", "transactions.updated"],
+      callback_url: "https://example.com/hook",
+      types: ["transactions.created", "transactions.updated"],
     });
     expect(result).toEqual(webhook);
 
@@ -174,8 +182,8 @@ describe("createWebhook", () => {
 
     const body = JSON.parse(init.body as string) as Record<string, unknown>;
     expect(body).toEqual({
-      url: "https://example.com/hook",
-      event_types: ["transactions.created", "transactions.updated"],
+      callback_url: "https://example.com/hook",
+      types: ["transactions.created", "transactions.updated"],
     });
   });
 });
@@ -200,9 +208,11 @@ describe("updateWebhook", () => {
   it("puts to the correct endpoint and returns updated webhook", async () => {
     const webhook = {
       id: "wh-1",
-      url: "https://example.com/new-hook",
-      event_types: ["transactions.created"],
-      status: "enabled",
+      organization_id: "org-1",
+      membership_id: "mem-1",
+      callback_url: "https://example.com/new-hook",
+      types: ["transactions.created"],
+      description: null,
       secret: null,
       created_at: "2026-01-01T00:00:00Z",
       updated_at: "2026-01-02T00:00:00Z",
@@ -210,7 +220,7 @@ describe("updateWebhook", () => {
     fetchSpy.mockReturnValue(jsonResponse({ webhook_subscription: webhook }));
 
     const result = await updateWebhook(client, "wh-1", {
-      url: "https://example.com/new-hook",
+      callback_url: "https://example.com/new-hook",
     });
     expect(result).toEqual(webhook);
 
@@ -219,22 +229,24 @@ describe("updateWebhook", () => {
     expect(init.method).toBe("PUT");
 
     const body = JSON.parse(init.body as string) as Record<string, unknown>;
-    expect(body).toEqual({ url: "https://example.com/new-hook" });
+    expect(body).toEqual({ callback_url: "https://example.com/new-hook" });
   });
 
   it("encodes special characters in the ID", async () => {
     const webhook = {
       id: "a/b",
-      url: "https://example.com/hook",
-      event_types: ["transactions.created"],
-      status: "enabled",
+      organization_id: "org-1",
+      membership_id: "mem-1",
+      callback_url: "https://example.com/hook",
+      types: ["transactions.created"],
+      description: null,
       secret: null,
       created_at: "2026-01-01T00:00:00Z",
       updated_at: "2026-01-01T00:00:00Z",
     };
     fetchSpy.mockReturnValue(jsonResponse({ webhook_subscription: webhook }));
 
-    await updateWebhook(client, "a/b", { url: "https://example.com" });
+    await updateWebhook(client, "a/b", { callback_url: "https://example.com" });
 
     const [url] = fetchSpy.mock.calls[0] as [URL];
     expect(url.pathname).toBe("/v2/webhook_subscriptions/a%2Fb");

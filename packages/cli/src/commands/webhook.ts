@@ -13,9 +13,8 @@ import type { GlobalOptions, PaginationOptions, WriteOptions } from "../options.
 function toTableRow(w: WebhookSubscription): Record<string, string> {
   return {
     id: w.id,
-    url: w.url,
-    event_types: w.event_types.join(", "),
-    status: w.status,
+    callback_url: w.callback_url,
+    types: w.types.join(", "),
   };
 }
 
@@ -56,9 +55,9 @@ export function createWebhookCommand(): Command {
         : [
             {
               id: w.id,
-              url: w.url,
-              event_types: w.event_types.join(", "),
-              status: w.status,
+              callback_url: w.callback_url,
+              types: w.types.join(", "),
+              description: w.description ?? "",
               created_at: w.created_at,
               updated_at: w.updated_at,
             },
@@ -87,7 +86,7 @@ export function createWebhookCommand(): Command {
 
     const w = await createWebhook(
       client,
-      { url: opts.url, event_types: opts.events },
+      { callback_url: opts.url, types: opts.events },
       opts.idempotencyKey !== undefined ? { idempotencyKey: opts.idempotencyKey } : undefined,
     );
 
@@ -114,8 +113,8 @@ export function createWebhookCommand(): Command {
     const client = await createClient(opts);
 
     const params = {
-      ...(opts.url !== undefined ? { url: opts.url } : {}),
-      ...(opts.events !== undefined ? { event_types: opts.events } : {}),
+      ...(opts.url !== undefined ? { callback_url: opts.url } : {}),
+      ...(opts.events !== undefined ? { types: opts.events } : {}),
     };
 
     const w = await updateWebhook(

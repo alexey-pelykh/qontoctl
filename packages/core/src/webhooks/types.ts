@@ -5,14 +5,18 @@
  * Parameters for creating a webhook subscription.
  */
 export interface CreateWebhookParams {
-  readonly url: string;
-  readonly event_types: readonly string[];
+  readonly callback_url: string;
+  readonly types: readonly string[];
+  readonly secret?: string;
+  readonly description?: string;
 }
 
 /**
  * Parameters for updating a webhook subscription.
  */
 export interface UpdateWebhookParams {
-  readonly url?: string;
-  readonly event_types?: readonly string[];
+  readonly callback_url?: string;
+  readonly types?: readonly string[];
+  readonly secret?: string;
+  readonly description?: string;
 }
