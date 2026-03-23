@@ -151,9 +151,7 @@ export function validateConfig(raw: unknown): ValidationResult {
           ...(typeof accessToken === "string" ? { accessToken } : {}),
           ...(typeof refreshToken === "string" ? { refreshToken } : {}),
           ...(typeof accessTokenExpiresAt === "string" ? { accessTokenExpiresAt } : {}),
-          ...(Array.isArray(scopes) && scopes.every((s: unknown) => typeof s === "string")
-            ? { scopes }
-            : {}),
+          ...(Array.isArray(scopes) && scopes.every((s: unknown) => typeof s === "string") ? { scopes } : {}),
         };
       }
     }
