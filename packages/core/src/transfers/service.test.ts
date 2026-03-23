@@ -281,11 +281,13 @@ describe("createTransfer", () => {
 
     const body = JSON.parse(init.body as string) as Record<string, unknown>;
     expect(body).toEqual({
-      beneficiary_id: "ben-1",
-      debit_account_id: "acc-1",
-      reference: "Test Payment",
-      amount: 500,
-      currency: "EUR",
+      transfer: {
+        beneficiary_id: "ben-1",
+        debit_account_id: "acc-1",
+        reference: "Test Payment",
+        amount: 500,
+        currency: "EUR",
+      },
     });
   });
 
@@ -303,9 +305,9 @@ describe("createTransfer", () => {
     });
 
     const [, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
-    const body = JSON.parse(init.body as string) as Record<string, unknown>;
-    expect(body.note).toBe("Monthly payment");
-    expect(body.scheduled_date).toBe("2026-04-01");
+    const body = JSON.parse(init.body as string) as { transfer: Record<string, unknown> };
+    expect(body.transfer.note).toBe("Monthly payment");
+    expect(body.transfer.scheduled_date).toBe("2026-04-01");
   });
 });
 

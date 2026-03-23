@@ -87,7 +87,7 @@ export async function createTransfer(
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<Transfer> {
   const endpointPath = "/v2/sepa/transfers";
-  const response = await client.post(endpointPath, params, options);
+  const response = await client.post(endpointPath, { transfer: params }, options);
   return parseResponse(TransferResponseSchema, response, endpointPath).transfer;
 }
 
