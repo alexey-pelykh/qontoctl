@@ -49,9 +49,7 @@ describe("auth commands (e2e)", () => {
     it("--help includes setup guide URL", () => {
       const { stdout, exitCode } = cli(["auth", "setup", "--help"]);
       expect(exitCode).toBe(0);
-      expect(stdout).toContain(
-        "https://github.com/alexey-pelykh/qontoctl/blob/main/docs/oauth-setup.md",
-      );
+      expect(stdout).toContain("https://github.com/alexey-pelykh/qontoctl/blob/main/docs/oauth-setup.md");
     });
   });
 
