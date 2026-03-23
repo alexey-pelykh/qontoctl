@@ -4,13 +4,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { Command } from "commander";
 
-const mockQuestion = vi.fn();
-const mockClose = vi.fn();
-vi.mock("node:readline/promises", () => ({
-  createInterface: vi.fn(() => ({
-    question: mockQuestion,
-    close: mockClose,
-  })),
+const CANCEL_SYMBOL = Symbol("cancel");
+vi.mock("@clack/prompts", () => ({
+  intro: vi.fn(),
+  outro: vi.fn(),
+  note: vi.fn(),
+  cancel: vi.fn(),
+  text: vi.fn(),
+  multiselect: vi.fn(),
+  isCancel: (value: unknown) => value === CANCEL_SYMBOL,
 }));
 
 type HttpHandler = (req: { url?: string }, res: Record<string, unknown>) => void;
@@ -43,6 +45,7 @@ vi.mock("@qontoctl/core", async (importOriginal) => {
     revokeToken: vi.fn(),
     saveOAuthTokens: vi.fn(),
     saveOAuthClientCredentials: vi.fn(),
+    saveOAuthScopes: vi.fn(),
     clearOAuthTokens: vi.fn(),
     generateCodeVerifier: vi.fn(),
     generateCodeChallenge: vi.fn(),
@@ -56,6 +59,7 @@ const {
   revokeToken,
   saveOAuthTokens,
   saveOAuthClientCredentials,
+  saveOAuthScopes,
   clearOAuthTokens,
   generateCodeVerifier,
   generateCodeChallenge,
@@ -68,10 +72,18 @@ const refreshAccessTokenMock = vi.mocked(refreshAccessToken);
 const revokeTokenMock = vi.mocked(revokeToken);
 const saveOAuthTokensMock = vi.mocked(saveOAuthTokens);
 const saveOAuthClientCredentialsMock = vi.mocked(saveOAuthClientCredentials);
+const saveOAuthScopesMock = vi.mocked(saveOAuthScopes);
 const clearOAuthTokensMock = vi.mocked(clearOAuthTokens);
 const generateCodeVerifierMock = vi.mocked(generateCodeVerifier);
 const generateCodeChallengeMock = vi.mocked(generateCodeChallenge);
 const exchangeCodeMock = vi.mocked(exchangeCode);
+
+const { intro, outro, cancel: clackCancel, text, multiselect } = await import("@clack/prompts");
+const introMock = vi.mocked(intro);
+const outroMock = vi.mocked(outro);
+const textMock = vi.mocked(text);
+const multiselectMock = vi.mocked(multiselect);
+const cancelMock = vi.mocked(clackCancel);
 
 import { registerAuthCommands } from "./auth.js";
 
@@ -81,8 +93,6 @@ describe("registerAuthCommands", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockQuestion.mockReset();
-    mockClose.mockReset();
     stdoutSpy = vi.spyOn(process.stdout, "write").mockReturnValue(true);
     stderrSpy = vi.spyOn(process.stderr, "write").mockReturnValue(true);
   });
@@ -107,9 +117,19 @@ describe("registerAuthCommands", () => {
   });
 
   describe("auth setup", () => {
-    it("saves client credentials successfully", async () => {
-      mockQuestion.mockResolvedValueOnce("my-client-id").mockResolvedValueOnce("my-client-secret");
+    beforeEach(() => {
+      resolveConfigMock.mockResolvedValue({
+        config: {},
+        endpoint: "https://thirdparty.qonto.com",
+        warnings: [],
+      });
       saveOAuthClientCredentialsMock.mockResolvedValue(undefined);
+      saveOAuthScopesMock.mockResolvedValue(undefined);
+    });
+
+    it("saves client credentials and scopes successfully", async () => {
+      textMock.mockResolvedValueOnce("my-client-id").mockResolvedValueOnce("my-client-secret");
+      multiselectMock.mockResolvedValueOnce(["offline_access", "organization.read"]);
 
       const program = new Command();
       program.option("-o, --output <format>", "", "table");
@@ -117,18 +137,18 @@ describe("registerAuthCommands", () => {
 
       await program.parseAsync(["auth", "setup"], { from: "user" });
 
+      expect(introMock).toHaveBeenCalledWith("OAuth Setup");
       expect(saveOAuthClientCredentialsMock).toHaveBeenCalledWith(
         { clientId: "my-client-id", clientSecret: "my-client-secret" },
         undefined,
       );
-      expect(mockClose).toHaveBeenCalled();
-      const output = stderrSpy.mock.calls.map((c) => c[0]).join("");
-      expect(output).toContain("OAuth client credentials saved");
+      expect(saveOAuthScopesMock).toHaveBeenCalledWith(["offline_access", "organization.read"], undefined);
+      expect(outroMock).toHaveBeenCalled();
     });
 
-    it("trims whitespace from inputs", async () => {
-      mockQuestion.mockResolvedValueOnce("  spaced-id  ").mockResolvedValueOnce("  spaced-secret  ");
-      saveOAuthClientCredentialsMock.mockResolvedValue(undefined);
+    it("trims whitespace from credential inputs", async () => {
+      textMock.mockResolvedValueOnce("  spaced-id  ").mockResolvedValueOnce("  spaced-secret  ");
+      multiselectMock.mockResolvedValueOnce(["offline_access"]);
 
       const program = new Command();
       program.option("-o, --output <format>", "", "table");
@@ -142,37 +162,128 @@ describe("registerAuthCommands", () => {
       );
     });
 
-    it("throws when client ID is empty", async () => {
-      mockQuestion.mockResolvedValueOnce("").mockResolvedValueOnce("secret");
+    it("uses existing credentials as defaults on re-run", async () => {
+      resolveConfigMock.mockResolvedValue({
+        config: {
+          oauth: {
+            clientId: "existing-id",
+            clientSecret: "existing-secret",
+            scopes: ["offline_access", "organization.read"],
+          },
+        },
+        endpoint: "https://thirdparty.qonto.com",
+        warnings: [],
+      });
+      textMock.mockResolvedValueOnce("existing-id").mockResolvedValueOnce("existing-secret");
+      multiselectMock.mockResolvedValueOnce(["offline_access", "organization.read"]);
 
       const program = new Command();
       program.option("-o, --output <format>", "", "table");
-      program.exitOverride();
       registerAuthCommands(program);
 
-      await expect(program.parseAsync(["auth", "setup"], { from: "user" })).rejects.toThrow(
-        "Client ID cannot be empty",
+      await program.parseAsync(["auth", "setup"], { from: "user" });
+
+      expect(textMock).toHaveBeenCalledWith(expect.objectContaining({ initialValue: "existing-id" }));
+      expect(textMock).toHaveBeenCalledWith(expect.objectContaining({ initialValue: "existing-secret" }));
+      expect(multiselectMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          initialValues: ["offline_access", "organization.read"],
+        }),
       );
-      expect(mockClose).toHaveBeenCalled();
     });
 
-    it("throws when client secret is empty", async () => {
-      mockQuestion.mockResolvedValueOnce("my-id").mockResolvedValueOnce("");
+    it("defaults all scopes selected when no existing scopes", async () => {
+      textMock.mockResolvedValueOnce("id").mockResolvedValueOnce("secret");
+      multiselectMock.mockResolvedValueOnce(["offline_access"]);
 
       const program = new Command();
       program.option("-o, --output <format>", "", "table");
-      program.exitOverride();
       registerAuthCommands(program);
 
-      await expect(program.parseAsync(["auth", "setup"], { from: "user" })).rejects.toThrow(
-        "Client secret cannot be empty",
-      );
-      expect(mockClose).toHaveBeenCalled();
+      await program.parseAsync(["auth", "setup"], { from: "user" });
+
+      const multiselectCall = multiselectMock.mock.calls[0]?.[0] as { initialValues?: string[] } | undefined;
+      expect(multiselectCall?.initialValues).toHaveLength(16);
+    });
+
+    it("ensures offline_access is always included in saved scopes", async () => {
+      textMock.mockResolvedValueOnce("id").mockResolvedValueOnce("secret");
+      multiselectMock.mockResolvedValueOnce(["organization.read"]); // offline_access deselected
+
+      const program = new Command();
+      program.option("-o, --output <format>", "", "table");
+      registerAuthCommands(program);
+
+      await program.parseAsync(["auth", "setup"], { from: "user" });
+
+      expect(saveOAuthScopesMock).toHaveBeenCalledWith(["offline_access", "organization.read"], undefined);
+    });
+
+    it("provides scope descriptions as hints", async () => {
+      textMock.mockResolvedValueOnce("id").mockResolvedValueOnce("secret");
+      multiselectMock.mockResolvedValueOnce(["offline_access"]);
+
+      const program = new Command();
+      program.option("-o, --output <format>", "", "table");
+      registerAuthCommands(program);
+
+      await program.parseAsync(["auth", "setup"], { from: "user" });
+
+      const multiselectCall = multiselectMock.mock.calls[0]?.[0] as
+        | { options?: { value: string; hint?: string }[] }
+        | undefined;
+      const orgOption = multiselectCall?.options?.find((o) => o.value === "organization.read");
+      expect(orgOption?.hint).toContain("Organization");
+      const offlineOption = multiselectCall?.options?.find((o) => o.value === "offline_access");
+      expect(offlineOption?.hint).toContain("required");
+    });
+
+    it("exits cleanly when Client ID is cancelled", async () => {
+      textMock.mockResolvedValueOnce(CANCEL_SYMBOL);
+
+      const program = new Command();
+      program.option("-o, --output <format>", "", "table");
+      registerAuthCommands(program);
+
+      await program.parseAsync(["auth", "setup"], { from: "user" });
+
+      expect(cancelMock).toHaveBeenCalledWith("Setup cancelled.");
+      expect(saveOAuthClientCredentialsMock).not.toHaveBeenCalled();
+      expect(saveOAuthScopesMock).not.toHaveBeenCalled();
+    });
+
+    it("exits cleanly when Client Secret is cancelled", async () => {
+      textMock.mockResolvedValueOnce("my-id").mockResolvedValueOnce(CANCEL_SYMBOL);
+
+      const program = new Command();
+      program.option("-o, --output <format>", "", "table");
+      registerAuthCommands(program);
+
+      await program.parseAsync(["auth", "setup"], { from: "user" });
+
+      expect(cancelMock).toHaveBeenCalledWith("Setup cancelled.");
+      expect(saveOAuthClientCredentialsMock).not.toHaveBeenCalled();
+      expect(saveOAuthScopesMock).not.toHaveBeenCalled();
+    });
+
+    it("exits cleanly when scope selection is cancelled", async () => {
+      textMock.mockResolvedValueOnce("my-id").mockResolvedValueOnce("my-secret");
+      multiselectMock.mockResolvedValueOnce(CANCEL_SYMBOL);
+
+      const program = new Command();
+      program.option("-o, --output <format>", "", "table");
+      registerAuthCommands(program);
+
+      await program.parseAsync(["auth", "setup"], { from: "user" });
+
+      expect(cancelMock).toHaveBeenCalledWith("Setup cancelled.");
+      expect(saveOAuthClientCredentialsMock).not.toHaveBeenCalled();
+      expect(saveOAuthScopesMock).not.toHaveBeenCalled();
     });
 
     it("passes profile option when specified", async () => {
-      mockQuestion.mockResolvedValueOnce("my-id").mockResolvedValueOnce("my-secret");
-      saveOAuthClientCredentialsMock.mockResolvedValue(undefined);
+      textMock.mockResolvedValueOnce("my-id").mockResolvedValueOnce("my-secret");
+      multiselectMock.mockResolvedValueOnce(["offline_access"]);
 
       const program = new Command();
       program.option("-o, --output <format>", "", "table");
@@ -185,6 +296,7 @@ describe("registerAuthCommands", () => {
         { clientId: "my-id", clientSecret: "my-secret" },
         { profile: "work" },
       );
+      expect(saveOAuthScopesMock).toHaveBeenCalledWith(["offline_access"], { profile: "work" });
     });
   });
 

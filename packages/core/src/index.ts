@@ -23,6 +23,7 @@ export {
   applyEnvOverlay,
   saveOAuthTokens,
   saveOAuthClientCredentials,
+  saveOAuthScopes,
   clearOAuthTokens,
 } from "./config/index.js";
 
