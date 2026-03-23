@@ -119,10 +119,7 @@ describe("createOAuthAuthorization", () => {
     await authorize();
 
     expect(oauth.refreshToken).toBe("original-rt");
-    expect(saveOAuthTokens).toHaveBeenCalledWith(
-      expect.objectContaining({ refreshToken: "original-rt" }),
-      undefined,
-    );
+    expect(saveOAuthTokens).toHaveBeenCalledWith(expect.objectContaining({ refreshToken: "original-rt" }), undefined);
   });
 
   it("passes undefined options to saveOAuthTokens when no profile", async () => {
