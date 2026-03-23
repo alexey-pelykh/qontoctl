@@ -40,7 +40,7 @@ describe("pagination", () => {
     it("fetches a single page with correct query params", async () => {
       const items = [{ id: "1" }, { id: "2" }];
       const meta = makeMeta({ current_page: 1, total_count: 2 });
-      fetchSpy.mockReturnValue(jsonResponse({ transactions: items, meta }));
+      fetchSpy.mockImplementation(() => jsonResponse({ transactions: items, meta }));
 
       const result = await fetchPage(client, "/v2/transactions", "transactions", 1, 100);
 
@@ -53,7 +53,7 @@ describe("pagination", () => {
     });
 
     it("passes additional query params", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ transactions: [], meta: makeMeta() }));
+      fetchSpy.mockImplementation(() => jsonResponse({ transactions: [], meta: makeMeta() }));
 
       await fetchPage(client, "/v2/transactions", "transactions", 1, 50, {
         bank_account_id: "abc",
@@ -64,7 +64,7 @@ describe("pagination", () => {
     });
 
     it("returns empty items when collection key is missing", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ meta: makeMeta() }));
+      fetchSpy.mockImplementation(() => jsonResponse({ meta: makeMeta() }));
 
       const result = await fetchPage(client, "/v2/things", "things", 1, 100);
       expect(result.items).toEqual([]);
@@ -111,7 +111,7 @@ describe("pagination", () => {
 
     it("returns single page when there is only one", async () => {
       const items = [{ id: "1" }];
-      fetchSpy.mockReturnValue(
+      fetchSpy.mockImplementation(() =>
         jsonResponse({
           items,
           meta: makeMeta({ total_count: 1 }),
@@ -149,7 +149,7 @@ describe("pagination", () => {
   describe("fetchPaginated", () => {
     it("fetches a specific page when --page is set", async () => {
       const items = [{ id: "3" }];
-      fetchSpy.mockReturnValue(
+      fetchSpy.mockImplementation(() =>
         jsonResponse({
           items,
           meta: makeMeta({ current_page: 2, total_pages: 3, total_count: 5 }),
@@ -169,7 +169,7 @@ describe("pagination", () => {
 
     it("fetches only first page when --no-paginate is set", async () => {
       const items = [{ id: "1" }, { id: "2" }];
-      fetchSpy.mockReturnValue(
+      fetchSpy.mockImplementation(() =>
         jsonResponse({
           items,
           meta: makeMeta({
@@ -224,7 +224,7 @@ describe("pagination", () => {
     });
 
     it("uses custom --per-page value", async () => {
-      fetchSpy.mockReturnValue(
+      fetchSpy.mockImplementation(() =>
         jsonResponse({
           items: [{ id: "1" }],
           meta: makeMeta({ per_page: 25 }),

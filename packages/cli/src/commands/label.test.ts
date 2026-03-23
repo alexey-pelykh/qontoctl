@@ -52,7 +52,7 @@ describe("label commands", () => {
         { id: "abc-123", name: "Marketing", parent_id: null },
         { id: "def-456", name: "Digital", parent_id: "abc-123" },
       ];
-      fetchSpy.mockReturnValue(
+      fetchSpy.mockImplementation(() =>
         jsonResponse({
           labels,
           meta: makeMeta({ total_count: 2 }),
@@ -76,7 +76,7 @@ describe("label commands", () => {
 
     it("lists labels in json format", async () => {
       const labels = [{ id: "abc-123", name: "Marketing", parent_id: null }];
-      fetchSpy.mockReturnValue(
+      fetchSpy.mockImplementation(() =>
         jsonResponse({
           labels,
           meta: makeMeta({ total_count: 1 }),
@@ -104,7 +104,7 @@ describe("label commands", () => {
     });
 
     it("passes pagination options to API", async () => {
-      fetchSpy.mockReturnValue(
+      fetchSpy.mockImplementation(() =>
         jsonResponse({
           labels: [],
           meta: makeMeta(),
@@ -131,7 +131,7 @@ describe("label commands", () => {
         name: "Marketing",
         parent_id: "parent-id",
       };
-      fetchSpy.mockReturnValue(jsonResponse({ label }));
+      fetchSpy.mockImplementation(() => jsonResponse({ label }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -155,7 +155,7 @@ describe("label commands", () => {
         name: "Root Label",
         parent_id: null,
       };
-      fetchSpy.mockReturnValue(jsonResponse({ label }));
+      fetchSpy.mockImplementation(() => jsonResponse({ label }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -175,7 +175,7 @@ describe("label commands", () => {
     });
 
     it("calls the correct API endpoint", async () => {
-      fetchSpy.mockReturnValue(
+      fetchSpy.mockImplementation(() =>
         jsonResponse({
           label: { id: "abc-123", name: "Test", parent_id: null },
         }),

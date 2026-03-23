@@ -46,7 +46,7 @@ describe("supplier-invoice list command", () => {
   });
 
   it("lists supplier invoices in table format", async () => {
-    fetchSpy.mockReturnValue(
+    fetchSpy.mockImplementation(() =>
       jsonResponse({
         supplier_invoices: [
           {
@@ -118,7 +118,7 @@ describe("supplier-invoice list command", () => {
         updated_at: "2026-03-01T00:00:00.000Z",
       },
     ];
-    fetchSpy.mockReturnValue(
+    fetchSpy.mockImplementation(() =>
       jsonResponse({
         supplier_invoices: invoices,
         meta: makeMeta({ total_count: 1 }),
@@ -140,7 +140,7 @@ describe("supplier-invoice list command", () => {
   });
 
   it("formats total_amount as null when absent", async () => {
-    fetchSpy.mockReturnValue(
+    fetchSpy.mockImplementation(() =>
       jsonResponse({
         supplier_invoices: [
           {
@@ -182,7 +182,7 @@ describe("supplier-invoice list command", () => {
   });
 
   it("passes status filter to API", async () => {
-    fetchSpy.mockReturnValue(
+    fetchSpy.mockImplementation(() =>
       jsonResponse({
         supplier_invoices: [],
         meta: makeMeta(),
@@ -200,7 +200,7 @@ describe("supplier-invoice list command", () => {
   });
 
   it("passes query and sort params", async () => {
-    fetchSpy.mockReturnValue(
+    fetchSpy.mockImplementation(() =>
       jsonResponse({
         supplier_invoices: [],
         meta: makeMeta(),

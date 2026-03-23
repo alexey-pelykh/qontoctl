@@ -33,7 +33,7 @@ describe("beneficiary trust command", () => {
   });
 
   it("trusts a single beneficiary in text format", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({}));
+    fetchSpy.mockImplementation(() => jsonResponse({}));
 
     const { createProgram } = await import("../../program.js");
     const program = createProgram();
@@ -47,7 +47,7 @@ describe("beneficiary trust command", () => {
   });
 
   it("trusts multiple beneficiaries in text format", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({}));
+    fetchSpy.mockImplementation(() => jsonResponse({}));
 
     const { createProgram } = await import("../../program.js");
     const program = createProgram();
@@ -61,7 +61,7 @@ describe("beneficiary trust command", () => {
   });
 
   it("outputs json confirmation", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({}));
+    fetchSpy.mockImplementation(() => jsonResponse({}));
 
     const { createProgram } = await import("../../program.js");
     const program = createProgram();
@@ -77,7 +77,7 @@ describe("beneficiary trust command", () => {
   });
 
   it("sends POST with ids to the correct endpoint", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({}));
+    fetchSpy.mockImplementation(() => jsonResponse({}));
 
     const { createProgram } = await import("../../program.js");
     const program = createProgram();

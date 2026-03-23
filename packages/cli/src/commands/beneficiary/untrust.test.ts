@@ -33,7 +33,7 @@ describe("beneficiary untrust command", () => {
   });
 
   it("untrusts a single beneficiary in text format", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({}));
+    fetchSpy.mockImplementation(() => jsonResponse({}));
 
     const { createProgram } = await import("../../program.js");
     const program = createProgram();
@@ -47,7 +47,7 @@ describe("beneficiary untrust command", () => {
   });
 
   it("untrusts multiple beneficiaries in text format", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({}));
+    fetchSpy.mockImplementation(() => jsonResponse({}));
 
     const { createProgram } = await import("../../program.js");
     const program = createProgram();
@@ -61,7 +61,7 @@ describe("beneficiary untrust command", () => {
   });
 
   it("outputs json confirmation", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({}));
+    fetchSpy.mockImplementation(() => jsonResponse({}));
 
     const { createProgram } = await import("../../program.js");
     const program = createProgram();
@@ -77,7 +77,7 @@ describe("beneficiary untrust command", () => {
   });
 
   it("sends POST with ids to the correct endpoint", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({}));
+    fetchSpy.mockImplementation(() => jsonResponse({}));
 
     const { createProgram } = await import("../../program.js");
     const program = createProgram();

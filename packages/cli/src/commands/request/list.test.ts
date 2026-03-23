@@ -82,7 +82,7 @@ describe("request commands", () => {
           currency: "EUR",
         },
       ];
-      fetchSpy.mockReturnValue(
+      fetchSpy.mockImplementation(() =>
         jsonResponse({
           requests,
           meta: makeMeta({ total_count: 2 }),
@@ -125,7 +125,7 @@ describe("request commands", () => {
           card_design: "default",
         },
       ];
-      fetchSpy.mockReturnValue(
+      fetchSpy.mockImplementation(() =>
         jsonResponse({
           requests,
           meta: makeMeta({ total_count: 1 }),
@@ -163,7 +163,7 @@ describe("request commands", () => {
     });
 
     it("passes pagination options to API", async () => {
-      fetchSpy.mockReturnValue(
+      fetchSpy.mockImplementation(() =>
         jsonResponse({
           requests: [],
           meta: makeMeta(),
@@ -183,7 +183,7 @@ describe("request commands", () => {
     });
 
     it("calls the correct API endpoint", async () => {
-      fetchSpy.mockReturnValue(
+      fetchSpy.mockImplementation(() =>
         jsonResponse({
           requests: [],
           meta: makeMeta(),

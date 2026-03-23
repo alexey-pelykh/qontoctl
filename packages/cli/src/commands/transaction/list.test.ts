@@ -84,7 +84,7 @@ describe("transaction list command", () => {
   });
 
   it("sends request to /v2/transactions", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({ transactions: [], meta: makeMeta() }));
+    fetchSpy.mockImplementation(() => jsonResponse({ transactions: [], meta: makeMeta() }));
 
     await runCommand("--bank-account", "acc-123");
 
@@ -95,7 +95,7 @@ describe("transaction list command", () => {
   });
 
   it("passes settled date filter options as query params", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({ transactions: [], meta: makeMeta() }));
+    fetchSpy.mockImplementation(() => jsonResponse({ transactions: [], meta: makeMeta() }));
 
     await runCommand(
       "--bank-account",
@@ -119,7 +119,7 @@ describe("transaction list command", () => {
   });
 
   it("passes emitted date filter options as query params", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({ transactions: [], meta: makeMeta() }));
+    fetchSpy.mockImplementation(() => jsonResponse({ transactions: [], meta: makeMeta() }));
 
     await runCommand("--bank-account", "acc-1", "--emitted-from", "2025-02-01", "--emitted-to", "2025-02-28");
 
@@ -129,7 +129,7 @@ describe("transaction list command", () => {
   });
 
   it("passes updated date filter options as query params", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({ transactions: [], meta: makeMeta() }));
+    fetchSpy.mockImplementation(() => jsonResponse({ transactions: [], meta: makeMeta() }));
 
     await runCommand("--bank-account", "acc-1", "--updated-from", "2025-03-01", "--updated-to", "2025-03-31");
 

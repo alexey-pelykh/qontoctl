@@ -86,7 +86,7 @@ describe("transaction show command", () => {
       bank_account_id: "ba-1",
       is_external_transaction: false,
     };
-    fetchSpy.mockReturnValue(jsonResponse({ transaction: txn }));
+    fetchSpy.mockImplementation(() => jsonResponse({ transaction: txn }));
 
     await runCommand("txn-123", "--output", "json");
 
@@ -99,7 +99,7 @@ describe("transaction show command", () => {
   });
 
   it("passes includes as query params", async () => {
-    fetchSpy.mockReturnValue(
+    fetchSpy.mockImplementation(() =>
       jsonResponse({
         transaction: {
           id: "txn-1",
@@ -183,7 +183,7 @@ describe("transaction show command", () => {
       bank_account_id: "ba-1",
       is_external_transaction: false,
     };
-    fetchSpy.mockReturnValue(jsonResponse({ transaction: txn }));
+    fetchSpy.mockImplementation(() => jsonResponse({ transaction: txn }));
 
     await runCommand("txn-1", "--output", "yaml");
 

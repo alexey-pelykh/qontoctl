@@ -42,7 +42,7 @@ describe("supplier-invoice bulk-create command", () => {
   });
 
   it("creates supplier invoices from files", async () => {
-    fetchSpy.mockReturnValue(
+    fetchSpy.mockImplementation(() =>
       jsonResponse({
         supplier_invoices: [
           {
@@ -86,7 +86,7 @@ describe("supplier-invoice bulk-create command", () => {
   });
 
   it("outputs json format for created invoices", async () => {
-    fetchSpy.mockReturnValue(
+    fetchSpy.mockImplementation(() =>
       jsonResponse({
         supplier_invoices: [
           {
@@ -133,7 +133,7 @@ describe("supplier-invoice bulk-create command", () => {
   });
 
   it("writes errors to stderr and sets exit code", async () => {
-    fetchSpy.mockReturnValue(
+    fetchSpy.mockImplementation(() =>
       jsonResponse({
         supplier_invoices: [],
         errors: [
@@ -158,7 +158,7 @@ describe("supplier-invoice bulk-create command", () => {
   });
 
   it("sends FormData to the bulk endpoint", async () => {
-    fetchSpy.mockReturnValue(
+    fetchSpy.mockImplementation(() =>
       jsonResponse({
         supplier_invoices: [],
         errors: [],

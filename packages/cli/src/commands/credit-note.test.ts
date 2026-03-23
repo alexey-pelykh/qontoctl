@@ -91,7 +91,7 @@ describe("credit-note commands", () => {
   describe("credit-note list", () => {
     it("lists credit notes in table format", async () => {
       const creditNotes = [makeCreditNote(), makeCreditNote({ id: "cn-002", number: "CN-2026-002" })];
-      fetchSpy.mockReturnValue(
+      fetchSpy.mockImplementation(() =>
         jsonResponse({
           credit_notes: creditNotes,
           meta: makeMeta({ total_count: 2 }),
@@ -116,7 +116,7 @@ describe("credit-note commands", () => {
 
     it("lists credit notes in json format", async () => {
       const creditNotes = [makeCreditNote()];
-      fetchSpy.mockReturnValue(
+      fetchSpy.mockImplementation(() =>
         jsonResponse({
           credit_notes: creditNotes,
           meta: makeMeta({ total_count: 1 }),
@@ -141,7 +141,7 @@ describe("credit-note commands", () => {
     });
 
     it("passes pagination options to API", async () => {
-      fetchSpy.mockReturnValue(
+      fetchSpy.mockImplementation(() =>
         jsonResponse({
           credit_notes: [],
           meta: makeMeta(),
@@ -164,7 +164,7 @@ describe("credit-note commands", () => {
   describe("credit-note show", () => {
     it("shows credit note details in table format", async () => {
       const creditNote = makeCreditNote();
-      fetchSpy.mockReturnValue(jsonResponse({ credit_note: creditNote }));
+      fetchSpy.mockImplementation(() => jsonResponse({ credit_note: creditNote }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -184,7 +184,7 @@ describe("credit-note commands", () => {
 
     it("shows credit note in json format", async () => {
       const creditNote = makeCreditNote();
-      fetchSpy.mockReturnValue(jsonResponse({ credit_note: creditNote }));
+      fetchSpy.mockImplementation(() => jsonResponse({ credit_note: creditNote }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -201,7 +201,7 @@ describe("credit-note commands", () => {
     });
 
     it("calls the correct API endpoint", async () => {
-      fetchSpy.mockReturnValue(
+      fetchSpy.mockImplementation(() =>
         jsonResponse({
           credit_note: makeCreditNote(),
         }),

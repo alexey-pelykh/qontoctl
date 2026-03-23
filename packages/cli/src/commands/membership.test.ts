@@ -78,7 +78,7 @@ describe("membership commands", () => {
           status: "active",
         },
       ];
-      fetchSpy.mockReturnValue(
+      fetchSpy.mockImplementation(() =>
         jsonResponse({
           memberships,
           meta: makeMeta({ total_count: 2 }),
@@ -119,7 +119,7 @@ describe("membership commands", () => {
           status: "active",
         },
       ];
-      fetchSpy.mockReturnValue(
+      fetchSpy.mockImplementation(() =>
         jsonResponse({
           memberships,
           meta: makeMeta({ total_count: 1 }),
@@ -156,7 +156,7 @@ describe("membership commands", () => {
     });
 
     it("passes pagination options to API", async () => {
-      fetchSpy.mockReturnValue(
+      fetchSpy.mockImplementation(() =>
         jsonResponse({
           memberships: [],
           meta: makeMeta(),
@@ -176,7 +176,7 @@ describe("membership commands", () => {
     });
 
     it("calls the correct API endpoint", async () => {
-      fetchSpy.mockReturnValue(
+      fetchSpy.mockImplementation(() =>
         jsonResponse({
           memberships: [],
           meta: makeMeta(),
@@ -212,7 +212,7 @@ describe("membership commands", () => {
     };
 
     it("shows current user's membership in json format", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ membership: sampleMembership }));
+      fetchSpy.mockImplementation(() => jsonResponse({ membership: sampleMembership }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -231,7 +231,7 @@ describe("membership commands", () => {
     });
 
     it("shows current user's membership in table format", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ membership: sampleMembership }));
+      fetchSpy.mockImplementation(() => jsonResponse({ membership: sampleMembership }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -249,7 +249,7 @@ describe("membership commands", () => {
     });
 
     it("calls the correct API endpoint", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ membership: sampleMembership }));
+      fetchSpy.mockImplementation(() => jsonResponse({ membership: sampleMembership }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -280,7 +280,7 @@ describe("membership commands", () => {
     };
 
     it("invites a new member in json format", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ membership: invitedMembership }));
+      fetchSpy.mockImplementation(() => jsonResponse({ membership: invitedMembership }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -302,7 +302,7 @@ describe("membership commands", () => {
     });
 
     it("invites a new member in table format", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ membership: invitedMembership }));
+      fetchSpy.mockImplementation(() => jsonResponse({ membership: invitedMembership }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -321,7 +321,7 @@ describe("membership commands", () => {
     });
 
     it("sends POST with nested membership body to the correct endpoint", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ membership: invitedMembership }));
+      fetchSpy.mockImplementation(() => jsonResponse({ membership: invitedMembership }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -360,7 +360,7 @@ describe("membership commands", () => {
     });
 
     it("passes idempotency key when provided", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ membership: invitedMembership }));
+      fetchSpy.mockImplementation(() => jsonResponse({ membership: invitedMembership }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();

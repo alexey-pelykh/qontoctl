@@ -108,7 +108,7 @@ describe("client-invoice commands", () => {
 
   describe("client-invoice list", () => {
     it("lists invoices in table format", async () => {
-      fetchSpy.mockReturnValue(
+      fetchSpy.mockImplementation(() =>
         jsonResponse({
           client_invoices: [sampleInvoice],
           meta: {
@@ -136,7 +136,7 @@ describe("client-invoice commands", () => {
     });
 
     it("lists invoices in json format", async () => {
-      fetchSpy.mockReturnValue(
+      fetchSpy.mockImplementation(() =>
         jsonResponse({
           client_invoices: [sampleInvoice],
           meta: {
@@ -170,7 +170,7 @@ describe("client-invoice commands", () => {
 
   describe("client-invoice show", () => {
     it("shows invoice details in json format", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ client_invoice: sampleInvoice }));
+      fetchSpy.mockImplementation(() => jsonResponse({ client_invoice: sampleInvoice }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -187,7 +187,7 @@ describe("client-invoice commands", () => {
     });
 
     it("calls the correct API endpoint", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ client_invoice: sampleInvoice }));
+      fetchSpy.mockImplementation(() => jsonResponse({ client_invoice: sampleInvoice }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -203,7 +203,7 @@ describe("client-invoice commands", () => {
 
   describe("client-invoice create", () => {
     it("creates an invoice in json format", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ client_invoice: sampleInvoice }));
+      fetchSpy.mockImplementation(() => jsonResponse({ client_invoice: sampleInvoice }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -220,7 +220,7 @@ describe("client-invoice commands", () => {
     });
 
     it("sends POST to the correct endpoint", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ client_invoice: sampleInvoice }));
+      fetchSpy.mockImplementation(() => jsonResponse({ client_invoice: sampleInvoice }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -236,7 +236,7 @@ describe("client-invoice commands", () => {
     });
 
     it("passes idempotency key when provided", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ client_invoice: sampleInvoice }));
+      fetchSpy.mockImplementation(() => jsonResponse({ client_invoice: sampleInvoice }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -256,7 +256,7 @@ describe("client-invoice commands", () => {
 
   describe("client-invoice update", () => {
     it("updates an invoice in json format", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ client_invoice: sampleInvoice }));
+      fetchSpy.mockImplementation(() => jsonResponse({ client_invoice: sampleInvoice }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -275,7 +275,7 @@ describe("client-invoice commands", () => {
     });
 
     it("sends PATCH to the correct endpoint", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ client_invoice: sampleInvoice }));
+      fetchSpy.mockImplementation(() => jsonResponse({ client_invoice: sampleInvoice }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -293,7 +293,7 @@ describe("client-invoice commands", () => {
 
   describe("client-invoice delete", () => {
     it("deletes an invoice with --yes flag", async () => {
-      fetchSpy.mockReturnValue(new Response(null, { status: 204 }));
+      fetchSpy.mockImplementation(() => Promise.resolve(new Response(null, { status: 204 })));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -312,7 +312,7 @@ describe("client-invoice commands", () => {
     });
 
     it("sends DELETE to the correct endpoint", async () => {
-      fetchSpy.mockReturnValue(new Response(null, { status: 204 }));
+      fetchSpy.mockImplementation(() => Promise.resolve(new Response(null, { status: 204 })));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -345,7 +345,7 @@ describe("client-invoice commands", () => {
   describe("client-invoice finalize", () => {
     it("finalizes an invoice in json format", async () => {
       const finalized = { ...sampleInvoice, status: "pending", invoice_number: "INV-001" };
-      fetchSpy.mockReturnValue(jsonResponse({ client_invoice: finalized }));
+      fetchSpy.mockImplementation(() => jsonResponse({ client_invoice: finalized }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -361,7 +361,7 @@ describe("client-invoice commands", () => {
     });
 
     it("calls the correct API endpoint", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ client_invoice: sampleInvoice }));
+      fetchSpy.mockImplementation(() => jsonResponse({ client_invoice: sampleInvoice }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -378,7 +378,7 @@ describe("client-invoice commands", () => {
 
   describe("client-invoice send", () => {
     it("sends an invoice in json format", async () => {
-      fetchSpy.mockReturnValue(new Response(null, { status: 204 }));
+      fetchSpy.mockImplementation(() => Promise.resolve(new Response(null, { status: 204 })));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -394,7 +394,7 @@ describe("client-invoice commands", () => {
     });
 
     it("calls the correct API endpoint", async () => {
-      fetchSpy.mockReturnValue(new Response(null, { status: 204 }));
+      fetchSpy.mockImplementation(() => Promise.resolve(new Response(null, { status: 204 })));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -412,7 +412,7 @@ describe("client-invoice commands", () => {
   describe("client-invoice mark-paid", () => {
     it("marks an invoice as paid in json format", async () => {
       const paid = { ...sampleInvoice, status: "paid" };
-      fetchSpy.mockReturnValue(jsonResponse({ client_invoice: paid }));
+      fetchSpy.mockImplementation(() => jsonResponse({ client_invoice: paid }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -428,7 +428,7 @@ describe("client-invoice commands", () => {
     });
 
     it("calls the correct API endpoint", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ client_invoice: sampleInvoice }));
+      fetchSpy.mockImplementation(() => jsonResponse({ client_invoice: sampleInvoice }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -446,7 +446,7 @@ describe("client-invoice commands", () => {
   describe("client-invoice unmark-paid", () => {
     it("unmarks a paid invoice in json format", async () => {
       const pending = { ...sampleInvoice, status: "pending" };
-      fetchSpy.mockReturnValue(jsonResponse({ client_invoice: pending }));
+      fetchSpy.mockImplementation(() => jsonResponse({ client_invoice: pending }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -462,7 +462,7 @@ describe("client-invoice commands", () => {
     });
 
     it("calls the correct API endpoint", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ client_invoice: sampleInvoice }));
+      fetchSpy.mockImplementation(() => jsonResponse({ client_invoice: sampleInvoice }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -480,7 +480,7 @@ describe("client-invoice commands", () => {
   describe("client-invoice cancel", () => {
     it("cancels an invoice in json format", async () => {
       const cancelled = { ...sampleInvoice, status: "cancelled" };
-      fetchSpy.mockReturnValue(jsonResponse({ client_invoice: cancelled }));
+      fetchSpy.mockImplementation(() => jsonResponse({ client_invoice: cancelled }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -496,7 +496,7 @@ describe("client-invoice commands", () => {
     });
 
     it("calls the correct API endpoint", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ client_invoice: sampleInvoice }));
+      fetchSpy.mockImplementation(() => jsonResponse({ client_invoice: sampleInvoice }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -513,7 +513,7 @@ describe("client-invoice commands", () => {
 
   describe("client-invoice upload-show", () => {
     it("shows upload details in json format", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ upload: sampleUpload }));
+      fetchSpy.mockImplementation(() => jsonResponse({ upload: sampleUpload }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -532,7 +532,7 @@ describe("client-invoice commands", () => {
     });
 
     it("calls the correct API endpoint", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ upload: sampleUpload }));
+      fetchSpy.mockImplementation(() => jsonResponse({ upload: sampleUpload }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();

@@ -72,7 +72,7 @@ describe("beneficiary list command", () => {
         updated_at: "2025-02-01T00:00:00.000Z",
       },
     ];
-    fetchSpy.mockReturnValue(
+    fetchSpy.mockImplementation(() =>
       jsonResponse({
         beneficiaries,
         meta: makeMeta({ total_count: 2 }),
@@ -108,7 +108,7 @@ describe("beneficiary list command", () => {
         updated_at: "2025-01-01T00:00:00.000Z",
       },
     ];
-    fetchSpy.mockReturnValue(
+    fetchSpy.mockImplementation(() =>
       jsonResponse({
         beneficiaries,
         meta: makeMeta({ total_count: 1 }),
@@ -129,7 +129,7 @@ describe("beneficiary list command", () => {
   });
 
   it("passes filter options to API", async () => {
-    fetchSpy.mockReturnValue(
+    fetchSpy.mockImplementation(() =>
       jsonResponse({
         beneficiaries: [],
         meta: makeMeta(),
@@ -148,7 +148,7 @@ describe("beneficiary list command", () => {
   });
 
   it("passes pagination options to API", async () => {
-    fetchSpy.mockReturnValue(
+    fetchSpy.mockImplementation(() =>
       jsonResponse({
         beneficiaries: [],
         meta: makeMeta(),
@@ -167,7 +167,7 @@ describe("beneficiary list command", () => {
   });
 
   it("calls the correct API endpoint", async () => {
-    fetchSpy.mockReturnValue(
+    fetchSpy.mockImplementation(() =>
       jsonResponse({
         beneficiaries: [],
         meta: makeMeta(),
