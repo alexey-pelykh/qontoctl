@@ -12,7 +12,9 @@ import { registerIntlBeneficiaryUpdateCommand } from "./update.js";
  * Register the `intl beneficiary` command group with all subcommands.
  */
 export function registerIntlBeneficiaryCommands(program: Command): void {
-  const intl = program.commands.find((c) => c.name() === "intl") ?? program.command("intl").description("International operations");
+  const intl =
+    program.commands.find((c) => c.name() === "intl") ??
+    program.command("intl").description("International operations");
 
   const beneficiary = intl.command("beneficiary").description("Manage international beneficiaries");
 
