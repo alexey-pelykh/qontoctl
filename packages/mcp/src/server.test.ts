@@ -117,7 +117,9 @@ describe("createServer", () => {
       expect(toolNames).toContain("intl_beneficiary_add");
       expect(toolNames).toContain("intl_beneficiary_update");
       expect(toolNames).toContain("intl_beneficiary_remove");
-      expect(tools).toHaveLength(101);
+      expect(toolNames).toContain("intl_transfer_requirements");
+      expect(toolNames).toContain("intl_transfer_create");
+      expect(tools).toHaveLength(103);
     });
 
     it("tools have descriptions", async () => {
