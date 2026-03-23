@@ -390,10 +390,7 @@ export class HttpClient {
         throw new QontoScaRequiredError(scaToken);
       }
 
-      if (
-        (response.status === 401 || response.status === 403) &&
-        this.fallbackAuthorization !== undefined
-      ) {
+      if ((response.status === 401 || response.status === 403) && this.fallbackAuthorization !== undefined) {
         this.logVerbose(`${response.status} with primary auth, retrying with fallback authorization`);
         this.onFallback?.(method, path);
 
@@ -425,9 +422,7 @@ export class HttpClient {
         const fallbackElapsed = performance.now() - fallbackStart;
 
         this.logVerbose(`${fallbackResponse.status} ${fallbackResponse.statusText} (${fallbackElapsed.toFixed(0)}ms)`);
-        this.logDebug(
-          `Response headers: ${JSON.stringify(Object.fromEntries(fallbackResponse.headers.entries()))}`,
-        );
+        this.logDebug(`Response headers: ${JSON.stringify(Object.fromEntries(fallbackResponse.headers.entries()))}`);
 
         if (fallbackResponse.status === 428) {
           const errorBody = await this.safeReadJson(fallbackResponse);

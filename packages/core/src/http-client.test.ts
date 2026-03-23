@@ -1032,10 +1032,7 @@ describe("HttpClient", () => {
     it("retries with fallback auth on 401 when fallbackAuthorization is set", async () => {
       fetchSpy
         .mockReturnValueOnce(
-          jsonResponse(
-            { errors: [{ code: "unauthorized", detail: "Unauthorized" }] },
-            { status: 401 },
-          ),
+          jsonResponse({ errors: [{ code: "unauthorized", detail: "Unauthorized" }] }, { status: 401 }),
         )
         .mockReturnValue(jsonResponse({ data: "ok" }));
 
@@ -1059,12 +1056,7 @@ describe("HttpClient", () => {
 
     it("retries with fallback auth on 403 when fallbackAuthorization is set", async () => {
       fetchSpy
-        .mockReturnValueOnce(
-          jsonResponse(
-            { errors: [{ code: "forbidden", detail: "Forbidden" }] },
-            { status: 403 },
-          ),
-        )
+        .mockReturnValueOnce(jsonResponse({ errors: [{ code: "forbidden", detail: "Forbidden" }] }, { status: 403 }))
         .mockReturnValue(jsonResponse({ data: "ok" }));
 
       const client = new TestableHttpClient({
@@ -1081,10 +1073,7 @@ describe("HttpClient", () => {
 
     it("throws original error on 401 when no fallbackAuthorization is set", async () => {
       fetchSpy.mockReturnValue(
-        jsonResponse(
-          { errors: [{ code: "unauthorized", detail: "Unauthorized" }] },
-          { status: 401 },
-        ),
+        jsonResponse({ errors: [{ code: "unauthorized", detail: "Unauthorized" }] }, { status: 401 }),
       );
 
       const client = new TestableHttpClient({
@@ -1102,17 +1091,9 @@ describe("HttpClient", () => {
     it("throws fallback error when fallback request also fails", async () => {
       fetchSpy
         .mockReturnValueOnce(
-          jsonResponse(
-            { errors: [{ code: "unauthorized", detail: "Unauthorized" }] },
-            { status: 401 },
-          ),
+          jsonResponse({ errors: [{ code: "unauthorized", detail: "Unauthorized" }] }, { status: 401 }),
         )
-        .mockReturnValue(
-          jsonResponse(
-            { errors: [{ code: "forbidden", detail: "Forbidden" }] },
-            { status: 403 },
-          ),
-        );
+        .mockReturnValue(jsonResponse({ errors: [{ code: "forbidden", detail: "Forbidden" }] }, { status: 403 }));
 
       const client = new TestableHttpClient({
         baseUrl: "https://thirdparty.qonto.com",
@@ -1145,12 +1126,7 @@ describe("HttpClient", () => {
     });
 
     it("does not trigger fallback on non-auth errors", async () => {
-      fetchSpy.mockReturnValue(
-        jsonResponse(
-          { errors: [{ code: "not_found", detail: "Not found" }] },
-          { status: 404 },
-        ),
-      );
+      fetchSpy.mockReturnValue(jsonResponse({ errors: [{ code: "not_found", detail: "Not found" }] }, { status: 404 }));
 
       const onFallback = vi.fn();
       const client = new TestableHttpClient({
@@ -1171,10 +1147,7 @@ describe("HttpClient", () => {
     it("supports dynamic fallback authorization function", async () => {
       fetchSpy
         .mockReturnValueOnce(
-          jsonResponse(
-            { errors: [{ code: "unauthorized", detail: "Unauthorized" }] },
-            { status: 401 },
-          ),
+          jsonResponse({ errors: [{ code: "unauthorized", detail: "Unauthorized" }] }, { status: 401 }),
         )
         .mockReturnValue(jsonResponse({ data: "ok" }));
 
@@ -1195,10 +1168,7 @@ describe("HttpClient", () => {
     it("preserves idempotency key during fallback retry on write request", async () => {
       fetchSpy
         .mockReturnValueOnce(
-          jsonResponse(
-            { errors: [{ code: "unauthorized", detail: "Unauthorized" }] },
-            { status: 401 },
-          ),
+          jsonResponse({ errors: [{ code: "unauthorized", detail: "Unauthorized" }] }, { status: 401 }),
         )
         .mockReturnValue(jsonResponse({ id: "123" }, { status: 201 }));
 
