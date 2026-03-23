@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { HttpClient, QontoScaRequiredError } from "@qontoctl/core";
+import { HttpClient, QontoScaRequiredError, ScaTimeoutError } from "@qontoctl/core";
 import { jsonResponse } from "@qontoctl/core/testing";
 import { executeWithCliSca } from "./sca.js";
 
@@ -13,10 +13,21 @@ class TestableHttpClient extends HttpClient {
   }
 }
 
+function createMockSpinner() {
+  return {
+    start: vi.fn(),
+    stop: vi.fn(),
+    cancel: vi.fn(),
+    error: vi.fn(),
+    message: vi.fn(),
+    clear: vi.fn(),
+    isCancelled: false,
+  };
+}
+
 describe("executeWithCliSca", () => {
   let fetchSpy: ReturnType<typeof vi.fn>;
   let client: TestableHttpClient;
-  let stderrSpy: ReturnType<typeof vi.spyOn>;
   const noopSleep = () => Promise.resolve();
 
   beforeEach(() => {
@@ -26,7 +37,6 @@ describe("executeWithCliSca", () => {
       baseUrl: "https://thirdparty.qonto.com",
       authorization: "slug:secret",
     });
-    stderrSpy = vi.spyOn(process.stderr, "write").mockReturnValue(true);
   });
 
   afterEach(() => {
@@ -34,14 +44,19 @@ describe("executeWithCliSca", () => {
   });
 
   it("passes through when no SCA error occurs", async () => {
-    const result = await executeWithCliSca(client, async () => "success", { poll: { sleep: noopSleep } });
+    const mockSpin = createMockSpinner();
+    const result = await executeWithCliSca(client, async () => "success", {
+      poll: { sleep: noopSleep },
+      createSpinner: () => mockSpin,
+    });
 
     expect(result).toBe("success");
-    expect(stderrSpy).not.toHaveBeenCalled();
+    expect(mockSpin.start).not.toHaveBeenCalled();
   });
 
-  it("displays SCA prompt on stderr when SCA is required", async () => {
+  it("starts spinner when SCA is required", async () => {
     fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "allow" } }));
+    const mockSpin = createMockSpinner();
     let called = false;
 
     await executeWithCliSca(
@@ -53,15 +68,15 @@ describe("executeWithCliSca", () => {
         }
         return "ok";
       },
-      { poll: { sleep: noopSleep } },
+      { poll: { sleep: noopSleep }, createSpinner: () => mockSpin },
     );
 
-    const output = stderrSpy.mock.calls.map((c) => c[0] as string).join("");
-    expect(output).toContain("SCA required. Please approve on your Qonto mobile app...");
+    expect(mockSpin.start).toHaveBeenCalledWith("Waiting for SCA approval on your Qonto mobile app...");
   });
 
-  it("displays approval message on stderr", async () => {
+  it("stops spinner with success message on approval", async () => {
     fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "allow" } }));
+    const mockSpin = createMockSpinner();
     let called = false;
 
     await executeWithCliSca(
@@ -73,17 +88,17 @@ describe("executeWithCliSca", () => {
         }
         return "ok";
       },
-      { poll: { sleep: noopSleep } },
+      { poll: { sleep: noopSleep }, createSpinner: () => mockSpin },
     );
 
-    const output = stderrSpy.mock.calls.map((c) => c[0] as string).join("");
-    expect(output).toContain("SCA approved. Retrying request...");
+    expect(mockSpin.stop).toHaveBeenCalledWith("SCA approved");
   });
 
-  it("logs polling attempts in verbose mode", async () => {
+  it("updates spinner message with elapsed time on each poll", async () => {
     fetchSpy
       .mockReturnValueOnce(jsonResponse({ sca_session: { status: "waiting" } }))
       .mockReturnValue(jsonResponse({ sca_session: { status: "allow" } }));
+    const mockSpin = createMockSpinner();
     let called = false;
 
     await executeWithCliSca(
@@ -95,38 +110,64 @@ describe("executeWithCliSca", () => {
         }
         return "ok";
       },
-      { verbose: true, poll: { sleep: noopSleep } },
+      { poll: { sleep: noopSleep }, createSpinner: () => mockSpin },
     );
 
-    const output = stderrSpy.mock.calls.map((c) => c[0] as string).join("");
-    expect(output).toContain("SCA polling attempt 1");
-    expect(output).toContain("elapsed");
+    expect(mockSpin.message).toHaveBeenCalled();
+    const firstCall = mockSpin.message.mock.calls[0]?.[0] as string;
+    expect(firstCall).toMatch(/Waiting for SCA approval on your Qonto mobile app\.\.\. \(\d+s\)/);
   });
 
-  it("does not log polling attempts when verbose is false", async () => {
-    fetchSpy
-      .mockReturnValueOnce(jsonResponse({ sca_session: { status: "waiting" } }))
-      .mockReturnValue(jsonResponse({ sca_session: { status: "allow" } }));
+  it("stops spinner with error message on timeout", async () => {
+    fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "waiting" } }));
+    const mockSpin = createMockSpinner();
     let called = false;
 
-    await executeWithCliSca(
-      client,
-      async () => {
-        if (!called) {
-          called = true;
-          throw new QontoScaRequiredError("tok-cli-4");
-        }
-        return "ok";
-      },
-      { poll: { sleep: noopSleep } },
-    );
+    await expect(
+      executeWithCliSca(
+        client,
+        async () => {
+          if (!called) {
+            called = true;
+            throw new QontoScaRequiredError("tok-cli-timeout");
+          }
+          return "ok";
+        },
+        {
+          poll: { sleep: noopSleep, timeoutMs: 0 },
+          createSpinner: () => mockSpin,
+        },
+      ),
+    ).rejects.toThrow(ScaTimeoutError);
 
-    const output = stderrSpy.mock.calls.map((c) => c[0] as string).join("");
-    expect(output).not.toContain("SCA polling attempt");
+    expect(mockSpin.error).toHaveBeenCalledWith("SCA approval timed out");
+  });
+
+  it("stops spinner with error message on denial", async () => {
+    fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "deny" } }));
+    const mockSpin = createMockSpinner();
+    let called = false;
+
+    await expect(
+      executeWithCliSca(
+        client,
+        async () => {
+          if (!called) {
+            called = true;
+            throw new QontoScaRequiredError("tok-cli-deny");
+          }
+          return "ok";
+        },
+        { poll: { sleep: noopSleep }, createSpinner: () => mockSpin },
+      ),
+    ).rejects.toThrow();
+
+    expect(mockSpin.error).toHaveBeenCalledWith("SCA approval failed");
   });
 
   it("retries original operation with SCA token after approval", async () => {
     fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "allow" } }));
+    const mockSpin = createMockSpinner();
     let callCount = 0;
 
     const result = await executeWithCliSca(
@@ -138,7 +179,7 @@ describe("executeWithCliSca", () => {
         }
         return `result-with-${scaToken ?? "none"}`;
       },
-      { poll: { sleep: noopSleep } },
+      { poll: { sleep: noopSleep }, createSpinner: () => mockSpin },
     );
 
     expect(result).toBe("result-with-tok-cli-5");
