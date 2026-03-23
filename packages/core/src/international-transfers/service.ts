@@ -9,10 +9,7 @@ import type { CreateIntlTransferParams, IntlTransfer, IntlTransferRequirements }
 /**
  * Get the required fields for creating an international transfer for a specific beneficiary + quote.
  */
-export async function getIntlTransferRequirements(
-  client: HttpClient,
-  id: string,
-): Promise<IntlTransferRequirements> {
+export async function getIntlTransferRequirements(client: HttpClient, id: string): Promise<IntlTransferRequirements> {
   const endpointPath = `/v2/international/transfers/${encodeURIComponent(id)}/requirements`;
   const response = await client.get(endpointPath);
   return parseResponse(IntlTransferRequirementsResponseSchema, response, endpointPath).requirements;
