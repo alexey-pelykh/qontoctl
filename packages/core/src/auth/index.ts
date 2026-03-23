@@ -3,6 +3,8 @@
 
 export { AuthError, buildApiKeyAuthorization } from "./api-key.js";
 export { buildOAuthAuthorization } from "./oauth.js";
+export { createOAuthAuthorization } from "./oauth-authorization-factory.js";
+export type { CreateOAuthAuthorizationOptions } from "./oauth-authorization-factory.js";
 export { generateCodeVerifier, generateCodeChallenge } from "./pkce.js";
 export { exchangeCode, refreshAccessToken, revokeToken } from "./oauth-service.js";
 export type { OAuthTokens } from "./oauth-service.js";

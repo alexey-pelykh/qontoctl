@@ -44,6 +44,7 @@ export {
   AuthError,
   buildApiKeyAuthorization,
   buildOAuthAuthorization,
+  createOAuthAuthorization,
   generateCodeVerifier,
   generateCodeChallenge,
   exchangeCode,
@@ -51,7 +52,7 @@ export {
   revokeToken,
 } from "./auth/index.js";
 
-export type { OAuthTokens } from "./auth/index.js";
+export type { CreateOAuthAuthorizationOptions, OAuthTokens } from "./auth/index.js";
 
 export {
   API_BASE_URL,

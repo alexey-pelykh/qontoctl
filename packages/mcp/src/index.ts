@@ -5,10 +5,8 @@
 import {
   HttpClient,
   buildApiKeyAuthorization,
-  buildOAuthAuthorization,
+  createOAuthAuthorization,
   resolveConfig,
-  refreshAccessToken,
-  saveOAuthTokens,
   OAUTH_TOKEN_URL,
   OAUTH_TOKEN_SANDBOX_URL,
   type Authorization,
@@ -20,33 +18,18 @@ await runStdioServer({
     const { config, endpoint } = await resolveConfig();
 
     let authorization: Authorization;
+    let fallbackAuthorization: Authorization | undefined;
 
     if (config.oauth !== undefined && config.oauth.clientId !== "") {
-      const oauth = config.oauth;
-      const tokenUrl = config.sandbox === true ? OAUTH_TOKEN_SANDBOX_URL : OAUTH_TOKEN_URL;
+      authorization = createOAuthAuthorization({
+        oauth: config.oauth,
+        tokenUrl: config.sandbox === true ? OAUTH_TOKEN_SANDBOX_URL : OAUTH_TOKEN_URL,
+      });
 
-      authorization = async () => {
-        if (oauth.accessTokenExpiresAt && oauth.refreshToken) {
-          const expiresAt = new Date(oauth.accessTokenExpiresAt);
-          const now = new Date();
-          if (expiresAt.getTime() - now.getTime() < 60_000) {
-            const tokens = await refreshAccessToken(tokenUrl, oauth.clientId, oauth.clientSecret, oauth.refreshToken);
-            oauth.accessToken = tokens.accessToken;
-            if (tokens.refreshToken) {
-              oauth.refreshToken = tokens.refreshToken;
-            }
-            oauth.accessTokenExpiresAt = new Date(Date.now() + tokens.expiresIn * 1000).toISOString();
-
-            await saveOAuthTokens({
-              accessToken: oauth.accessToken,
-              refreshToken: oauth.refreshToken,
-              accessTokenExpiresAt: oauth.accessTokenExpiresAt,
-            });
-          }
-        }
-
-        return buildOAuthAuthorization(oauth);
-      };
+      // When OAuth is primary, fall back to API key if available
+      if (config.apiKey !== undefined) {
+        fallbackAuthorization = buildApiKeyAuthorization(config.apiKey);
+      }
     } else if (config.apiKey !== undefined) {
       authorization = buildApiKeyAuthorization(config.apiKey);
     } else {
@@ -56,6 +39,10 @@ await runStdioServer({
     return new HttpClient({
       baseUrl: endpoint,
       authorization,
+      fallbackAuthorization,
+      onFallback: (method, path) => {
+        process.stderr.write(`Warning: OAuth authentication failed, falling back to API key for ${method} ${path}\n`);
+      },
     });
   },
 });
