@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CreateTransferParams, HttpClient, VopResult } from "@qontoctl/core";
 import {
+  getBeneficiary,
   getTransfer,
   listTransfers,
   createTransfer,
@@ -90,27 +91,47 @@ export function registerTransferTools(server: McpServer, getClient: () => Promis
         currency: z.string().optional().describe("Currency code (default: EUR)"),
         note: z.string().optional().describe("Optional note"),
         scheduled_date: z.string().optional().describe("Scheduled date (YYYY-MM-DD)"),
-        vop_proof_token: z.string().describe("VoP proof token from verify-payee"),
+        vop_proof_token: z
+          .string()
+          .optional()
+          .describe("VoP proof token from verify-payee (auto-resolved when omitted)"),
       },
     },
     async (args) =>
       withClient(getClient, async (client) => {
+        let vopProofToken = args.vop_proof_token;
+        let vopResult: VopResult | undefined;
+
+        if (vopProofToken === undefined) {
+          const beneficiary = await getBeneficiary(client, args.beneficiary_id);
+          vopResult = await verifyPayee(client, { iban: beneficiary.iban, name: beneficiary.name });
+          vopProofToken = vopResult.vop_proof_token;
+        }
+
         const params: CreateTransferParams = {
           beneficiary_id: args.beneficiary_id,
           bank_account_id: args.bank_account_id,
           reference: args.reference,
           amount: String(args.amount),
           currency: args.currency ?? "EUR",
-          vop_proof_token: args.vop_proof_token,
+          vop_proof_token: vopProofToken,
           ...(args.note !== undefined ? { note: args.note } : {}),
           ...(args.scheduled_date !== undefined ? { scheduled_date: args.scheduled_date } : {}),
         };
 
         const transfer = await createTransfer(client, params);
 
-        return {
-          content: [{ type: "text" as const, text: JSON.stringify(transfer, null, 2) }],
-        };
+        const content: { type: "text"; text: string }[] = [
+          { type: "text" as const, text: JSON.stringify(transfer, null, 2) },
+        ];
+        if (vopResult !== undefined && vopResult.result !== "match") {
+          content.push({
+            type: "text" as const,
+            text: `VoP verification result: ${vopResult.result}`,
+          });
+        }
+
+        return { content };
       }),
   );
 

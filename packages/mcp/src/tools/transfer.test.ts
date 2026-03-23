@@ -119,6 +119,142 @@ describe("transfer MCP tools", () => {
     });
   });
 
+  describe("transfer_create", () => {
+    const createArgs = {
+      beneficiary_id: "ben-1",
+      bank_account_id: "acc-1",
+      reference: "Invoice 001",
+      amount: 100.5,
+    };
+
+    const beneficiaryBody = {
+      beneficiary: {
+        id: "ben-1",
+        name: "Acme Corp",
+        iban: "FR7630001007941234567890185",
+        bic: "BNPAFRPP",
+        email: null,
+        activity_tag: null,
+        status: "validated",
+        trusted: true,
+        created_at: "2025-01-01T00:00:00.000Z",
+        updated_at: "2025-01-01T00:00:00.000Z",
+      },
+    };
+
+    function mockForAutoResolve(vopResult: string) {
+      fetchSpy.mockImplementation((input: URL, init: RequestInit) => {
+        if (input.pathname === "/v2/sepa/beneficiaries/ben-1" && init.method === "GET") {
+          return jsonResponse(beneficiaryBody);
+        }
+        if (input.pathname === "/v2/sepa/verify_payee" && init.method === "POST") {
+          return jsonResponse({
+            verification: {
+              iban: "FR7630001007941234567890185",
+              name: "Acme Corp",
+              result: vopResult,
+              vop_proof_token: "auto-token-123",
+            },
+          });
+        }
+        if (input.pathname === "/v2/sepa/transfers" && init.method === "POST") {
+          return jsonResponse({ transfer: makeTransfer() });
+        }
+        return jsonResponse({});
+      });
+    }
+
+    it("uses provided vop_proof_token directly without auto-resolve", async () => {
+      fetchSpy.mockImplementation((input: URL, init: RequestInit) => {
+        if (input.pathname === "/v2/sepa/transfers" && init.method === "POST") {
+          return jsonResponse({ transfer: makeTransfer() });
+        }
+        return jsonResponse({});
+      });
+
+      const result = await mcpClient.callTool({
+        name: "transfer_create",
+        arguments: { ...createArgs, vop_proof_token: "explicit-token" },
+      });
+
+      const content = result.content as { type: string; text: string }[];
+      expect(content).toHaveLength(1);
+
+      // Should NOT have called beneficiary or verify_payee endpoints
+      const calls = fetchSpy.mock.calls as [URL, RequestInit][];
+      const benCall = calls.find((c) => c[0].pathname.includes("/beneficiaries/"));
+      const vopCall = calls.find((c) => c[0].pathname.includes("/verify_payee"));
+      expect(benCall).toBeUndefined();
+      expect(vopCall).toBeUndefined();
+
+      // Should have sent the explicit token
+      const transferCall = calls.find((c) => c[0].pathname === "/v2/sepa/transfers") as
+        | [URL, RequestInit]
+        | undefined;
+      expect(transferCall).toBeDefined();
+      const body = JSON.parse((transferCall as [URL, RequestInit])[1].body as string) as {
+        transfer: { vop_proof_token: string };
+      };
+      expect(body.transfer.vop_proof_token).toBe("explicit-token");
+    });
+
+    it("auto-resolves vop_proof_token via getBeneficiary + verifyPayee on match", async () => {
+      mockForAutoResolve("match");
+
+      const result = await mcpClient.callTool({
+        name: "transfer_create",
+        arguments: createArgs,
+      });
+
+      // Should return only the transfer (no VoP status for match)
+      const content = result.content as { type: string; text: string }[];
+      expect(content).toHaveLength(1);
+      const parsed = JSON.parse((content[0] as { type: string; text: string }).text) as { id: string };
+      expect(parsed.id).toBe("txfr-1");
+
+      // Should have called beneficiary, verify_payee, then transfers
+      const calls = fetchSpy.mock.calls as [URL, RequestInit][];
+      const benCall = calls.find((c) => c[0].pathname === "/v2/sepa/beneficiaries/ben-1");
+      const vopCall = calls.find((c) => c[0].pathname === "/v2/sepa/verify_payee");
+      const transferCall = calls.find((c) => c[0].pathname === "/v2/sepa/transfers");
+      expect(benCall).toBeDefined();
+      expect(vopCall).toBeDefined();
+      expect(transferCall).toBeDefined();
+
+      // Should have used the auto-resolved token
+      const body = JSON.parse((transferCall as [URL, RequestInit])[1].body as string) as {
+        transfer: { vop_proof_token: string };
+      };
+      expect(body.transfer.vop_proof_token).toBe("auto-token-123");
+    });
+
+    it("includes VoP status in response on mismatch", async () => {
+      mockForAutoResolve("mismatch");
+
+      const result = await mcpClient.callTool({
+        name: "transfer_create",
+        arguments: createArgs,
+      });
+
+      const content = result.content as { type: string; text: string }[];
+      expect(content).toHaveLength(2);
+      expect((content[1] as { type: string; text: string }).text).toBe("VoP verification result: mismatch");
+    });
+
+    it("includes VoP status in response on not_available", async () => {
+      mockForAutoResolve("not_available");
+
+      const result = await mcpClient.callTool({
+        name: "transfer_create",
+        arguments: createArgs,
+      });
+
+      const content = result.content as { type: string; text: string }[];
+      expect(content).toHaveLength(2);
+      expect((content[1] as { type: string; text: string }).text).toBe("VoP verification result: not_available");
+    });
+  });
+
   describe("transfer_show", () => {
     it("returns a single transfer", async () => {
       fetchSpy.mockReturnValue(jsonResponse({ transfer: makeTransfer({ id: "txfr-123" }) }));
