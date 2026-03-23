@@ -51,7 +51,7 @@ export function registerTransferCreateCommand(parent: Command): void {
 
     const params: CreateTransferParams = {
       beneficiary_id: opts.beneficiary,
-      debit_account_id: opts.debitAccount,
+      bank_account_id: opts.debitAccount,
       reference: opts.reference,
       amount: parseFloat(opts.amount),
       currency: opts.currency,

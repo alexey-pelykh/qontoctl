@@ -268,7 +268,7 @@ describe("createTransfer", () => {
 
     const result = await createTransfer(client, {
       beneficiary_id: "ben-1",
-      debit_account_id: "acc-1",
+      bank_account_id: "acc-1",
       reference: "Test Payment",
       amount: 500,
       currency: "EUR",
@@ -283,7 +283,7 @@ describe("createTransfer", () => {
     expect(body).toEqual({
       transfer: {
         beneficiary_id: "ben-1",
-        debit_account_id: "acc-1",
+        bank_account_id: "acc-1",
         reference: "Test Payment",
         amount: 500,
         currency: "EUR",
@@ -296,7 +296,7 @@ describe("createTransfer", () => {
 
     await createTransfer(client, {
       beneficiary_id: "ben-1",
-      debit_account_id: "acc-1",
+      bank_account_id: "acc-1",
       reference: "Scheduled",
       amount: 100,
       currency: "EUR",
