@@ -56,7 +56,8 @@ describe("createProgram", () => {
       expect(names).toContain("account");
       expect(names).toContain("supplier-invoice");
       expect(names).toContain("team");
-      expect(program.commands).toHaveLength(12);
+      expect(names).toContain("profile");
+      expect(program.commands).toHaveLength(13);
     });
 
     it("commands have descriptions", () => {
@@ -221,6 +222,19 @@ describe("createProgram", () => {
       expect(names).toContain("list");
       expect(names).toContain("create");
       expect(team.commands).toHaveLength(2);
+    });
+
+    it("registers expected profile subcommands", () => {
+      const program = createProgram();
+      const profile = findCommand(program, "profile");
+      const names = profile.commands.map((c) => c.name());
+
+      expect(names).toContain("list");
+      expect(names).toContain("show");
+      expect(names).toContain("add");
+      expect(names).toContain("remove");
+      expect(names).toContain("test");
+      expect(profile.commands).toHaveLength(5);
     });
 
     it("subcommands have descriptions", () => {

@@ -15,6 +15,7 @@ import { registerAccountCommands } from "./commands/account.js";
 import { registerSupplierInvoiceCommands } from "./commands/supplier-invoice/index.js";
 import { createTeamCommand } from "./commands/team.js";
 import { registerAuthCommands } from "./commands/auth.js";
+import { registerProfileCommands } from "./commands/profile/index.js";
 import { OUTPUT_FORMATS } from "./options.js";
 
 const require = createRequire(import.meta.url);
@@ -46,6 +47,7 @@ export function createProgram(): Command {
   registerAccountCommands(program);
   registerSupplierInvoiceCommands(program);
   program.addCommand(createTeamCommand());
+  registerProfileCommands(program);
 
   program.action(() => {
     program.outputHelp();
