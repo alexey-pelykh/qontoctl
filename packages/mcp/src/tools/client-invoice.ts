@@ -29,7 +29,15 @@ export function registerClientInvoiceTools(server: McpServer, getClient: () => P
       description: "List client invoices with optional filters",
       inputSchema: {
         status: z.enum(["draft", "pending", "paid", "cancelled"]).optional().describe("Filter by status"),
-        client_id: z.string().optional().describe("Filter by client ID (UUID)"),
+        created_at_from: z.string().optional().describe("Filter by creation date (from, ISO 8601)"),
+        created_at_to: z.string().optional().describe("Filter by creation date (to, ISO 8601)"),
+        updated_at_from: z.string().optional().describe("Filter by last update date (from, ISO 8601)"),
+        updated_at_to: z.string().optional().describe("Filter by last update date (to, ISO 8601)"),
+        due_date: z.string().optional().describe("Filter by exact due date (YYYY-MM-DD)"),
+        due_date_from: z.string().optional().describe("Filter by due date (from, YYYY-MM-DD)"),
+        due_date_to: z.string().optional().describe("Filter by due date (to, YYYY-MM-DD)"),
+        exclude_imported: z.boolean().optional().describe("Exclude imported invoices"),
+        sort_by: z.string().optional().describe("Sort field and direction (e.g. 'created_at:desc')"),
         page: z.number().int().positive().optional().describe("Page number"),
         per_page: z.number().int().positive().max(100).optional().describe("Items per page (max 100)"),
       },
@@ -38,7 +46,15 @@ export function registerClientInvoiceTools(server: McpServer, getClient: () => P
       withClient(getClient, async (client) => {
         const result = await listClientInvoices(client, {
           ...(args.status !== undefined ? { status: [args.status] } : {}),
-          ...(args.client_id !== undefined ? { client_id: args.client_id } : {}),
+          ...(args.created_at_from !== undefined ? { created_at_from: args.created_at_from } : {}),
+          ...(args.created_at_to !== undefined ? { created_at_to: args.created_at_to } : {}),
+          ...(args.updated_at_from !== undefined ? { updated_at_from: args.updated_at_from } : {}),
+          ...(args.updated_at_to !== undefined ? { updated_at_to: args.updated_at_to } : {}),
+          ...(args.due_date !== undefined ? { due_date: args.due_date } : {}),
+          ...(args.due_date_from !== undefined ? { due_date_from: args.due_date_from } : {}),
+          ...(args.due_date_to !== undefined ? { due_date_to: args.due_date_to } : {}),
+          ...(args.exclude_imported !== undefined ? { exclude_imported: args.exclude_imported } : {}),
+          ...(args.sort_by !== undefined ? { sort_by: args.sort_by } : {}),
           ...(args.page !== undefined ? { page: args.page } : {}),
           ...(args.per_page !== undefined ? { per_page: args.per_page } : {}),
         });

@@ -137,15 +137,13 @@ describe("client-invoice MCP tools", () => {
         name: "client_invoice_list",
         arguments: {
           status: "draft",
-          client_id: "c-456",
           page: 2,
           per_page: 10,
         },
       });
 
       const [url] = fetchSpy.mock.calls[0] as [URL];
-      expect(url.searchParams.get("filter[status][]")).toBe("draft");
-      expect(url.searchParams.get("filter[client_id]")).toBe("c-456");
+      expect(url.searchParams.get("filter[status]")).toBe("draft");
       expect(url.searchParams.get("page")).toBe("2");
       expect(url.searchParams.get("per_page")).toBe("10");
     });

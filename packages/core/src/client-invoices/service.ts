@@ -16,10 +16,34 @@ export function buildClientInvoiceQueryParams(params: ListClientInvoicesParams):
   const query: Record<string, string | readonly string[]> = {};
 
   if (params.status !== undefined && params.status.length > 0) {
-    query["filter[status][]"] = params.status;
+    query["filter[status]"] = params.status;
   }
-  if (params.client_id !== undefined) {
-    query["filter[client_id]"] = params.client_id;
+  if (params.created_at_from !== undefined) {
+    query["filter[created_at_from]"] = params.created_at_from;
+  }
+  if (params.created_at_to !== undefined) {
+    query["filter[created_at_to]"] = params.created_at_to;
+  }
+  if (params.updated_at_from !== undefined) {
+    query["filter[updated_at_from]"] = params.updated_at_from;
+  }
+  if (params.updated_at_to !== undefined) {
+    query["filter[updated_at_to]"] = params.updated_at_to;
+  }
+  if (params.due_date !== undefined) {
+    query["filter[due_date]"] = params.due_date;
+  }
+  if (params.due_date_from !== undefined) {
+    query["filter[due_date_from]"] = params.due_date_from;
+  }
+  if (params.due_date_to !== undefined) {
+    query["filter[due_date_to]"] = params.due_date_to;
+  }
+  if (params.exclude_imported !== undefined) {
+    query["exclude_imported"] = String(params.exclude_imported);
+  }
+  if (params.sort_by !== undefined) {
+    query["sort_by"] = params.sort_by;
   }
 
   return query;

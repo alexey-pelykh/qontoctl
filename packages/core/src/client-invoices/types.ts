@@ -119,5 +119,13 @@ export interface ClientInvoice {
  */
 export interface ListClientInvoicesParams {
   readonly status?: readonly string[];
-  readonly client_id?: string;
+  readonly created_at_from?: string;
+  readonly created_at_to?: string;
+  readonly updated_at_from?: string;
+  readonly updated_at_to?: string;
+  readonly due_date?: string;
+  readonly due_date_from?: string;
+  readonly due_date_to?: string;
+  readonly exclude_imported?: boolean;
+  readonly sort_by?: string;
 }
