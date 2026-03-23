@@ -4,7 +4,7 @@
 import { unlink } from "node:fs/promises";
 import { join } from "node:path";
 import { homedir } from "node:os";
-import { createInterface } from "node:readline/promises";
+import { confirm, isCancel } from "@clack/prompts";
 import type { Command } from "commander";
 import { CONFIG_DIR, isValidProfileName, loadConfigFile } from "@qontoctl/core";
 import { addInheritableOptions } from "../../inherited-options.js";
@@ -35,21 +35,16 @@ async function removeProfile(name: string): Promise<void> {
     return;
   }
 
-  const rl = createInterface({ input: process.stdin, output: process.stderr });
-
-  try {
-    const answer = await rl.question(`Remove profile "${name}"? (yes/no): `);
-
-    if (answer.trim().toLowerCase() !== "yes") {
-      console.log("Aborted.");
-      return;
-    }
-
-    const path = join(homedir(), CONFIG_DIR, `${name}.yaml`);
-    await unlink(path);
-
-    console.log(`Profile "${name}" removed.`);
-  } finally {
-    rl.close();
+  const shouldRemove = await confirm({
+    message: `Remove profile "${name}"?`,
+  });
+  if (isCancel(shouldRemove) || !shouldRemove) {
+    console.log("Aborted.");
+    return;
   }
+
+  const path = join(homedir(), CONFIG_DIR, `${name}.yaml`);
+  await unlink(path);
+
+  console.log(`Profile "${name}" removed.`);
 }

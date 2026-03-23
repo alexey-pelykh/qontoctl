@@ -4,7 +4,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { homedir } from "node:os";
-import { createInterface } from "node:readline/promises";
+import { isCancel, text } from "@clack/prompts";
 import { stringify as stringifyYaml } from "yaml";
 import type { Command } from "commander";
 import { CONFIG_DIR, isValidProfileName, loadConfigFile } from "@qontoctl/core";
@@ -36,39 +36,38 @@ async function addProfile(name: string): Promise<void> {
     return;
   }
 
-  const rl = createInterface({ input: process.stdin, output: process.stderr });
-
-  try {
-    const organizationSlug = await rl.question("Organization slug: ");
-    const secretKey = await rl.question("Secret key: ");
-
-    if (organizationSlug.trim() === "") {
-      console.error("Organization slug cannot be empty.");
-      process.exitCode = 1;
-      return;
-    }
-
-    if (secretKey.trim() === "") {
-      console.error("Secret key cannot be empty.");
-      process.exitCode = 1;
-      return;
-    }
-
-    const config = {
-      "api-key": {
-        "organization-slug": organizationSlug.trim(),
-        "secret-key": secretKey.trim(),
-      },
-    };
-
-    const dir = join(homedir(), CONFIG_DIR);
-    await mkdir(dir, { recursive: true, mode: 0o700 });
-
-    const path = join(dir, `${name}.yaml`);
-    await writeFile(path, stringifyYaml(config), { encoding: "utf-8", mode: 0o600 });
-
-    console.log(`Profile "${name}" created at ${path}`);
-  } finally {
-    rl.close();
+  const organizationSlug = await text({
+    message: "Organization slug",
+    validate: (value) => {
+      if (!value || value.trim() === "") return "Organization slug cannot be empty.";
+    },
+  });
+  if (isCancel(organizationSlug)) {
+    process.exit(0);
   }
+
+  const secretKey = await text({
+    message: "Secret key",
+    validate: (value) => {
+      if (!value || value.trim() === "") return "Secret key cannot be empty.";
+    },
+  });
+  if (isCancel(secretKey)) {
+    process.exit(0);
+  }
+
+  const config = {
+    "api-key": {
+      "organization-slug": organizationSlug.trim(),
+      "secret-key": secretKey.trim(),
+    },
+  };
+
+  const dir = join(homedir(), CONFIG_DIR);
+  await mkdir(dir, { recursive: true, mode: 0o700 });
+
+  const path = join(dir, `${name}.yaml`);
+  await writeFile(path, stringifyYaml(config), { encoding: "utf-8", mode: 0o600 });
+
+  console.log(`Profile "${name}" created at ${path}`);
 }
