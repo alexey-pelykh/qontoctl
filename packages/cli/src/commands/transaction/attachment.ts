@@ -3,7 +3,7 @@
 
 import { readFile } from "node:fs/promises";
 import { basename } from "node:path";
-import { createInterface } from "node:readline/promises";
+import { confirm, isCancel } from "@clack/prompts";
 import type { Command } from "commander";
 import {
   type Attachment,
@@ -87,11 +87,11 @@ export function registerTransactionAttachmentCommands(parent: Command): void {
       await removeTransactionAttachment(client, transactionId, attachmentId, idempotencyOpts);
       process.stderr.write(`Attachment ${attachmentId} removed from transaction ${transactionId}.\n`);
     } else {
-      const rl = createInterface({ input: process.stdin, output: process.stderr });
-      const answer = await rl.question(`Remove ALL attachments from transaction ${transactionId}? (yes/no): `);
-      rl.close();
+      const answer = await confirm({
+        message: `Remove ALL attachments from transaction ${transactionId}?`,
+      });
 
-      if (answer.toLowerCase() !== "yes") {
+      if (isCancel(answer) || !answer) {
         process.stderr.write("Aborted.\n");
         return;
       }

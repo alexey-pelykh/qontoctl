@@ -8,6 +8,12 @@ vi.mock("../../client.js", () => ({
   createClient: vi.fn(),
 }));
 
+vi.mock("@clack/prompts", () => ({
+  confirm: vi.fn(),
+  isCancel: vi.fn(),
+}));
+
+import { confirm, isCancel } from "@clack/prompts";
 import { createClient } from "../../client.js";
 import { HttpClient } from "@qontoctl/core";
 
@@ -140,6 +146,65 @@ describe("transaction attachment commands", () => {
       expect(opts.method).toBe("DELETE");
 
       expect(stderrSpy).toHaveBeenCalledWith("Attachment att-123 removed from transaction tx-1.\n");
+      stderrSpy.mockRestore();
+    });
+  });
+
+  describe("transaction attachment remove (all)", () => {
+    it("removes all attachments when user confirms", async () => {
+      vi.mocked(confirm).mockResolvedValue(true);
+      vi.mocked(isCancel).mockReturnValue(false);
+      fetchSpy.mockReturnValue(Promise.resolve(new Response(null, { status: 204 })));
+      const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation((() => true) as never);
+
+      const { createProgram } = await import("../../program.js");
+      const program = createProgram();
+      program.exitOverride();
+
+      await program.parseAsync(["transaction", "attachment", "remove", "tx-1"], { from: "user" });
+
+      expect(confirm).toHaveBeenCalledWith({
+        message: "Remove ALL attachments from transaction tx-1?",
+      });
+
+      const [url, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      expect(url.pathname).toBe("/v2/transactions/tx-1/attachments");
+      expect(opts.method).toBe("DELETE");
+
+      expect(stderrSpy).toHaveBeenCalledWith("All attachments removed from transaction tx-1.\n");
+      stderrSpy.mockRestore();
+    });
+
+    it("aborts when user declines confirmation", async () => {
+      vi.mocked(confirm).mockResolvedValue(false);
+      vi.mocked(isCancel).mockReturnValue(false);
+      const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation((() => true) as never);
+
+      const { createProgram } = await import("../../program.js");
+      const program = createProgram();
+      program.exitOverride();
+
+      await program.parseAsync(["transaction", "attachment", "remove", "tx-1"], { from: "user" });
+
+      expect(fetchSpy).not.toHaveBeenCalled();
+      expect(stderrSpy).toHaveBeenCalledWith("Aborted.\n");
+      stderrSpy.mockRestore();
+    });
+
+    it("aborts when user cancels with Ctrl+C", async () => {
+      const cancelSymbol = Symbol("cancel");
+      vi.mocked(confirm).mockResolvedValue(cancelSymbol as unknown as boolean);
+      vi.mocked(isCancel).mockReturnValue(true);
+      const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation((() => true) as never);
+
+      const { createProgram } = await import("../../program.js");
+      const program = createProgram();
+      program.exitOverride();
+
+      await program.parseAsync(["transaction", "attachment", "remove", "tx-1"], { from: "user" });
+
+      expect(fetchSpy).not.toHaveBeenCalled();
+      expect(stderrSpy).toHaveBeenCalledWith("Aborted.\n");
       stderrSpy.mockRestore();
     });
   });
