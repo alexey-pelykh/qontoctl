@@ -72,10 +72,10 @@ export function buildTransferQueryParams(params: ListTransfersParams): QueryPara
     query["beneficiary_ids[]"] = params.beneficiary_ids;
   }
   if (params.ids !== undefined && params.ids.length > 0) {
-    query["ids[]"] = params.ids;
+    query["ids"] = params.ids;
   }
   if (params.recurring_transfer_ids !== undefined && params.recurring_transfer_ids.length > 0) {
-    query["recurring_transfer_ids[]"] = params.recurring_transfer_ids;
+    query["recurring_transfer_ids"] = params.recurring_transfer_ids;
   }
   if (params.sort_by !== undefined) {
     query["sort_by"] = params.sort_by;
