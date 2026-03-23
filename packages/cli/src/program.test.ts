@@ -56,8 +56,9 @@ describe("createProgram", () => {
       expect(names).toContain("account");
       expect(names).toContain("supplier-invoice");
       expect(names).toContain("team");
+      expect(names).toContain("intl");
       expect(names).toContain("profile");
-      expect(program.commands).toHaveLength(13);
+      expect(program.commands).toHaveLength(14);
     });
 
     it("commands have descriptions", () => {
