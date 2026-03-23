@@ -223,6 +223,91 @@ describe("createClient", () => {
     expect(refreshAccessTokenMock).not.toHaveBeenCalled();
   });
 
+  it("passes API key as fallback authorization when OAuth is primary and API key exists", async () => {
+    resolveConfigMock.mockResolvedValue({
+      config: {
+        oauth: {
+          clientId: "client-id",
+          clientSecret: "client-secret",
+          accessToken: "access-token",
+          accessTokenExpiresAt: new Date(Date.now() + 3600_000).toISOString(),
+        },
+        apiKey: {
+          organizationSlug: "org",
+          secretKey: "key",
+        },
+      },
+      endpoint: "https://thirdparty.qonto.com",
+      warnings: [],
+    });
+
+    const options: GlobalOptions = { output: "table" };
+    await createClient(options);
+
+    const ctorArgs = HttpClientMock.mock.calls[0]?.[0] as HttpClientOptions | undefined;
+    expect(ctorArgs?.fallbackAuthorization).toBeDefined();
+    expect(typeof ctorArgs?.onFallback).toBe("function");
+  });
+
+  it("does not set fallback authorization when only OAuth is configured", async () => {
+    resolveConfigMock.mockResolvedValue({
+      config: {
+        oauth: {
+          clientId: "client-id",
+          clientSecret: "client-secret",
+          accessToken: "access-token",
+          accessTokenExpiresAt: new Date(Date.now() + 3600_000).toISOString(),
+        },
+      },
+      endpoint: "https://thirdparty.qonto.com",
+      warnings: [],
+    });
+
+    const options: GlobalOptions = { output: "table" };
+    await createClient(options);
+
+    const ctorArgs = HttpClientMock.mock.calls[0]?.[0] as HttpClientOptions | undefined;
+    expect(ctorArgs?.fallbackAuthorization).toBeUndefined();
+  });
+
+  it("does not set fallback authorization when only API key is configured", async () => {
+    const options: GlobalOptions = { output: "table" };
+    await createClient(options);
+
+    const ctorArgs = HttpClientMock.mock.calls[0]?.[0] as HttpClientOptions | undefined;
+    expect(ctorArgs?.fallbackAuthorization).toBeUndefined();
+  });
+
+  it("writes warning to stderr on fallback", async () => {
+    resolveConfigMock.mockResolvedValue({
+      config: {
+        oauth: {
+          clientId: "client-id",
+          clientSecret: "client-secret",
+          accessToken: "access-token",
+          accessTokenExpiresAt: new Date(Date.now() + 3600_000).toISOString(),
+        },
+        apiKey: {
+          organizationSlug: "org",
+          secretKey: "key",
+        },
+      },
+      endpoint: "https://thirdparty.qonto.com",
+      warnings: [],
+    });
+
+    const options: GlobalOptions = { output: "table" };
+    await createClient(options);
+
+    const ctorArgs = HttpClientMock.mock.calls[0]?.[0] as HttpClientOptions | undefined;
+    const onFallback = ctorArgs?.onFallback as (method: string, path: string) => void;
+    onFallback("GET", "/v2/organizations");
+
+    expect(stderrSpy).toHaveBeenCalledWith(
+      "Warning: OAuth authentication failed, falling back to API key for GET /v2/organizations\n",
+    );
+  });
+
   it("passes profile when saving refreshed OAuth tokens", async () => {
     resolveConfigMock.mockResolvedValue({
       config: {

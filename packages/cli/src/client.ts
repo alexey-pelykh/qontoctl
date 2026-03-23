@@ -33,6 +33,7 @@ export async function createClient(options: GlobalOptions): Promise<HttpClient> 
   }
 
   let authorization: Authorization;
+  let fallbackAuthorization: Authorization | undefined;
 
   if (config.oauth !== undefined && config.oauth.clientId !== "" && config.oauth.accessToken !== undefined) {
     // OAuth: use dynamic authorization with auto-refresh (requires an active session)
@@ -68,6 +69,11 @@ export async function createClient(options: GlobalOptions): Promise<HttpClient> 
 
       return buildOAuthAuthorization(oauth);
     };
+
+    // When OAuth is primary, fall back to API key if available
+    if (config.apiKey !== undefined) {
+      fallbackAuthorization = buildApiKeyAuthorization(config.apiKey);
+    }
   } else if (config.apiKey !== undefined) {
     authorization = buildApiKeyAuthorization(config.apiKey);
   } else {
@@ -94,6 +100,10 @@ export async function createClient(options: GlobalOptions): Promise<HttpClient> 
   return new HttpClient({
     baseUrl: endpoint,
     authorization,
+    fallbackAuthorization,
+    onFallback: (method, path) => {
+      process.stderr.write(`Warning: OAuth authentication failed, falling back to API key for ${method} ${path}\n`);
+    },
     logger,
   });
 }

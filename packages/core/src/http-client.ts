@@ -70,12 +70,24 @@ export class QontoScaRequiredError extends Error {
  */
 export type Authorization = string | (() => string | Promise<string>);
 
+/**
+ * Callback invoked when fallback authorization is used after a 401/403.
+ * Receives the HTTP method and path of the retried request.
+ */
+export type FallbackWarningHandler = (method: string, path: string) => void;
+
 export interface HttpClientOptions {
   /** Base URL for API requests. */
   readonly baseUrl: string;
 
   /** Value for the Authorization header, or a function that resolves it dynamically. */
   readonly authorization: Authorization;
+
+  /** Fallback authorization used when the primary returns 401/403. */
+  readonly fallbackAuthorization?: Authorization | undefined;
+
+  /** Called when fallback authorization is used. */
+  readonly onFallback?: FallbackWarningHandler | undefined;
 
   /** Logger for verbose/debug output. */
   readonly logger?: HttpClientLogger | undefined;
@@ -167,6 +179,8 @@ export type QueryParams = Readonly<Record<string, QueryParamValue>>;
 export class HttpClient {
   private readonly baseUrl: string;
   private readonly authorization: Authorization;
+  private readonly fallbackAuthorization: Authorization | undefined;
+  private readonly onFallback: FallbackWarningHandler | undefined;
   private readonly logger: HttpClientLogger | undefined;
   private readonly maxRetries: number;
   private readonly scaMethod: string | undefined;
@@ -175,6 +189,8 @@ export class HttpClient {
   constructor(options: HttpClientOptions) {
     this.baseUrl = options.baseUrl.replace(/\/+$/, "");
     this.authorization = options.authorization;
+    this.fallbackAuthorization = options.fallbackAuthorization;
+    this.onFallback = options.onFallback;
     this.logger = options.logger;
     this.maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
     this.scaMethod = options.scaMethod;
@@ -374,6 +390,60 @@ export class HttpClient {
         throw new QontoScaRequiredError(scaToken);
       }
 
+      if (
+        (response.status === 401 || response.status === 403) &&
+        this.fallbackAuthorization !== undefined
+      ) {
+        this.logVerbose(`${response.status} with primary auth, retrying with fallback authorization`);
+        this.onFallback?.(method, path);
+
+        const fallbackHeaders = await this.buildHeaders(
+          !isFormData && options?.body !== undefined,
+          options?.accept,
+          this.fallbackAuthorization,
+        );
+
+        if (idempotencyKey !== undefined) {
+          fallbackHeaders[IDEMPOTENCY_KEY_HEADER] = idempotencyKey;
+        }
+
+        if (isWrite && this.scaMethod !== undefined) {
+          fallbackHeaders[SCA_METHOD_HEADER] = this.scaMethod;
+        }
+
+        if (options?.scaSessionToken !== undefined) {
+          fallbackHeaders[SCA_SESSION_TOKEN_HEADER] = options.scaSessionToken;
+        }
+
+        this.logVerbose(`${method} ${url.toString()} (fallback)`);
+
+        const fallbackStart = performance.now();
+        const fallbackResponse = await fetch(
+          url,
+          body !== undefined ? { method, headers: fallbackHeaders, body } : { method, headers: fallbackHeaders },
+        );
+        const fallbackElapsed = performance.now() - fallbackStart;
+
+        this.logVerbose(`${fallbackResponse.status} ${fallbackResponse.statusText} (${fallbackElapsed.toFixed(0)}ms)`);
+        this.logDebug(
+          `Response headers: ${JSON.stringify(Object.fromEntries(fallbackResponse.headers.entries()))}`,
+        );
+
+        if (fallbackResponse.status === 428) {
+          const errorBody = await this.safeReadJson(fallbackResponse);
+          const scaToken = this.extractScaSessionToken(errorBody);
+          throw new QontoScaRequiredError(scaToken);
+        }
+
+        if (!fallbackResponse.ok) {
+          const errorBody = await this.safeReadJson(fallbackResponse);
+          const errors: readonly QontoApiErrorEntry[] = this.extractErrors(errorBody);
+          throw new QontoApiError(fallbackResponse.status, errors);
+        }
+
+        return fallbackResponse;
+      }
+
       if (!response.ok) {
         const errorBody = await this.safeReadJson(response);
         const errors: readonly QontoApiErrorEntry[] = this.extractErrors(errorBody);
@@ -403,8 +473,13 @@ export class HttpClient {
     return url;
   }
 
-  private async buildHeaders(hasBody: boolean, accept?: string): Promise<Record<string, string>> {
-    const authorization = typeof this.authorization === "function" ? await this.authorization() : this.authorization;
+  private async buildHeaders(
+    hasBody: boolean,
+    accept?: string,
+    authOverride?: Authorization,
+  ): Promise<Record<string, string>> {
+    const authSource = authOverride ?? this.authorization;
+    const authorization = typeof authSource === "function" ? await authSource() : authSource;
 
     const headers: Record<string, string> = {
       Authorization: authorization,

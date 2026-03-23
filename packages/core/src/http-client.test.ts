@@ -1028,6 +1028,196 @@ describe("HttpClient", () => {
     });
   });
 
+  describe("fallback authorization", () => {
+    it("retries with fallback auth on 401 when fallbackAuthorization is set", async () => {
+      fetchSpy
+        .mockReturnValueOnce(
+          jsonResponse(
+            { errors: [{ code: "unauthorized", detail: "Unauthorized" }] },
+            { status: 401 },
+          ),
+        )
+        .mockReturnValue(jsonResponse({ data: "ok" }));
+
+      const onFallback = vi.fn();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "oauth-token",
+        fallbackAuthorization: "slug:key",
+        onFallback,
+      });
+
+      const result = await client.get("/v2/organizations");
+
+      expect(result).toEqual({ data: "ok" });
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+      const [, fallbackInit] = fetchSpy.mock.calls[1] as [URL, RequestInit];
+      const headers = fallbackInit.headers as Record<string, string>;
+      expect(headers["Authorization"]).toBe("slug:key");
+      expect(onFallback).toHaveBeenCalledWith("GET", "/v2/organizations");
+    });
+
+    it("retries with fallback auth on 403 when fallbackAuthorization is set", async () => {
+      fetchSpy
+        .mockReturnValueOnce(
+          jsonResponse(
+            { errors: [{ code: "forbidden", detail: "Forbidden" }] },
+            { status: 403 },
+          ),
+        )
+        .mockReturnValue(jsonResponse({ data: "ok" }));
+
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "oauth-token",
+        fallbackAuthorization: "slug:key",
+      });
+
+      const result = await client.get("/v2/organizations");
+
+      expect(result).toEqual({ data: "ok" });
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it("throws original error on 401 when no fallbackAuthorization is set", async () => {
+      fetchSpy.mockReturnValue(
+        jsonResponse(
+          { errors: [{ code: "unauthorized", detail: "Unauthorized" }] },
+          { status: 401 },
+        ),
+      );
+
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "oauth-token",
+      });
+
+      const error = await client.get("/v2/organizations").catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(QontoApiError);
+      expect((error as QontoApiError).status).toBe(401);
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it("throws fallback error when fallback request also fails", async () => {
+      fetchSpy
+        .mockReturnValueOnce(
+          jsonResponse(
+            { errors: [{ code: "unauthorized", detail: "Unauthorized" }] },
+            { status: 401 },
+          ),
+        )
+        .mockReturnValue(
+          jsonResponse(
+            { errors: [{ code: "forbidden", detail: "Forbidden" }] },
+            { status: 403 },
+          ),
+        );
+
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "oauth-token",
+        fallbackAuthorization: "slug:bad-key",
+      });
+
+      const error = await client.get("/v2/organizations").catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(QontoApiError);
+      expect((error as QontoApiError).status).toBe(403);
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it("does not trigger fallback on successful request", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ data: "ok" }));
+
+      const onFallback = vi.fn();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "oauth-token",
+        fallbackAuthorization: "slug:key",
+        onFallback,
+      });
+
+      await client.get("/v2/organizations");
+
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      expect(onFallback).not.toHaveBeenCalled();
+    });
+
+    it("does not trigger fallback on non-auth errors", async () => {
+      fetchSpy.mockReturnValue(
+        jsonResponse(
+          { errors: [{ code: "not_found", detail: "Not found" }] },
+          { status: 404 },
+        ),
+      );
+
+      const onFallback = vi.fn();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "oauth-token",
+        fallbackAuthorization: "slug:key",
+        onFallback,
+      });
+
+      const error = await client.get("/v2/organizations").catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(QontoApiError);
+      expect((error as QontoApiError).status).toBe(404);
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      expect(onFallback).not.toHaveBeenCalled();
+    });
+
+    it("supports dynamic fallback authorization function", async () => {
+      fetchSpy
+        .mockReturnValueOnce(
+          jsonResponse(
+            { errors: [{ code: "unauthorized", detail: "Unauthorized" }] },
+            { status: 401 },
+          ),
+        )
+        .mockReturnValue(jsonResponse({ data: "ok" }));
+
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "oauth-token",
+        fallbackAuthorization: () => "slug:dynamic-key",
+      });
+
+      const result = await client.get("/v2/organizations");
+
+      expect(result).toEqual({ data: "ok" });
+      const [, fallbackInit] = fetchSpy.mock.calls[1] as [URL, RequestInit];
+      const headers = fallbackInit.headers as Record<string, string>;
+      expect(headers["Authorization"]).toBe("slug:dynamic-key");
+    });
+
+    it("preserves idempotency key during fallback retry on write request", async () => {
+      fetchSpy
+        .mockReturnValueOnce(
+          jsonResponse(
+            { errors: [{ code: "unauthorized", detail: "Unauthorized" }] },
+            { status: 401 },
+          ),
+        )
+        .mockReturnValue(jsonResponse({ id: "123" }, { status: 201 }));
+
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "oauth-token",
+        fallbackAuthorization: "slug:key",
+      });
+
+      await client.post("/v2/transfers", { amount: 100 });
+
+      const calls = fetchSpy.mock.calls as [URL, RequestInit][];
+      const key1 = (calls[0]?.[1]?.headers as Record<string, string>)["X-Qonto-Idempotency-Key"];
+      const key2 = (calls[1]?.[1]?.headers as Record<string, string>)["X-Qonto-Idempotency-Key"];
+      expect(key1).toBeDefined();
+      expect(key1).toBe(key2);
+    });
+  });
+
   describe("QontoScaRequiredError", () => {
     it("has correct name property", () => {
       const error = new QontoScaRequiredError("tok-123");

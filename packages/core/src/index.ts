@@ -7,6 +7,7 @@ export {
   QontoRateLimitError,
   QontoScaRequiredError,
   type Authorization,
+  type FallbackWarningHandler,
   type HttpClientLogger,
   type HttpClientOptions,
   type QueryParams,

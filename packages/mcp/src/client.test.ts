@@ -52,10 +52,12 @@ describe("buildClient", () => {
       organizationSlug: "org",
       secretKey: "key",
     });
-    expect(mocks.httpClientConstructor).toHaveBeenCalledWith({
-      baseUrl: "https://thirdparty.qonto.com",
-      authorization: "org:key",
-    });
+    expect(mocks.httpClientConstructor).toHaveBeenCalledWith(
+      expect.objectContaining({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "org:key",
+      }),
+    );
   });
 
   it("uses endpoint from resolveConfig", async () => {
@@ -68,10 +70,12 @@ describe("buildClient", () => {
 
     await buildClient();
 
-    expect(mocks.httpClientConstructor).toHaveBeenCalledWith({
-      baseUrl: "https://custom.example.com",
-      authorization: "org:key",
-    });
+    expect(mocks.httpClientConstructor).toHaveBeenCalledWith(
+      expect.objectContaining({
+        baseUrl: "https://custom.example.com",
+        authorization: "org:key",
+      }),
+    );
   });
 
   it("passes profile to resolveConfig", async () => {
@@ -224,6 +228,67 @@ describe("buildClient", () => {
 
     expect(mocks.refreshAccessToken).not.toHaveBeenCalled();
     expect(mocks.saveOAuthTokens).not.toHaveBeenCalled();
+  });
+
+  it("passes API key as fallback authorization when OAuth is primary and API key exists", async () => {
+    mocks.resolveConfig.mockResolvedValue({
+      config: {
+        oauth: {
+          clientId: "client-id",
+          clientSecret: "client-secret",
+          accessToken: "access-token",
+          accessTokenExpiresAt: new Date(Date.now() + 3600_000).toISOString(),
+        },
+        apiKey: { organizationSlug: "org", secretKey: "key" },
+      },
+      endpoint: "https://thirdparty.qonto.com",
+      warnings: [],
+    });
+    mocks.buildOAuthAuthorization.mockReturnValue("Bearer access-token");
+    mocks.buildApiKeyAuthorization.mockReturnValue("org:key");
+
+    await buildClient();
+
+    const ctorArgs = mocks.httpClientConstructor.mock.calls[0] as [
+      { fallbackAuthorization: unknown; onFallback: unknown },
+    ];
+    expect(ctorArgs[0].fallbackAuthorization).toBe("org:key");
+    expect(typeof ctorArgs[0].onFallback).toBe("function");
+  });
+
+  it("does not set fallback authorization when only OAuth is configured", async () => {
+    mocks.resolveConfig.mockResolvedValue({
+      config: {
+        oauth: {
+          clientId: "client-id",
+          clientSecret: "client-secret",
+          accessToken: "access-token",
+          accessTokenExpiresAt: new Date(Date.now() + 3600_000).toISOString(),
+        },
+      },
+      endpoint: "https://thirdparty.qonto.com",
+      warnings: [],
+    });
+    mocks.buildOAuthAuthorization.mockReturnValue("Bearer access-token");
+
+    await buildClient();
+
+    const ctorArgs = mocks.httpClientConstructor.mock.calls[0] as [{ fallbackAuthorization: unknown }];
+    expect(ctorArgs[0].fallbackAuthorization).toBeUndefined();
+  });
+
+  it("does not set fallback authorization when only API key is configured", async () => {
+    mocks.resolveConfig.mockResolvedValue({
+      config: { apiKey: { organizationSlug: "org", secretKey: "key" } },
+      endpoint: "https://thirdparty.qonto.com",
+      warnings: [],
+    });
+    mocks.buildApiKeyAuthorization.mockReturnValue("org:key");
+
+    await buildClient();
+
+    const ctorArgs = mocks.httpClientConstructor.mock.calls[0] as [{ fallbackAuthorization: unknown }];
+    expect(ctorArgs[0].fallbackAuthorization).toBeUndefined();
   });
 
   it("passes profile to saveOAuthTokens on refresh", async () => {
