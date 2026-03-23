@@ -12,16 +12,14 @@ vi.mock("@qontoctl/core", async (importOriginal) => {
     ...actual,
     resolveConfig: vi.fn(),
     HttpClient: vi.fn(),
-    refreshAccessToken: vi.fn(),
-    saveOAuthTokens: vi.fn(),
+    createOAuthAuthorization: vi.fn(),
   };
 });
 
-const { resolveConfig, HttpClient, refreshAccessToken, saveOAuthTokens } = await import("@qontoctl/core");
+const { resolveConfig, HttpClient, createOAuthAuthorization } = await import("@qontoctl/core");
 const resolveConfigMock = vi.mocked(resolveConfig);
 const HttpClientMock = vi.mocked(HttpClient);
-const refreshAccessTokenMock = vi.mocked(refreshAccessToken);
-const saveOAuthTokensMock = vi.mocked(saveOAuthTokens);
+const createOAuthAuthorizationMock = vi.mocked(createOAuthAuthorization);
 
 describe("createClient", () => {
   let stderrSpy: ReturnType<typeof vi.spyOn>;
@@ -144,7 +142,9 @@ describe("createClient", () => {
     expect(stderrSpy).not.toHaveBeenCalled();
   });
 
-  it("uses OAuth authorization when oauth config is present", async () => {
+  it("uses createOAuthAuthorization when oauth config is present", async () => {
+    const oauthAuthFn = vi.fn().mockResolvedValue("Bearer access-token");
+    createOAuthAuthorizationMock.mockReturnValue(oauthAuthFn);
     resolveConfigMock.mockResolvedValue({
       config: {
         oauth: {
@@ -161,69 +161,44 @@ describe("createClient", () => {
     const options: GlobalOptions = { output: "table" };
     await createClient(options);
 
+    expect(createOAuthAuthorizationMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        oauth: expect.objectContaining({ clientId: "client-id" }),
+        tokenUrl: "https://oauth.qonto.com/oauth2/token",
+      }),
+    );
     const ctorArgs = HttpClientMock.mock.calls[0]?.[0] as HttpClientOptions | undefined;
-    expect(typeof ctorArgs?.authorization).toBe("function");
+    expect(ctorArgs?.authorization).toBe(oauthAuthFn);
   });
 
-  it("refreshes expired OAuth token on authorization call", async () => {
+  it("passes profile to createOAuthAuthorization", async () => {
+    const oauthAuthFn = vi.fn().mockResolvedValue("Bearer token");
+    createOAuthAuthorizationMock.mockReturnValue(oauthAuthFn);
     resolveConfigMock.mockResolvedValue({
       config: {
         oauth: {
           clientId: "client-id",
           clientSecret: "client-secret",
-          accessToken: "old-token",
-          refreshToken: "refresh-token",
-          accessTokenExpiresAt: new Date(Date.now() - 1000).toISOString(),
-        },
-      },
-      endpoint: "https://thirdparty.qonto.com",
-      warnings: [],
-    });
-    refreshAccessTokenMock.mockResolvedValue({
-      accessToken: "new-access-token",
-      refreshToken: "new-refresh-token",
-      expiresIn: 3600,
-      tokenType: "Bearer",
-    });
-    saveOAuthTokensMock.mockResolvedValue(undefined);
-
-    const options: GlobalOptions = { output: "table" };
-    await createClient(options);
-
-    const ctorArgs = HttpClientMock.mock.calls[0]?.[0] as HttpClientOptions | undefined;
-    const authFn = ctorArgs?.authorization as () => Promise<string>;
-    await authFn();
-
-    expect(refreshAccessTokenMock).toHaveBeenCalled();
-    expect(saveOAuthTokensMock).toHaveBeenCalled();
-  });
-
-  it("does not refresh OAuth token when still valid", async () => {
-    resolveConfigMock.mockResolvedValue({
-      config: {
-        oauth: {
-          clientId: "client-id",
-          clientSecret: "client-secret",
-          accessToken: "valid-token",
-          refreshToken: "refresh-token",
-          accessTokenExpiresAt: new Date(Date.now() + 3600_000).toISOString(),
+          accessToken: "token",
         },
       },
       endpoint: "https://thirdparty.qonto.com",
       warnings: [],
     });
 
-    const options: GlobalOptions = { output: "table" };
+    const options: GlobalOptions = { output: "table", profile: "work" };
     await createClient(options);
 
-    const ctorArgs = HttpClientMock.mock.calls[0]?.[0] as HttpClientOptions | undefined;
-    const authFn = ctorArgs?.authorization as () => Promise<string>;
-    await authFn();
-
-    expect(refreshAccessTokenMock).not.toHaveBeenCalled();
+    expect(createOAuthAuthorizationMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        profile: "work",
+      }),
+    );
   });
 
   it("passes API key as fallback authorization when OAuth is primary and API key exists", async () => {
+    const oauthAuthFn = vi.fn().mockResolvedValue("Bearer access-token");
+    createOAuthAuthorizationMock.mockReturnValue(oauthAuthFn);
     resolveConfigMock.mockResolvedValue({
       config: {
         oauth: {
@@ -250,6 +225,8 @@ describe("createClient", () => {
   });
 
   it("does not set fallback authorization when only OAuth is configured", async () => {
+    const oauthAuthFn = vi.fn().mockResolvedValue("Bearer access-token");
+    createOAuthAuthorizationMock.mockReturnValue(oauthAuthFn);
     resolveConfigMock.mockResolvedValue({
       config: {
         oauth: {
@@ -279,6 +256,8 @@ describe("createClient", () => {
   });
 
   it("writes warning to stderr on fallback", async () => {
+    const oauthAuthFn = vi.fn().mockResolvedValue("Bearer access-token");
+    createOAuthAuthorizationMock.mockReturnValue(oauthAuthFn);
     resolveConfigMock.mockResolvedValue({
       config: {
         oauth: {
@@ -306,39 +285,5 @@ describe("createClient", () => {
     expect(stderrSpy).toHaveBeenCalledWith(
       "Warning: OAuth authentication failed, falling back to API key for GET /v2/organizations\n",
     );
-  });
-
-  it("passes profile when saving refreshed OAuth tokens", async () => {
-    resolveConfigMock.mockResolvedValue({
-      config: {
-        oauth: {
-          clientId: "client-id",
-          clientSecret: "client-secret",
-          accessToken: "old-token",
-          refreshToken: "refresh-token",
-          accessTokenExpiresAt: new Date(Date.now() - 1000).toISOString(),
-        },
-      },
-      endpoint: "https://thirdparty.qonto.com",
-      warnings: [],
-    });
-    refreshAccessTokenMock.mockResolvedValue({
-      accessToken: "new-token",
-      refreshToken: "new-refresh",
-      expiresIn: 3600,
-      tokenType: "Bearer",
-    });
-    saveOAuthTokensMock.mockResolvedValue(undefined);
-
-    const options: GlobalOptions = { output: "table", profile: "work" };
-    await createClient(options);
-
-    const ctorArgs = HttpClientMock.mock.calls[0]?.[0] as HttpClientOptions | undefined;
-    const authFn = ctorArgs?.authorization as () => Promise<string>;
-    await authFn();
-
-    expect(saveOAuthTokensMock).toHaveBeenCalledWith(expect.objectContaining({ accessToken: "new-token" }), {
-      profile: "work",
-    });
   });
 });
