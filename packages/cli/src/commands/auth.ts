@@ -9,8 +9,8 @@ import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { randomBytes } from "node:crypto";
 import { exec } from "node:child_process";
-import { createInterface } from "node:readline/promises";
 import type { Command } from "commander";
+import { intro, outro, text, multiselect, isCancel, cancel, note } from "@clack/prompts";
 import {
   resolveConfig,
   type OAuthCredentials,
@@ -27,6 +27,7 @@ import {
   revokeToken,
   saveOAuthTokens,
   saveOAuthClientCredentials,
+  saveOAuthScopes,
   clearOAuthTokens,
 } from "@qontoctl/core";
 import { addInheritableOptions, resolveGlobalOptions } from "../inherited-options.js";
@@ -51,6 +52,25 @@ const DEFAULT_SCOPES = [
   "supplier_invoice.read",
   "supplier_invoice.write",
 ];
+
+const SCOPE_DESCRIPTIONS: Record<string, string> = {
+  offline_access: "Refresh tokens for long-lived sessions (required)",
+  "organization.read": "Organization, accounts, transactions, statements, labels, memberships",
+  "attachment.read": "Attachment retrieval",
+  "attachment.write": "Attachment upload",
+  "bank_account.write": "Bank account management",
+  "client.read": "Client listing and details",
+  "client.write": "Client create, update, and delete",
+  "client_invoice.write": "Invoice create, update, finalize, and lifecycle",
+  "client_invoices.read": "Invoice listing and details",
+  "einvoicing.read": "E-invoicing document retrieval",
+  "internal_transfer.write": "Internal transfers between accounts",
+  "membership.read": "Membership details",
+  "membership.write": "Member invitations and management",
+  "payment.write": "SEPA transfers and beneficiary management",
+  "supplier_invoice.read": "Supplier invoice listing and details",
+  "supplier_invoice.write": "Supplier invoice creation",
+};
 
 interface OAuthEndpoints {
   authUrl: string;
@@ -172,6 +192,8 @@ export function registerAuthCommands(program: Command): void {
   setup.action(async (_options: unknown, cmd: Command) => {
     const opts = resolveGlobalOptions<GlobalOptions>(cmd);
 
+    intro("OAuth Setup");
+
     // Copy logo to ~/Downloads for easy upload during OAuth app registration
     const logoSource = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "assets", "logo.png");
     const logoDestination = join(homedir(), "Downloads", "qontoctl-logo.png");
@@ -183,52 +205,81 @@ export function registerAuthCommands(program: Command): void {
       // Logo not available (e.g. bundled differently), skip silently
     }
 
-    process.stderr.write("\n");
-    process.stderr.write("To use OAuth authentication, you need a Qonto OAuth application.\n");
-    process.stderr.write("\n");
-    process.stderr.write("1. Sign in at https://developers.qonto.com/ with your Qonto account\n");
-    process.stderr.write('2. Click "I need an OAuth 2.0 app" on the Overview page\n');
-    process.stderr.write('3. Select "Automate your business operations" and choose your organization\n');
-    process.stderr.write('4. Fill in the app details (suggested name: "QontoCtl - <your company>"):\n');
-    if (logoSaved) {
-      process.stderr.write(`   - Logo: use the file saved to ${logoDestination}\n`);
-    } else {
-      process.stderr.write("   - Logo: use the QontoCtl logo from the repository\n");
-    }
-    process.stderr.write("   - Redirect URI: http://localhost:18920/callback\n");
-    process.stderr.write("5. Select scopes (skip any you don't need for tighter security;\n");
-    process.stderr.write("   commands requiring missing scopes will fail gracefully):\n");
-    for (const scope of DEFAULT_SCOPES) {
-      process.stderr.write(`   - ${scope}\n`);
-    }
-    process.stderr.write("6. Create the app, then publish the PRODUCTION version\n");
-    process.stderr.write("   (the sandbox version will not work with production API endpoints)\n");
-    process.stderr.write("7. Copy the Client ID and Client Secret below\n");
-    process.stderr.write("\n");
+    const logoLine = logoSaved
+      ? `   - Logo: use the file saved to ${logoDestination}`
+      : "   - Logo: use the QontoCtl logo from the repository";
 
-    const rl = createInterface({ input: process.stdin, output: process.stderr });
+    note(
+      [
+        "1. Sign in at https://developers.qonto.com/ with your Qonto account",
+        '2. Click "I need an OAuth 2.0 app" on the Overview page',
+        '3. Select "Automate your business operations" and choose your organization',
+        '4. Fill in the app details (suggested name: "QontoCtl - <your company>"):',
+        logoLine,
+        "   - Redirect URI: http://localhost:18920/callback",
+        "5. Select the scopes your app needs (you will choose them below)",
+        "6. Create the app, then publish the PRODUCTION version",
+        "   (the sandbox version will not work with production API endpoints)",
+        "7. Copy the Client ID and Client Secret below",
+      ].join("\n"),
+      "Setup Instructions",
+    );
 
+    // Load existing config for defaults on re-run
+    let existingOAuth: OAuthCredentials | undefined;
     try {
-      const clientId = await rl.question("Client ID: ");
-      if (clientId.trim() === "") {
-        throw new Error("Client ID cannot be empty.");
-      }
-
-      const clientSecret = await rl.question("Client secret: ");
-      if (clientSecret.trim() === "") {
-        throw new Error("Client secret cannot be empty.");
-      }
-
-      await saveOAuthClientCredentials(
-        { clientId: clientId.trim(), clientSecret: clientSecret.trim() },
-        opts.profile !== undefined ? { profile: opts.profile } : undefined,
-      );
-
-      process.stderr.write("OAuth client credentials saved.\n");
-      process.stderr.write('Run "qontoctl auth login" to authenticate.\n');
-    } finally {
-      rl.close();
+      const { config } = await resolveConfig({ profile: opts.profile });
+      existingOAuth = config.oauth;
+    } catch {
+      // No existing config, start fresh
     }
+
+    const clientId = await text({
+      message: "Client ID",
+      ...(existingOAuth?.clientId !== undefined ? { initialValue: existingOAuth.clientId } : {}),
+      validate: (value) => {
+        if (!value?.trim()) return "Client ID cannot be empty";
+      },
+    });
+    if (isCancel(clientId)) {
+      cancel("Setup cancelled.");
+      return;
+    }
+
+    const clientSecret = await text({
+      message: "Client Secret",
+      ...(existingOAuth?.clientSecret !== undefined ? { initialValue: existingOAuth.clientSecret } : {}),
+      validate: (value) => {
+        if (!value?.trim()) return "Client Secret cannot be empty";
+      },
+    });
+    if (isCancel(clientSecret)) {
+      cancel("Setup cancelled.");
+      return;
+    }
+
+    const selectedScopes = await multiselect({
+      message: "Select OAuth scopes",
+      options: DEFAULT_SCOPES.map((scope) => {
+        const hint = SCOPE_DESCRIPTIONS[scope];
+        return { value: scope, label: scope, ...(hint !== undefined ? { hint } : {}) };
+      }),
+      initialValues: existingOAuth?.scopes ?? [...DEFAULT_SCOPES],
+      required: true,
+    });
+    if (isCancel(selectedScopes)) {
+      cancel("Setup cancelled.");
+      return;
+    }
+
+    // Ensure offline_access is always included
+    const scopes = selectedScopes.includes("offline_access") ? selectedScopes : ["offline_access", ...selectedScopes];
+
+    const profileOpts = opts.profile !== undefined ? { profile: opts.profile } : undefined;
+    await saveOAuthClientCredentials({ clientId: clientId.trim(), clientSecret: clientSecret.trim() }, profileOpts);
+    await saveOAuthScopes(scopes, profileOpts);
+
+    outro('Credentials saved. Run "qontoctl auth login" to authenticate.');
   });
 
   // auth login
