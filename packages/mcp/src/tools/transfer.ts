@@ -32,7 +32,7 @@ export function registerTransferTools(server: McpServer, getClient: () => Promis
         scheduled_date_from: z.string().optional().describe("Start of scheduled date range (YYYY-MM-DD)"),
         scheduled_date_to: z.string().optional().describe("End of scheduled date range (YYYY-MM-DD)"),
         sort_by: z.string().optional().describe("Sort order (e.g. updated_at:desc, scheduled_date:asc)"),
-        current_page: z.number().int().positive().optional().describe("Page number (default: 1)"),
+        page: z.number().int().positive().optional().describe("Page number (default: 1)"),
         per_page: z.number().int().positive().max(100).optional().describe("Results per page (default: 100, max: 100)"),
       },
     },
@@ -46,7 +46,7 @@ export function registerTransferTools(server: McpServer, getClient: () => Promis
           ...(args.scheduled_date_from !== undefined ? { scheduled_date_from: args.scheduled_date_from } : {}),
           ...(args.scheduled_date_to !== undefined ? { scheduled_date_to: args.scheduled_date_to } : {}),
           ...(args.sort_by !== undefined ? { sort_by: args.sort_by } : {}),
-          ...(args.current_page !== undefined ? { current_page: args.current_page } : {}),
+          ...(args.page !== undefined ? { page: args.page } : {}),
           ...(args.per_page !== undefined ? { per_page: args.per_page } : {}),
         });
 

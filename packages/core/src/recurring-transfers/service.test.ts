@@ -141,10 +141,10 @@ describe("listRecurringTransfers", () => {
     };
     fetchSpy.mockReturnValue(jsonResponse(body));
 
-    await listRecurringTransfers(client, { current_page: 2, per_page: 10 });
+    await listRecurringTransfers(client, { page: 2, per_page: 10 });
 
     const [url] = fetchSpy.mock.calls[0] as [URL];
-    expect(url.searchParams.get("current_page")).toBe("2");
+    expect(url.searchParams.get("page")).toBe("2");
     expect(url.searchParams.get("per_page")).toBe("10");
   });
 
@@ -158,7 +158,7 @@ describe("listRecurringTransfers", () => {
     await listRecurringTransfers(client, { per_page: 5 });
 
     const [url] = fetchSpy.mock.calls[0] as [URL];
-    expect(url.searchParams.has("current_page")).toBe(false);
+    expect(url.searchParams.has("page")).toBe(false);
     expect(url.searchParams.get("per_page")).toBe("5");
   });
 });

@@ -114,7 +114,7 @@ describe("team commands", () => {
       await program.parseAsync(["--page", "3", "--per-page", "25", "team", "list"], { from: "user" });
 
       const [url] = fetchSpy.mock.calls[0] as [URL];
-      expect(url.searchParams.get("current_page")).toBe("3");
+      expect(url.searchParams.get("page")).toBe("3");
       expect(url.searchParams.get("per_page")).toBe("25");
     });
 

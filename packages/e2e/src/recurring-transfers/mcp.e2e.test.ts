@@ -79,7 +79,7 @@ describe.skipIf(!hasCredentials())("recurring-transfer MCP tools (e2e)", () => {
     it("lists recurring transfers with pagination", async () => {
       const result = await client.callTool({
         name: "recurring_transfer_list",
-        arguments: { per_page: 2, current_page: 1 },
+        arguments: { per_page: 2, page: 1 },
       });
 
       const textContent = result.content[0] as {

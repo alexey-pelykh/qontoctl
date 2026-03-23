@@ -97,11 +97,11 @@ describe("bulk-transfer MCP tools", () => {
 
       await mcpClient.callTool({
         name: "bulk_transfer_list",
-        arguments: { current_page: 2, per_page: 5 },
+        arguments: { page: 2, per_page: 5 },
       });
 
       const [url] = fetchSpy.mock.calls[0] as [URL];
-      expect(url.searchParams.get("current_page")).toBe("2");
+      expect(url.searchParams.get("page")).toBe("2");
       expect(url.searchParams.get("per_page")).toBe("5");
     });
   });

@@ -30,7 +30,7 @@ export function registerClientInvoiceTools(server: McpServer, getClient: () => P
       inputSchema: {
         status: z.enum(["draft", "pending", "paid", "cancelled"]).optional().describe("Filter by status"),
         client_id: z.string().optional().describe("Filter by client ID (UUID)"),
-        current_page: z.number().int().positive().optional().describe("Page number"),
+        page: z.number().int().positive().optional().describe("Page number"),
         per_page: z.number().int().positive().max(100).optional().describe("Items per page (max 100)"),
       },
     },
@@ -39,7 +39,7 @@ export function registerClientInvoiceTools(server: McpServer, getClient: () => P
         const result = await listClientInvoices(client, {
           ...(args.status !== undefined ? { status: [args.status] } : {}),
           ...(args.client_id !== undefined ? { client_id: args.client_id } : {}),
-          ...(args.current_page !== undefined ? { current_page: args.current_page } : {}),
+          ...(args.page !== undefined ? { page: args.page } : {}),
           ...(args.per_page !== undefined ? { per_page: args.per_page } : {}),
         });
 

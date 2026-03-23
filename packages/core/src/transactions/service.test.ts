@@ -195,14 +195,14 @@ describe("listTransactions", () => {
     await listTransactions(client, {
       bank_account_id: "acc-1",
       status: ["completed"],
-      current_page: 2,
+      page: 2,
       per_page: 10,
     });
 
     const [url] = fetchSpy.mock.calls[0] as [URL];
     expect(url.searchParams.get("bank_account_id")).toBe("acc-1");
     expect(url.searchParams.getAll("status[]")).toEqual(["completed"]);
-    expect(url.searchParams.get("current_page")).toBe("2");
+    expect(url.searchParams.get("page")).toBe("2");
     expect(url.searchParams.get("per_page")).toBe("10");
   });
 
@@ -213,10 +213,10 @@ describe("listTransactions", () => {
     };
     fetchSpy.mockReturnValue(jsonResponse(body));
 
-    await listTransactions(client, { current_page: 3 });
+    await listTransactions(client, { page: 3 });
 
     const [url] = fetchSpy.mock.calls[0] as [URL];
-    expect(url.searchParams.get("current_page")).toBe("3");
+    expect(url.searchParams.get("page")).toBe("3");
     expect(url.searchParams.has("per_page")).toBe(false);
   });
 });

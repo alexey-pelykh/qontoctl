@@ -119,7 +119,7 @@ describe("label commands", () => {
       await program.parseAsync(["--page", "2", "--per-page", "50", "label", "list"], { from: "user" });
 
       const [url] = fetchSpy.mock.calls[0] as [URL];
-      expect(url.searchParams.get("current_page")).toBe("2");
+      expect(url.searchParams.get("page")).toBe("2");
       expect(url.searchParams.get("per_page")).toBe("50");
     });
   });

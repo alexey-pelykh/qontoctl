@@ -21,10 +21,10 @@ import type {
  */
 export async function listIntlBeneficiaries(
   client: HttpClient,
-  params?: { current_page?: number; per_page?: number },
+  params?: { page?: number; per_page?: number },
 ): Promise<{ international_beneficiaries: IntlBeneficiary[]; meta: PaginationMeta }> {
   const query: Record<string, string> = {};
-  if (params?.current_page !== undefined) query["current_page"] = String(params.current_page);
+  if (params?.page !== undefined) query["page"] = String(params.page);
   if (params?.per_page !== undefined) query["per_page"] = String(params.per_page);
   const endpointPath = "/v2/international/beneficiaries";
   const response = await client.get(endpointPath, Object.keys(query).length > 0 ? query : undefined);
