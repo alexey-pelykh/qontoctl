@@ -22,7 +22,6 @@ interface TransferCreateOptions extends GlobalOptions, WriteOptions {
   readonly debitAccount: string;
   readonly reference: string;
   readonly amount: string;
-  readonly currency: string;
   readonly note?: string | undefined;
   readonly scheduledDate?: string | undefined;
   readonly vopProofToken?: string | undefined;
@@ -61,7 +60,6 @@ export function registerTransferCreateCommand(parent: Command): void {
     .addOption(new Option("--debit-account <id>", "bank account ID to debit").makeOptionMandatory())
     .addOption(new Option("--reference <text>", "transfer reference").makeOptionMandatory())
     .addOption(new Option("--amount <number>", "amount to transfer").makeOptionMandatory())
-    .addOption(new Option("--currency <code>", "currency code").default("EUR"))
     .option("--note <text>", "optional note")
     .option("--scheduled-date <date>", "scheduled date (YYYY-MM-DD)")
     .option("--vop-proof-token <token>", "VoP proof token (auto-resolved if omitted)");
@@ -78,7 +76,6 @@ export function registerTransferCreateCommand(parent: Command): void {
       bank_account_id: opts.debitAccount,
       reference: opts.reference,
       amount: opts.amount,
-      currency: opts.currency,
       vop_proof_token: vopProofToken,
       ...(opts.note !== undefined ? { note: opts.note } : {}),
       ...(opts.scheduledDate !== undefined ? { scheduled_date: opts.scheduledDate } : {}),

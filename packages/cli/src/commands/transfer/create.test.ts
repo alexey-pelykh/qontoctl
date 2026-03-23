@@ -182,7 +182,6 @@ describe("transfer create command", () => {
         bank_account_id: "acc-1",
         reference: "Invoice 42",
         amount: "1234.56",
-        currency: "EUR",
         vop_proof_token: "tok_abc123",
         note: "Monthly fee",
         scheduled_date: "2026-04-01",

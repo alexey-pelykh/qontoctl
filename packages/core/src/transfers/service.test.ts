@@ -58,8 +58,8 @@ describe("buildTransferQueryParams", () => {
     const result = buildTransferQueryParams(params);
     expect(result).toEqual({
       "beneficiary_ids[]": ["ben-1", "ben-2"],
-      "ids[]": ["id-1"],
-      "recurring_transfer_ids[]": ["rec-1", "rec-2"],
+      "ids": ["id-1"],
+      "recurring_transfer_ids": ["rec-1", "rec-2"],
     });
   });
 
@@ -271,7 +271,6 @@ describe("createTransfer", () => {
       bank_account_id: "acc-1",
       reference: "Test Payment",
       amount: "500",
-      currency: "EUR",
       vop_proof_token: "tok_abc123",
     });
     expect(result).toEqual(newTransfer);
@@ -288,7 +287,6 @@ describe("createTransfer", () => {
         bank_account_id: "acc-1",
         reference: "Test Payment",
         amount: "500",
-        currency: "EUR",
       },
     });
   });
@@ -301,7 +299,6 @@ describe("createTransfer", () => {
       bank_account_id: "acc-1",
       reference: "Scheduled",
       amount: "100",
-      currency: "EUR",
       vop_proof_token: "tok_abc123",
       note: "Monthly payment",
       scheduled_date: "2026-04-01",

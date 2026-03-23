@@ -48,7 +48,6 @@ export interface CreateTransferParams {
   readonly bank_account_id: string;
   readonly reference: string;
   readonly amount: string;
-  readonly currency: string;
   readonly note?: string;
   readonly scheduled_date?: string;
   readonly vop_proof_token: string;

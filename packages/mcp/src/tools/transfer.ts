@@ -88,7 +88,6 @@ export function registerTransferTools(server: McpServer, getClient: () => Promis
         bank_account_id: z.string().describe("Bank account UUID to debit"),
         reference: z.string().describe("Transfer reference"),
         amount: z.number().positive().describe("Amount to transfer"),
-        currency: z.string().optional().describe("Currency code (default: EUR)"),
         note: z.string().optional().describe("Optional note"),
         scheduled_date: z.string().optional().describe("Scheduled date (YYYY-MM-DD)"),
         vop_proof_token: z
@@ -113,7 +112,6 @@ export function registerTransferTools(server: McpServer, getClient: () => Promis
           bank_account_id: args.bank_account_id,
           reference: args.reference,
           amount: String(args.amount),
-          currency: args.currency ?? "EUR",
           vop_proof_token: vopProofToken,
           ...(args.note !== undefined ? { note: args.note } : {}),
           ...(args.scheduled_date !== undefined ? { scheduled_date: args.scheduled_date } : {}),
