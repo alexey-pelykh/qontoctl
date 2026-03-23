@@ -1031,9 +1031,7 @@ describe("registerAuthCommands", () => {
       await parsePromise;
 
       expect(mockSpinner.start).toHaveBeenCalledWith("Opening browser for authorization...");
-      expect(mockSpinner.message).toHaveBeenCalledWith(
-        expect.stringContaining("Waiting for authorization"),
-      );
+      expect(mockSpinner.message).toHaveBeenCalledWith(expect.stringContaining("Waiting for authorization"));
       expect(mockSpinner.stop).toHaveBeenCalledWith("Authorization received.");
       expect(mockSpinner.start).toHaveBeenCalledWith("Exchanging authorization code for tokens...");
       expect(mockSpinner.stop).toHaveBeenCalledWith("Login successful! Tokens saved.");
@@ -1116,13 +1114,8 @@ describe("registerAuthCommands", () => {
       simulateCallback("auth-code", MOCK_STATE_HEX);
       await parsePromise;
 
-      expect(multiselectMock).toHaveBeenCalledWith(
-        expect.objectContaining({ message: "Select OAuth scopes" }),
-      );
-      expect(saveOAuthScopesMock).toHaveBeenCalledWith(
-        ["offline_access", "organization.read"],
-        undefined,
-      );
+      expect(multiselectMock).toHaveBeenCalledWith(expect.objectContaining({ message: "Select OAuth scopes" }));
+      expect(saveOAuthScopesMock).toHaveBeenCalledWith(["offline_access", "organization.read"], undefined);
     });
 
     it("ensures offline_access when interactively selected scopes omit it", async () => {
@@ -1144,10 +1137,7 @@ describe("registerAuthCommands", () => {
       simulateCallback("auth-code", MOCK_STATE_HEX);
       await parsePromise;
 
-      expect(saveOAuthScopesMock).toHaveBeenCalledWith(
-        ["offline_access", "organization.read"],
-        undefined,
-      );
+      expect(saveOAuthScopesMock).toHaveBeenCalledWith(["offline_access", "organization.read"], undefined);
     });
 
     it("exits cleanly when scope selection is cancelled during login", async () => {
@@ -1193,9 +1183,7 @@ describe("registerAuthCommands", () => {
       simulateCallback("auth-code", MOCK_STATE_HEX);
       await parsePromise;
 
-      expect(multiselectMock).toHaveBeenCalledWith(
-        expect.objectContaining({ message: "Select OAuth scopes" }),
-      );
+      expect(multiselectMock).toHaveBeenCalledWith(expect.objectContaining({ message: "Select OAuth scopes" }));
     });
   });
 });
