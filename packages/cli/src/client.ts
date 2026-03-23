@@ -7,9 +7,7 @@ import {
   HttpClient,
   resolveConfig,
   buildApiKeyAuthorization,
-  buildOAuthAuthorization,
-  refreshAccessToken,
-  saveOAuthTokens,
+  createOAuthAuthorization,
   OAUTH_TOKEN_URL,
   OAUTH_TOKEN_SANDBOX_URL,
 } from "@qontoctl/core";
@@ -36,39 +34,11 @@ export async function createClient(options: GlobalOptions): Promise<HttpClient> 
   let fallbackAuthorization: Authorization | undefined;
 
   if (config.oauth !== undefined && config.oauth.clientId !== "" && config.oauth.accessToken !== undefined) {
-    // OAuth: use dynamic authorization with auto-refresh (requires an active session)
-    const oauth = config.oauth;
-    const tokenUrl = config.sandbox === true ? OAUTH_TOKEN_SANDBOX_URL : OAUTH_TOKEN_URL;
-    const profile = options.profile;
-
-    authorization = async () => {
-      // Check if token is expired and refresh if needed
-      if (oauth.accessTokenExpiresAt && oauth.refreshToken) {
-        const expiresAt = new Date(oauth.accessTokenExpiresAt);
-        const now = new Date();
-        // Refresh 60 seconds before expiration
-        if (expiresAt.getTime() - now.getTime() < 60_000) {
-          const tokens = await refreshAccessToken(tokenUrl, oauth.clientId, oauth.clientSecret, oauth.refreshToken);
-          oauth.accessToken = tokens.accessToken;
-          if (tokens.refreshToken) {
-            oauth.refreshToken = tokens.refreshToken;
-          }
-          oauth.accessTokenExpiresAt = new Date(Date.now() + tokens.expiresIn * 1000).toISOString();
-
-          // Persist refreshed tokens
-          await saveOAuthTokens(
-            {
-              accessToken: oauth.accessToken,
-              refreshToken: oauth.refreshToken,
-              accessTokenExpiresAt: oauth.accessTokenExpiresAt,
-            },
-            profile !== undefined ? { profile } : undefined,
-          );
-        }
-      }
-
-      return buildOAuthAuthorization(oauth);
-    };
+    authorization = createOAuthAuthorization({
+      oauth: config.oauth,
+      tokenUrl: config.sandbox === true ? OAUTH_TOKEN_SANDBOX_URL : OAUTH_TOKEN_URL,
+      profile: options.profile,
+    });
 
     // When OAuth is primary, fall back to API key if available
     if (config.apiKey !== undefined) {
