@@ -14,6 +14,8 @@ vi.mock("@qontoctl/core", async (importOriginal) => {
   return {
     ...actual,
     createTransfer: vi.fn(),
+    getBeneficiary: vi.fn(),
+    verifyPayee: vi.fn(),
   };
 });
 
@@ -26,8 +28,10 @@ vi.mock("../../sca.js", () => ({
 const { createClient } = await import("../../client.js");
 const createClientMock = vi.mocked(createClient);
 
-const { createTransfer } = await import("@qontoctl/core");
+const { createTransfer, getBeneficiary, verifyPayee } = await import("@qontoctl/core");
 const createTransferMock = vi.mocked(createTransfer);
+const getBeneficiaryMock = vi.mocked(getBeneficiary);
+const verifyPayeeMock = vi.mocked(verifyPayee);
 
 const sampleTransfer = {
   id: "txfr-new",
@@ -50,12 +54,28 @@ const sampleTransfer = {
   declined_reason: null,
 };
 
+const sampleBeneficiary = {
+  id: "ben-1",
+  name: "Acme Corp",
+  iban: "FR7612345000010009876543210",
+  bic: "BNPAFRPP",
+  email: null,
+  activity_tag: null,
+  status: "validated" as const,
+  trusted: true,
+  created_at: "2026-01-01T00:00:00.000Z",
+  updated_at: "2026-01-01T00:00:00.000Z",
+};
+
 describe("transfer create command", () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let stdoutSpy: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let stderrSpy: any;
 
   beforeEach(() => {
     stdoutSpy = vi.spyOn(process.stdout, "write").mockImplementation((() => true) as never);
+    stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation((() => true) as never);
     createClientMock.mockResolvedValue({} as never);
   });
 
@@ -169,5 +189,158 @@ describe("transfer create command", () => {
       },
       expect.anything(),
     );
+  });
+
+  it("skips auto-verify when --vop-proof-token is provided", async () => {
+    createTransferMock.mockResolvedValue(sampleTransfer);
+
+    const program = new Command();
+    program.option("-o, --output <format>", "", "table");
+    registerTransferCommands(program);
+
+    await program.parseAsync(
+      [
+        "transfer",
+        "create",
+        "--beneficiary",
+        "ben-1",
+        "--debit-account",
+        "acc-1",
+        "--reference",
+        "Test Payment",
+        "--amount",
+        "500",
+        "--vop-proof-token",
+        "tok_explicit",
+      ],
+      { from: "user" },
+    );
+
+    expect(getBeneficiaryMock).not.toHaveBeenCalled();
+    expect(verifyPayeeMock).not.toHaveBeenCalled();
+    expect(createTransferMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ vop_proof_token: "tok_explicit" }),
+      expect.anything(),
+    );
+  });
+
+  it("auto-resolves vop_proof_token on match result", async () => {
+    getBeneficiaryMock.mockResolvedValue(sampleBeneficiary);
+    verifyPayeeMock.mockResolvedValue({
+      iban: sampleBeneficiary.iban,
+      name: sampleBeneficiary.name,
+      result: "match",
+      vop_proof_token: "tok_auto_match",
+    });
+    createTransferMock.mockResolvedValue(sampleTransfer);
+
+    const program = new Command();
+    program.option("-o, --output <format>", "", "table");
+    registerTransferCommands(program);
+
+    await program.parseAsync(
+      [
+        "transfer",
+        "create",
+        "--beneficiary",
+        "ben-1",
+        "--debit-account",
+        "acc-1",
+        "--reference",
+        "Test Payment",
+        "--amount",
+        "500",
+      ],
+      { from: "user" },
+    );
+
+    expect(getBeneficiaryMock).toHaveBeenCalledWith(expect.anything(), "ben-1");
+    expect(verifyPayeeMock).toHaveBeenCalledWith(expect.anything(), {
+      iban: sampleBeneficiary.iban,
+      name: sampleBeneficiary.name,
+    });
+    expect(createTransferMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ vop_proof_token: "tok_auto_match" }),
+      expect.anything(),
+    );
+    expect(stderrSpy).not.toHaveBeenCalled();
+  });
+
+  it("auto-resolves vop_proof_token on mismatch result with warning", async () => {
+    getBeneficiaryMock.mockResolvedValue(sampleBeneficiary);
+    verifyPayeeMock.mockResolvedValue({
+      iban: sampleBeneficiary.iban,
+      name: sampleBeneficiary.name,
+      result: "mismatch",
+      vop_proof_token: "tok_auto_mismatch",
+    });
+    createTransferMock.mockResolvedValue(sampleTransfer);
+
+    const program = new Command();
+    program.option("-o, --output <format>", "", "table");
+    registerTransferCommands(program);
+
+    await program.parseAsync(
+      [
+        "transfer",
+        "create",
+        "--beneficiary",
+        "ben-1",
+        "--debit-account",
+        "acc-1",
+        "--reference",
+        "Test Payment",
+        "--amount",
+        "500",
+      ],
+      { from: "user" },
+    );
+
+    expect(createTransferMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ vop_proof_token: "tok_auto_mismatch" }),
+      expect.anything(),
+    );
+    expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("mismatch"));
+  });
+
+  it("auto-resolves vop_proof_token on not_available result with warning", async () => {
+    getBeneficiaryMock.mockResolvedValue(sampleBeneficiary);
+    verifyPayeeMock.mockResolvedValue({
+      iban: sampleBeneficiary.iban,
+      name: sampleBeneficiary.name,
+      result: "not_available",
+      vop_proof_token: "tok_auto_unavail",
+    });
+    createTransferMock.mockResolvedValue(sampleTransfer);
+
+    const program = new Command();
+    program.option("-o, --output <format>", "", "table");
+    registerTransferCommands(program);
+
+    await program.parseAsync(
+      [
+        "transfer",
+        "create",
+        "--beneficiary",
+        "ben-1",
+        "--debit-account",
+        "acc-1",
+        "--reference",
+        "Test Payment",
+        "--amount",
+        "500",
+      ],
+      { from: "user" },
+    );
+
+    expect(createTransferMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ vop_proof_token: "tok_auto_unavail" }),
+      expect.anything(),
+    );
+    expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("not_available"));
   });
 });
