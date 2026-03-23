@@ -4,6 +4,7 @@
 export {
   HttpClient,
   QontoApiError,
+  QontoOAuthScopeError,
   QontoRateLimitError,
   QontoScaRequiredError,
   type Authorization,

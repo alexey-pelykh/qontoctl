@@ -6,6 +6,7 @@ import {
   ConfigError,
   AuthError,
   QontoApiError,
+  QontoOAuthScopeError,
   QontoRateLimitError,
   QontoScaRequiredError,
   HttpClient,
@@ -97,6 +98,35 @@ describe("withClient", () => {
       const text = (result.content[0] as { type: "text"; text: string }).text;
       expect(text).toContain("invalid: Field A");
       expect(text).toContain("missing: Field B");
+    });
+  });
+
+  describe("QontoOAuthScopeError", () => {
+    it("formats scope error with remediation guidance", async () => {
+      const factory = () =>
+        Promise.reject(new QontoOAuthScopeError([{ code: "forbidden", detail: "missing required oauth scope" }]));
+      const result = await withClient(factory, async () => ({
+        content: [{ type: "text" as const, text: "unreachable" }],
+      }));
+
+      expect(result.isError).toBe(true);
+      const text = (result.content[0] as { type: "text"; text: string }).text;
+      expect(text).toContain("HTTP 403");
+      expect(text).toContain("missing required oauth scope");
+      expect(text).toContain("qontoctl auth setup");
+      expect(text).toContain("qontoctl auth login");
+    });
+
+    it("is matched before generic QontoApiError handler", async () => {
+      const factory = () =>
+        Promise.reject(new QontoOAuthScopeError([{ code: "forbidden", detail: "missing required oauth scope" }]));
+      const result = await withClient(factory, async () => ({
+        content: [{ type: "text" as const, text: "unreachable" }],
+      }));
+
+      const text = (result.content[0] as { type: "text"; text: string }).text;
+      // Must contain the remediation guidance (not just generic API error format)
+      expect(text).toContain("OAuth token is missing a required scope");
     });
   });
 

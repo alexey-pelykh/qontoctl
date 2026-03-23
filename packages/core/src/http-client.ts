@@ -42,6 +42,19 @@ export class QontoApiError extends Error {
 }
 
 /**
+ * Error thrown when the Qonto API returns 403 due to a missing OAuth scope.
+ *
+ * Extends {@link QontoApiError} so existing `instanceof QontoApiError` checks
+ * still match, while consumers can narrow to this subclass for targeted handling.
+ */
+export class QontoOAuthScopeError extends QontoApiError {
+  constructor(errors: readonly QontoApiErrorEntry[]) {
+    super(403, errors);
+    this.name = "QontoOAuthScopeError";
+  }
+}
+
+/**
  * Error thrown when all retry attempts are exhausted on 429 responses.
  */
 export class QontoRateLimitError extends Error {
@@ -377,6 +390,14 @@ export class HttpClient {
       if (!response.ok) {
         const errorBody = await this.safeReadJson(response);
         const errors: readonly QontoApiErrorEntry[] = this.extractErrors(errorBody);
+
+        if (
+          response.status === 403 &&
+          errors.some((e) => e.detail.toLowerCase().includes("missing required oauth scope"))
+        ) {
+          throw new QontoOAuthScopeError(errors);
+        }
+
         throw new QontoApiError(response.status, errors);
       }
 

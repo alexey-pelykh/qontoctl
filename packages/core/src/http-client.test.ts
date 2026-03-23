@@ -2,7 +2,13 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { HttpClient, QontoApiError, QontoRateLimitError, QontoScaRequiredError } from "./http-client.js";
+import {
+  HttpClient,
+  QontoApiError,
+  QontoOAuthScopeError,
+  QontoRateLimitError,
+  QontoScaRequiredError,
+} from "./http-client.js";
 import { binaryResponse } from "./testing/binary-response.js";
 import { jsonResponse } from "./testing/json-response.js";
 
@@ -487,6 +493,59 @@ describe("HttpClient", () => {
       const apiError = error as QontoApiError;
       expect(apiError.status).toBe(502);
       expect(apiError.errors[0]?.code).toBe("unknown");
+    });
+
+    it("throws QontoOAuthScopeError on 403 with missing oauth scope", async () => {
+      fetchSpy.mockReturnValue(
+        jsonResponse(
+          {
+            errors: [
+              {
+                code: "forbidden",
+                detail: "missing required oauth scope",
+              },
+            ],
+          },
+          { status: 403 },
+        ),
+      );
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "Bearer token",
+      });
+
+      const error = await client.post("/v2/internal_transfers", {}).catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(QontoOAuthScopeError);
+      expect(error).toBeInstanceOf(QontoApiError);
+      const scopeError = error as QontoOAuthScopeError;
+      expect(scopeError.status).toBe(403);
+      expect(scopeError.errors).toEqual([{ code: "forbidden", detail: "missing required oauth scope" }]);
+    });
+
+    it("throws generic QontoApiError on 403 without oauth scope message", async () => {
+      fetchSpy.mockReturnValue(
+        jsonResponse(
+          {
+            errors: [
+              {
+                code: "forbidden",
+                detail: "Access denied",
+              },
+            ],
+          },
+          { status: 403 },
+        ),
+      );
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "Bearer token",
+      });
+
+      const error = await client.post("/v2/internal_transfers", {}).catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(QontoApiError);
+      expect(error).not.toBeInstanceOf(QontoOAuthScopeError);
     });
 
     it("preserves source information in error entries", async () => {
@@ -1046,6 +1105,28 @@ describe("HttpClient", () => {
 
     it("is an instance of Error", () => {
       const error = new QontoScaRequiredError("tok-abc");
+      expect(error).toBeInstanceOf(Error);
+    });
+  });
+
+  describe("QontoOAuthScopeError", () => {
+    it("has correct name property", () => {
+      const error = new QontoOAuthScopeError([{ code: "forbidden", detail: "missing required oauth scope" }]);
+      expect(error.name).toBe("QontoOAuthScopeError");
+    });
+
+    it("has status 403", () => {
+      const error = new QontoOAuthScopeError([{ code: "forbidden", detail: "missing required oauth scope" }]);
+      expect(error.status).toBe(403);
+    });
+
+    it("is an instance of QontoApiError", () => {
+      const error = new QontoOAuthScopeError([{ code: "forbidden", detail: "missing required oauth scope" }]);
+      expect(error).toBeInstanceOf(QontoApiError);
+    });
+
+    it("is an instance of Error", () => {
+      const error = new QontoOAuthScopeError([{ code: "forbidden", detail: "missing required oauth scope" }]);
       expect(error).toBeInstanceOf(Error);
     });
   });

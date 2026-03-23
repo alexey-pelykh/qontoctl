@@ -6,6 +6,7 @@ import {
   ConfigError,
   AuthError,
   QontoApiError,
+  QontoOAuthScopeError,
   QontoRateLimitError,
   QontoScaRequiredError,
   ScaTimeoutError,
@@ -50,6 +51,22 @@ describe("handleCliError", () => {
       expect(output).toContain("Authentication error:");
       expect(output).toContain("Missing organization slug");
       expect(output).toContain("Verify your API key credentials");
+      expect(process.exitCode).toBe(1);
+    });
+  });
+
+  describe("QontoOAuthScopeError", () => {
+    it("shows scope remediation guidance", () => {
+      const error = new QontoOAuthScopeError([{ code: "forbidden", detail: "missing required oauth scope" }]);
+
+      handleCliError(error, false);
+
+      const output = stderrSpy.mock.calls[0]?.[0] as string;
+      expect(output).toContain("Qonto API error (HTTP 403):");
+      expect(output).toContain("missing required oauth scope");
+      expect(output).toContain("OAuth token is missing a required scope");
+      expect(output).toContain("qontoctl auth setup");
+      expect(output).toContain("qontoctl auth login");
       expect(process.exitCode).toBe(1);
     });
   });
