@@ -3,7 +3,14 @@
 
 import type { Command } from "commander";
 import { Option } from "commander";
-import { createTransfer, type CreateTransferParams, type Transfer } from "@qontoctl/core";
+import {
+  createTransfer,
+  getBeneficiary,
+  verifyPayee,
+  type CreateTransferParams,
+  type Transfer,
+  type HttpClient,
+} from "@qontoctl/core";
 import { createClient } from "../../client.js";
 import { formatOutput } from "../../formatters/index.js";
 import { addInheritableOptions, addWriteOptions, resolveGlobalOptions } from "../../inherited-options.js";
@@ -18,7 +25,7 @@ interface TransferCreateOptions extends GlobalOptions, WriteOptions {
   readonly currency: string;
   readonly note?: string | undefined;
   readonly scheduledDate?: string | undefined;
-  readonly vopProofToken: string;
+  readonly vopProofToken?: string | undefined;
 }
 
 function toTableRow(t: Transfer): Record<string, string | number | null> {
@@ -33,6 +40,19 @@ function toTableRow(t: Transfer): Record<string, string | number | null> {
   };
 }
 
+async function resolveVopProofToken(httpClient: HttpClient, beneficiaryId: string): Promise<string> {
+  const beneficiary = await getBeneficiary(httpClient, beneficiaryId);
+  const vopResult = await verifyPayee(httpClient, { iban: beneficiary.iban, name: beneficiary.name });
+
+  if (vopResult.result === "mismatch") {
+    process.stderr.write(`Warning: VoP result is "mismatch" for beneficiary ${beneficiaryId}\n`);
+  } else if (vopResult.result === "not_available") {
+    process.stderr.write(`Warning: VoP result is "not_available" for beneficiary ${beneficiaryId}\n`);
+  }
+
+  return vopResult.vop_proof_token;
+}
+
 export function registerTransferCreateCommand(parent: Command): void {
   const create = parent
     .command("create")
@@ -44,12 +64,14 @@ export function registerTransferCreateCommand(parent: Command): void {
     .addOption(new Option("--currency <code>", "currency code").default("EUR"))
     .option("--note <text>", "optional note")
     .option("--scheduled-date <date>", "scheduled date (YYYY-MM-DD)")
-    .addOption(new Option("--vop-proof-token <token>", "VoP proof token from verify-payee").makeOptionMandatory());
+    .option("--vop-proof-token <token>", "VoP proof token (auto-resolved if omitted)");
   addInheritableOptions(create);
   addWriteOptions(create);
   create.action(async (_opts: unknown, cmd: Command) => {
     const opts = resolveGlobalOptions<TransferCreateOptions>(cmd);
     const httpClient = await createClient(opts);
+
+    const vopProofToken = opts.vopProofToken ?? (await resolveVopProofToken(httpClient, opts.beneficiary));
 
     const params: CreateTransferParams = {
       beneficiary_id: opts.beneficiary,
@@ -57,7 +79,7 @@ export function registerTransferCreateCommand(parent: Command): void {
       reference: opts.reference,
       amount: opts.amount,
       currency: opts.currency,
-      vop_proof_token: opts.vopProofToken,
+      vop_proof_token: vopProofToken,
       ...(opts.note !== undefined ? { note: opts.note } : {}),
       ...(opts.scheduledDate !== undefined ? { scheduled_date: opts.scheduledDate } : {}),
     };
