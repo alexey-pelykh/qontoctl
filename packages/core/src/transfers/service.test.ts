@@ -436,36 +436,33 @@ describe("verifyPayee", () => {
     { status: 503, code: "GATEWAY_TIMEOUT_ERROR_RESPONDING_BANK" },
   ];
 
-  it.each(vopBankErrorCodes)(
-    "extracts proof token from $code ($status) error",
-    async ({ status, code }) => {
-      fetchSpy.mockImplementation(() =>
-        jsonResponse(
-          {
-            errors: [
-              {
-                code,
-                detail: "Bank error",
-                meta: { proof_token: { token: "tok_from_error" } },
-              },
-            ],
-          },
-          { status },
-        ),
-      );
+  it.each(vopBankErrorCodes)("extracts proof token from $code ($status) error", async ({ status, code }) => {
+    fetchSpy.mockImplementation(() =>
+      jsonResponse(
+        {
+          errors: [
+            {
+              code,
+              detail: "Bank error",
+              meta: { proof_token: { token: "tok_from_error" } },
+            },
+          ],
+        },
+        { status },
+      ),
+    );
 
-      const result = await verifyPayee(client, {
-        iban: "FR7612345000010009876543210",
-        name: "John Doe",
-      });
-      expect(result).toEqual({
-        iban: "FR7612345000010009876543210",
-        name: "John Doe",
-        result: "not_available",
-        vop_proof_token: "tok_from_error",
-      });
-    },
-  );
+    const result = await verifyPayee(client, {
+      iban: "FR7612345000010009876543210",
+      name: "John Doe",
+    });
+    expect(result).toEqual({
+      iban: "FR7612345000010009876543210",
+      name: "John Doe",
+      result: "not_available",
+      vop_proof_token: "tok_from_error",
+    });
+  });
 
   const vopNonTokenErrorCodes = [
     { status: 400, code: "BAD_REQUEST_ERROR_UNSPECIFIED" },
@@ -614,8 +611,8 @@ describe("bulkVerifyPayee", () => {
       ),
     );
 
-    await expect(
-      bulkVerifyPayee(client, [{ iban: "FR7612345000010009876543210", name: "John Doe" }]),
-    ).rejects.toThrow(QontoApiError);
+    await expect(bulkVerifyPayee(client, [{ iban: "FR7612345000010009876543210", name: "John Doe" }])).rejects.toThrow(
+      QontoApiError,
+    );
   });
 });

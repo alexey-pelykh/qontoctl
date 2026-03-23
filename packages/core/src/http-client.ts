@@ -556,7 +556,7 @@ export class HttpClient {
       "errors" in body &&
       Array.isArray((body as { errors: unknown }).errors)
     ) {
-      return ((body as { errors: unknown[] }).errors).map((entry: unknown) => {
+      return (body as { errors: unknown[] }).errors.map((entry: unknown) => {
         const e = entry as Record<string, unknown>;
         const base = {
           code: typeof e["code"] === "string" ? e["code"] : "unknown",
@@ -567,9 +567,7 @@ export class HttpClient {
             ? { source: e["source"] as QontoApiErrorEntry["source"] }
             : {};
         const meta =
-          typeof e["meta"] === "object" && e["meta"] !== null
-            ? { meta: e["meta"] as QontoApiErrorEntry["meta"] }
-            : {};
+          typeof e["meta"] === "object" && e["meta"] !== null ? { meta: e["meta"] as QontoApiErrorEntry["meta"] } : {};
         return { ...base, ...source, ...meta } as QontoApiErrorEntry;
       });
     }
