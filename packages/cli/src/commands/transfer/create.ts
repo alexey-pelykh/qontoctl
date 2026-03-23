@@ -18,6 +18,7 @@ interface TransferCreateOptions extends GlobalOptions, WriteOptions {
   readonly currency: string;
   readonly note?: string | undefined;
   readonly scheduledDate?: string | undefined;
+  readonly vopProofToken: string;
 }
 
 function toTableRow(t: Transfer): Record<string, string | number | null> {
@@ -42,7 +43,8 @@ export function registerTransferCreateCommand(parent: Command): void {
     .addOption(new Option("--amount <number>", "amount to transfer").makeOptionMandatory())
     .addOption(new Option("--currency <code>", "currency code").default("EUR"))
     .option("--note <text>", "optional note")
-    .option("--scheduled-date <date>", "scheduled date (YYYY-MM-DD)");
+    .option("--scheduled-date <date>", "scheduled date (YYYY-MM-DD)")
+    .addOption(new Option("--vop-proof-token <token>", "VoP proof token from verify-payee").makeOptionMandatory());
   addInheritableOptions(create);
   addWriteOptions(create);
   create.action(async (_opts: unknown, cmd: Command) => {
@@ -55,6 +57,7 @@ export function registerTransferCreateCommand(parent: Command): void {
       reference: opts.reference,
       amount: opts.amount,
       currency: opts.currency,
+      vop_proof_token: opts.vopProofToken,
       ...(opts.note !== undefined ? { note: opts.note } : {}),
       ...(opts.scheduledDate !== undefined ? { scheduled_date: opts.scheduledDate } : {}),
     };

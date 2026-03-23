@@ -51,6 +51,7 @@ export interface CreateTransferParams {
   readonly currency: string;
   readonly note?: string;
   readonly scheduled_date?: string;
+  readonly vop_proof_token: string;
 }
 
 /**
@@ -68,4 +69,5 @@ export interface VopResult {
   readonly iban: string;
   readonly name: string;
   readonly result: "match" | "mismatch" | "not_available";
+  readonly vop_proof_token: string;
 }

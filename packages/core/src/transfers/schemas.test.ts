@@ -95,27 +95,43 @@ describe("TransferResponseSchema", () => {
 
 describe("VopResultSchema", () => {
   it("accepts a valid VoP result", () => {
-    const result = VopResultSchema.parse({ iban: "FR76...", name: "Acme", result: "match" });
+    const result = VopResultSchema.parse({
+      iban: "FR76...",
+      name: "Acme",
+      result: "match",
+      vop_proof_token: "tok_abc123",
+    });
     expect(result.result).toBe("match");
+    expect(result.vop_proof_token).toBe("tok_abc123");
   });
 
   it("accepts all valid result values", () => {
     for (const value of ["match", "mismatch", "not_available"]) {
-      const result = VopResultSchema.parse({ iban: "FR76...", name: "Acme", result: value });
+      const result = VopResultSchema.parse({
+        iban: "FR76...",
+        name: "Acme",
+        result: value,
+        vop_proof_token: "tok_abc123",
+      });
       expect(result.result).toBe(value);
     }
   });
 
   it("rejects invalid result", () => {
-    expect(() => VopResultSchema.parse({ iban: "FR76...", name: "Acme", result: "invalid" })).toThrow();
+    expect(() =>
+      VopResultSchema.parse({ iban: "FR76...", name: "Acme", result: "invalid", vop_proof_token: "tok_abc123" }),
+    ).toThrow();
   });
 });
 
 describe("VopResultResponseSchema", () => {
   it("validates single verification response", () => {
-    const response = { verification: { iban: "FR76...", name: "Acme", result: "match" } };
+    const response = {
+      verification: { iban: "FR76...", name: "Acme", result: "match", vop_proof_token: "tok_abc123" },
+    };
     const result = VopResultResponseSchema.parse(response);
     expect(result.verification.result).toBe("match");
+    expect(result.verification.vop_proof_token).toBe("tok_abc123");
   });
 });
 
@@ -123,8 +139,8 @@ describe("BulkVopResultResponseSchema", () => {
   it("validates bulk verification response", () => {
     const response = {
       verifications: [
-        { iban: "FR76...", name: "Acme", result: "match" },
-        { iban: "DE89...", name: "Beta", result: "mismatch" },
+        { iban: "FR76...", name: "Acme", result: "match", vop_proof_token: "tok_1" },
+        { iban: "DE89...", name: "Beta", result: "mismatch", vop_proof_token: "tok_2" },
       ],
     };
     const result = BulkVopResultResponseSchema.parse(response);

@@ -40,6 +40,7 @@ export const VopResultSchema = z.object({
   iban: z.string(),
   name: z.string(),
   result: z.enum(["match", "mismatch", "not_available"]),
+  vop_proof_token: z.string(),
 }) satisfies z.ZodType<VopResult>;
 
 export const VopResultResponseSchema = z.object({

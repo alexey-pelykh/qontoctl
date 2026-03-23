@@ -90,6 +90,7 @@ export function registerTransferTools(server: McpServer, getClient: () => Promis
         currency: z.string().optional().describe("Currency code (default: EUR)"),
         note: z.string().optional().describe("Optional note"),
         scheduled_date: z.string().optional().describe("Scheduled date (YYYY-MM-DD)"),
+        vop_proof_token: z.string().describe("VoP proof token from verify-payee"),
       },
     },
     async (args) =>
@@ -100,6 +101,7 @@ export function registerTransferTools(server: McpServer, getClient: () => Promis
           reference: args.reference,
           amount: String(args.amount),
           currency: args.currency ?? "EUR",
+          vop_proof_token: args.vop_proof_token,
           ...(args.note !== undefined ? { note: args.note } : {}),
           ...(args.scheduled_date !== undefined ? { scheduled_date: args.scheduled_date } : {}),
         };
