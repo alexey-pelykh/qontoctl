@@ -7,7 +7,6 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
 import { createProgram } from "../../program.js";
-import { registerProfileCommands } from "./index.js";
 
 let mockHomeDir = "";
 
@@ -37,7 +36,6 @@ describe("profile show", () => {
 
   it("shows error when profile does not exist", async () => {
     const program = createProgram();
-    registerProfileCommands(program);
     program.exitOverride();
 
     await program.parseAsync(["profile", "show", "nonexistent"], { from: "user" });
@@ -55,7 +53,6 @@ describe("profile show", () => {
     );
 
     const program = createProgram();
-    registerProfileCommands(program);
     program.exitOverride();
 
     await program.parseAsync(["profile", "show", "work"], { from: "user" });
@@ -76,7 +73,6 @@ describe("profile show", () => {
     );
 
     const program = createProgram();
-    registerProfileCommands(program);
     program.exitOverride();
 
     await program.parseAsync(["--output", "json", "profile", "show", "dev"], { from: "user" });
@@ -97,7 +93,6 @@ describe("profile show", () => {
     await writeFile(join(configDir, "short.yaml"), "api-key:\n  organization-slug: org\n  secret-key: abc\n");
 
     const program = createProgram();
-    registerProfileCommands(program);
     program.exitOverride();
 
     await program.parseAsync(["--output", "json", "profile", "show", "short"], { from: "user" });

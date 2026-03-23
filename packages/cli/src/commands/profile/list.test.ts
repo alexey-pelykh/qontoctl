@@ -7,7 +7,6 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
 import { createProgram } from "../../program.js";
-import { registerProfileCommands } from "./index.js";
 
 let mockHomeDir = "";
 
@@ -35,7 +34,6 @@ describe("profile list", () => {
 
   it("shows 'No profiles found' when config dir does not exist", async () => {
     const program = createProgram();
-    registerProfileCommands(program);
     program.exitOverride();
 
     await program.parseAsync(["profile", "list"], { from: "user" });
@@ -47,7 +45,6 @@ describe("profile list", () => {
     await mkdir(join(testHome, ".qontoctl"), { recursive: true });
 
     const program = createProgram();
-    registerProfileCommands(program);
     program.exitOverride();
 
     await program.parseAsync(["profile", "list"], { from: "user" });
@@ -62,7 +59,6 @@ describe("profile list", () => {
     await writeFile(join(configDir, "personal.yaml"), "api-key:\n  organization-slug: org2\n  secret-key: key2\n");
 
     const program = createProgram();
-    registerProfileCommands(program);
     program.exitOverride();
 
     await program.parseAsync(["profile", "list"], { from: "user" });
@@ -79,7 +75,6 @@ describe("profile list", () => {
     await writeFile(join(configDir, "notes.txt"), "some notes");
 
     const program = createProgram();
-    registerProfileCommands(program);
     program.exitOverride();
 
     await program.parseAsync(["profile", "list"], { from: "user" });
@@ -95,7 +90,6 @@ describe("profile list", () => {
     await writeFile(join(configDir, "staging.yaml"), "api-key:\n  organization-slug: org\n  secret-key: key\n");
 
     const program = createProgram();
-    registerProfileCommands(program);
     program.exitOverride();
 
     await program.parseAsync(["--output", "json", "profile", "list"], { from: "user" });

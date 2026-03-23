@@ -7,7 +7,6 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
 import { createProgram } from "../../program.js";
-import { registerProfileCommands } from "./index.js";
 
 let mockHomeDir = "";
 let mockQuestionResponses: string[] = [];
@@ -51,7 +50,6 @@ describe("profile remove", () => {
     mockQuestionResponses = ["yes"];
 
     const program = createProgram();
-    registerProfileCommands(program);
     program.exitOverride();
 
     await program.parseAsync(["profile", "remove", "nonexistent"], { from: "user" });
@@ -69,7 +67,6 @@ describe("profile remove", () => {
     mockQuestionResponses = ["yes"];
 
     const program = createProgram();
-    registerProfileCommands(program);
     program.exitOverride();
 
     await program.parseAsync(["profile", "remove", "work"], { from: "user" });
@@ -87,7 +84,6 @@ describe("profile remove", () => {
     mockQuestionResponses = ["no"];
 
     const program = createProgram();
-    registerProfileCommands(program);
     program.exitOverride();
 
     await program.parseAsync(["profile", "remove", "work"], { from: "user" });

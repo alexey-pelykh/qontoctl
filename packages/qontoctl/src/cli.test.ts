@@ -14,7 +14,6 @@ import {
   createProgram,
   createQuoteCommand,
   createWebhookCommand,
-  registerProfileCommands,
   registerRequestCommands,
   registerStatementCommands,
   registerTransferCommands,
@@ -48,7 +47,6 @@ function createUmbrellaProgram() {
   program.addCommand(createQuoteCommand());
   program.addCommand(createWebhookCommand());
   registerRequestCommands(program);
-  registerProfileCommands(program);
   registerStatementCommands(program);
   registerTransferCommands(program);
 
@@ -81,6 +79,7 @@ describe("qontoctl CLI", () => {
       expect(names).toContain("account");
       expect(names).toContain("supplier-invoice");
       expect(names).toContain("team");
+      expect(names).toContain("profile");
 
       // Commands added by umbrella
       expect(names).toContain("attachment");
@@ -93,7 +92,6 @@ describe("qontoctl CLI", () => {
       expect(names).toContain("quote");
       expect(names).toContain("webhook");
       expect(names).toContain("request");
-      expect(names).toContain("profile");
       expect(names).toContain("statement");
       expect(names).toContain("transfer");
       expect(names).toContain("mcp");

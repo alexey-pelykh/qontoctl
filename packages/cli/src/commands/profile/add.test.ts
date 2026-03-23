@@ -7,7 +7,6 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
 import { createProgram } from "../../program.js";
-import { registerProfileCommands } from "./index.js";
 
 let mockHomeDir = "";
 let mockQuestionResponses: string[] = [];
@@ -51,7 +50,6 @@ describe("profile add", () => {
     mockQuestionResponses = ["my-org", "sk_test_12345678"];
 
     const program = createProgram();
-    registerProfileCommands(program);
     program.exitOverride();
 
     await program.parseAsync(["profile", "add", "work"], { from: "user" });
@@ -67,7 +65,6 @@ describe("profile add", () => {
     mockQuestionResponses = ["org-slug", "secret-key-value"];
 
     const program = createProgram();
-    registerProfileCommands(program);
     program.exitOverride();
 
     await program.parseAsync(["profile", "add", "new-profile"], { from: "user" });
@@ -85,7 +82,6 @@ describe("profile add", () => {
     mockQuestionResponses = ["new-org", "new-key"];
 
     const program = createProgram();
-    registerProfileCommands(program);
     program.exitOverride();
 
     await program.parseAsync(["profile", "add", "existing"], { from: "user" });
@@ -98,7 +94,6 @@ describe("profile add", () => {
     mockQuestionResponses = ["", "some-key"];
 
     const program = createProgram();
-    registerProfileCommands(program);
     program.exitOverride();
 
     await program.parseAsync(["profile", "add", "bad-profile"], { from: "user" });
@@ -111,7 +106,6 @@ describe("profile add", () => {
     mockQuestionResponses = ["my-org", ""];
 
     const program = createProgram();
-    registerProfileCommands(program);
     program.exitOverride();
 
     await program.parseAsync(["profile", "add", "bad-profile"], { from: "user" });
@@ -124,7 +118,6 @@ describe("profile add", () => {
     mockQuestionResponses = ["my-org", "my-secret"];
 
     const program = createProgram();
-    registerProfileCommands(program);
     program.exitOverride();
 
     await program.parseAsync(["profile", "add", "secure"], { from: "user" });
@@ -137,7 +130,6 @@ describe("profile add", () => {
     mockQuestionResponses = ["my-org", "my-secret"];
 
     const program = createProgram();
-    registerProfileCommands(program);
     program.exitOverride();
 
     await program.parseAsync(["profile", "add", "secure"], { from: "user" });

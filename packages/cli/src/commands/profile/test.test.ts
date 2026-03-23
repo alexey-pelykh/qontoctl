@@ -7,7 +7,6 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
 import { createProgram } from "../../program.js";
-import { registerProfileCommands } from "./index.js";
 
 let mockHomeDir = "";
 
@@ -59,7 +58,6 @@ describe("profile test", () => {
     );
 
     const program = createProgram();
-    registerProfileCommands(program);
     program.exitOverride();
 
     await program.parseAsync(["--profile", "work", "profile", "test"], { from: "user" });
@@ -84,7 +82,6 @@ describe("profile test", () => {
     );
 
     const program = createProgram();
-    registerProfileCommands(program);
     program.exitOverride();
 
     await program.parseAsync(["--profile", "bad", "profile", "test"], { from: "user" });
@@ -95,7 +92,6 @@ describe("profile test", () => {
 
   it("reports failure when no config found", async () => {
     const program = createProgram();
-    registerProfileCommands(program);
     program.exitOverride();
 
     await program.parseAsync(["--profile", "nonexistent", "profile", "test"], { from: "user" });
