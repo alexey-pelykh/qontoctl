@@ -51,7 +51,7 @@ describe("team commands", () => {
         { id: "team-1", name: "Engineering" },
         { id: "team-2", name: "Marketing" },
       ];
-      fetchSpy.mockReturnValue(
+      fetchSpy.mockImplementation(() =>
         jsonResponse({
           teams,
           meta: makeMeta({ total_count: 2 }),
@@ -74,7 +74,7 @@ describe("team commands", () => {
 
     it("lists teams in json format with full API fields", async () => {
       const teams = [{ id: "team-1", name: "Engineering" }];
-      fetchSpy.mockReturnValue(
+      fetchSpy.mockImplementation(() =>
         jsonResponse({
           teams,
           meta: makeMeta({ total_count: 1 }),
@@ -100,7 +100,7 @@ describe("team commands", () => {
     });
 
     it("passes pagination options to API", async () => {
-      fetchSpy.mockReturnValue(
+      fetchSpy.mockImplementation(() =>
         jsonResponse({
           teams: [],
           meta: makeMeta(),
@@ -119,7 +119,7 @@ describe("team commands", () => {
     });
 
     it("calls the correct API endpoint", async () => {
-      fetchSpy.mockReturnValue(
+      fetchSpy.mockImplementation(() =>
         jsonResponse({
           teams: [],
           meta: makeMeta(),
@@ -144,7 +144,7 @@ describe("team commands", () => {
     };
 
     it("creates a team in json format", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ team: createdTeam }));
+      fetchSpy.mockImplementation(() => jsonResponse({ team: createdTeam }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -160,7 +160,7 @@ describe("team commands", () => {
     });
 
     it("creates a team in table format", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ team: createdTeam }));
+      fetchSpy.mockImplementation(() => jsonResponse({ team: createdTeam }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -175,7 +175,7 @@ describe("team commands", () => {
     });
 
     it("sends POST with name body to the correct endpoint", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ team: createdTeam }));
+      fetchSpy.mockImplementation(() => jsonResponse({ team: createdTeam }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -191,7 +191,7 @@ describe("team commands", () => {
     });
 
     it("passes idempotency key when provided", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ team: createdTeam }));
+      fetchSpy.mockImplementation(() => jsonResponse({ team: createdTeam }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();

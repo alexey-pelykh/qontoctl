@@ -46,7 +46,7 @@ describe("beneficiary add command", () => {
   });
 
   it("creates a beneficiary in table format", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({ beneficiary: sampleBeneficiary }));
+    fetchSpy.mockImplementation(() => jsonResponse({ beneficiary: sampleBeneficiary }));
 
     const { createProgram } = await import("../../program.js");
     const program = createProgram();
@@ -63,7 +63,7 @@ describe("beneficiary add command", () => {
   });
 
   it("creates a beneficiary in json format", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({ beneficiary: sampleBeneficiary }));
+    fetchSpy.mockImplementation(() => jsonResponse({ beneficiary: sampleBeneficiary }));
 
     const { createProgram } = await import("../../program.js");
     const program = createProgram();
@@ -81,7 +81,7 @@ describe("beneficiary add command", () => {
   });
 
   it("sends POST to the correct endpoint with body", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({ beneficiary: sampleBeneficiary }));
+    fetchSpy.mockImplementation(() => jsonResponse({ beneficiary: sampleBeneficiary }));
 
     const { createProgram } = await import("../../program.js");
     const program = createProgram();

@@ -60,7 +60,7 @@ describe("client commands", () => {
 
   describe("client list", () => {
     it("lists clients in table format", async () => {
-      fetchSpy.mockReturnValue(
+      fetchSpy.mockImplementation(() =>
         jsonResponse({
           clients: [sampleClient],
           meta: {
@@ -88,7 +88,7 @@ describe("client commands", () => {
     });
 
     it("lists clients in json format", async () => {
-      fetchSpy.mockReturnValue(
+      fetchSpy.mockImplementation(() =>
         jsonResponse({
           clients: [sampleClient],
           meta: {
@@ -123,7 +123,7 @@ describe("client commands", () => {
 
   describe("client show", () => {
     it("shows client details in json format", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ client: sampleClient }));
+      fetchSpy.mockImplementation(() => jsonResponse({ client: sampleClient }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -141,7 +141,7 @@ describe("client commands", () => {
     });
 
     it("calls the correct API endpoint", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ client: sampleClient }));
+      fetchSpy.mockImplementation(() => jsonResponse({ client: sampleClient }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -157,7 +157,7 @@ describe("client commands", () => {
 
   describe("client create", () => {
     it("creates a company client in table format", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ client: sampleClient }));
+      fetchSpy.mockImplementation(() => jsonResponse({ client: sampleClient }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -173,7 +173,7 @@ describe("client commands", () => {
     });
 
     it("creates a client in json format", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ client: sampleClient }));
+      fetchSpy.mockImplementation(() => jsonResponse({ client: sampleClient }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -192,7 +192,7 @@ describe("client commands", () => {
     });
 
     it("sends POST with flat body to the correct endpoint", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ client: sampleClient }));
+      fetchSpy.mockImplementation(() => jsonResponse({ client: sampleClient }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -216,7 +216,7 @@ describe("client commands", () => {
     });
 
     it("passes idempotency key when provided", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ client: sampleClient }));
+      fetchSpy.mockImplementation(() => jsonResponse({ client: sampleClient }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -236,7 +236,7 @@ describe("client commands", () => {
 
   describe("client update", () => {
     it("updates a client in json format", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ client: { ...sampleClient, name: "Acme Inc" } }));
+      fetchSpy.mockImplementation(() => jsonResponse({ client: { ...sampleClient, name: "Acme Inc" } }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -255,7 +255,7 @@ describe("client commands", () => {
     });
 
     it("sends PATCH with flat body to the correct endpoint", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ client: sampleClient }));
+      fetchSpy.mockImplementation(() => jsonResponse({ client: sampleClient }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -279,7 +279,7 @@ describe("client commands", () => {
 
   describe("client delete", () => {
     it("deletes a client with --yes flag", async () => {
-      fetchSpy.mockReturnValue(new Response(null, { status: 204 }));
+      fetchSpy.mockImplementation(() => Promise.resolve(new Response(null, { status: 204 })));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -296,7 +296,7 @@ describe("client commands", () => {
     });
 
     it("sends DELETE to the correct endpoint", async () => {
-      fetchSpy.mockReturnValue(new Response(null, { status: 204 }));
+      fetchSpy.mockImplementation(() => Promise.resolve(new Response(null, { status: 204 })));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();

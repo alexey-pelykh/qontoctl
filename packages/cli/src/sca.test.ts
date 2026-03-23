@@ -55,7 +55,7 @@ describe("executeWithCliSca", () => {
   });
 
   it("starts spinner when SCA is required", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "allow" } }));
+    fetchSpy.mockImplementation(() => jsonResponse({ sca_session: { status: "allow" } }));
     const mockSpin = createMockSpinner();
     let called = false;
 
@@ -75,7 +75,7 @@ describe("executeWithCliSca", () => {
   });
 
   it("stops spinner with success message on approval", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "allow" } }));
+    fetchSpy.mockImplementation(() => jsonResponse({ sca_session: { status: "allow" } }));
     const mockSpin = createMockSpinner();
     let called = false;
 
@@ -119,7 +119,7 @@ describe("executeWithCliSca", () => {
   });
 
   it("stops spinner with error message on timeout", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "waiting" } }));
+    fetchSpy.mockImplementation(() => jsonResponse({ sca_session: { status: "waiting" } }));
     const mockSpin = createMockSpinner();
     let called = false;
 
@@ -144,7 +144,7 @@ describe("executeWithCliSca", () => {
   });
 
   it("stops spinner with error message on denial", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "deny" } }));
+    fetchSpy.mockImplementation(() => jsonResponse({ sca_session: { status: "deny" } }));
     const mockSpin = createMockSpinner();
     let called = false;
 
@@ -166,7 +166,7 @@ describe("executeWithCliSca", () => {
   });
 
   it("retries original operation with SCA token after approval", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "allow" } }));
+    fetchSpy.mockImplementation(() => jsonResponse({ sca_session: { status: "allow" } }));
     const mockSpin = createMockSpinner();
     let callCount = 0;
 

@@ -49,7 +49,7 @@ describe("transaction attachment commands", () => {
 
   describe("transaction attachment list", () => {
     it("lists attachments for a transaction in table format", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ attachments: [sampleAttachment] }));
+      fetchSpy.mockImplementation(() => jsonResponse({ attachments: [sampleAttachment] }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -64,7 +64,7 @@ describe("transaction attachment commands", () => {
     });
 
     it("lists attachments in json format", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ attachments: [sampleAttachment] }));
+      fetchSpy.mockImplementation(() => jsonResponse({ attachments: [sampleAttachment] }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -80,7 +80,7 @@ describe("transaction attachment commands", () => {
     });
 
     it("sends GET to the correct API endpoint", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ attachments: [sampleAttachment] }));
+      fetchSpy.mockImplementation(() => jsonResponse({ attachments: [sampleAttachment] }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -96,7 +96,7 @@ describe("transaction attachment commands", () => {
 
   describe("transaction attachment add", () => {
     it("attaches a file to a transaction via multipart form-data", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ attachment: sampleAttachment }));
+      fetchSpy.mockImplementation(() => jsonResponse({ attachment: sampleAttachment }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -115,7 +115,7 @@ describe("transaction attachment commands", () => {
     });
 
     it("prints success to stderr when API returns no attachment data", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({}));
+      fetchSpy.mockImplementation(() => jsonResponse({}));
       const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation((() => true) as never);
 
       const { createProgram } = await import("../../program.js");
@@ -132,7 +132,7 @@ describe("transaction attachment commands", () => {
 
   describe("transaction attachment remove (specific)", () => {
     it("removes a specific attachment from a transaction", async () => {
-      fetchSpy.mockReturnValue(Promise.resolve(new Response(null, { status: 204 })));
+      fetchSpy.mockImplementation(() => Promise.resolve(new Response(null, { status: 204 })));
       const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation((() => true) as never);
 
       const { createProgram } = await import("../../program.js");
@@ -154,7 +154,7 @@ describe("transaction attachment commands", () => {
     it("removes all attachments when user confirms", async () => {
       vi.mocked(confirm).mockResolvedValue(true);
       vi.mocked(isCancel).mockReturnValue(false);
-      fetchSpy.mockReturnValue(Promise.resolve(new Response(null, { status: 204 })));
+      fetchSpy.mockImplementation(() => Promise.resolve(new Response(null, { status: 204 })));
       const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation((() => true) as never);
 
       const { createProgram } = await import("../../program.js");

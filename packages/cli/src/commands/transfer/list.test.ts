@@ -48,7 +48,7 @@ describe("transfer list command", () => {
   }
 
   it("sends request to /v2/sepa/transfers", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({ transfers: [], meta: makeMeta() }));
+    fetchSpy.mockImplementation(() => jsonResponse({ transfers: [], meta: makeMeta() }));
 
     await runCommand();
 
@@ -58,7 +58,7 @@ describe("transfer list command", () => {
   });
 
   it("passes status filter as array param", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({ transfers: [], meta: makeMeta() }));
+    fetchSpy.mockImplementation(() => jsonResponse({ transfers: [], meta: makeMeta() }));
 
     await runCommand("--status", "pending", "settled");
 
@@ -67,7 +67,7 @@ describe("transfer list command", () => {
   });
 
   it("passes beneficiary filter", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({ transfers: [], meta: makeMeta() }));
+    fetchSpy.mockImplementation(() => jsonResponse({ transfers: [], meta: makeMeta() }));
 
     await runCommand("--beneficiary", "ben-123");
 
@@ -76,7 +76,7 @@ describe("transfer list command", () => {
   });
 
   it("passes date range and sort params", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({ transfers: [], meta: makeMeta() }));
+    fetchSpy.mockImplementation(() => jsonResponse({ transfers: [], meta: makeMeta() }));
 
     await runCommand("--from", "2025-01-01", "--to", "2025-01-31", "--sort-by", "updated_at:desc");
 
@@ -97,7 +97,7 @@ describe("transfer list command", () => {
         reference: "Invoice 001",
       },
     ];
-    fetchSpy.mockReturnValue(jsonResponse({ transfers, meta: makeMeta({ total_count: 1 }) }));
+    fetchSpy.mockImplementation(() => jsonResponse({ transfers, meta: makeMeta({ total_count: 1 }) }));
 
     await runCommand("--output", "json");
 
@@ -120,7 +120,7 @@ describe("transfer list command", () => {
         note: "should-not-appear-in-table",
       },
     ];
-    fetchSpy.mockReturnValue(jsonResponse({ transfers, meta: makeMeta({ total_count: 1 }) }));
+    fetchSpy.mockImplementation(() => jsonResponse({ transfers, meta: makeMeta({ total_count: 1 }) }));
 
     await runCommand("--output", "table");
 

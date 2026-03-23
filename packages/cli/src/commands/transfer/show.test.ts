@@ -57,7 +57,7 @@ describe("transfer show command", () => {
   };
 
   it("fetches a transfer by ID", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({ transfer: completeTransfer }));
+    fetchSpy.mockImplementation(() => jsonResponse({ transfer: completeTransfer }));
 
     await runCommand("txfr-123", "--output", "json");
 
@@ -71,7 +71,7 @@ describe("transfer show command", () => {
 
   it("outputs yaml format for single transfer", async () => {
     const transfer = { ...completeTransfer, id: "txfr-1", amount: 1500, reference: "Office Rent" };
-    fetchSpy.mockReturnValue(jsonResponse({ transfer }));
+    fetchSpy.mockImplementation(() => jsonResponse({ transfer }));
 
     await runCommand("txfr-1", "--output", "yaml");
 
@@ -81,7 +81,7 @@ describe("transfer show command", () => {
   });
 
   it("calls the correct API endpoint with encoded ID", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({ transfer: { ...completeTransfer, id: "a/b" } }));
+    fetchSpy.mockImplementation(() => jsonResponse({ transfer: { ...completeTransfer, id: "a/b" } }));
 
     await runCommand("a/b", "--output", "json");
 

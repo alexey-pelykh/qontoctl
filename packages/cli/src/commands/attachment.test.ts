@@ -44,7 +44,7 @@ describe("attachment commands", () => {
 
   describe("attachment show", () => {
     it("shows attachment details in table format", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ attachment: sampleAttachment }));
+      fetchSpy.mockImplementation(() => jsonResponse({ attachment: sampleAttachment }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -60,7 +60,7 @@ describe("attachment commands", () => {
     });
 
     it("shows attachment details in json format", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ attachment: sampleAttachment }));
+      fetchSpy.mockImplementation(() => jsonResponse({ attachment: sampleAttachment }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -79,7 +79,7 @@ describe("attachment commands", () => {
     });
 
     it("sends GET to the correct API endpoint", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ attachment: sampleAttachment }));
+      fetchSpy.mockImplementation(() => jsonResponse({ attachment: sampleAttachment }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -96,7 +96,7 @@ describe("attachment commands", () => {
 
   describe("attachment upload", () => {
     it("uploads a file via multipart form-data", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ attachment: sampleAttachment }));
+      fetchSpy.mockImplementation(() => jsonResponse({ attachment: sampleAttachment }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -117,7 +117,7 @@ describe("attachment commands", () => {
     });
 
     it("passes idempotency key when provided", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ attachment: sampleAttachment }));
+      fetchSpy.mockImplementation(() => jsonResponse({ attachment: sampleAttachment }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();

@@ -33,7 +33,7 @@ describe("supplier-invoice show command", () => {
   });
 
   it("shows a supplier invoice in table format", async () => {
-    fetchSpy.mockReturnValue(
+    fetchSpy.mockImplementation(() =>
       jsonResponse({
         supplier_invoice: {
           id: "inv-1",
@@ -100,7 +100,7 @@ describe("supplier-invoice show command", () => {
       created_at: "2026-03-01T00:00:00.000Z",
       updated_at: "2026-03-01T00:00:00.000Z",
     };
-    fetchSpy.mockReturnValue(jsonResponse({ supplier_invoice: invoice }));
+    fetchSpy.mockImplementation(() => jsonResponse({ supplier_invoice: invoice }));
 
     const { createProgram } = await import("../../program.js");
     const program = createProgram();
@@ -116,7 +116,7 @@ describe("supplier-invoice show command", () => {
   });
 
   it("handles null total_amount in table format", async () => {
-    fetchSpy.mockReturnValue(
+    fetchSpy.mockImplementation(() =>
       jsonResponse({
         supplier_invoice: {
           id: "inv-2",
@@ -155,7 +155,7 @@ describe("supplier-invoice show command", () => {
   });
 
   it("calls the correct API endpoint", async () => {
-    fetchSpy.mockReturnValue(
+    fetchSpy.mockImplementation(() =>
       jsonResponse({
         supplier_invoice: {
           id: "inv-1",

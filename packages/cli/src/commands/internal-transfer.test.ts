@@ -49,7 +49,7 @@ describe("internal-transfer commands", () => {
 
   describe("internal-transfer create", () => {
     it("creates an internal transfer in table format", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ internal_transfer: sampleInternalTransfer }));
+      fetchSpy.mockImplementation(() => jsonResponse({ internal_transfer: sampleInternalTransfer }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -79,7 +79,7 @@ describe("internal-transfer commands", () => {
     });
 
     it("creates an internal transfer in json format", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ internal_transfer: sampleInternalTransfer }));
+      fetchSpy.mockImplementation(() => jsonResponse({ internal_transfer: sampleInternalTransfer }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -116,7 +116,7 @@ describe("internal-transfer commands", () => {
     });
 
     it("sends POST to the correct API endpoint with body", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ internal_transfer: sampleInternalTransfer }));
+      fetchSpy.mockImplementation(() => jsonResponse({ internal_transfer: sampleInternalTransfer }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -155,7 +155,7 @@ describe("internal-transfer commands", () => {
     });
 
     it("passes idempotency key when provided", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ internal_transfer: sampleInternalTransfer }));
+      fetchSpy.mockImplementation(() => jsonResponse({ internal_transfer: sampleInternalTransfer }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -186,7 +186,7 @@ describe("internal-transfer commands", () => {
     });
 
     it("defaults currency to EUR", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ internal_transfer: sampleInternalTransfer }));
+      fetchSpy.mockImplementation(() => jsonResponse({ internal_transfer: sampleInternalTransfer }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();

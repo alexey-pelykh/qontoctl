@@ -45,7 +45,7 @@ describe("beneficiary show command", () => {
       created_at: "2025-01-01T00:00:00.000Z",
       updated_at: "2025-01-01T00:00:00.000Z",
     };
-    fetchSpy.mockReturnValue(jsonResponse({ beneficiary }));
+    fetchSpy.mockImplementation(() => jsonResponse({ beneficiary }));
 
     const { createProgram } = await import("../../program.js");
     const program = createProgram();
@@ -72,7 +72,7 @@ describe("beneficiary show command", () => {
       created_at: "2025-01-01T00:00:00.000Z",
       updated_at: "2025-01-01T00:00:00.000Z",
     };
-    fetchSpy.mockReturnValue(jsonResponse({ beneficiary }));
+    fetchSpy.mockImplementation(() => jsonResponse({ beneficiary }));
 
     const { createProgram } = await import("../../program.js");
     const program = createProgram();
@@ -87,7 +87,7 @@ describe("beneficiary show command", () => {
   });
 
   it("calls the correct API endpoint", async () => {
-    fetchSpy.mockReturnValue(
+    fetchSpy.mockImplementation(() =>
       jsonResponse({
         beneficiary: {
           id: "ben-1",

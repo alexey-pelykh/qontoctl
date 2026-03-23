@@ -46,7 +46,7 @@ describe("profile test", () => {
       "api-key:\n  organization-slug: my-org\n  secret-key: sk_test_1234\n",
     );
 
-    fetchSpy.mockReturnValue(
+    fetchSpy.mockImplementation(() =>
       Promise.resolve(
         new Response(
           JSON.stringify({
@@ -70,7 +70,7 @@ describe("profile test", () => {
     await mkdir(configDir, { recursive: true });
     await writeFile(join(configDir, "bad.yaml"), "api-key:\n  organization-slug: bad-org\n  secret-key: sk_invalid\n");
 
-    fetchSpy.mockReturnValue(
+    fetchSpy.mockImplementation(() =>
       Promise.resolve(
         new Response(
           JSON.stringify({

@@ -130,7 +130,7 @@ describe("card commands", () => {
   describe("card list", () => {
     it("lists cards in table format", async () => {
       const cards = [makeCard(), makeCard({ id: "card-2", nickname: "Second Card", status: "paused" })];
-      fetchSpy.mockReturnValue(
+      fetchSpy.mockImplementation(() =>
         jsonResponse({
           cards,
           meta: makeMeta({ total_count: 2 }),
@@ -153,7 +153,7 @@ describe("card commands", () => {
 
     it("lists cards in json format", async () => {
       const cards = [makeCard()];
-      fetchSpy.mockReturnValue(
+      fetchSpy.mockImplementation(() =>
         jsonResponse({
           cards,
           meta: makeMeta({ total_count: 1 }),
@@ -173,7 +173,7 @@ describe("card commands", () => {
     });
 
     it("passes filter options as query params", async () => {
-      fetchSpy.mockReturnValue(
+      fetchSpy.mockImplementation(() =>
         jsonResponse({
           cards: [],
           meta: makeMeta(),
@@ -215,7 +215,7 @@ describe("card commands", () => {
     });
 
     it("calls the correct API endpoint", async () => {
-      fetchSpy.mockReturnValue(
+      fetchSpy.mockImplementation(() =>
         jsonResponse({
           cards: [],
           meta: makeMeta(),
@@ -236,7 +236,7 @@ describe("card commands", () => {
   describe("card create", () => {
     it("creates a card and outputs in table format", async () => {
       const card = makeCard({ status: "pending" });
-      fetchSpy.mockReturnValue(jsonResponse({ card }));
+      fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -267,7 +267,7 @@ describe("card commands", () => {
 
     it("sends POST to the correct endpoint with card params", async () => {
       const card = makeCard();
-      fetchSpy.mockReturnValue(jsonResponse({ card }));
+      fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -308,7 +308,7 @@ describe("card commands", () => {
 
     it("outputs json format when requested", async () => {
       const card = makeCard({ status: "pending" });
-      fetchSpy.mockReturnValue(jsonResponse({ card }));
+      fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -342,7 +342,7 @@ describe("card commands", () => {
 
     it("sends optional params when provided", async () => {
       const card = makeCard();
-      fetchSpy.mockReturnValue(jsonResponse({ card }));
+      fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -436,7 +436,7 @@ describe("card commands", () => {
   describe("card bulk-create", () => {
     it("bulk creates cards from a JSON file", async () => {
       const cards = [makeCard({ id: "card-a" }), makeCard({ id: "card-b" })];
-      fetchSpy.mockReturnValue(jsonResponse({ cards }));
+      fetchSpy.mockImplementation(() => jsonResponse({ cards }));
 
       const { readFile } = await import("node:fs/promises");
       const readFileMock = vi.mocked(readFile);
@@ -467,7 +467,7 @@ describe("card commands", () => {
 
     it("outputs json format when requested", async () => {
       const cards = [makeCard({ id: "card-a" })];
-      fetchSpy.mockReturnValue(jsonResponse({ cards }));
+      fetchSpy.mockImplementation(() => jsonResponse({ cards }));
 
       const { readFile } = await import("node:fs/promises");
       const readFileMock = vi.mocked(readFile);
@@ -499,7 +499,7 @@ describe("card commands", () => {
   describe("card lock", () => {
     it("locks a card and outputs result", async () => {
       const card = makeCard({ status: "paused" });
-      fetchSpy.mockReturnValue(jsonResponse({ card }));
+      fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -515,7 +515,7 @@ describe("card commands", () => {
 
     it("calls the correct API endpoint for lock", async () => {
       const card = makeCard({ status: "paused" });
-      fetchSpy.mockReturnValue(jsonResponse({ card }));
+      fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -530,7 +530,7 @@ describe("card commands", () => {
 
     it("outputs json format when requested", async () => {
       const card = makeCard({ status: "paused" });
-      fetchSpy.mockReturnValue(jsonResponse({ card }));
+      fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -549,7 +549,7 @@ describe("card commands", () => {
   describe("card unlock", () => {
     it("unlocks a card and outputs result", async () => {
       const card = makeCard({ status: "live" });
-      fetchSpy.mockReturnValue(jsonResponse({ card }));
+      fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -565,7 +565,7 @@ describe("card commands", () => {
 
     it("calls the correct API endpoint for unlock", async () => {
       const card = makeCard({ status: "live" });
-      fetchSpy.mockReturnValue(jsonResponse({ card }));
+      fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -580,7 +580,7 @@ describe("card commands", () => {
 
     it("outputs json format when requested", async () => {
       const card = makeCard({ status: "live" });
-      fetchSpy.mockReturnValue(jsonResponse({ card }));
+      fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -599,7 +599,7 @@ describe("card commands", () => {
   describe("card report-lost", () => {
     it("reports a card as lost with --yes flag", async () => {
       const card = makeCard({ status: "lost" });
-      fetchSpy.mockReturnValue(jsonResponse({ card }));
+      fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -629,7 +629,7 @@ describe("card commands", () => {
 
     it("calls the correct API endpoint for report-lost", async () => {
       const card = makeCard({ status: "lost" });
-      fetchSpy.mockReturnValue(jsonResponse({ card }));
+      fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -644,7 +644,7 @@ describe("card commands", () => {
 
     it("outputs json format when requested", async () => {
       const card = makeCard({ status: "lost" });
-      fetchSpy.mockReturnValue(jsonResponse({ card }));
+      fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -662,7 +662,7 @@ describe("card commands", () => {
   describe("card report-stolen", () => {
     it("reports a card as stolen with --yes flag", async () => {
       const card = makeCard({ status: "stolen" });
-      fetchSpy.mockReturnValue(jsonResponse({ card }));
+      fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -692,7 +692,7 @@ describe("card commands", () => {
 
     it("calls the correct API endpoint for report-stolen", async () => {
       const card = makeCard({ status: "stolen" });
-      fetchSpy.mockReturnValue(jsonResponse({ card }));
+      fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -707,7 +707,7 @@ describe("card commands", () => {
 
     it("outputs json format when requested", async () => {
       const card = makeCard({ status: "stolen" });
-      fetchSpy.mockReturnValue(jsonResponse({ card }));
+      fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -725,7 +725,7 @@ describe("card commands", () => {
   describe("card discard", () => {
     it("discards a card with --yes flag", async () => {
       const card = makeCard({ status: "discarded" });
-      fetchSpy.mockReturnValue(jsonResponse({ card }));
+      fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -755,7 +755,7 @@ describe("card commands", () => {
 
     it("calls the correct API endpoint for discard", async () => {
       const card = makeCard({ status: "discarded" });
-      fetchSpy.mockReturnValue(jsonResponse({ card }));
+      fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -770,7 +770,7 @@ describe("card commands", () => {
 
     it("outputs json format when requested", async () => {
       const card = makeCard({ status: "discarded" });
-      fetchSpy.mockReturnValue(jsonResponse({ card }));
+      fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -788,7 +788,7 @@ describe("card commands", () => {
   describe("card update-limits", () => {
     it("updates card limits and outputs result", async () => {
       const card = makeCard({ payment_monthly_limit: 3000 });
-      fetchSpy.mockReturnValue(jsonResponse({ card }));
+      fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -805,7 +805,7 @@ describe("card commands", () => {
 
     it("sends PATCH to the correct endpoint with limit params", async () => {
       const card = makeCard({ payment_monthly_limit: 3000 });
-      fetchSpy.mockReturnValue(jsonResponse({ card }));
+      fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -824,7 +824,7 @@ describe("card commands", () => {
 
     it("outputs json format when requested", async () => {
       const card = makeCard({ payment_monthly_limit: 3000 });
-      fetchSpy.mockReturnValue(jsonResponse({ card }));
+      fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -843,7 +843,7 @@ describe("card commands", () => {
 
     it("sends all limit params when provided", async () => {
       const card = makeCard();
-      fetchSpy.mockReturnValue(jsonResponse({ card }));
+      fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -897,7 +897,7 @@ describe("card commands", () => {
   describe("card update-nickname", () => {
     it("updates card nickname and outputs result", async () => {
       const card = makeCard({ nickname: "New Name" });
-      fetchSpy.mockReturnValue(jsonResponse({ card }));
+      fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -913,7 +913,7 @@ describe("card commands", () => {
 
     it("sends PATCH to the correct endpoint with nickname", async () => {
       const card = makeCard({ nickname: "New Name" });
-      fetchSpy.mockReturnValue(jsonResponse({ card }));
+      fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -930,7 +930,7 @@ describe("card commands", () => {
 
     it("outputs json format when requested", async () => {
       const card = makeCard({ nickname: "New Name" });
-      fetchSpy.mockReturnValue(jsonResponse({ card }));
+      fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -951,7 +951,7 @@ describe("card commands", () => {
   describe("card update-options", () => {
     it("updates card options and outputs result", async () => {
       const card = makeCard({ atm_option: false, nfc_option: true, online_option: true, foreign_option: false });
-      fetchSpy.mockReturnValue(jsonResponse({ card }));
+      fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -981,7 +981,7 @@ describe("card commands", () => {
 
     it("sends PATCH to the correct endpoint with option params", async () => {
       const card = makeCard();
-      fetchSpy.mockReturnValue(jsonResponse({ card }));
+      fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -1020,7 +1020,7 @@ describe("card commands", () => {
 
     it("outputs json format when requested", async () => {
       const card = makeCard();
-      fetchSpy.mockReturnValue(jsonResponse({ card }));
+      fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -1055,7 +1055,7 @@ describe("card commands", () => {
   describe("card update-restrictions", () => {
     it("updates card restrictions and outputs result", async () => {
       const card = makeCard({ active_days: [1, 2, 3], categories: ["transport"] });
-      fetchSpy.mockReturnValue(jsonResponse({ card }));
+      fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -1073,7 +1073,7 @@ describe("card commands", () => {
 
     it("sends PATCH to the correct endpoint with restriction params", async () => {
       const card = makeCard({ active_days: [1, 2, 3], categories: ["transport"] });
-      fetchSpy.mockReturnValue(jsonResponse({ card }));
+      fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -1098,7 +1098,7 @@ describe("card commands", () => {
 
     it("outputs json format when requested", async () => {
       const card = makeCard({ active_days: [1, 2, 3], categories: ["transport"] });
-      fetchSpy.mockReturnValue(jsonResponse({ card }));
+      fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -1130,7 +1130,7 @@ describe("card commands", () => {
 
   describe("card iframe-url", () => {
     it("gets iframe url and outputs result", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ iframe_url: "https://secure.qonto.com/iframe/card-1" }));
+      fetchSpy.mockImplementation(() => jsonResponse({ iframe_url: "https://secure.qonto.com/iframe/card-1" }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -1144,7 +1144,7 @@ describe("card commands", () => {
     });
 
     it("calls the correct API endpoint for iframe-url", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ iframe_url: "https://secure.qonto.com/iframe/card-1" }));
+      fetchSpy.mockImplementation(() => jsonResponse({ iframe_url: "https://secure.qonto.com/iframe/card-1" }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -1157,7 +1157,7 @@ describe("card commands", () => {
     });
 
     it("outputs json format when requested", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ iframe_url: "https://secure.qonto.com/iframe/card-1" }));
+      fetchSpy.mockImplementation(() => jsonResponse({ iframe_url: "https://secure.qonto.com/iframe/card-1" }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -1197,7 +1197,7 @@ describe("card commands", () => {
           ],
         },
       ];
-      fetchSpy.mockReturnValue(jsonResponse({ card_type_appearances: appearances }));
+      fetchSpy.mockImplementation(() => jsonResponse({ card_type_appearances: appearances }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -1213,7 +1213,7 @@ describe("card commands", () => {
     });
 
     it("calls the correct API endpoint for appearances", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ card_type_appearances: [] }));
+      fetchSpy.mockImplementation(() => jsonResponse({ card_type_appearances: [] }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();
@@ -1249,7 +1249,7 @@ describe("card commands", () => {
           ],
         },
       ];
-      fetchSpy.mockReturnValue(jsonResponse({ card_type_appearances: appearances }));
+      fetchSpy.mockImplementation(() => jsonResponse({ card_type_appearances: appearances }));
 
       const { createProgram } = await import("../../program.js");
       const program = createProgram();

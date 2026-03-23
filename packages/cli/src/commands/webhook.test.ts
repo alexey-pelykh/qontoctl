@@ -71,7 +71,7 @@ describe("webhook commands", () => {
           updated_at: "2026-01-02T00:00:00Z",
         },
       ];
-      fetchSpy.mockReturnValue(
+      fetchSpy.mockImplementation(() =>
         jsonResponse({
           webhook_subscriptions: webhooks,
           meta: makeMeta({ total_count: 2 }),
@@ -105,7 +105,7 @@ describe("webhook commands", () => {
           updated_at: "2026-01-01T00:00:00Z",
         },
       ];
-      fetchSpy.mockReturnValue(
+      fetchSpy.mockImplementation(() =>
         jsonResponse({
           webhook_subscriptions: webhooks,
           meta: makeMeta({ total_count: 1 }),
@@ -137,7 +137,7 @@ describe("webhook commands", () => {
     });
 
     it("passes pagination options to API", async () => {
-      fetchSpy.mockReturnValue(
+      fetchSpy.mockImplementation(() =>
         jsonResponse({
           webhook_subscriptions: [],
           meta: makeMeta(),
@@ -157,7 +157,7 @@ describe("webhook commands", () => {
     });
 
     it("calls the correct API endpoint", async () => {
-      fetchSpy.mockReturnValue(
+      fetchSpy.mockImplementation(() =>
         jsonResponse({
           webhook_subscriptions: [],
           meta: makeMeta(),
@@ -188,7 +188,7 @@ describe("webhook commands", () => {
     };
 
     it("shows webhook details in json format", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ webhook_subscription: sampleWebhook }));
+      fetchSpy.mockImplementation(() => jsonResponse({ webhook_subscription: sampleWebhook }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -207,7 +207,7 @@ describe("webhook commands", () => {
     });
 
     it("shows webhook details in table format", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ webhook_subscription: sampleWebhook }));
+      fetchSpy.mockImplementation(() => jsonResponse({ webhook_subscription: sampleWebhook }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -225,7 +225,7 @@ describe("webhook commands", () => {
     });
 
     it("calls the correct API endpoint", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ webhook_subscription: sampleWebhook }));
+      fetchSpy.mockImplementation(() => jsonResponse({ webhook_subscription: sampleWebhook }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -251,7 +251,7 @@ describe("webhook commands", () => {
     };
 
     it("creates a webhook in json format", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ webhook_subscription: createdWebhook }));
+      fetchSpy.mockImplementation(() => jsonResponse({ webhook_subscription: createdWebhook }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -282,7 +282,7 @@ describe("webhook commands", () => {
     });
 
     it("sends POST to the correct endpoint with body", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ webhook_subscription: createdWebhook }));
+      fetchSpy.mockImplementation(() => jsonResponse({ webhook_subscription: createdWebhook }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -305,7 +305,7 @@ describe("webhook commands", () => {
     });
 
     it("passes idempotency key when provided", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ webhook_subscription: createdWebhook }));
+      fetchSpy.mockImplementation(() => jsonResponse({ webhook_subscription: createdWebhook }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -344,7 +344,7 @@ describe("webhook commands", () => {
     };
 
     it("updates a webhook in json format", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ webhook_subscription: updatedWebhook }));
+      fetchSpy.mockImplementation(() => jsonResponse({ webhook_subscription: updatedWebhook }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -364,7 +364,7 @@ describe("webhook commands", () => {
     });
 
     it("sends PUT to the correct endpoint with body", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ webhook_subscription: updatedWebhook }));
+      fetchSpy.mockImplementation(() => jsonResponse({ webhook_subscription: updatedWebhook }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -398,7 +398,7 @@ describe("webhook commands", () => {
 
   describe("webhook delete", () => {
     it("deletes a webhook with --yes flag", async () => {
-      fetchSpy.mockReturnValue(new Response(null, { status: 204 }));
+      fetchSpy.mockImplementation(() => Promise.resolve(new Response(null, { status: 204 })));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -417,7 +417,7 @@ describe("webhook commands", () => {
     });
 
     it("sends DELETE to the correct endpoint", async () => {
-      fetchSpy.mockReturnValue(new Response(null, { status: 204 }));
+      fetchSpy.mockImplementation(() => Promise.resolve(new Response(null, { status: 204 })));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();

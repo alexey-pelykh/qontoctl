@@ -130,7 +130,7 @@ describe("registerAccountCommands", () => {
   describe("account list", () => {
     it("lists bank accounts in table format", async () => {
       const accounts = [makeAccount(), makeAccount({ id: "acc-2", name: "Savings", balance: 5000 })];
-      fetchSpy.mockReturnValue(
+      fetchSpy.mockImplementation(() =>
         jsonResponse({
           bank_accounts: accounts,
           meta: makeMeta({ total_count: 2 }),
@@ -161,7 +161,7 @@ describe("registerAccountCommands", () => {
 
     it("lists bank accounts in json format", async () => {
       const accounts = [makeAccount()];
-      fetchSpy.mockReturnValue(
+      fetchSpy.mockImplementation(() =>
         jsonResponse({
           bank_accounts: accounts,
           meta: makeMeta({ total_count: 1 }),
