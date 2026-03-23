@@ -43,12 +43,12 @@ export function buildBeneficiaryQueryParams(params: ListBeneficiariesParams): Qu
  */
 export async function listBeneficiaries(
   client: HttpClient,
-  params?: ListBeneficiariesParams & { current_page?: number; per_page?: number },
+  params?: ListBeneficiariesParams & { page?: number; per_page?: number },
 ): Promise<{ beneficiaries: Beneficiary[]; meta: PaginationMeta }> {
   const query: Record<string, string | readonly string[]> = {};
   if (params) {
     Object.assign(query, buildBeneficiaryQueryParams(params));
-    if (params.current_page !== undefined) query["current_page"] = String(params.current_page);
+    if (params.page !== undefined) query["page"] = String(params.page);
     if (params.per_page !== undefined) query["per_page"] = String(params.per_page);
   }
   const endpointPath = "/v2/sepa/beneficiaries";

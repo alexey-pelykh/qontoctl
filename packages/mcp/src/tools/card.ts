@@ -63,7 +63,7 @@ export function registerCardTools(server: McpServer, getClient: () => Promise<Ht
           .optional()
           .describe("Filter by card level"),
         sort_by: z.string().optional().describe("Sort order (e.g. status:asc, created_at:desc)"),
-        current_page: z.number().int().positive().optional().describe("Page number"),
+        page: z.number().int().positive().optional().describe("Page number"),
         per_page: z.number().int().positive().max(100).optional().describe("Items per page (max 100)"),
       },
     },
@@ -78,7 +78,7 @@ export function registerCardTools(server: McpServer, getClient: () => Promise<Ht
             : {}),
           ...(args.card_levels !== undefined && args.card_levels.length > 0 ? { card_levels: args.card_levels } : {}),
           ...(args.sort_by !== undefined ? { sort_by: args.sort_by } : {}),
-          ...(args.current_page !== undefined ? { current_page: args.current_page } : {}),
+          ...(args.page !== undefined ? { page: args.page } : {}),
           ...(args.per_page !== undefined ? { per_page: args.per_page } : {}),
         });
 

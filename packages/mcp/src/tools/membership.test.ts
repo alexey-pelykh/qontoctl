@@ -81,11 +81,11 @@ describe("membership MCP tools", () => {
 
       await mcpClient.callTool({
         name: "membership_list",
-        arguments: { current_page: 3, per_page: 25 },
+        arguments: { page: 3, per_page: 25 },
       });
 
       const [url] = fetchSpy.mock.calls[0] as [URL];
-      expect(url.searchParams.get("current_page")).toBe("3");
+      expect(url.searchParams.get("page")).toBe("3");
       expect(url.searchParams.get("per_page")).toBe("25");
     });
 

@@ -33,7 +33,7 @@ export function registerTransactionTools(server: McpServer, getClient: () => Pro
           .optional()
           .describe("Filter by operation type (card, transfer, income, direct_debit, etc.)"),
         sort_by: z.string().optional().describe("Sort order (e.g. settled_at:desc, created_at:asc)"),
-        current_page: z.number().int().positive().optional().describe("Page number (default: 1)"),
+        page: z.number().int().positive().optional().describe("Page number (default: 1)"),
         per_page: z.number().int().positive().max(100).optional().describe("Results per page (default: 100, max: 100)"),
       },
     },
@@ -61,7 +61,7 @@ export function registerTransactionTools(server: McpServer, getClient: () => Pro
           ...(args.sort_by !== undefined ? { sort_by: args.sort_by } : {}),
           ...(args.status !== undefined ? { status: [args.status] } : {}),
           ...(args.operation_type !== undefined ? { operation_type: [args.operation_type] } : {}),
-          ...(args.current_page !== undefined ? { current_page: args.current_page } : {}),
+          ...(args.page !== undefined ? { page: args.page } : {}),
           ...(args.per_page !== undefined ? { per_page: args.per_page } : {}),
         });
         return {

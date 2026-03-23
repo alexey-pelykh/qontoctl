@@ -19,7 +19,7 @@ export function registerStatementTools(server: McpServer, getClient: () => Promi
         bank_account_id: z.string().optional().describe("Filter by bank account ID"),
         period_from: z.string().optional().describe("Start period (MM-YYYY)"),
         period_to: z.string().optional().describe("End period (MM-YYYY)"),
-        current_page: z.number().int().positive().optional().describe("Page number"),
+        page: z.number().int().positive().optional().describe("Page number"),
         per_page: z.number().int().positive().max(100).optional().describe("Items per page (max 100)"),
       },
     },
@@ -36,8 +36,8 @@ export function registerStatementTools(server: McpServer, getClient: () => Promi
         if (args.period_to !== undefined) {
           params["period_to"] = args.period_to;
         }
-        if (args.current_page !== undefined) {
-          params["current_page"] = String(args.current_page);
+        if (args.page !== undefined) {
+          params["page"] = String(args.page);
         }
         if (args.per_page !== undefined) {
           params["per_page"] = String(args.per_page);

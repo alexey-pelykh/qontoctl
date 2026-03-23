@@ -30,12 +30,12 @@ export function buildClientInvoiceQueryParams(params: ListClientInvoicesParams):
  */
 export async function listClientInvoices(
   client: HttpClient,
-  params?: ListClientInvoicesParams & { current_page?: number; per_page?: number },
+  params?: ListClientInvoicesParams & { page?: number; per_page?: number },
 ): Promise<{ client_invoices: ClientInvoice[]; meta: PaginationMeta }> {
   const query: Record<string, string | readonly string[]> = {};
   if (params) {
     Object.assign(query, buildClientInvoiceQueryParams(params));
-    if (params.current_page !== undefined) query["current_page"] = String(params.current_page);
+    if (params.page !== undefined) query["page"] = String(params.page);
     if (params.per_page !== undefined) query["per_page"] = String(params.per_page);
   }
   const endpointPath = "/v2/client_invoices";

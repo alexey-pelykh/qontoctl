@@ -13,14 +13,14 @@ export function registerWebhookTools(server: McpServer, getClient: () => Promise
     {
       description: "List webhook subscriptions",
       inputSchema: {
-        current_page: z.number().int().positive().optional().describe("Page number"),
+        page: z.number().int().positive().optional().describe("Page number"),
         per_page: z.number().int().positive().max(100).optional().describe("Items per page (max 100)"),
       },
     },
-    async ({ current_page, per_page }) =>
+    async ({ page, per_page }) =>
       withClient(getClient, async (client) => {
         const result = await listWebhooks(client, {
-          ...(current_page !== undefined ? { current_page } : {}),
+          ...(page !== undefined ? { page } : {}),
           ...(per_page !== undefined ? { per_page } : {}),
         });
 

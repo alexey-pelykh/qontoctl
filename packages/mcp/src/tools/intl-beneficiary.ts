@@ -19,14 +19,14 @@ export function registerIntlBeneficiaryTools(server: McpServer, getClient: () =>
     {
       description: "List international beneficiaries in the organization",
       inputSchema: {
-        current_page: z.number().int().positive().optional().describe("Page number"),
+        page: z.number().int().positive().optional().describe("Page number"),
         per_page: z.number().int().positive().max(100).optional().describe("Items per page (max 100)"),
       },
     },
     async (args) =>
       withClient(getClient, async (client) => {
         const result = await listIntlBeneficiaries(client, {
-          ...(args.current_page !== undefined ? { current_page: args.current_page } : {}),
+          ...(args.page !== undefined ? { page: args.page } : {}),
           ...(args.per_page !== undefined ? { per_page: args.per_page } : {}),
         });
 

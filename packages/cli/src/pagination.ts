@@ -43,7 +43,7 @@ export async function fetchPage<T>(
 ): Promise<Page<T>> {
   const queryParams: QueryParams = {
     ...params,
-    current_page: String(page),
+    page: String(page),
     per_page: String(perPage),
   };
 

@@ -13,14 +13,14 @@ export function registerCreditNoteTools(server: McpServer, getClient: () => Prom
     {
       description: "List credit notes in the organization",
       inputSchema: {
-        current_page: z.number().int().positive().optional().describe("Page number"),
+        page: z.number().int().positive().optional().describe("Page number"),
         per_page: z.number().int().positive().max(100).optional().describe("Items per page (max 100)"),
       },
     },
-    async ({ current_page, per_page }) =>
+    async ({ page, per_page }) =>
       withClient(getClient, async (client) => {
         const params: Record<string, string> = {};
-        if (current_page !== undefined) params["current_page"] = String(current_page);
+        if (page !== undefined) params["page"] = String(page);
         if (per_page !== undefined) params["per_page"] = String(per_page);
 
         const endpointPath = "/v2/credit_notes";

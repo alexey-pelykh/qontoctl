@@ -26,7 +26,7 @@ export function registerBeneficiaryTools(server: McpServer, getClient: () => Pro
         updated_at_from: z.string().optional().describe("Updated from date (ISO 8601)"),
         updated_at_to: z.string().optional().describe("Updated to date (ISO 8601)"),
         sort_by: z.string().optional().describe("Sort order (e.g. updated_at:desc)"),
-        current_page: z.number().int().positive().optional().describe("Page number"),
+        page: z.number().int().positive().optional().describe("Page number"),
         per_page: z.number().int().positive().max(100).optional().describe("Items per page (max 100)"),
       },
     },
@@ -39,7 +39,7 @@ export function registerBeneficiaryTools(server: McpServer, getClient: () => Pro
           ...(args.updated_at_from !== undefined ? { updated_at_from: args.updated_at_from } : {}),
           ...(args.updated_at_to !== undefined ? { updated_at_to: args.updated_at_to } : {}),
           ...(args.sort_by !== undefined ? { sort_by: args.sort_by } : {}),
-          ...(args.current_page !== undefined ? { current_page: args.current_page } : {}),
+          ...(args.page !== undefined ? { page: args.page } : {}),
           ...(args.per_page !== undefined ? { per_page: args.per_page } : {}),
         });
 

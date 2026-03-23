@@ -13,14 +13,14 @@ export function registerClientTools(server: McpServer, getClient: () => Promise<
     {
       description: "List clients with optional pagination",
       inputSchema: {
-        current_page: z.number().int().positive().optional().describe("Page number"),
+        page: z.number().int().positive().optional().describe("Page number"),
         per_page: z.number().int().positive().max(100).optional().describe("Items per page (max 100)"),
       },
     },
     async (args) =>
       withClient(getClient, async (client) => {
         const params: Record<string, string> = {};
-        if (args.current_page !== undefined) params["current_page"] = String(args.current_page);
+        if (args.page !== undefined) params["page"] = String(args.page);
         if (args.per_page !== undefined) params["per_page"] = String(args.per_page);
 
         const endpointPath = "/v2/clients";

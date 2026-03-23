@@ -20,7 +20,7 @@ export function registerQuoteTools(server: McpServer, getClient: () => Promise<H
           .enum(["created_at:asc", "created_at:desc"])
           .optional()
           .describe("Sort order (default: created_at:desc)"),
-        current_page: z.number().int().positive().optional().describe("Page number"),
+        page: z.number().int().positive().optional().describe("Page number"),
         per_page: z.number().int().positive().max(100).optional().describe("Items per page (max 100)"),
       },
     },
@@ -31,7 +31,7 @@ export function registerQuoteTools(server: McpServer, getClient: () => Promise<H
         if (args.created_at_from !== undefined) params["filter[created_at_from]"] = args.created_at_from;
         if (args.created_at_to !== undefined) params["filter[created_at_to]"] = args.created_at_to;
         if (args.sort_by !== undefined) params["sort_by"] = args.sort_by;
-        if (args.current_page !== undefined) params["current_page"] = String(args.current_page);
+        if (args.page !== undefined) params["page"] = String(args.page);
         if (args.per_page !== undefined) params["per_page"] = String(args.per_page);
 
         const endpointPath = "/v2/quotes";

@@ -13,11 +13,11 @@ import type { CreateWebhookParams, UpdateWebhookParams } from "./types.js";
  */
 export async function listWebhooks(
   client: HttpClient,
-  params?: { current_page?: number; per_page?: number },
+  params?: { page?: number; per_page?: number },
 ): Promise<{ webhook_subscriptions: WebhookSubscription[]; meta: PaginationMeta }> {
   const query: Record<string, string | readonly string[]> = {};
   if (params) {
-    if (params.current_page !== undefined) query["current_page"] = String(params.current_page);
+    if (params.page !== undefined) query["page"] = String(params.page);
     if (params.per_page !== undefined) query["per_page"] = String(params.per_page);
   }
   const endpointPath = "/v2/webhook_subscriptions";

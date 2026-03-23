@@ -147,7 +147,7 @@ describe("transaction MCP tools", () => {
 
       await mcpClient.callTool({
         name: "transaction_list",
-        arguments: { current_page: 2, per_page: 50 },
+        arguments: { page: 2, per_page: 50 },
       });
 
       const txnCall = fetchSpy.mock.calls.find((c: unknown[]) => (c[0] as URL).pathname === "/v2/transactions") as
@@ -155,7 +155,7 @@ describe("transaction MCP tools", () => {
         | undefined;
       expect(txnCall).toBeDefined();
       const txnUrl = (txnCall as [URL, RequestInit])[0];
-      expect(txnUrl.searchParams.get("current_page")).toBe("2");
+      expect(txnUrl.searchParams.get("page")).toBe("2");
       expect(txnUrl.searchParams.get("per_page")).toBe("50");
     });
 

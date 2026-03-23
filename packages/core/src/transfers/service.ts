@@ -89,12 +89,12 @@ export function buildTransferQueryParams(params: ListTransfersParams): QueryPara
  */
 export async function listTransfers(
   client: HttpClient,
-  params?: ListTransfersParams & { current_page?: number; per_page?: number },
+  params?: ListTransfersParams & { page?: number; per_page?: number },
 ): Promise<{ transfers: Transfer[]; meta: PaginationMeta }> {
   const query: Record<string, string | readonly string[]> = {};
   if (params) {
     Object.assign(query, buildTransferQueryParams(params));
-    if (params.current_page !== undefined) query["current_page"] = String(params.current_page);
+    if (params.page !== undefined) query["page"] = String(params.page);
     if (params.per_page !== undefined) query["per_page"] = String(params.per_page);
   }
   const endpointPath = "/v2/sepa/transfers";

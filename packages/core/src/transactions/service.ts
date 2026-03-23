@@ -84,12 +84,12 @@ export async function getTransaction(
  */
 export async function listTransactions(
   client: HttpClient,
-  params?: ListTransactionsParams & { current_page?: number; per_page?: number },
+  params?: ListTransactionsParams & { page?: number; per_page?: number },
 ): Promise<{ transactions: Transaction[]; meta: PaginationMeta }> {
   const query: Record<string, string | readonly string[]> = {};
   if (params) {
     Object.assign(query, buildTransactionQueryParams(params));
-    if (params.current_page !== undefined) query["current_page"] = String(params.current_page);
+    if (params.page !== undefined) query["page"] = String(params.page);
     if (params.per_page !== undefined) query["per_page"] = String(params.per_page);
   }
   const endpointPath = "/v2/transactions";

@@ -62,10 +62,10 @@ describe("listIntlBeneficiaries", () => {
   it("passes pagination params", async () => {
     fetchSpy.mockReturnValue(jsonResponse({ international_beneficiaries: [], meta: sampleMeta }));
 
-    await listIntlBeneficiaries(client, { current_page: 2, per_page: 10 });
+    await listIntlBeneficiaries(client, { page: 2, per_page: 10 });
 
     const [url] = fetchSpy.mock.calls[0] as [URL];
-    expect(url.searchParams.get("current_page")).toBe("2");
+    expect(url.searchParams.get("page")).toBe("2");
     expect(url.searchParams.get("per_page")).toBe("10");
   });
 });

@@ -41,7 +41,7 @@ export function registerSupplierInvoiceTools(server: McpServer, getClient: () =>
           .describe("Filter by due date category"),
         query: z.string().optional().describe("Full-text search query"),
         sort_by: z.string().optional().describe("Sort order (e.g. created_at:desc)"),
-        current_page: z.number().int().positive().optional().describe("Page number"),
+        page: z.number().int().positive().optional().describe("Page number"),
         per_page: z.number().int().positive().max(100).optional().describe("Items per page (max 100)"),
       },
     },
@@ -52,7 +52,7 @@ export function registerSupplierInvoiceTools(server: McpServer, getClient: () =>
           ...(args.due_date !== undefined ? { due_date: args.due_date } : {}),
           ...(args.query !== undefined ? { query: args.query } : {}),
           ...(args.sort_by !== undefined ? { sort_by: args.sort_by } : {}),
-          ...(args.current_page !== undefined ? { current_page: args.current_page } : {}),
+          ...(args.page !== undefined ? { page: args.page } : {}),
           ...(args.per_page !== undefined ? { per_page: args.per_page } : {}),
         });
 

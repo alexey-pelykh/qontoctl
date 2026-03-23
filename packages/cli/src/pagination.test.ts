@@ -48,7 +48,7 @@ describe("pagination", () => {
       expect(result.meta).toEqual(meta);
 
       const [url] = fetchSpy.mock.calls[0] as [URL];
-      expect(url.searchParams.get("current_page")).toBe("1");
+      expect(url.searchParams.get("page")).toBe("1");
       expect(url.searchParams.get("per_page")).toBe("100");
     });
 
@@ -164,7 +164,7 @@ describe("pagination", () => {
       expect(result.items).toEqual(items);
       expect(fetchSpy).toHaveBeenCalledTimes(1);
       const [url] = fetchSpy.mock.calls[0] as [URL];
-      expect(url.searchParams.get("current_page")).toBe("2");
+      expect(url.searchParams.get("page")).toBe("2");
     });
 
     it("fetches only first page when --no-paginate is set", async () => {

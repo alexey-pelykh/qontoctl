@@ -12,14 +12,14 @@ export function registerRecurringTransferTools(server: McpServer, getClient: () 
     {
       description: "List recurring transfers",
       inputSchema: {
-        current_page: z.number().int().positive().optional().describe("Page number (default: 1)"),
+        page: z.number().int().positive().optional().describe("Page number (default: 1)"),
         per_page: z.number().int().positive().max(100).optional().describe("Results per page (default: 100, max: 100)"),
       },
     },
     async (args) =>
       withClient(getClient, async (client) => {
         const result = await listRecurringTransfers(client, {
-          ...(args.current_page !== undefined ? { current_page: args.current_page } : {}),
+          ...(args.page !== undefined ? { page: args.page } : {}),
           ...(args.per_page !== undefined ? { per_page: args.per_page } : {}),
         });
         return {
