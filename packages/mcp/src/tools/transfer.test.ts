@@ -191,9 +191,9 @@ describe("transfer MCP tools", () => {
       const transferCall = calls.find((c) => c[0].pathname === "/v2/sepa/transfers") as [URL, RequestInit] | undefined;
       expect(transferCall).toBeDefined();
       const body = JSON.parse((transferCall as [URL, RequestInit])[1].body as string) as {
-        transfer: { vop_proof_token: string };
+        vop_proof_token: string;
       };
-      expect(body.transfer.vop_proof_token).toBe("explicit-token");
+      expect(body.vop_proof_token).toBe("explicit-token");
     });
 
     it("auto-resolves vop_proof_token via getBeneficiary + verifyPayee on match", async () => {
@@ -221,9 +221,9 @@ describe("transfer MCP tools", () => {
 
       // Should have used the auto-resolved token
       const body = JSON.parse((transferCall as [URL, RequestInit])[1].body as string) as {
-        transfer: { vop_proof_token: string };
+        vop_proof_token: string;
       };
-      expect(body.transfer.vop_proof_token).toBe("auto-token-123");
+      expect(body.vop_proof_token).toBe("auto-token-123");
     });
 
     it("includes VoP status in response on mismatch", async () => {

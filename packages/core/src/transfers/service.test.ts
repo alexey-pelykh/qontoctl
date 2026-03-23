@@ -282,13 +282,13 @@ describe("createTransfer", () => {
 
     const body = JSON.parse(init.body as string) as Record<string, unknown>;
     expect(body).toEqual({
+      vop_proof_token: "tok_abc123",
       transfer: {
         beneficiary_id: "ben-1",
         bank_account_id: "acc-1",
         reference: "Test Payment",
         amount: "500",
         currency: "EUR",
-        vop_proof_token: "tok_abc123",
       },
     });
   });
