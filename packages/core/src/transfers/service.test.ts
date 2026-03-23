@@ -272,6 +272,7 @@ describe("createTransfer", () => {
       reference: "Test Payment",
       amount: "500",
       currency: "EUR",
+      vop_proof_token: "tok_abc123",
     });
     expect(result).toEqual(newTransfer);
 
@@ -287,6 +288,7 @@ describe("createTransfer", () => {
         reference: "Test Payment",
         amount: "500",
         currency: "EUR",
+        vop_proof_token: "tok_abc123",
       },
     });
   });
@@ -300,6 +302,7 @@ describe("createTransfer", () => {
       reference: "Scheduled",
       amount: "100",
       currency: "EUR",
+      vop_proof_token: "tok_abc123",
       note: "Monthly payment",
       scheduled_date: "2026-04-01",
     });
@@ -405,7 +408,12 @@ describe("verifyPayee", () => {
   });
 
   it("posts to verify_payee endpoint and returns result", async () => {
-    const verification = { iban: "FR7612345000010009876543210", name: "John Doe", result: "match" };
+    const verification = {
+      iban: "FR7612345000010009876543210",
+      name: "John Doe",
+      result: "match",
+      vop_proof_token: "tok_abc123",
+    };
     fetchSpy.mockReturnValue(jsonResponse({ verification }));
 
     const result = await verifyPayee(client, {
@@ -439,8 +447,8 @@ describe("bulkVerifyPayee", () => {
 
   it("posts entries to bulk_verify_payee endpoint and returns results", async () => {
     const verifications = [
-      { iban: "FR7612345000010009876543210", name: "John Doe", result: "match" },
-      { iban: "DE89370400440532013000", name: "Jane Smith", result: "mismatch" },
+      { iban: "FR7612345000010009876543210", name: "John Doe", result: "match", vop_proof_token: "tok_1" },
+      { iban: "DE89370400440532013000", name: "Jane Smith", result: "mismatch", vop_proof_token: "tok_2" },
     ];
     fetchSpy.mockReturnValue(jsonResponse({ verifications }));
 
