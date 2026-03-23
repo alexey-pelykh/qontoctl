@@ -188,9 +188,7 @@ describe("transfer MCP tools", () => {
       expect(vopCall).toBeUndefined();
 
       // Should have sent the explicit token
-      const transferCall = calls.find((c) => c[0].pathname === "/v2/sepa/transfers") as
-        | [URL, RequestInit]
-        | undefined;
+      const transferCall = calls.find((c) => c[0].pathname === "/v2/sepa/transfers") as [URL, RequestInit] | undefined;
       expect(transferCall).toBeDefined();
       const body = JSON.parse((transferCall as [URL, RequestInit])[1].body as string) as {
         transfer: { vop_proof_token: string };
