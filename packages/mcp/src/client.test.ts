@@ -111,7 +111,7 @@ describe("buildClient", () => {
           clientId: "client-id",
           clientSecret: "client-secret",
           accessToken: "access-token",
-          tokenExpiresAt: new Date(Date.now() + 3600_000).toISOString(),
+          accessTokenExpiresAt: new Date(Date.now() + 3600_000).toISOString(),
         },
       },
       endpoint: "https://thirdparty.qonto.com",
@@ -138,7 +138,7 @@ describe("buildClient", () => {
       clientSecret: "client-secret",
       accessToken: "old-token",
       refreshToken: "refresh-token",
-      tokenExpiresAt: new Date(Date.now() - 1000).toISOString(), // already expired
+      accessTokenExpiresAt: new Date(Date.now() - 1000).toISOString(), // already expired
     };
     mocks.resolveConfig.mockResolvedValue({
       config: { oauth },
@@ -171,7 +171,7 @@ describe("buildClient", () => {
       clientSecret: "client-secret",
       accessToken: "old-token",
       refreshToken: "refresh-token",
-      tokenExpiresAt: new Date(Date.now() - 1000).toISOString(),
+      accessTokenExpiresAt: new Date(Date.now() - 1000).toISOString(),
     };
     mocks.resolveConfig.mockResolvedValue({
       config: { oauth, sandbox: true },
@@ -208,7 +208,7 @@ describe("buildClient", () => {
           clientSecret: "client-secret",
           accessToken: "valid-token",
           refreshToken: "refresh-token",
-          tokenExpiresAt: new Date(Date.now() + 3600_000).toISOString(),
+          accessTokenExpiresAt: new Date(Date.now() + 3600_000).toISOString(),
         },
       },
       endpoint: "https://thirdparty.qonto.com",
@@ -232,7 +232,7 @@ describe("buildClient", () => {
       clientSecret: "client-secret",
       accessToken: "old-token",
       refreshToken: "refresh-token",
-      tokenExpiresAt: new Date(Date.now() - 1000).toISOString(),
+      accessTokenExpiresAt: new Date(Date.now() - 1000).toISOString(),
     };
     mocks.resolveConfig.mockResolvedValue({
       config: { oauth },

@@ -166,6 +166,87 @@ describe("validateConfig", () => {
     expect(result.config.sandbox).toBeUndefined();
     expect(result.errors).toEqual([]);
   });
+
+  it("parses oauth with access-token-expires-at", () => {
+    const result = validateConfig({
+      oauth: {
+        "client-id": "cid",
+        "client-secret": "csecret",
+        "access-token-expires-at": "2026-03-01T00:00:00Z",
+      },
+    });
+    expect(result.config.oauth?.accessTokenExpiresAt).toBe("2026-03-01T00:00:00Z");
+    expect(result.errors).toEqual([]);
+  });
+
+  it("reads legacy token-expires-at when access-token-expires-at is absent", () => {
+    const result = validateConfig({
+      oauth: {
+        "client-id": "cid",
+        "client-secret": "csecret",
+        "token-expires-at": "2026-02-28T00:00:00Z",
+      },
+    });
+    expect(result.config.oauth?.accessTokenExpiresAt).toBe("2026-02-28T00:00:00Z");
+    expect(result.errors).toEqual([]);
+  });
+
+  it("prefers access-token-expires-at over legacy token-expires-at", () => {
+    const result = validateConfig({
+      oauth: {
+        "client-id": "cid",
+        "client-secret": "csecret",
+        "access-token-expires-at": "2026-03-01T00:00:00Z",
+        "token-expires-at": "2026-02-28T00:00:00Z",
+      },
+    });
+    expect(result.config.oauth?.accessTokenExpiresAt).toBe("2026-03-01T00:00:00Z");
+    expect(result.errors).toEqual([]);
+  });
+
+  it("errors when access-token-expires-at is not a string", () => {
+    const result = validateConfig({
+      oauth: { "client-id": "cid", "access-token-expires-at": 12345 },
+    });
+    expect(result.errors).toContain('"oauth.access-token-expires-at" must be a string');
+  });
+
+  it("parses oauth scopes array", () => {
+    const result = validateConfig({
+      oauth: {
+        "client-id": "cid",
+        "client-secret": "csecret",
+        scopes: ["offline_access", "payment.write"],
+      },
+    });
+    expect(result.config.oauth?.scopes).toEqual(["offline_access", "payment.write"]);
+    expect(result.errors).toEqual([]);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it("errors when oauth scopes is not an array", () => {
+    const result = validateConfig({
+      oauth: { "client-id": "cid", scopes: "offline_access" },
+    });
+    expect(result.errors).toContain('"oauth.scopes" must be an array of strings');
+  });
+
+  it("errors when oauth scopes contains non-strings", () => {
+    const result = validateConfig({
+      oauth: { "client-id": "cid", scopes: ["offline_access", 123] },
+    });
+    expect(result.errors).toContain('"oauth.scopes" must be an array of strings');
+  });
+
+  it("does not warn on scopes as known oauth key", () => {
+    const result = validateConfig({
+      oauth: {
+        "client-id": "cid",
+        scopes: ["offline_access"],
+      },
+    });
+    expect(result.warnings).toEqual([]);
+  });
 });
 
 describe("isValidProfileName", () => {

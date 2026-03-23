@@ -76,7 +76,7 @@ describe("auth commands (e2e)", () => {
           "  client-secret: test-client-secret",
           "  access-token: fake-access-token",
           "  refresh-token: fake-refresh-token",
-          '  token-expires-at: "2099-01-01T00:00:00.000Z"',
+          '  access-token-expires-at: "2099-01-01T00:00:00.000Z"',
         ].join("\n") + "\n",
       );
 
@@ -88,7 +88,7 @@ describe("auth commands (e2e)", () => {
           "  client-id: test-client-id",
           "  client-secret: test-client-secret",
           "  access-token: fake-access-token",
-          '  token-expires-at: "2020-01-01T00:00:00.000Z"',
+          '  access-token-expires-at: "2020-01-01T00:00:00.000Z"',
         ].join("\n") + "\n",
       );
     });
@@ -192,7 +192,7 @@ describe("auth commands (e2e)", () => {
           "  client-secret: test-client-secret",
           "  access-token: fake-access-token",
           "  refresh-token: fake-refresh-token",
-          '  token-expires-at: "2099-01-01T00:00:00.000Z"',
+          '  access-token-expires-at: "2099-01-01T00:00:00.000Z"',
         ].join("\n") + "\n",
       );
     });
@@ -214,7 +214,7 @@ describe("auth commands (e2e)", () => {
       expect(content).toContain("client-secret");
       expect(content).not.toContain("access-token");
       expect(content).not.toContain("refresh-token");
-      expect(content).not.toContain("token-expires-at");
+      expect(content).not.toContain("access-token-expires-at");
     });
   });
 

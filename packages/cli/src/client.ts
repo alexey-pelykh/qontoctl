@@ -42,8 +42,8 @@ export async function createClient(options: GlobalOptions): Promise<HttpClient> 
 
     authorization = async () => {
       // Check if token is expired and refresh if needed
-      if (oauth.tokenExpiresAt && oauth.refreshToken) {
-        const expiresAt = new Date(oauth.tokenExpiresAt);
+      if (oauth.accessTokenExpiresAt && oauth.refreshToken) {
+        const expiresAt = new Date(oauth.accessTokenExpiresAt);
         const now = new Date();
         // Refresh 60 seconds before expiration
         if (expiresAt.getTime() - now.getTime() < 60_000) {
@@ -52,14 +52,14 @@ export async function createClient(options: GlobalOptions): Promise<HttpClient> 
           if (tokens.refreshToken) {
             oauth.refreshToken = tokens.refreshToken;
           }
-          oauth.tokenExpiresAt = new Date(Date.now() + tokens.expiresIn * 1000).toISOString();
+          oauth.accessTokenExpiresAt = new Date(Date.now() + tokens.expiresIn * 1000).toISOString();
 
           // Persist refreshed tokens
           await saveOAuthTokens(
             {
               accessToken: oauth.accessToken,
               refreshToken: oauth.refreshToken,
-              tokenExpiresAt: oauth.tokenExpiresAt,
+              accessTokenExpiresAt: oauth.accessTokenExpiresAt,
             },
             profile !== undefined ? { profile } : undefined,
           );

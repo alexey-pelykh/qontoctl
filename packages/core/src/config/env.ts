@@ -61,7 +61,10 @@ export function applyEnvOverlay(
         clientSecret: clientSecret ?? existing?.clientSecret ?? "",
         ...(existing?.accessToken !== undefined ? { accessToken: existing.accessToken } : {}),
         ...(existing?.refreshToken !== undefined ? { refreshToken: existing.refreshToken } : {}),
-        ...(existing?.tokenExpiresAt !== undefined ? { tokenExpiresAt: existing.tokenExpiresAt } : {}),
+        ...(existing?.accessTokenExpiresAt !== undefined
+          ? { accessTokenExpiresAt: existing.accessTokenExpiresAt }
+          : {}),
+        ...(existing?.scopes !== undefined ? { scopes: existing.scopes } : {}),
       },
     };
   }
