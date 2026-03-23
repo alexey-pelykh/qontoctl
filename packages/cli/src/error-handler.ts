@@ -5,6 +5,7 @@ import {
   ConfigError,
   AuthError,
   QontoApiError,
+  QontoOAuthScopeError,
   QontoRateLimitError,
   QontoScaRequiredError,
   ScaTimeoutError,
@@ -44,6 +45,21 @@ export function handleCliError(error: unknown, debug: boolean): void {
         `Authentication error: ${error.message}`,
         "",
         "Verify your API key credentials in ~/.qontoctl.yaml or environment variables.",
+      ].join("\n") + "\n",
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  if (error instanceof QontoOAuthScopeError) {
+    const details = error.errors.map((e) => `  - ${e.code}: ${e.detail}`).join("\n");
+    process.stderr.write(
+      [
+        `Qonto API error (HTTP 403):`,
+        details,
+        "",
+        "Your OAuth token is missing a required scope for this operation.",
+        'Run "qontoctl auth setup" to select the needed scopes, then "qontoctl auth login" to re-authenticate.',
       ].join("\n") + "\n",
     );
     process.exitCode = 1;
