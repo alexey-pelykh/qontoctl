@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 import { randomBytes } from "node:crypto";
 import { exec } from "node:child_process";
 import type { Command } from "commander";
-import { intro, outro, text, multiselect, isCancel, cancel, note } from "@clack/prompts";
+import { intro, outro, text, multiselect, isCancel, cancel, note, spinner } from "@clack/prompts";
 import {
   resolveConfig,
   type OAuthCredentials,
@@ -300,6 +300,34 @@ export function registerAuthCommands(program: Command): void {
     const { oauth, sandbox } = await resolveOAuthConfig(opts.profile);
     const { authUrl, tokenUrl } = resolveOAuthEndpoints(sandbox);
 
+    // Resolve scopes: use stored, or prompt interactively
+    let scopes: string[];
+    if (oauth.scopes !== undefined && oauth.scopes.length > 0) {
+      scopes = oauth.scopes;
+    } else {
+      const selectedScopes = await multiselect({
+        message: "Select OAuth scopes",
+        options: DEFAULT_SCOPES.map((scope) => {
+          const hint = SCOPE_DESCRIPTIONS[scope];
+          return { value: scope, label: scope, ...(hint !== undefined ? { hint } : {}) };
+        }),
+        initialValues: [...DEFAULT_SCOPES],
+        required: true,
+      });
+      if (isCancel(selectedScopes)) {
+        cancel("Login cancelled.");
+        return;
+      }
+
+      scopes = selectedScopes.includes("offline_access") ? selectedScopes : ["offline_access", ...selectedScopes];
+      await saveOAuthScopes(scopes, opts.profile !== undefined ? { profile: opts.profile } : undefined);
+    }
+
+    // Ensure offline_access is always included
+    if (!scopes.includes("offline_access")) {
+      scopes = ["offline_access", ...scopes];
+    }
+
     // Generate PKCE values
     const codeVerifier = generateCodeVerifier();
     const codeChallenge = generateCodeChallenge(codeVerifier);
@@ -309,25 +337,25 @@ export function registerAuthCommands(program: Command): void {
     const { server, result } = await startCallbackServer(port);
 
     try {
-      // Build authorization URL — data scopes are determined by the app's configuration
-      // on the Qonto developer portal. We only explicitly request offline_access to ensure
-      // a refresh token is returned for automatic token renewal.
+      // Build authorization URL
       const authorizationUrl = new URL(authUrl);
       authorizationUrl.searchParams.set("response_type", "code");
       authorizationUrl.searchParams.set("client_id", oauth.clientId);
       authorizationUrl.searchParams.set("redirect_uri", redirectUri);
-      authorizationUrl.searchParams.set("scope", "offline_access");
+      authorizationUrl.searchParams.set("scope", scopes.join(" "));
       authorizationUrl.searchParams.set("state", state);
       authorizationUrl.searchParams.set("code_challenge", codeChallenge);
       authorizationUrl.searchParams.set("code_challenge_method", "S256");
 
-      // Open browser
-      process.stderr.write("Opening browser for authorization...\n");
+      // Open browser and wait for authorization
+      const s = spinner();
+      s.start("Opening browser for authorization...");
       openBrowser(authorizationUrl.toString());
-      process.stderr.write(`Waiting for callback on http://localhost:${port}/callback...\n`);
+      s.message(`Waiting for authorization on http://localhost:${port}/callback...`);
 
       // Wait for callback
       const callback = await result;
+      s.stop("Authorization received.");
 
       // Verify state
       if (callback.state !== state) {
@@ -335,7 +363,7 @@ export function registerAuthCommands(program: Command): void {
       }
 
       // Exchange code for tokens
-      process.stderr.write("Exchanging authorization code for tokens...\n");
+      s.start("Exchanging authorization code for tokens...");
       const tokens = await exchangeCode(
         tokenUrl,
         oauth.clientId,
@@ -358,7 +386,7 @@ export function registerAuthCommands(program: Command): void {
         opts.profile !== undefined ? { profile: opts.profile } : undefined,
       );
 
-      process.stderr.write("Login successful! Tokens saved.\n");
+      s.stop("Login successful! Tokens saved.");
     } finally {
       server.close();
     }
