@@ -74,7 +74,7 @@ export async function createBeneficiary(
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<Beneficiary> {
   const endpointPath = "/v2/sepa/beneficiaries";
-  const response = await client.post(endpointPath, params, options);
+  const response = await client.post(endpointPath, { beneficiary: params }, options);
   return parseResponse(BeneficiaryResponseSchema, response, endpointPath).beneficiary;
 }
 
@@ -88,7 +88,7 @@ export async function updateBeneficiary(
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<Beneficiary> {
   const endpointPath = `/v2/sepa/beneficiaries/${encodeURIComponent(id)}`;
-  const response = await client.put(endpointPath, params, options);
+  const response = await client.put(endpointPath, { beneficiary: params }, options);
   return parseResponse(BeneficiaryResponseSchema, response, endpointPath).beneficiary;
 }
 

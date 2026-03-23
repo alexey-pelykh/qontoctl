@@ -96,8 +96,12 @@ describe("beneficiary add command", () => {
     expect(url.pathname).toBe("/v2/sepa/beneficiaries");
     expect(opts.method).toBe("POST");
     const body = JSON.parse(opts.body as string) as Record<string, unknown>;
-    expect(body).toHaveProperty("name", "New Corp");
-    expect(body).toHaveProperty("iban", "FR7630001007941234567890185");
-    expect(body).toHaveProperty("bic", "BNPAFRPP");
+    expect(body).toEqual({
+      beneficiary: {
+        name: "New Corp",
+        iban: "FR7630001007941234567890185",
+        bic: "BNPAFRPP",
+      },
+    });
   });
 });
