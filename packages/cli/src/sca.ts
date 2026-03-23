@@ -2,12 +2,7 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { spinner, type SpinnerResult } from "@clack/prompts";
-import {
-  executeWithSca,
-  ScaTimeoutError,
-  type HttpClient,
-  type PollScaSessionOptions,
-} from "@qontoctl/core";
+import { executeWithSca, ScaTimeoutError, type HttpClient, type PollScaSessionOptions } from "@qontoctl/core";
 
 export interface CliScaOptions {
   readonly verbose?: boolean | undefined;
