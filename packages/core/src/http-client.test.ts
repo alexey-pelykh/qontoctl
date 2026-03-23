@@ -1245,6 +1245,69 @@ describe("HttpClient", () => {
       expect(key1).toBeDefined();
       expect(key1).toBe(key2);
     });
+
+    it("logs primary error body in debug mode before fallback", async () => {
+      const primaryBody = { errors: [{ code: "unauthorized", detail: "Unauthorized" }] };
+      fetchSpy
+        .mockReturnValueOnce(jsonResponse(primaryBody, { status: 401 }))
+        .mockReturnValue(jsonResponse({ data: "ok" }));
+
+      const logger = createMockLogger();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "oauth-token",
+        fallbackAuthorization: "slug:key",
+        logger,
+      });
+
+      await client.get("/v2/organizations");
+
+      expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining("Primary auth error response body:"));
+    });
+
+    it("propagates non-auth 401 error directly instead of falling back", async () => {
+      fetchSpy.mockReturnValue(
+        jsonResponse(
+          { errors: [{ code: "vop_proof_token_missing", detail: "VOP proof token is required" }] },
+          { status: 401 },
+        ),
+      );
+
+      const onFallback = vi.fn();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "oauth-token",
+        fallbackAuthorization: "slug:key",
+        onFallback,
+      });
+
+      const error = await client.post("/v2/transfers", { amount: 100 }).catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(QontoApiError);
+      expect((error as QontoApiError).status).toBe(401);
+      expect((error as QontoApiError).errors[0]?.code).toBe("vop_proof_token_missing");
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      expect(onFallback).not.toHaveBeenCalled();
+    });
+
+    it("propagates non-auth 403 error directly instead of falling back", async () => {
+      fetchSpy.mockReturnValue(
+        jsonResponse({ errors: [{ code: "insufficient_funds", detail: "Insufficient funds" }] }, { status: 403 }),
+      );
+
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "oauth-token",
+        fallbackAuthorization: "slug:key",
+      });
+
+      const error = await client.get("/v2/organizations").catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(QontoApiError);
+      expect((error as QontoApiError).status).toBe(403);
+      expect((error as QontoApiError).errors[0]?.code).toBe("insufficient_funds");
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe("QontoScaRequiredError", () => {
