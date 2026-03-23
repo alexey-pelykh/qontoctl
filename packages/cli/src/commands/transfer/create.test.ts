@@ -155,7 +155,7 @@ describe("transfer create command", () => {
         beneficiary_id: "ben-1",
         bank_account_id: "acc-1",
         reference: "Invoice 42",
-        amount: 1234.56,
+        amount: "1234.56",
         currency: "EUR",
         note: "Monthly fee",
         scheduled_date: "2026-04-01",

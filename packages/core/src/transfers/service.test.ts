@@ -270,7 +270,7 @@ describe("createTransfer", () => {
       beneficiary_id: "ben-1",
       bank_account_id: "acc-1",
       reference: "Test Payment",
-      amount: 500,
+      amount: "500",
       currency: "EUR",
     });
     expect(result).toEqual(newTransfer);
@@ -285,7 +285,7 @@ describe("createTransfer", () => {
         beneficiary_id: "ben-1",
         bank_account_id: "acc-1",
         reference: "Test Payment",
-        amount: 500,
+        amount: "500",
         currency: "EUR",
       },
     });
@@ -298,7 +298,7 @@ describe("createTransfer", () => {
       beneficiary_id: "ben-1",
       bank_account_id: "acc-1",
       reference: "Scheduled",
-      amount: 100,
+      amount: "100",
       currency: "EUR",
       note: "Monthly payment",
       scheduled_date: "2026-04-01",
