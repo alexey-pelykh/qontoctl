@@ -404,6 +404,16 @@ export class HttpClient {
       }
 
       if ((response.status === 401 || response.status === 403) && this.fallbackAuthorization !== undefined) {
+        const primaryErrorBody = await this.safeReadJson(response);
+        const primaryErrors = this.extractErrors(primaryErrorBody);
+
+        this.logDebug(`Primary auth error response body: ${JSON.stringify(redactSensitiveFields(primaryErrorBody))}`);
+
+        if (!this.isAuthError(primaryErrors)) {
+          this.logVerbose(`${response.status} error is not auth-related, propagating primary error`);
+          throw new QontoApiError(response.status, primaryErrors);
+        }
+
         this.logVerbose(`${response.status} with primary auth, retrying with fallback authorization`);
         this.onFallback?.(method, path);
 
@@ -531,6 +541,11 @@ export class HttpClient {
       return (body as { sca_session_token: string }).sca_session_token;
     }
     return "unknown";
+  }
+
+  private isAuthError(errors: readonly QontoApiErrorEntry[]): boolean {
+    const authPattern = /\b(unauthorized|forbidden|unauthenticated|authentication|authorization|oauth)\b/i;
+    return errors.some((e) => authPattern.test(e.code) || authPattern.test(e.detail));
   }
 
   private extractErrors(body: unknown): readonly QontoApiErrorEntry[] {
