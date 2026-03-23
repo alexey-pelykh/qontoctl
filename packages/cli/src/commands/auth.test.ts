@@ -423,6 +423,57 @@ describe("registerAuthCommands", () => {
       expect(output).not.toMatch(/Remaining: \d+h/);
     });
 
+    it("shows configured scopes", async () => {
+      const future = new Date(Date.now() + 7200_000).toISOString();
+      resolveConfigMock.mockResolvedValue({
+        config: {
+          oauth: {
+            clientId: "cid",
+            clientSecret: "csecret",
+            accessToken: "token",
+            accessTokenExpiresAt: future,
+            scopes: ["organization.read", "payment.write"],
+          },
+        },
+        endpoint: "https://thirdparty.qonto.com",
+        warnings: [],
+      });
+
+      const program = new Command();
+      program.option("-o, --output <format>", "", "table");
+      registerAuthCommands(program);
+
+      await program.parseAsync(["auth", "status"], { from: "user" });
+
+      const output = stdoutSpy.mock.calls.map((c) => c[0]).join("");
+      expect(output).toContain("Scopes: organization.read, payment.write");
+    });
+
+    it("shows not configured when no scopes", async () => {
+      const future = new Date(Date.now() + 7200_000).toISOString();
+      resolveConfigMock.mockResolvedValue({
+        config: {
+          oauth: {
+            clientId: "cid",
+            clientSecret: "csecret",
+            accessToken: "token",
+            accessTokenExpiresAt: future,
+          },
+        },
+        endpoint: "https://thirdparty.qonto.com",
+        warnings: [],
+      });
+
+      const program = new Command();
+      program.option("-o, --output <format>", "", "table");
+      registerAuthCommands(program);
+
+      await program.parseAsync(["auth", "status"], { from: "user" });
+
+      const output = stdoutSpy.mock.calls.map((c) => c[0]).join("");
+      expect(output).toContain("Scopes: not configured (run auth setup)");
+    });
+
     it("throws when no OAuth config", async () => {
       resolveConfigMock.mockResolvedValue({
         config: {},
