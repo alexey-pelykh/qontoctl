@@ -309,6 +309,28 @@ export {
   RequestListResponseSchema,
 } from "./requests/index.js";
 
+export {
+  listIntlBeneficiaries,
+  getIntlBeneficiaryRequirements,
+  createIntlBeneficiary,
+  updateIntlBeneficiary,
+  removeIntlBeneficiary,
+  IntlBeneficiarySchema,
+  IntlBeneficiaryResponseSchema,
+  IntlBeneficiaryListResponseSchema,
+  IntlBeneficiaryRequirementFieldSchema,
+  IntlBeneficiaryRequirementsSchema,
+  IntlBeneficiaryRequirementsResponseSchema,
+} from "./international-beneficiaries/index.js";
+
+export type {
+  IntlBeneficiary,
+  IntlBeneficiaryRequirementField,
+  IntlBeneficiaryRequirements,
+  CreateIntlBeneficiaryParams,
+  UpdateIntlBeneficiaryParams,
+} from "./international-beneficiaries/index.js";
+
 export { parseResponse } from "./response.js";
 
 export type { BankAccount, Organization, PaginationMeta } from "./api-types.js";

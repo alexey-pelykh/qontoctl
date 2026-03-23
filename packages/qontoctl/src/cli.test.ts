@@ -79,6 +79,7 @@ describe("qontoctl CLI", () => {
       expect(names).toContain("account");
       expect(names).toContain("supplier-invoice");
       expect(names).toContain("team");
+      expect(names).toContain("intl");
       expect(names).toContain("profile");
 
       // Commands added by umbrella
@@ -95,7 +96,7 @@ describe("qontoctl CLI", () => {
       expect(names).toContain("statement");
       expect(names).toContain("transfer");
       expect(names).toContain("mcp");
-      expect(program.commands).toHaveLength(26);
+      expect(program.commands).toHaveLength(27);
     });
 
     it("commands have descriptions", () => {

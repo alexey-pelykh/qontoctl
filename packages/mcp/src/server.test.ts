@@ -112,7 +112,12 @@ describe("createServer", () => {
       expect(toolNames).toContain("webhook_create");
       expect(toolNames).toContain("webhook_update");
       expect(toolNames).toContain("webhook_delete");
-      expect(tools).toHaveLength(96);
+      expect(toolNames).toContain("intl_beneficiary_list");
+      expect(toolNames).toContain("intl_beneficiary_requirements");
+      expect(toolNames).toContain("intl_beneficiary_add");
+      expect(toolNames).toContain("intl_beneficiary_update");
+      expect(toolNames).toContain("intl_beneficiary_remove");
+      expect(tools).toHaveLength(101);
     });
 
     it("tools have descriptions", async () => {
