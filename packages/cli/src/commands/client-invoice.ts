@@ -26,7 +26,15 @@ import type { GlobalOptions, PaginationOptions, WriteOptions } from "../options.
 
 interface ClientInvoiceListOptions extends GlobalOptions, PaginationOptions {
   readonly status?: string | undefined;
-  readonly clientId?: string | undefined;
+  readonly createdAtFrom?: string | undefined;
+  readonly createdAtTo?: string | undefined;
+  readonly updatedAtFrom?: string | undefined;
+  readonly updatedAtTo?: string | undefined;
+  readonly dueDate?: string | undefined;
+  readonly dueDateFrom?: string | undefined;
+  readonly dueDateTo?: string | undefined;
+  readonly excludeImported?: true | undefined;
+  readonly sortBy?: string | undefined;
 }
 
 function buildClientInvoiceListParams(opts: ClientInvoiceListOptions): QueryParams {
@@ -35,8 +43,32 @@ function buildClientInvoiceListParams(opts: ClientInvoiceListOptions): QueryPara
   if (opts.status !== undefined) {
     params["filter[status]"] = opts.status;
   }
-  if (opts.clientId !== undefined) {
-    params["filter[client_id]"] = opts.clientId;
+  if (opts.createdAtFrom !== undefined) {
+    params["filter[created_at_from]"] = opts.createdAtFrom;
+  }
+  if (opts.createdAtTo !== undefined) {
+    params["filter[created_at_to]"] = opts.createdAtTo;
+  }
+  if (opts.updatedAtFrom !== undefined) {
+    params["filter[updated_at_from]"] = opts.updatedAtFrom;
+  }
+  if (opts.updatedAtTo !== undefined) {
+    params["filter[updated_at_to]"] = opts.updatedAtTo;
+  }
+  if (opts.dueDate !== undefined) {
+    params["filter[due_date]"] = opts.dueDate;
+  }
+  if (opts.dueDateFrom !== undefined) {
+    params["filter[due_date_from]"] = opts.dueDateFrom;
+  }
+  if (opts.dueDateTo !== undefined) {
+    params["filter[due_date_to]"] = opts.dueDateTo;
+  }
+  if (opts.excludeImported !== undefined) {
+    params["exclude_imported"] = String(opts.excludeImported);
+  }
+  if (opts.sortBy !== undefined) {
+    params["sort_by"] = opts.sortBy;
   }
 
   return params;
@@ -80,7 +112,15 @@ export function createClientInvoiceCommand(): Command {
     .command("list")
     .description("List client invoices")
     .addOption(new Option("--status <status>", "filter by status").choices(["draft", "pending", "paid", "cancelled"]))
-    .addOption(new Option("--client-id <id>", "filter by client ID"));
+    .addOption(new Option("--created-at-from <date>", "filter by creation date (from, ISO 8601)"))
+    .addOption(new Option("--created-at-to <date>", "filter by creation date (to, ISO 8601)"))
+    .addOption(new Option("--updated-at-from <date>", "filter by last update date (from, ISO 8601)"))
+    .addOption(new Option("--updated-at-to <date>", "filter by last update date (to, ISO 8601)"))
+    .addOption(new Option("--due-date <date>", "filter by exact due date (YYYY-MM-DD)"))
+    .addOption(new Option("--due-date-from <date>", "filter by due date (from, YYYY-MM-DD)"))
+    .addOption(new Option("--due-date-to <date>", "filter by due date (to, YYYY-MM-DD)"))
+    .addOption(new Option("--exclude-imported", "exclude imported invoices"))
+    .addOption(new Option("--sort-by <field>", "sort field and direction (e.g. 'created_at:desc')"));
   addInheritableOptions(list);
   list.action(async (_options: unknown, cmd: Command) => {
     const opts = resolveGlobalOptions<ClientInvoiceListOptions>(cmd);
