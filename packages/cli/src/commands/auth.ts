@@ -380,6 +380,12 @@ export function registerAuthCommands(program: Command): void {
     }
 
     process.stdout.write(`Refresh token: ${hasRefreshToken ? "Available" : "Not available"}\n`);
+
+    if (oauth.scopes && oauth.scopes.length > 0) {
+      process.stdout.write(`Scopes: ${oauth.scopes.join(", ")}\n`);
+    } else {
+      process.stdout.write("Scopes: not configured (run auth setup)\n");
+    }
   });
 
   // auth revoke
