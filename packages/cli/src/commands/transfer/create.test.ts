@@ -153,7 +153,7 @@ describe("transfer create command", () => {
       expect.anything(),
       {
         beneficiary_id: "ben-1",
-        debit_account_id: "acc-1",
+        bank_account_id: "acc-1",
         reference: "Invoice 42",
         amount: 1234.56,
         currency: "EUR",

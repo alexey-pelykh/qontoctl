@@ -45,7 +45,7 @@ export interface ListTransfersParams {
  */
 export interface CreateTransferParams {
   readonly beneficiary_id: string;
-  readonly debit_account_id: string;
+  readonly bank_account_id: string;
   readonly reference: string;
   readonly amount: number;
   readonly currency: string;

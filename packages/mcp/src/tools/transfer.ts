@@ -84,7 +84,7 @@ export function registerTransferTools(server: McpServer, getClient: () => Promis
       description: "Create a SEPA transfer",
       inputSchema: {
         beneficiary_id: z.string().describe("Beneficiary UUID"),
-        debit_account_id: z.string().describe("Bank account UUID to debit"),
+        bank_account_id: z.string().describe("Bank account UUID to debit"),
         reference: z.string().describe("Transfer reference"),
         amount: z.number().positive().describe("Amount to transfer"),
         currency: z.string().optional().describe("Currency code (default: EUR)"),
@@ -96,7 +96,7 @@ export function registerTransferTools(server: McpServer, getClient: () => Promis
       withClient(getClient, async (client) => {
         const params: CreateTransferParams = {
           beneficiary_id: args.beneficiary_id,
-          debit_account_id: args.debit_account_id,
+          bank_account_id: args.bank_account_id,
           reference: args.reference,
           amount: args.amount,
           currency: args.currency ?? "EUR",
