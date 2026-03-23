@@ -53,7 +53,7 @@ export function registerTransferCreateCommand(parent: Command): void {
       beneficiary_id: opts.beneficiary,
       bank_account_id: opts.debitAccount,
       reference: opts.reference,
-      amount: parseFloat(opts.amount),
+      amount: opts.amount,
       currency: opts.currency,
       ...(opts.note !== undefined ? { note: opts.note } : {}),
       ...(opts.scheduledDate !== undefined ? { scheduled_date: opts.scheduledDate } : {}),

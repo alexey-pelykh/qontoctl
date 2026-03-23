@@ -28,6 +28,6 @@ export interface CreateInternalTransferParams {
   readonly debit_iban: string;
   readonly credit_iban: string;
   readonly reference: string;
-  readonly amount: number;
+  readonly amount: string;
   readonly currency: string;
 }

@@ -79,7 +79,7 @@ describe("internal-transfer MCP tools", () => {
           debit_iban: "FR7630001007941234567890185",
           credit_iban: "FR7630001007949876543210142",
           reference: "Monthly allocation",
-          amount: 1000.0,
+          amount: "1000",
           currency: "EUR",
         },
       });

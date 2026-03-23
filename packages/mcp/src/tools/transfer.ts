@@ -98,7 +98,7 @@ export function registerTransferTools(server: McpServer, getClient: () => Promis
           beneficiary_id: args.beneficiary_id,
           bank_account_id: args.bank_account_id,
           reference: args.reference,
-          amount: args.amount,
+          amount: String(args.amount),
           currency: args.currency ?? "EUR",
           ...(args.note !== undefined ? { note: args.note } : {}),
           ...(args.scheduled_date !== undefined ? { scheduled_date: args.scheduled_date } : {}),

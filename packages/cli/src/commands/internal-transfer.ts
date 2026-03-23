@@ -53,7 +53,7 @@ export function createInternalTransferCommand(): Command {
           debit_iban: opts.debitIban,
           credit_iban: opts.creditIban,
           reference: opts.reference,
-          amount: parseFloat(opts.amount),
+          amount: opts.amount,
           currency: opts.currency,
         },
       },

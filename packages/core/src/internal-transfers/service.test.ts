@@ -43,7 +43,7 @@ describe("createInternalTransfer", () => {
       debit_iban: "FR7630001007941234567890185",
       credit_iban: "FR7630001007949876543210142",
       reference: "Monthly allocation",
-      amount: 1000.0,
+      amount: "1000",
       currency: "EUR",
     });
 
@@ -58,7 +58,7 @@ describe("createInternalTransfer", () => {
         debit_iban: "FR7630001007941234567890185",
         credit_iban: "FR7630001007949876543210142",
         reference: "Monthly allocation",
-        amount: 1000.0,
+        amount: "1000",
         currency: "EUR",
       },
     });
@@ -89,7 +89,7 @@ describe("createInternalTransfer", () => {
         debit_iban: "FR76X",
         credit_iban: "FR76Y",
         reference: "Test",
-        amount: 50.0,
+        amount: "50",
         currency: "EUR",
       },
       { idempotencyKey: "key-123" },

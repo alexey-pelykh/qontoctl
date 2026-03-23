@@ -25,7 +25,7 @@ export function registerInternalTransferTools(server: McpServer, getClient: () =
           debit_iban: args.debit_iban,
           credit_iban: args.credit_iban,
           reference: args.reference,
-          amount: args.amount,
+          amount: String(args.amount),
           currency: args.currency,
         });
 
