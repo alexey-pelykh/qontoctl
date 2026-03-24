@@ -65,6 +65,7 @@ export interface CreateTransferParams {
   readonly amount: string;
   readonly note?: string;
   readonly scheduled_date?: string;
+  readonly attachment_ids?: readonly string[] | undefined;
   readonly vop_proof_token: string;
 }
 

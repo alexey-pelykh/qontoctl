@@ -101,6 +101,11 @@ export function registerTransferTools(server: McpServer, getClient: () => Promis
         amount: z.number().positive().describe("Amount to transfer"),
         note: z.string().optional().describe("Optional note"),
         scheduled_date: z.string().optional().describe("Scheduled date (YYYY-MM-DD)"),
+        attachment_ids: z
+          .array(z.string())
+          .max(5)
+          .optional()
+          .describe("Attachment IDs (max 5, required for transfers > 30k EUR)"),
         vop_proof_token: z
           .string()
           .optional()
@@ -138,6 +143,7 @@ export function registerTransferTools(server: McpServer, getClient: () => Promis
           vop_proof_token: vopProofToken,
           ...(args.note !== undefined ? { note: args.note } : {}),
           ...(args.scheduled_date !== undefined ? { scheduled_date: args.scheduled_date } : {}),
+          ...(args.attachment_ids !== undefined ? { attachment_ids: args.attachment_ids } : {}),
         };
 
         const transfer = await createTransfer(client, params);

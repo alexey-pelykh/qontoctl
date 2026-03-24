@@ -295,6 +295,34 @@ describe("transfer MCP tools", () => {
       });
     });
 
+    it("passes attachment_ids in transfer body", async () => {
+      fetchSpy.mockImplementation((input: URL, init: RequestInit) => {
+        if (input.pathname === "/v2/sepa/transfers" && init.method === "POST") {
+          return jsonResponse({ transfer: makeTransfer() });
+        }
+        return jsonResponse({});
+      });
+
+      await mcpClient.callTool({
+        name: "transfer_create",
+        arguments: {
+          ...createArgs,
+          vop_proof_token: "explicit-token",
+          attachment_ids: ["att-1", "att-2"],
+        },
+      });
+
+      const calls = fetchSpy.mock.calls as [URL, RequestInit][];
+      const transferCall = calls.find(
+        (c) => c[0].pathname === "/v2/sepa/transfers" && c[1].method === "POST",
+      ) as [URL, RequestInit] | undefined;
+      expect(transferCall).toBeDefined();
+      const body = JSON.parse((transferCall as [URL, RequestInit])[1].body as string) as {
+        transfer: { attachment_ids: string[] };
+      };
+      expect(body.transfer.attachment_ids).toEqual(["att-1", "att-2"]);
+    });
+
     it("includes VoP status in response on mismatch", async () => {
       mockForAutoResolve("mismatch");
 

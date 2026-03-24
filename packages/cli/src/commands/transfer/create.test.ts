@@ -361,6 +361,41 @@ describe("transfer create command", () => {
     );
   });
 
+  it("passes attachment_ids when --attachment-id is provided", async () => {
+    createTransferMock.mockResolvedValue(sampleTransfer);
+
+    const program = new Command();
+    program.option("-o, --output <format>", "", "table");
+    registerTransferCommands(program);
+
+    await program.parseAsync(
+      [
+        "transfer",
+        "create",
+        "--beneficiary",
+        "ben-1",
+        "--debit-account",
+        "acc-1",
+        "--reference",
+        "Test Payment",
+        "--amount",
+        "35000",
+        "--vop-proof-token",
+        "tok_abc123",
+        "--attachment-id",
+        "att-1",
+        "att-2",
+      ],
+      { from: "user" },
+    );
+
+    expect(createTransferMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ attachment_ids: ["att-1", "att-2"] }),
+      expect.anything(),
+    );
+  });
+
   it("auto-resolves vop_proof_token on not_available result with warning", async () => {
     getBeneficiaryMock.mockResolvedValue(sampleBeneficiary);
     verifyPayeeMock.mockResolvedValue({
