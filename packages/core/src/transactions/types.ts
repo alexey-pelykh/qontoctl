@@ -39,6 +39,18 @@ export interface Transaction {
   readonly subject_type: string;
   readonly bank_account_id: string;
   readonly is_external_transaction: boolean;
+  readonly logo?: { readonly small: string; readonly medium: string } | undefined;
+  readonly cashflow_category?: { readonly name: string } | undefined;
+  readonly cashflow_subcategory?: { readonly name: string } | undefined;
+  readonly transfer?: Record<string, unknown> | null | undefined;
+  readonly income?: Record<string, unknown> | null | undefined;
+  readonly swift_income?: Record<string, unknown> | null | undefined;
+  readonly direct_debit?: Record<string, unknown> | null | undefined;
+  readonly direct_debit_collection?: Record<string, unknown> | null | undefined;
+  readonly check?: Record<string, unknown> | null | undefined;
+  readonly financing_installment?: Record<string, unknown> | null | undefined;
+  readonly pagopa_payment?: Record<string, unknown> | null | undefined;
+  readonly direct_debit_hold?: Record<string, unknown> | null | undefined;
   readonly attachments?: readonly unknown[];
   readonly labels?: readonly TransactionLabel[];
   readonly vat_details?: unknown;

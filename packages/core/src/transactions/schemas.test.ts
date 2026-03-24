@@ -111,6 +111,65 @@ describe("TransactionSchema", () => {
     expect(result.attachments).toEqual([{ id: "att-1" }]);
   });
 
+  it("parses logo when present", () => {
+    const txn = {
+      ...validTransaction,
+      logo: { small: "https://logo.example.com/s.png", medium: "https://logo.example.com/m.png" },
+    };
+    const result = TransactionSchema.parse(txn);
+    expect(result.logo).toEqual({
+      small: "https://logo.example.com/s.png",
+      medium: "https://logo.example.com/m.png",
+    });
+  });
+
+  it("parses cashflow_category and cashflow_subcategory when present", () => {
+    const txn = {
+      ...validTransaction,
+      cashflow_category: { name: "Office" },
+      cashflow_subcategory: { name: "Supplies" },
+    };
+    const result = TransactionSchema.parse(txn);
+    expect(result.cashflow_category).toEqual({ name: "Office" });
+    expect(result.cashflow_subcategory).toEqual({ name: "Supplies" });
+  });
+
+  it("parses nullable embedded objects (transfer, income, etc.)", () => {
+    const txn = {
+      ...validTransaction,
+      transfer: { beneficiary_name: "Alice" },
+      income: null,
+      swift_income: null,
+      direct_debit: { mandate_id: "m-1" },
+      direct_debit_collection: null,
+      check: null,
+      financing_installment: null,
+      pagopa_payment: null,
+      direct_debit_hold: null,
+    };
+    const result = TransactionSchema.parse(txn);
+    expect(result.transfer).toEqual({ beneficiary_name: "Alice" });
+    expect(result.income).toBeNull();
+    expect(result.direct_debit).toEqual({ mandate_id: "m-1" });
+    expect(result.direct_debit_hold).toBeNull();
+  });
+
+  it("omits new optional fields when absent", () => {
+    const result = TransactionSchema.parse(validTransaction);
+    expect(result).not.toHaveProperty("logo");
+    expect(result).not.toHaveProperty("cashflow_category");
+    expect(result).not.toHaveProperty("cashflow_subcategory");
+    expect(result).not.toHaveProperty("transfer");
+    expect(result).not.toHaveProperty("income");
+    expect(result).not.toHaveProperty("swift_income");
+    expect(result).not.toHaveProperty("direct_debit");
+    expect(result).not.toHaveProperty("direct_debit_collection");
+    expect(result).not.toHaveProperty("check");
+    expect(result).not.toHaveProperty("financing_installment");
+    expect(result).not.toHaveProperty("pagopa_payment");
+    expect(result).not.toHaveProperty("direct_debit_hold");
+  });
+
   it("strips unknown fields", () => {
     const txn = { ...validTransaction, unknown_field: "should be stripped" };
     const result = TransactionSchema.parse(txn);
