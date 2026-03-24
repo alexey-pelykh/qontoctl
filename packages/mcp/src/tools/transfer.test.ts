@@ -348,6 +348,118 @@ describe("transfer MCP tools", () => {
     });
   });
 
+  describe("transfer_verify_payee", () => {
+    it("returns VoP result in new format", async () => {
+      fetchSpy.mockReturnValue(
+        jsonResponse({
+          match_result: "MATCH_RESULT_MATCH",
+          matched_name: "Acme Corp",
+          proof_token: { token: "vop-token-123" },
+        }),
+      );
+
+      const result = await mcpClient.callTool({
+        name: "transfer_verify_payee",
+        arguments: { iban: "FR7630001007941234567890185", name: "Acme Corp" },
+      });
+
+      const content = result.content as { type: string; text: string }[];
+      expect(content).toHaveLength(1);
+      const parsed = JSON.parse((content[0] as { type: string; text: string }).text) as {
+        match_result: string;
+        matched_name: string;
+        proof_token: { token: string };
+      };
+      expect(parsed.match_result).toBe("MATCH_RESULT_MATCH");
+      expect(parsed.matched_name).toBe("Acme Corp");
+      expect(parsed.proof_token).toEqual({ token: "vop-token-123" });
+    });
+
+    it("sends beneficiary_name to API", async () => {
+      fetchSpy.mockReturnValue(
+        jsonResponse({
+          match_result: "MATCH_RESULT_MATCH",
+          matched_name: "Acme Corp",
+          proof_token: { token: "vop-token-123" },
+        }),
+      );
+
+      await mcpClient.callTool({
+        name: "transfer_verify_payee",
+        arguments: { iban: "FR7630001007941234567890185", name: "Acme Corp" },
+      });
+
+      const calls = fetchSpy.mock.calls as [URL, RequestInit][];
+      const vopCall = calls.find((c) => c[0].pathname === "/v2/sepa/verify_payee");
+      expect(vopCall).toBeDefined();
+      const body = JSON.parse((vopCall as [URL, RequestInit])[1].body as string) as {
+        iban: string;
+        beneficiary_name: string;
+      };
+      expect(body.iban).toBe("FR7630001007941234567890185");
+      expect(body.beneficiary_name).toBe("Acme Corp");
+    });
+  });
+
+  describe("transfer_bulk_verify_payee", () => {
+    it("returns per-entry results and shared proof token", async () => {
+      fetchSpy.mockReturnValue(
+        jsonResponse({
+          responses: [
+            { id: "0", response: { match_result: "MATCH_RESULT_MATCH", matched_name: "Acme Corp" } },
+            { id: "1", response: { match_result: "MATCH_RESULT_NO_MATCH", matched_name: null } },
+          ],
+          proof_token: { token: "bulk-token-456" },
+        }),
+      );
+
+      const result = await mcpClient.callTool({
+        name: "transfer_bulk_verify_payee",
+        arguments: {
+          entries: [
+            { iban: "FR7630001007941234567890185", name: "Acme Corp" },
+            { iban: "DE89370400440532013000", name: "Jane Doe" },
+          ],
+        },
+      });
+
+      const content = result.content as { type: string; text: string }[];
+      expect(content).toHaveLength(1);
+      const parsed = JSON.parse((content[0] as { type: string; text: string }).text) as {
+        responses: { id: string; response: { match_result: string; matched_name: string | null } }[];
+        proof_token: { token: string };
+      };
+      expect(parsed.responses).toHaveLength(2);
+      expect(parsed.responses[0]?.response.match_result).toBe("MATCH_RESULT_MATCH");
+      expect(parsed.responses[1]?.response.match_result).toBe("MATCH_RESULT_NO_MATCH");
+      expect(parsed.proof_token).toEqual({ token: "bulk-token-456" });
+    });
+
+    it("maps input entries to use beneficiary_name", async () => {
+      fetchSpy.mockReturnValue(
+        jsonResponse({
+          responses: [{ id: "0", response: { match_result: "MATCH_RESULT_MATCH", matched_name: "Acme Corp" } }],
+          proof_token: { token: "bulk-token-789" },
+        }),
+      );
+
+      await mcpClient.callTool({
+        name: "transfer_bulk_verify_payee",
+        arguments: {
+          entries: [{ iban: "FR7630001007941234567890185", name: "Acme Corp" }],
+        },
+      });
+
+      const calls = fetchSpy.mock.calls as [URL, RequestInit][];
+      const bulkCall = calls.find((c) => c[0].pathname === "/v2/sepa/bulk_verify_payee");
+      expect(bulkCall).toBeDefined();
+      const body = JSON.parse((bulkCall as [URL, RequestInit])[1].body as string) as {
+        requests: { id: string; iban: string; beneficiary_name: string }[];
+      };
+      expect(body.requests[0]?.beneficiary_name).toBe("Acme Corp");
+    });
+  });
+
   describe("transfer_show", () => {
     it("returns a single transfer", async () => {
       fetchSpy.mockReturnValue(jsonResponse({ transfer: makeTransfer({ id: "txfr-123" }) }));
