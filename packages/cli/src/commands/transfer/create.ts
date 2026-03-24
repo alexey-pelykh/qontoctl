@@ -26,6 +26,7 @@ interface TransferCreateOptions extends GlobalOptions, WriteOptions {
   readonly note?: string | undefined;
   readonly scheduledDate?: string | undefined;
   readonly vopProofToken?: string | undefined;
+  readonly attachmentId?: readonly string[] | undefined;
   readonly beneficiaryName?: string | undefined;
   readonly beneficiaryIban?: string | undefined;
   readonly beneficiaryBic?: string | undefined;
@@ -85,7 +86,11 @@ export function registerTransferCreateCommand(parent: Command): void {
     .addOption(new Option("--amount <number>", "amount to transfer").makeOptionMandatory())
     .option("--note <text>", "optional note")
     .option("--scheduled-date <date>", "scheduled date (YYYY-MM-DD)")
-    .option("--vop-proof-token <token>", "VoP proof token (auto-resolved if omitted)");
+    .option("--vop-proof-token <token>", "VoP proof token (auto-resolved if omitted)")
+    .option(
+      "--attachment-id <id...>",
+      "attachment IDs (max 5, required for transfers > 30k EUR)",
+    );
   addInheritableOptions(create);
   addWriteOptions(create);
   create.action(async (_opts: unknown, cmd: Command) => {
@@ -134,6 +139,7 @@ export function registerTransferCreateCommand(parent: Command): void {
       vop_proof_token: vopProofToken,
       ...(opts.note !== undefined ? { note: opts.note } : {}),
       ...(opts.scheduledDate !== undefined ? { scheduled_date: opts.scheduledDate } : {}),
+      ...(opts.attachmentId !== undefined ? { attachment_ids: opts.attachmentId } : {}),
     };
 
     const transfer = await executeWithCliSca(

@@ -349,6 +349,23 @@ describe("createTransfer", () => {
     expect(body.transfer.note).toBe("Monthly payment");
     expect(body.transfer.scheduled_date).toBe("2026-04-01");
   });
+
+  it("includes attachment_ids in the transfer body", async () => {
+    fetchSpy.mockReturnValue(jsonResponse({ transfer: newTransfer }));
+
+    await createTransfer(client, {
+      beneficiary_id: "ben-1",
+      bank_account_id: "acc-1",
+      reference: "With Attachments",
+      amount: "35000",
+      vop_proof_token: "tok_abc123",
+      attachment_ids: ["att-1", "att-2"],
+    });
+
+    const [, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+    const body = JSON.parse(init.body as string) as { transfer: Record<string, unknown> };
+    expect(body.transfer.attachment_ids).toEqual(["att-1", "att-2"]);
+  });
 });
 
 describe("cancelTransfer", () => {
