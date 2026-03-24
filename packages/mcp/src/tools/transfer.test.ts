@@ -279,9 +279,9 @@ describe("transfer MCP tools", () => {
       expect(vopBody.name).toBe("Jane Doe");
 
       // Should have sent inline beneficiary in transfer body
-      const transferCall = calls.find(
-        (c) => c[0].pathname === "/v2/sepa/transfers" && c[1].method === "POST",
-      ) as [URL, RequestInit] | undefined;
+      const transferCall = calls.find((c) => c[0].pathname === "/v2/sepa/transfers" && c[1].method === "POST") as
+        | [URL, RequestInit]
+        | undefined;
       expect(transferCall).toBeDefined();
       const transferBody = JSON.parse((transferCall as [URL, RequestInit])[1].body as string) as {
         vop_proof_token: string;
@@ -313,9 +313,9 @@ describe("transfer MCP tools", () => {
       });
 
       const calls = fetchSpy.mock.calls as [URL, RequestInit][];
-      const transferCall = calls.find(
-        (c) => c[0].pathname === "/v2/sepa/transfers" && c[1].method === "POST",
-      ) as [URL, RequestInit] | undefined;
+      const transferCall = calls.find((c) => c[0].pathname === "/v2/sepa/transfers" && c[1].method === "POST") as
+        | [URL, RequestInit]
+        | undefined;
       expect(transferCall).toBeDefined();
       const body = JSON.parse((transferCall as [URL, RequestInit])[1].body as string) as {
         transfer: { attachment_ids: string[] };
