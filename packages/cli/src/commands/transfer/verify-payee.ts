@@ -17,7 +17,7 @@ interface VerifyPayeeOptions extends GlobalOptions, WriteOptions {
 
 function toTableRow(r: VopResult): Record<string, string> {
   return {
-    result: r.match_result,
+    match_result: r.match_result,
     matched_name: r.matched_name ?? "",
   };
 }
