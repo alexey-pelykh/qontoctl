@@ -48,6 +48,42 @@ export function buildSupplierInvoiceQueryParams(params: ListSupplierInvoicesPara
   if (params.sort_by !== undefined) {
     query["sort_by"] = params.sort_by;
   }
+  if (params.attachment_id !== undefined) {
+    query["filter[attachment_id]"] = params.attachment_id;
+  }
+  if (params.attachment_ids !== undefined && params.attachment_ids.length > 0) {
+    query["filter[attachment_id][]"] = params.attachment_ids;
+  }
+  if (params.payment_date !== undefined) {
+    query["filter[payment_date]"] = params.payment_date;
+  }
+  if (params.issue_date !== undefined) {
+    query["filter[issue_date]"] = params.issue_date;
+  }
+  if (params.issue_date_from !== undefined) {
+    query["filter[issue_date_from]"] = params.issue_date_from;
+  }
+  if (params.missing_data !== undefined) {
+    query["filter[missing_data]"] = String(params.missing_data);
+  }
+  if (params.matched_transactions !== undefined) {
+    query["filter[matched_transactions]"] = String(params.matched_transactions);
+  }
+  if (params.document_type !== undefined) {
+    query["filter[document_type]"] = params.document_type;
+  }
+  if (params.approver_ids !== undefined && params.approver_ids.length > 0) {
+    query["filter[approver_id][]"] = params.approver_ids;
+  }
+  if (params.exclude_credit_notes !== undefined) {
+    query["filter[exclude_credit_notes]"] = String(params.exclude_credit_notes);
+  }
+  if (params.payable_amount !== undefined) {
+    query["filter[payable_amount]"] = params.payable_amount;
+  }
+  if (params.query_fields !== undefined) {
+    query["query_fields"] = params.query_fields;
+  }
 
   return query;
 }

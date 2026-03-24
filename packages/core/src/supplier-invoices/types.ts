@@ -49,6 +49,18 @@ export interface ListSupplierInvoicesParams {
   readonly updated_at_to?: string;
   readonly query?: string;
   readonly sort_by?: string;
+  readonly attachment_id?: string;
+  readonly attachment_ids?: readonly string[];
+  readonly payment_date?: string;
+  readonly issue_date?: string;
+  readonly issue_date_from?: string;
+  readonly missing_data?: boolean;
+  readonly matched_transactions?: boolean;
+  readonly document_type?: string;
+  readonly approver_ids?: readonly string[];
+  readonly exclude_credit_notes?: boolean;
+  readonly payable_amount?: string;
+  readonly query_fields?: string;
 }
 
 /**
