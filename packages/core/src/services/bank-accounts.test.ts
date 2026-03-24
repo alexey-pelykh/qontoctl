@@ -253,6 +253,27 @@ describe("listBankAccounts", () => {
 
     const [url] = fetchSpy.mock.calls[0] as [URL];
     expect(url.pathname).toBe("/v2/bank_accounts");
+    expect(url.search).toBe("");
+  });
+
+  it("passes pagination params as query strings", async () => {
+    fetchSpy.mockReturnValue(jsonResponse({ bank_accounts: [] }));
+
+    await listBankAccounts(client, { page: 2, per_page: 10 });
+
+    const [url] = fetchSpy.mock.calls[0] as [URL];
+    expect(url.searchParams.get("page")).toBe("2");
+    expect(url.searchParams.get("per_page")).toBe("10");
+  });
+
+  it("omits undefined pagination params", async () => {
+    fetchSpy.mockReturnValue(jsonResponse({ bank_accounts: [] }));
+
+    await listBankAccounts(client, { per_page: 5 });
+
+    const [url] = fetchSpy.mock.calls[0] as [URL];
+    expect(url.searchParams.has("page")).toBe(false);
+    expect(url.searchParams.get("per_page")).toBe("5");
   });
 });
 
