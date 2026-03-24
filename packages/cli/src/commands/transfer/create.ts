@@ -65,7 +65,8 @@ async function resolveVopProofTokenByNameAndIban(
   } else if (vopResult.match_result === "MATCH_RESULT_NOT_POSSIBLE") {
     process.stderr.write(`Warning: VoP result is "not possible" for beneficiary ${displayLabel}\n`);
   } else if (vopResult.match_result === "MATCH_RESULT_CLOSE_MATCH") {
-    process.stderr.write(`Warning: VoP result is "close match" for beneficiary ${displayLabel}\n`);
+    const nameInfo = vopResult.matched_name !== null ? ` (matched name: ${vopResult.matched_name})` : "";
+    process.stderr.write(`Warning: VoP result is "close match" for beneficiary ${displayLabel}${nameInfo}\n`);
   }
 
   return vopResult.proof_token.token;

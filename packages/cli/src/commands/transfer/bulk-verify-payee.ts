@@ -19,13 +19,13 @@ function toTableRow(r: BulkVopResultEntry): Record<string, string> {
   if (r.error !== undefined) {
     return {
       id: r.id,
-      result: `ERROR: ${r.error.code}`,
+      match_result: `ERROR: ${r.error.code}`,
       matched_name: "",
     };
   }
   return {
     id: r.id,
-    result: r.response?.match_result ?? "",
+    match_result: r.response?.match_result ?? "",
     matched_name: r.response?.matched_name ?? "",
   };
 }
@@ -85,5 +85,9 @@ export function registerTransferBulkVerifyPayeeCommand(parent: Command): void {
     const data =
       opts.output === "json" || opts.output === "yaml" ? results : results.responses.map((r) => toTableRow(r));
     process.stdout.write(formatOutput(data, opts.output) + "\n");
+
+    if (opts.output !== "json" && opts.output !== "yaml") {
+      process.stderr.write(`Proof token: ${results.proof_token.token}\n`);
+    }
   });
 }

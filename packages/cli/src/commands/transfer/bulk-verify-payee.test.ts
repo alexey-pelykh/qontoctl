@@ -111,6 +111,19 @@ describe("transfer bulk-verify-payee command", () => {
     );
   });
 
+  it("surfaces proof token to stderr in table format", async () => {
+    readFileMock.mockResolvedValue("FR7612345000010009876543210,John Doe\nDE89370400440532013000,Jane Smith");
+    bulkVerifyPayeeMock.mockResolvedValue(sampleResults);
+
+    const program = new Command();
+    program.option("-o, --output <format>", "", "table");
+    registerTransferCommands(program);
+
+    await program.parseAsync(["transfer", "bulk-verify-payee", "--file", "payees.csv"], { from: "user" });
+
+    expect(stderrSpy).toHaveBeenCalledWith("Proof token: tok_bulk_123\n");
+  });
+
   it("exits with error for empty CSV file", async () => {
     readFileMock.mockResolvedValue("");
 

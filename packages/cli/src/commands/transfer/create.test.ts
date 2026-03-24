@@ -393,6 +393,44 @@ describe("transfer create command", () => {
     );
   });
 
+  it("auto-resolves vop_proof_token on close_match result with warning including matched_name", async () => {
+    getBeneficiaryMock.mockResolvedValue(sampleBeneficiary);
+    verifyPayeeMock.mockResolvedValue({
+      match_result: "MATCH_RESULT_CLOSE_MATCH",
+      matched_name: "Acme Corporation",
+      proof_token: { token: "tok_auto_close_match" },
+    });
+    createTransferMock.mockResolvedValue(sampleTransfer);
+
+    const program = new Command();
+    program.option("-o, --output <format>", "", "table");
+    registerTransferCommands(program);
+
+    await program.parseAsync(
+      [
+        "transfer",
+        "create",
+        "--beneficiary",
+        "ben-1",
+        "--debit-account",
+        "acc-1",
+        "--reference",
+        "Test Payment",
+        "--amount",
+        "500",
+      ],
+      { from: "user" },
+    );
+
+    expect(createTransferMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ vop_proof_token: "tok_auto_close_match" }),
+      expect.anything(),
+    );
+    expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("close match"));
+    expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("matched name: Acme Corporation"));
+  });
+
   it("auto-resolves vop_proof_token on not_possible result with warning", async () => {
     getBeneficiaryMock.mockResolvedValue(sampleBeneficiary);
     verifyPayeeMock.mockResolvedValue({
