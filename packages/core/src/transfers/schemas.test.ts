@@ -145,6 +145,34 @@ describe("VopResultSchema", () => {
       }),
     ).toThrow();
   });
+
+  it("rejects missing proof_token", () => {
+    expect(() =>
+      VopResultSchema.parse({
+        match_result: "MATCH_RESULT_MATCH",
+        matched_name: null,
+      }),
+    ).toThrow();
+  });
+
+  it("rejects missing match_result", () => {
+    expect(() =>
+      VopResultSchema.parse({
+        matched_name: null,
+        proof_token: { token: "tok_abc123" },
+      }),
+    ).toThrow();
+  });
+
+  it("strips extra fields from result", () => {
+    const result = VopResultSchema.parse({
+      match_result: "MATCH_RESULT_MATCH",
+      matched_name: null,
+      proof_token: { token: "tok_abc123" },
+      extra_field: "should be stripped",
+    });
+    expect(result).not.toHaveProperty("extra_field");
+  });
 });
 
 describe("VopResultResponseSchema", () => {
@@ -157,6 +185,28 @@ describe("VopResultResponseSchema", () => {
     const result = VopResultResponseSchema.parse(response);
     expect(result.match_result).toBe("MATCH_RESULT_MATCH");
     expect(result.proof_token.token).toBe("tok_abc123");
+  });
+
+  it("validates close match response with matched_name", () => {
+    const response = {
+      match_result: "MATCH_RESULT_CLOSE_MATCH",
+      matched_name: "Acme Corporation",
+      proof_token: { token: "tok_close" },
+    };
+    const result = VopResultResponseSchema.parse(response);
+    expect(result.match_result).toBe("MATCH_RESULT_CLOSE_MATCH");
+    expect(result.matched_name).toBe("Acme Corporation");
+  });
+
+  it("validates not_possible response", () => {
+    const response = {
+      match_result: "MATCH_RESULT_NOT_POSSIBLE",
+      matched_name: null,
+      proof_token: { token: "tok_not_possible" },
+    };
+    const result = VopResultResponseSchema.parse(response);
+    expect(result.match_result).toBe("MATCH_RESULT_NOT_POSSIBLE");
+    expect(result.matched_name).toBeNull();
   });
 });
 
@@ -214,5 +264,21 @@ describe("BulkVopResultResponseSchema", () => {
     expect(result.responses).toHaveLength(2);
     expect(result.responses[0]?.response?.match_result).toBe("MATCH_RESULT_MATCH");
     expect(result.responses[1]?.error?.code).toBe("BANK_ERROR");
+  });
+
+  it("rejects missing proof_token", () => {
+    expect(() =>
+      BulkVopResultResponseSchema.parse({
+        responses: [{ id: "0", response: { match_result: "MATCH_RESULT_MATCH", matched_name: null } }],
+      }),
+    ).toThrow();
+  });
+
+  it("rejects missing responses", () => {
+    expect(() =>
+      BulkVopResultResponseSchema.parse({
+        proof_token: { token: "tok_no_responses" },
+      }),
+    ).toThrow();
   });
 });
