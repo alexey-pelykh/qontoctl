@@ -19,7 +19,7 @@ import type { GlobalOptions, WriteOptions } from "../../options.js";
 import { executeWithCliSca } from "../../sca.js";
 
 interface TransferCreateOptions extends GlobalOptions, WriteOptions {
-  readonly beneficiary: string;
+  readonly beneficiary?: string | undefined;
   readonly debitAccount: string;
   readonly reference: string;
   readonly amount: string;
@@ -55,7 +55,7 @@ async function resolveVopProofTokenByNameAndIban(
   httpClient: HttpClient,
   name: string,
   iban: string,
-  label?: string | undefined,
+  label?: string,
 ): Promise<string> {
   const vopResult = await verifyPayee(httpClient, { iban, name });
   const displayLabel = label ?? `${name} (${iban})`;
@@ -97,27 +97,18 @@ export function registerTransferCreateCommand(parent: Command): void {
     const opts = resolveGlobalOptions<TransferCreateOptions>(cmd);
     const httpClient = await createClient(opts);
 
-    const hasInlineBeneficiary = opts.beneficiaryName !== undefined || opts.beneficiaryIban !== undefined;
-
-    if (opts.beneficiary !== undefined && hasInlineBeneficiary) {
-      throw new Error("Cannot specify both --beneficiary and inline beneficiary options (--beneficiary-name/--beneficiary-iban)");
-    }
-
-    if (!opts.beneficiary && !hasInlineBeneficiary) {
-      throw new Error("Either --beneficiary or --beneficiary-name and --beneficiary-iban must be provided");
-    }
-
-    if (hasInlineBeneficiary && (opts.beneficiaryName === undefined || opts.beneficiaryIban === undefined)) {
-      throw new Error("Both --beneficiary-name and --beneficiary-iban are required for inline beneficiary");
-    }
-
     let vopProofToken: string;
     let beneficiaryField: { beneficiary_id: string } | { beneficiary: InlineBeneficiary };
 
-    if (hasInlineBeneficiary) {
+    if (opts.beneficiaryName !== undefined && opts.beneficiaryIban !== undefined) {
+      if (opts.beneficiary !== undefined) {
+        throw new Error(
+          "Cannot specify both --beneficiary and inline beneficiary options (--beneficiary-name/--beneficiary-iban)",
+        );
+      }
       const inlineBeneficiary: InlineBeneficiary = {
-        name: opts.beneficiaryName!,
-        iban: opts.beneficiaryIban!,
+        name: opts.beneficiaryName,
+        iban: opts.beneficiaryIban,
         ...(opts.beneficiaryBic !== undefined ? { bic: opts.beneficiaryBic } : {}),
         ...(opts.beneficiaryEmail !== undefined ? { email: opts.beneficiaryEmail } : {}),
         ...(opts.beneficiaryActivityTag !== undefined ? { activity_tag: opts.beneficiaryActivityTag } : {}),
@@ -126,9 +117,11 @@ export function registerTransferCreateCommand(parent: Command): void {
         opts.vopProofToken ??
         (await resolveVopProofTokenByNameAndIban(httpClient, inlineBeneficiary.name, inlineBeneficiary.iban));
       beneficiaryField = { beneficiary: inlineBeneficiary };
-    } else {
+    } else if (opts.beneficiary !== undefined) {
       vopProofToken = opts.vopProofToken ?? (await resolveVopProofTokenByBeneficiaryId(httpClient, opts.beneficiary));
       beneficiaryField = { beneficiary_id: opts.beneficiary };
+    } else {
+      throw new Error("Either --beneficiary or --beneficiary-name and --beneficiary-iban must be provided");
     }
 
     const params: CreateTransferParams = {
