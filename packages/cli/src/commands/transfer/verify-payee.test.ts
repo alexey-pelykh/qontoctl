@@ -30,9 +30,9 @@ const { verifyPayee } = await import("@qontoctl/core");
 const verifyPayeeMock = vi.mocked(verifyPayee);
 
 const sampleResult = {
-  iban: "FR7612345000010009876543210",
-  name: "John Doe",
-  result: "match" as const,
+  match_result: "MATCH_RESULT_MATCH" as const,
+  matched_name: "John Doe",
+  proof_token: { token: "tok_abc123" },
 };
 
 describe("transfer verify-payee command", () => {
@@ -62,7 +62,7 @@ describe("transfer verify-payee command", () => {
 
     expect(stdoutSpy).toHaveBeenCalled();
     const output = stdoutSpy.mock.calls[0]?.[0] as string;
-    expect(output).toContain("match");
+    expect(output).toContain("MATCH_RESULT_MATCH");
     expect(output).toContain("John Doe");
   });
 
@@ -81,8 +81,8 @@ describe("transfer verify-payee command", () => {
     expect(stdoutSpy).toHaveBeenCalled();
     const output = stdoutSpy.mock.calls[0]?.[0] as string;
     const parsed = JSON.parse(output) as typeof sampleResult;
-    expect(parsed.result).toBe("match");
-    expect(parsed.iban).toBe("FR7612345000010009876543210");
+    expect(parsed.match_result).toBe("MATCH_RESULT_MATCH");
+    expect(parsed.matched_name).toBe("John Doe");
   });
 
   it("passes iban and name to verifyPayee", async () => {
@@ -98,7 +98,7 @@ describe("transfer verify-payee command", () => {
 
     expect(verifyPayeeMock).toHaveBeenCalledWith(
       expect.anything(),
-      { iban: "DE89370400440532013000", name: "Jane Smith" },
+      { iban: "DE89370400440532013000", beneficiary_name: "Jane Smith" },
       expect.anything(),
     );
   });
