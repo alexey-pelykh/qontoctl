@@ -478,6 +478,12 @@ describe("verifyPayee", () => {
     const [url, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
     expect(url.pathname).toBe("/v2/sepa/verify_payee");
     expect(init.method).toBe("POST");
+
+    const body = JSON.parse(init.body as string) as Record<string, unknown>;
+    expect(body).toEqual({
+      iban: "FR7612345000010009876543210",
+      beneficiary_name: "John Doe",
+    });
   });
 
   const vopBankErrorCodes = [
@@ -568,7 +574,7 @@ describe("verifyPayee", () => {
     await expect(
       verifyPayee(client, {
         iban: "FR7612345000010009876543210",
-        name: "John Doe",
+        beneficiary_name: "John Doe",
       }),
     ).rejects.toThrow(QontoApiError);
   });
