@@ -5,6 +5,7 @@ import { basename, join, resolve, sep } from "node:path";
 import { writeFile } from "node:fs/promises";
 import { Command, Option } from "commander";
 import type { Statement } from "@qontoctl/core";
+import { buildStatementQueryParams, getStatement } from "@qontoctl/core";
 import { createClient } from "../client.js";
 import { formatOutput } from "../formatters/index.js";
 import { addInheritableOptions, resolveGlobalOptions } from "../inherited-options.js";
@@ -45,16 +46,11 @@ export function registerStatementCommands(program: Command): void {
     const globalOpts = resolveGlobalOptions<GlobalOptions & PaginationOptions>(cmd);
     const client = await createClient(globalOpts);
 
-    const params: Record<string, string> = {};
-    if (commandOpts.bankAccount !== undefined) {
-      params["bank_account_ids[]"] = commandOpts.bankAccount;
-    }
-    if (commandOpts.from !== undefined) {
-      params["period_from"] = commandOpts.from;
-    }
-    if (commandOpts.to !== undefined) {
-      params["period_to"] = commandOpts.to;
-    }
+    const params = buildStatementQueryParams({
+      bank_account_ids: commandOpts.bankAccount !== undefined ? [commandOpts.bankAccount] : undefined,
+      period_from: commandOpts.from,
+      period_to: commandOpts.to,
+    });
 
     const result = await fetchPaginated<Statement>(client, "/v2/statements", "statements", globalOpts, params);
 
@@ -71,9 +67,9 @@ export function registerStatementCommands(program: Command): void {
     const globalOpts = resolveGlobalOptions<GlobalOptions>(cmd);
     const client = await createClient(globalOpts);
 
-    const response = await client.get<{ statement: Statement }>(`/v2/statements/${encodeURIComponent(id)}`);
+    const stmt = await getStatement(client, id);
 
-    const rows = [formatStatementRow(response.statement)];
+    const rows = [formatStatementRow(stmt)];
     const output = formatOutput(rows, globalOpts.output);
     if (output !== "") {
       process.stdout.write(`${output}\n`);
@@ -90,9 +86,9 @@ export function registerStatementCommands(program: Command): void {
     const globalOpts = resolveGlobalOptions<GlobalOptions>(cmd);
     const client = await createClient(globalOpts);
 
-    const response = await client.get<{ statement: Statement }>(`/v2/statements/${encodeURIComponent(id)}`);
+    const stmt = await getStatement(client, id);
 
-    const { file } = response.statement;
+    const { file } = stmt;
     const fileResponse = await fetch(file.file_url);
     if (!fileResponse.ok) {
       throw new Error(`Failed to download statement: ${fileResponse.status} ${fileResponse.statusText}`);
