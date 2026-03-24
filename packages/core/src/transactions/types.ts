@@ -39,9 +39,9 @@ export interface Transaction {
   readonly subject_type: string;
   readonly bank_account_id: string;
   readonly is_external_transaction: boolean;
-  readonly logo?: { readonly small: string; readonly medium: string } | undefined;
-  readonly cashflow_category?: { readonly name: string } | undefined;
-  readonly cashflow_subcategory?: { readonly name: string } | undefined;
+  readonly logo?: { readonly small: string; readonly medium: string } | null | undefined;
+  readonly cashflow_category?: { readonly name: string } | null | undefined;
+  readonly cashflow_subcategory?: { readonly name: string } | null | undefined;
   readonly transfer?: Record<string, unknown> | null | undefined;
   readonly income?: Record<string, unknown> | null | undefined;
   readonly swift_income?: Record<string, unknown> | null | undefined;
