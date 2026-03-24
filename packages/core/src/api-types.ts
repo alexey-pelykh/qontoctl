@@ -18,6 +18,9 @@ export interface BankAccount {
   readonly authorized_balance: number;
   readonly authorized_balance_cents: number;
   readonly slug?: string | undefined;
+  readonly is_external_account?: boolean | undefined;
+  readonly account_number?: string | undefined;
+  readonly updated_at?: string | undefined;
 }
 
 /**
