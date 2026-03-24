@@ -92,7 +92,7 @@ ESLint enforces this via `eslint-plugin-header`.
 
 ### E2E Testing
 
-**When to run:** After implementing or modifying code that touches Qonto API interactions, CLI commands, MCP tools, or any behavior covered by E2E tests — run E2E tests locally to validate before completing the task.
+**When to run:** E2E tests MUST be run locally and pass before submitting a PR or preparing a release. Also run after implementing or modifying code that touches Qonto API interactions, CLI commands, MCP tools, or any behavior covered by E2E tests.
 
 **Credentials:** The repo contains `.qontoctl.yaml` (gitignored) with API key credentials. The config resolver picks this up from CWD automatically — no env var overrides needed.
 
