@@ -5,8 +5,10 @@ import { describe, it, expect } from "vitest";
 import {
   TransferSchema,
   TransferResponseSchema,
+  VopMatchResultSchema,
   VopResultSchema,
   VopResultResponseSchema,
+  BulkVopResultEntrySchema,
   BulkVopResultResponseSchema,
 } from "./schemas.js";
 
@@ -93,33 +95,54 @@ describe("TransferResponseSchema", () => {
   });
 });
 
-describe("VopResultSchema", () => {
-  it("accepts a valid VoP result", () => {
-    const result = VopResultSchema.parse({
-      iban: "FR76...",
-      name: "Acme",
-      result: "match",
-      vop_proof_token: "tok_abc123",
-    });
-    expect(result.result).toBe("match");
-    expect(result.vop_proof_token).toBe("tok_abc123");
-  });
-
-  it("accepts all valid result values", () => {
-    for (const value of ["match", "mismatch", "not_available"]) {
-      const result = VopResultSchema.parse({
-        iban: "FR76...",
-        name: "Acme",
-        result: value,
-        vop_proof_token: "tok_abc123",
-      });
-      expect(result.result).toBe(value);
+describe("VopMatchResultSchema", () => {
+  it("accepts all valid match result values", () => {
+    for (const value of [
+      "MATCH_RESULT_MATCH",
+      "MATCH_RESULT_CLOSE_MATCH",
+      "MATCH_RESULT_NO_MATCH",
+      "MATCH_RESULT_NOT_POSSIBLE",
+      "MATCH_RESULT_UNSPECIFIED",
+    ]) {
+      expect(VopMatchResultSchema.parse(value)).toBe(value);
     }
   });
 
-  it("rejects invalid result", () => {
+  it("rejects invalid match result", () => {
+    expect(() => VopMatchResultSchema.parse("match")).toThrow();
+    expect(() => VopMatchResultSchema.parse("invalid")).toThrow();
+  });
+});
+
+describe("VopResultSchema", () => {
+  it("accepts a valid VoP result", () => {
+    const result = VopResultSchema.parse({
+      match_result: "MATCH_RESULT_MATCH",
+      matched_name: null,
+      proof_token: { token: "tok_abc123" },
+    });
+    expect(result.match_result).toBe("MATCH_RESULT_MATCH");
+    expect(result.matched_name).toBeNull();
+    expect(result.proof_token.token).toBe("tok_abc123");
+  });
+
+  it("accepts close match with matched_name", () => {
+    const result = VopResultSchema.parse({
+      match_result: "MATCH_RESULT_CLOSE_MATCH",
+      matched_name: "Acme Corp",
+      proof_token: { token: "tok_xyz" },
+    });
+    expect(result.match_result).toBe("MATCH_RESULT_CLOSE_MATCH");
+    expect(result.matched_name).toBe("Acme Corp");
+  });
+
+  it("rejects invalid match_result", () => {
     expect(() =>
-      VopResultSchema.parse({ iban: "FR76...", name: "Acme", result: "invalid", vop_proof_token: "tok_abc123" }),
+      VopResultSchema.parse({
+        match_result: "invalid",
+        matched_name: null,
+        proof_token: { token: "tok_abc123" },
+      }),
     ).toThrow();
   });
 });
@@ -127,28 +150,69 @@ describe("VopResultSchema", () => {
 describe("VopResultResponseSchema", () => {
   it("validates single verification response", () => {
     const response = {
-      verification: { iban: "FR76...", name: "Acme", result: "match", vop_proof_token: "tok_abc123" },
+      match_result: "MATCH_RESULT_MATCH",
+      matched_name: null,
+      proof_token: { token: "tok_abc123" },
     };
     const result = VopResultResponseSchema.parse(response);
-    expect(result.verification.result).toBe("match");
-    expect(result.verification.vop_proof_token).toBe("tok_abc123");
+    expect(result.match_result).toBe("MATCH_RESULT_MATCH");
+    expect(result.proof_token.token).toBe("tok_abc123");
+  });
+});
+
+describe("BulkVopResultEntrySchema", () => {
+  it("accepts a successful entry", () => {
+    const result = BulkVopResultEntrySchema.parse({
+      id: "0",
+      response: { match_result: "MATCH_RESULT_MATCH", matched_name: null },
+    });
+    expect(result.id).toBe("0");
+    expect(result.response?.match_result).toBe("MATCH_RESULT_MATCH");
+  });
+
+  it("accepts an error entry", () => {
+    const result = BulkVopResultEntrySchema.parse({
+      id: "1",
+      error: { code: "BANK_UNAVAILABLE", detail: "Bank not reachable" },
+    });
+    expect(result.id).toBe("1");
+    expect(result.error?.code).toBe("BANK_UNAVAILABLE");
   });
 });
 
 describe("BulkVopResultResponseSchema", () => {
   it("validates bulk verification response", () => {
     const response = {
-      verifications: [
-        { iban: "FR76...", name: "Acme", result: "match", vop_proof_token: "tok_1" },
-        { iban: "DE89...", name: "Beta", result: "mismatch", vop_proof_token: "tok_2" },
+      responses: [
+        { id: "0", response: { match_result: "MATCH_RESULT_MATCH", matched_name: null } },
+        { id: "1", response: { match_result: "MATCH_RESULT_NO_MATCH", matched_name: null } },
       ],
+      proof_token: { token: "tok_batch" },
     };
     const result = BulkVopResultResponseSchema.parse(response);
-    expect(result.verifications).toHaveLength(2);
+    expect(result.responses).toHaveLength(2);
+    expect(result.proof_token.token).toBe("tok_batch");
   });
 
-  it("accepts empty array", () => {
-    const result = BulkVopResultResponseSchema.parse({ verifications: [] });
-    expect(result.verifications).toHaveLength(0);
+  it("accepts empty responses array", () => {
+    const result = BulkVopResultResponseSchema.parse({
+      responses: [],
+      proof_token: { token: "tok_empty" },
+    });
+    expect(result.responses).toHaveLength(0);
+  });
+
+  it("accepts mixed success and error entries", () => {
+    const response = {
+      responses: [
+        { id: "0", response: { match_result: "MATCH_RESULT_MATCH", matched_name: null } },
+        { id: "1", error: { code: "BANK_ERROR", detail: "Timeout" } },
+      ],
+      proof_token: { token: "tok_mixed" },
+    };
+    const result = BulkVopResultResponseSchema.parse(response);
+    expect(result.responses).toHaveLength(2);
+    expect(result.responses[0]?.response?.match_result).toBe("MATCH_RESULT_MATCH");
+    expect(result.responses[1]?.error?.code).toBe("BANK_ERROR");
   });
 });

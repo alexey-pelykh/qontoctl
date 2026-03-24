@@ -17,9 +17,8 @@ interface VerifyPayeeOptions extends GlobalOptions, WriteOptions {
 
 function toTableRow(r: VopResult): Record<string, string> {
   return {
-    iban: r.iban,
-    name: r.name,
-    result: r.result,
+    result: r.match_result,
+    matched_name: r.matched_name ?? "",
   };
 }
 
@@ -40,7 +39,7 @@ export function registerTransferVerifyPayeeCommand(parent: Command): void {
       async (scaSessionToken) =>
         verifyPayee(
           httpClient,
-          { iban: opts.iban, name: opts.name },
+          { iban: opts.iban, beneficiary_name: opts.name },
           {
             ...(opts.idempotencyKey !== undefined ? { idempotencyKey: opts.idempotencyKey } : {}),
             ...(scaSessionToken !== undefined ? { scaSessionToken } : {}),

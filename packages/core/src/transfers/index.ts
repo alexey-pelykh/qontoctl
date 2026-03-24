@@ -16,8 +16,10 @@ export {
   TransferSchema,
   TransferResponseSchema,
   TransferListResponseSchema,
+  VopMatchResultSchema,
   VopResultSchema,
   VopResultResponseSchema,
+  BulkVopResultEntrySchema,
   BulkVopResultResponseSchema,
 } from "./schemas.js";
 
@@ -26,6 +28,9 @@ export type {
   InlineBeneficiary,
   ListTransfersParams,
   CreateTransferParams,
+  VopMatchResult,
   VopEntry,
   VopResult,
+  BulkVopResultEntry,
+  BulkVopResult,
 } from "./types.js";

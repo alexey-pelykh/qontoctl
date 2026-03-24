@@ -57,16 +57,18 @@ async function resolveVopProofTokenByNameAndIban(
   iban: string,
   label?: string,
 ): Promise<string> {
-  const vopResult = await verifyPayee(httpClient, { iban, name });
+  const vopResult = await verifyPayee(httpClient, { iban, beneficiary_name: name });
   const displayLabel = label ?? `${name} (${iban})`;
 
-  if (vopResult.result === "mismatch") {
-    process.stderr.write(`Warning: VoP result is "mismatch" for beneficiary ${displayLabel}\n`);
-  } else if (vopResult.result === "not_available") {
-    process.stderr.write(`Warning: VoP result is "not_available" for beneficiary ${displayLabel}\n`);
+  if (vopResult.match_result === "MATCH_RESULT_NO_MATCH") {
+    process.stderr.write(`Warning: VoP result is "no match" for beneficiary ${displayLabel}\n`);
+  } else if (vopResult.match_result === "MATCH_RESULT_NOT_POSSIBLE") {
+    process.stderr.write(`Warning: VoP result is "not possible" for beneficiary ${displayLabel}\n`);
+  } else if (vopResult.match_result === "MATCH_RESULT_CLOSE_MATCH") {
+    process.stderr.write(`Warning: VoP result is "close match" for beneficiary ${displayLabel}\n`);
   }
 
-  return vopResult.vop_proof_token;
+  return vopResult.proof_token.token;
 }
 
 export function registerTransferCreateCommand(parent: Command): void {

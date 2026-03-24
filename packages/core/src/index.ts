@@ -203,8 +203,10 @@ export {
   TransferSchema,
   TransferResponseSchema,
   TransferListResponseSchema,
+  VopMatchResultSchema,
   VopResultSchema,
   VopResultResponseSchema,
+  BulkVopResultEntrySchema,
   BulkVopResultResponseSchema,
 } from "./transfers/index.js";
 
@@ -213,8 +215,11 @@ export type {
   InlineBeneficiary,
   ListTransfersParams,
   CreateTransferParams,
+  VopMatchResult,
   VopEntry,
   VopResult,
+  BulkVopResultEntry,
+  BulkVopResult,
 } from "./transfers/index.js";
 
 export type { Transaction, TransactionLabel, ListTransactionsParams } from "./transactions/index.js";

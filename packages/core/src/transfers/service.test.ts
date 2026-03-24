@@ -462,19 +462,18 @@ describe("verifyPayee", () => {
   });
 
   it("posts to verify_payee endpoint and returns result", async () => {
-    const verification = {
-      iban: "FR7612345000010009876543210",
-      name: "John Doe",
-      result: "match",
-      vop_proof_token: "tok_abc123",
+    const vopResponse = {
+      match_result: "MATCH_RESULT_MATCH",
+      matched_name: null,
+      proof_token: { token: "tok_abc123" },
     };
-    fetchSpy.mockReturnValue(jsonResponse({ verification }));
+    fetchSpy.mockReturnValue(jsonResponse(vopResponse));
 
     const result = await verifyPayee(client, {
       iban: "FR7612345000010009876543210",
-      name: "John Doe",
+      beneficiary_name: "John Doe",
     });
-    expect(result).toEqual(verification);
+    expect(result).toEqual(vopResponse);
 
     const [url, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
     expect(url.pathname).toBe("/v2/sepa/verify_payee");
@@ -508,13 +507,12 @@ describe("verifyPayee", () => {
 
     const result = await verifyPayee(client, {
       iban: "FR7612345000010009876543210",
-      name: "John Doe",
+      beneficiary_name: "John Doe",
     });
     expect(result).toEqual({
-      iban: "FR7612345000010009876543210",
-      name: "John Doe",
-      result: "not_available",
-      vop_proof_token: "tok_from_error",
+      match_result: "MATCH_RESULT_NOT_POSSIBLE",
+      matched_name: null,
+      proof_token: { token: "tok_from_error" },
     });
   });
 
@@ -545,7 +543,7 @@ describe("verifyPayee", () => {
       await expect(
         verifyPayee(client, {
           iban: "FR7612345000010009876543210",
-          name: "John Doe",
+          beneficiary_name: "John Doe",
         }),
       ).rejects.toThrow(QontoApiError);
     },
@@ -594,17 +592,20 @@ describe("bulkVerifyPayee", () => {
   });
 
   it("posts entries to bulk_verify_payee endpoint and returns results", async () => {
-    const verifications = [
-      { iban: "FR7612345000010009876543210", name: "John Doe", result: "match", vop_proof_token: "tok_1" },
-      { iban: "DE89370400440532013000", name: "Jane Smith", result: "mismatch", vop_proof_token: "tok_2" },
-    ];
-    fetchSpy.mockReturnValue(jsonResponse({ verifications }));
+    const bulkResponse = {
+      responses: [
+        { id: "0", response: { match_result: "MATCH_RESULT_MATCH", matched_name: null } },
+        { id: "1", response: { match_result: "MATCH_RESULT_NO_MATCH", matched_name: null } },
+      ],
+      proof_token: { token: "tok_batch" },
+    };
+    fetchSpy.mockReturnValue(jsonResponse(bulkResponse));
 
     const result = await bulkVerifyPayee(client, [
-      { iban: "FR7612345000010009876543210", name: "John Doe" },
-      { iban: "DE89370400440532013000", name: "Jane Smith" },
+      { iban: "FR7612345000010009876543210", beneficiary_name: "John Doe" },
+      { iban: "DE89370400440532013000", beneficiary_name: "Jane Smith" },
     ]);
-    expect(result).toEqual(verifications);
+    expect(result).toEqual(bulkResponse);
 
     const [url, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
     expect(url.pathname).toBe("/v2/sepa/bulk_verify_payee");
@@ -612,9 +613,9 @@ describe("bulkVerifyPayee", () => {
 
     const body = JSON.parse(init.body as string) as Record<string, unknown>;
     expect(body).toEqual({
-      entries: [
-        { iban: "FR7612345000010009876543210", name: "John Doe" },
-        { iban: "DE89370400440532013000", name: "Jane Smith" },
+      requests: [
+        { id: "0", iban: "FR7612345000010009876543210", beneficiary_name: "John Doe" },
+        { id: "1", iban: "DE89370400440532013000", beneficiary_name: "Jane Smith" },
       ],
     });
   });
@@ -636,23 +637,16 @@ describe("bulkVerifyPayee", () => {
     );
 
     const result = await bulkVerifyPayee(client, [
-      { iban: "FR7612345000010009876543210", name: "John Doe" },
-      { iban: "DE89370400440532013000", name: "Jane Smith" },
+      { iban: "FR7612345000010009876543210", beneficiary_name: "John Doe" },
+      { iban: "DE89370400440532013000", beneficiary_name: "Jane Smith" },
     ]);
-    expect(result).toEqual([
-      {
-        iban: "FR7612345000010009876543210",
-        name: "John Doe",
-        result: "not_available",
-        vop_proof_token: "tok_bulk_error",
-      },
-      {
-        iban: "DE89370400440532013000",
-        name: "Jane Smith",
-        result: "not_available",
-        vop_proof_token: "tok_bulk_error",
-      },
-    ]);
+    expect(result).toEqual({
+      responses: [
+        { id: "0", response: { match_result: "MATCH_RESULT_NOT_POSSIBLE", matched_name: null } },
+        { id: "1", response: { match_result: "MATCH_RESULT_NOT_POSSIBLE", matched_name: null } },
+      ],
+      proof_token: { token: "tok_bulk_error" },
+    });
   });
 
   it("re-throws non-bank errors", async () => {
@@ -665,7 +659,9 @@ describe("bulkVerifyPayee", () => {
       ),
     );
 
-    await expect(bulkVerifyPayee(client, [{ iban: "FR7612345000010009876543210", name: "John Doe" }])).rejects.toThrow(
+    await expect(
+      bulkVerifyPayee(client, [{ iban: "FR7612345000010009876543210", beneficiary_name: "John Doe" }]),
+    ).rejects.toThrow(
       QontoApiError,
     );
   });
