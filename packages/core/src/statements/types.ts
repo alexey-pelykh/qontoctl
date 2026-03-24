@@ -20,3 +20,13 @@ export interface Statement {
   readonly period: string;
   readonly file: StatementFile;
 }
+
+/**
+ * Parameters for listing statements.
+ */
+export interface ListStatementsParams {
+  readonly bank_account_ids?: readonly string[] | undefined;
+  readonly period_from?: string | undefined;
+  readonly period_to?: string | undefined;
+  readonly sort_by?: string | undefined;
+}

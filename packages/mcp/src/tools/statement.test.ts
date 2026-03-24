@@ -103,7 +103,7 @@ describe("statement MCP tools", () => {
       });
 
       expect(mockClient.get).toHaveBeenCalledWith("/v2/statements", {
-        "bank_account_ids[]": "acct-1",
+        "bank_account_ids[]": ["acct-1"],
         period_from: "01-2025",
         period_to: "06-2025",
         page: "2",

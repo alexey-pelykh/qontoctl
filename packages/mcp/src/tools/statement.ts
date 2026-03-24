@@ -4,7 +4,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { HttpClient } from "@qontoctl/core";
-import { parseResponse, StatementResponseSchema, StatementListResponseSchema } from "@qontoctl/core";
+import { getStatement, listStatements } from "@qontoctl/core";
 import { withClient } from "../errors.js";
 
 /**
@@ -25,27 +25,13 @@ export function registerStatementTools(server: McpServer, getClient: () => Promi
     },
     async (args) =>
       withClient(getClient, async (client) => {
-        const params: Record<string, string> = {};
-
-        if (args.bank_account_id !== undefined) {
-          params["bank_account_ids[]"] = args.bank_account_id;
-        }
-        if (args.period_from !== undefined) {
-          params["period_from"] = args.period_from;
-        }
-        if (args.period_to !== undefined) {
-          params["period_to"] = args.period_to;
-        }
-        if (args.page !== undefined) {
-          params["page"] = String(args.page);
-        }
-        if (args.per_page !== undefined) {
-          params["per_page"] = String(args.per_page);
-        }
-
-        const endpointPath = "/v2/statements";
-        const response = await client.get(endpointPath, Object.keys(params).length > 0 ? params : undefined);
-        const result = parseResponse(StatementListResponseSchema, response, endpointPath);
+        const result = await listStatements(client, {
+          bank_account_ids: args.bank_account_id !== undefined ? [args.bank_account_id] : undefined,
+          period_from: args.period_from,
+          period_to: args.period_to,
+          page: args.page,
+          per_page: args.per_page,
+        });
 
         return {
           content: [
@@ -68,15 +54,13 @@ export function registerStatementTools(server: McpServer, getClient: () => Promi
     },
     async (args) =>
       withClient(getClient, async (client) => {
-        const endpointPath = `/v2/statements/${encodeURIComponent(args.id)}`;
-        const response = await client.get(endpointPath);
-        const result = parseResponse(StatementResponseSchema, response, endpointPath);
+        const statement = await getStatement(client, args.id);
 
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(result.statement, null, 2),
+              text: JSON.stringify(statement, null, 2),
             },
           ],
         };
