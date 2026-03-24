@@ -136,6 +136,14 @@ describe("VopResultSchema", () => {
     expect(result.matched_name).toBe("Acme Corp");
   });
 
+  it("defaults matched_name to null when absent", () => {
+    const result = VopResultSchema.parse({
+      match_result: "MATCH_RESULT_MATCH",
+      proof_token: { token: "tok_no_name" },
+    });
+    expect(result.matched_name).toBeNull();
+  });
+
   it("rejects invalid match_result", () => {
     expect(() =>
       VopResultSchema.parse({
@@ -218,6 +226,14 @@ describe("BulkVopResultEntrySchema", () => {
     });
     expect(result.id).toBe("0");
     expect(result.response?.match_result).toBe("MATCH_RESULT_MATCH");
+  });
+
+  it("defaults matched_name to null when absent in response", () => {
+    const result = BulkVopResultEntrySchema.parse({
+      id: "0",
+      response: { match_result: "MATCH_RESULT_MATCH" },
+    });
+    expect(result.response?.matched_name).toBeNull();
   });
 
   it("accepts an error entry", () => {
