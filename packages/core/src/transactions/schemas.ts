@@ -56,11 +56,42 @@ export const TransactionSchema = z
     subject_type: z.string(),
     bank_account_id: z.string(),
     is_external_transaction: z.boolean(),
+    logo: z.object({ small: z.string(), medium: z.string() }).optional(),
+    cashflow_category: z.object({ name: z.string() }).optional(),
+    cashflow_subcategory: z.object({ name: z.string() }).optional(),
+    transfer: z.record(z.string(), z.unknown()).nullable().optional(),
+    income: z.record(z.string(), z.unknown()).nullable().optional(),
+    swift_income: z.record(z.string(), z.unknown()).nullable().optional(),
+    direct_debit: z.record(z.string(), z.unknown()).nullable().optional(),
+    direct_debit_collection: z.record(z.string(), z.unknown()).nullable().optional(),
+    check: z.record(z.string(), z.unknown()).nullable().optional(),
+    financing_installment: z.record(z.string(), z.unknown()).nullable().optional(),
+    pagopa_payment: z.record(z.string(), z.unknown()).nullable().optional(),
+    direct_debit_hold: z.record(z.string(), z.unknown()).nullable().optional(),
     attachments: z.array(z.unknown()).readonly().optional(),
     labels: z.array(TransactionLabelSchema).readonly().optional(),
     vat_details: z.unknown().optional(),
   })
-  .strip() satisfies z.ZodType<Omit<Transaction, "attachments" | "labels" | "vat_details">>;
+  .strip() satisfies z.ZodType<
+    Omit<
+      Transaction,
+      | "logo"
+      | "cashflow_category"
+      | "cashflow_subcategory"
+      | "transfer"
+      | "income"
+      | "swift_income"
+      | "direct_debit"
+      | "direct_debit_collection"
+      | "check"
+      | "financing_installment"
+      | "pagopa_payment"
+      | "direct_debit_hold"
+      | "attachments"
+      | "labels"
+      | "vat_details"
+    >
+  >;
 
 export const TransactionResponseSchema = z.object({
   transaction: TransactionSchema,
