@@ -129,6 +129,50 @@ describe("supplier-invoice MCP tools", () => {
       expect(url.searchParams.get("sort_by")).toBe("created_at:desc");
       expect(url.searchParams.get("filter[due_date]")).toBe("future");
     });
+
+    it("passes new filter params to API", async () => {
+      fetchSpy.mockReturnValue(
+        jsonResponse({
+          supplier_invoices: [],
+          meta: {
+            current_page: 1,
+            next_page: null,
+            prev_page: null,
+            total_pages: 1,
+            total_count: 0,
+            per_page: 100,
+          },
+        }),
+      );
+
+      await mcpClient.callTool({
+        name: "supplier_invoice_list",
+        arguments: {
+          attachment_id: "att-1",
+          payment_date: "2026-03-15",
+          issue_date: "2026-03-01",
+          issue_date_from: "2026-01-01",
+          missing_data: true,
+          matched_transactions: false,
+          document_type: "invoice",
+          exclude_credit_notes: true,
+          payable_amount: "100.00",
+          query_fields: "supplier_name",
+        },
+      });
+
+      const [url] = fetchSpy.mock.calls[0] as [URL];
+      expect(url.searchParams.get("filter[attachment_id]")).toBe("att-1");
+      expect(url.searchParams.get("filter[payment_date]")).toBe("2026-03-15");
+      expect(url.searchParams.get("filter[issue_date]")).toBe("2026-03-01");
+      expect(url.searchParams.get("filter[issue_date_from]")).toBe("2026-01-01");
+      expect(url.searchParams.get("filter[missing_data]")).toBe("true");
+      expect(url.searchParams.get("filter[matched_transactions]")).toBe("false");
+      expect(url.searchParams.get("filter[document_type]")).toBe("invoice");
+      expect(url.searchParams.get("filter[exclude_credit_notes]")).toBe("true");
+      expect(url.searchParams.get("filter[payable_amount]")).toBe("100.00");
+      expect(url.searchParams.get("query_fields")).toBe("supplier_name");
+    });
   });
 
   describe("supplier_invoice_show", () => {
