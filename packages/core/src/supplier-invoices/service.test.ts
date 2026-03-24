@@ -1,8 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import { describe, it, expect } from "vitest";
-import { buildSupplierInvoiceQueryParams } from "./service.js";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { HttpClient } from "../http-client.js";
+import { jsonResponse } from "../testing/json-response.js";
+import {
+  buildSupplierInvoiceQueryParams,
+  bulkCreateSupplierInvoices,
+  getSupplierInvoice,
+  listSupplierInvoices,
+} from "./service.js";
 import type { ListSupplierInvoicesParams } from "./types.js";
 
 describe("buildSupplierInvoiceQueryParams", () => {
@@ -196,5 +203,219 @@ describe("buildSupplierInvoiceQueryParams", () => {
     };
     const result = buildSupplierInvoiceQueryParams(params);
     expect(result).toEqual({ "filter[status][]": ["draft"] });
+  });
+});
+
+describe("getSupplierInvoice", () => {
+  let fetchSpy: ReturnType<typeof vi.fn>;
+  let client: HttpClient;
+
+  beforeEach(() => {
+    fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    client = new HttpClient({
+      baseUrl: "https://thirdparty.qonto.com",
+      authorization: "slug:secret",
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("fetches a supplier invoice by ID", async () => {
+    const supplier_invoice = {
+      id: "si-1",
+      organization_id: "org-1",
+      status: "pending",
+      source_type: "email",
+      source: "invoices@example.com",
+      attachment_id: "att-1",
+      display_attachment_id: "datt-1",
+      file_name: "invoice.pdf",
+      invoice_number: "SI-001",
+      supplier_name: "Acme Corp",
+      total_amount: { value: "500.00", currency: "EUR" },
+      total_amount_excluding_taxes: { value: "416.67", currency: "EUR" },
+      total_tax_amount: { value: "83.33", currency: "EUR" },
+      payable_amount: { value: "500.00", currency: "EUR" },
+      issue_date: "2026-01-15",
+      due_date: "2026-02-15",
+      payment_date: null,
+      scheduled_date: null,
+      iban: "FR7630001007941234567890185",
+      is_einvoice: false,
+      created_at: "2026-01-01T00:00:00Z",
+      updated_at: "2026-01-02T00:00:00Z",
+    };
+    fetchSpy.mockReturnValue(jsonResponse({ supplier_invoice }));
+
+    const result = await getSupplierInvoice(client, "si-1");
+    expect(result).toEqual(supplier_invoice);
+
+    const [url] = fetchSpy.mock.calls[0] as [URL];
+    expect(url.pathname).toBe("/v2/supplier_invoices/si-1");
+  });
+
+  it("encodes special characters in the ID", async () => {
+    const supplier_invoice = {
+      id: "a/b",
+      organization_id: "org-1",
+      status: "pending",
+      source_type: "email",
+      source: "invoices@example.com",
+      attachment_id: "att-1",
+      display_attachment_id: "datt-1",
+      file_name: "invoice.pdf",
+      invoice_number: "SI-002",
+      supplier_name: "Test",
+      total_amount: { value: "100.00", currency: "EUR" },
+      total_amount_excluding_taxes: { value: "83.33", currency: "EUR" },
+      total_tax_amount: { value: "16.67", currency: "EUR" },
+      payable_amount: { value: "100.00", currency: "EUR" },
+      issue_date: "2026-01-15",
+      due_date: "2026-02-15",
+      payment_date: null,
+      scheduled_date: null,
+      iban: "FR76X",
+      is_einvoice: false,
+      created_at: "2026-01-01T00:00:00Z",
+      updated_at: "2026-01-01T00:00:00Z",
+    };
+    fetchSpy.mockReturnValue(jsonResponse({ supplier_invoice }));
+
+    await getSupplierInvoice(client, "a/b");
+
+    const [url] = fetchSpy.mock.calls[0] as [URL];
+    expect(url.pathname).toBe("/v2/supplier_invoices/a%2Fb");
+  });
+});
+
+describe("listSupplierInvoices", () => {
+  let fetchSpy: ReturnType<typeof vi.fn>;
+  let client: HttpClient;
+
+  beforeEach(() => {
+    fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    client = new HttpClient({
+      baseUrl: "https://thirdparty.qonto.com",
+      authorization: "slug:secret",
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("fetches supplier invoices with pagination meta", async () => {
+    const supplier_invoice = {
+      id: "si-1",
+      organization_id: "org-1",
+      status: "pending",
+      source_type: "email",
+      source: "invoices@example.com",
+      attachment_id: "att-1",
+      display_attachment_id: "datt-1",
+      file_name: "invoice.pdf",
+      invoice_number: "SI-001",
+      supplier_name: "Acme Corp",
+      total_amount: { value: "500.00", currency: "EUR" },
+      total_amount_excluding_taxes: { value: "416.67", currency: "EUR" },
+      total_tax_amount: { value: "83.33", currency: "EUR" },
+      payable_amount: { value: "500.00", currency: "EUR" },
+      issue_date: "2026-01-15",
+      due_date: "2026-02-15",
+      payment_date: null,
+      scheduled_date: null,
+      iban: "FR7630001007941234567890185",
+      is_einvoice: false,
+      created_at: "2026-01-01T00:00:00Z",
+      updated_at: "2026-01-02T00:00:00Z",
+    };
+    const body = {
+      supplier_invoices: [supplier_invoice],
+      meta: { current_page: 1, next_page: null, prev_page: null, total_pages: 1, total_count: 1, per_page: 100 },
+    };
+    fetchSpy.mockReturnValue(jsonResponse(body));
+
+    const result = await listSupplierInvoices(client);
+    expect(result).toEqual(body);
+
+    const [url] = fetchSpy.mock.calls[0] as [URL];
+    expect(url.pathname).toBe("/v2/supplier_invoices");
+  });
+
+  it("sends filter and pagination query params", async () => {
+    const body = {
+      supplier_invoices: [],
+      meta: { current_page: 2, next_page: 3, prev_page: 1, total_pages: 3, total_count: 25, per_page: 10 },
+    };
+    fetchSpy.mockReturnValue(jsonResponse(body));
+
+    await listSupplierInvoices(client, { status: ["paid"], page: 2, per_page: 10 });
+
+    const [url] = fetchSpy.mock.calls[0] as [URL];
+    expect(url.pathname).toBe("/v2/supplier_invoices");
+    expect(url.searchParams.getAll("filter[status][]")).toEqual(["paid"]);
+    expect(url.searchParams.get("page")).toBe("2");
+    expect(url.searchParams.get("per_page")).toBe("10");
+  });
+});
+
+describe("bulkCreateSupplierInvoices", () => {
+  let fetchSpy: ReturnType<typeof vi.fn>;
+  let client: HttpClient;
+
+  beforeEach(() => {
+    fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    client = new HttpClient({
+      baseUrl: "https://thirdparty.qonto.com",
+      authorization: "slug:secret",
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("posts FormData to the bulk endpoint", async () => {
+    const supplier_invoice = {
+      id: "si-1",
+      organization_id: "org-1",
+      status: "pending",
+      source_type: "email",
+      source: "invoices@example.com",
+      attachment_id: "att-1",
+      display_attachment_id: "datt-1",
+      file_name: "invoice.pdf",
+      invoice_number: "SI-001",
+      supplier_name: "Acme Corp",
+      total_amount: { value: "500.00", currency: "EUR" },
+      total_amount_excluding_taxes: { value: "416.67", currency: "EUR" },
+      total_tax_amount: { value: "83.33", currency: "EUR" },
+      payable_amount: { value: "500.00", currency: "EUR" },
+      issue_date: "2026-01-15",
+      due_date: "2026-02-15",
+      payment_date: null,
+      scheduled_date: null,
+      iban: "FR7630001007941234567890185",
+      is_einvoice: false,
+      created_at: "2026-01-01T00:00:00Z",
+      updated_at: "2026-01-02T00:00:00Z",
+    };
+    const body = { supplier_invoices: [supplier_invoice], errors: [] };
+    fetchSpy.mockReturnValue(jsonResponse(body));
+
+    const result = await bulkCreateSupplierInvoices(client, [
+      { file: new Blob(["test"]), fileName: "test.pdf", idempotencyKey: "key-1" },
+    ]);
+    expect(result).toEqual(body);
+
+    const [url, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+    expect(url.pathname).toBe("/v2/supplier_invoices/bulk");
+    expect(opts.method).toBe("POST");
+    expect(opts.body instanceof FormData).toBe(true);
   });
 });
