@@ -661,8 +661,6 @@ describe("bulkVerifyPayee", () => {
 
     await expect(
       bulkVerifyPayee(client, [{ iban: "FR7612345000010009876543210", beneficiary_name: "John Doe" }]),
-    ).rejects.toThrow(
-      QontoApiError,
-    );
+    ).rejects.toThrow(QontoApiError);
   });
 });
