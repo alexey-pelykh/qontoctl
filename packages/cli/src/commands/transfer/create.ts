@@ -8,6 +8,7 @@ import {
   getBeneficiary,
   verifyPayee,
   type CreateTransferParams,
+  type InlineBeneficiary,
   type Transfer,
   type HttpClient,
 } from "@qontoctl/core";
@@ -25,6 +26,11 @@ interface TransferCreateOptions extends GlobalOptions, WriteOptions {
   readonly note?: string | undefined;
   readonly scheduledDate?: string | undefined;
   readonly vopProofToken?: string | undefined;
+  readonly beneficiaryName?: string | undefined;
+  readonly beneficiaryIban?: string | undefined;
+  readonly beneficiaryBic?: string | undefined;
+  readonly beneficiaryEmail?: string | undefined;
+  readonly beneficiaryActivityTag?: string | undefined;
 }
 
 function toTableRow(t: Transfer): Record<string, string | number | null> {
@@ -39,14 +45,24 @@ function toTableRow(t: Transfer): Record<string, string | number | null> {
   };
 }
 
-async function resolveVopProofToken(httpClient: HttpClient, beneficiaryId: string): Promise<string> {
+async function resolveVopProofTokenByBeneficiaryId(httpClient: HttpClient, beneficiaryId: string): Promise<string> {
   const beneficiary = await getBeneficiary(httpClient, beneficiaryId);
-  const vopResult = await verifyPayee(httpClient, { iban: beneficiary.iban, name: beneficiary.name });
+  return resolveVopProofTokenByNameAndIban(httpClient, beneficiary.name, beneficiary.iban, beneficiaryId);
+}
+
+async function resolveVopProofTokenByNameAndIban(
+  httpClient: HttpClient,
+  name: string,
+  iban: string,
+  label?: string | undefined,
+): Promise<string> {
+  const vopResult = await verifyPayee(httpClient, { iban, name });
+  const displayLabel = label ?? `${name} (${iban})`;
 
   if (vopResult.result === "mismatch") {
-    process.stderr.write(`Warning: VoP result is "mismatch" for beneficiary ${beneficiaryId}\n`);
+    process.stderr.write(`Warning: VoP result is "mismatch" for beneficiary ${displayLabel}\n`);
   } else if (vopResult.result === "not_available") {
-    process.stderr.write(`Warning: VoP result is "not_available" for beneficiary ${beneficiaryId}\n`);
+    process.stderr.write(`Warning: VoP result is "not_available" for beneficiary ${displayLabel}\n`);
   }
 
   return vopResult.vop_proof_token;
@@ -56,7 +72,14 @@ export function registerTransferCreateCommand(parent: Command): void {
   const create = parent
     .command("create")
     .description("Create a SEPA transfer")
-    .addOption(new Option("--beneficiary <id>", "beneficiary ID").makeOptionMandatory())
+    .addOption(
+      new Option("--beneficiary <id>", "existing beneficiary ID (mutually exclusive with --beneficiary-name)"),
+    )
+    .addOption(new Option("--beneficiary-name <name>", "inline beneficiary name (requires --beneficiary-iban)"))
+    .addOption(new Option("--beneficiary-iban <iban>", "inline beneficiary IBAN (requires --beneficiary-name)"))
+    .option("--beneficiary-bic <bic>", "inline beneficiary BIC")
+    .option("--beneficiary-email <email>", "inline beneficiary email")
+    .option("--beneficiary-activity-tag <tag>", "inline beneficiary activity tag")
     .addOption(new Option("--debit-account <id>", "bank account ID to debit").makeOptionMandatory())
     .addOption(new Option("--reference <text>", "transfer reference").makeOptionMandatory())
     .addOption(new Option("--amount <number>", "amount to transfer").makeOptionMandatory())
@@ -69,10 +92,42 @@ export function registerTransferCreateCommand(parent: Command): void {
     const opts = resolveGlobalOptions<TransferCreateOptions>(cmd);
     const httpClient = await createClient(opts);
 
-    const vopProofToken = opts.vopProofToken ?? (await resolveVopProofToken(httpClient, opts.beneficiary));
+    const hasInlineBeneficiary = opts.beneficiaryName !== undefined || opts.beneficiaryIban !== undefined;
+
+    if (opts.beneficiary !== undefined && hasInlineBeneficiary) {
+      throw new Error("Cannot specify both --beneficiary and inline beneficiary options (--beneficiary-name/--beneficiary-iban)");
+    }
+
+    if (!opts.beneficiary && !hasInlineBeneficiary) {
+      throw new Error("Either --beneficiary or --beneficiary-name and --beneficiary-iban must be provided");
+    }
+
+    if (hasInlineBeneficiary && (opts.beneficiaryName === undefined || opts.beneficiaryIban === undefined)) {
+      throw new Error("Both --beneficiary-name and --beneficiary-iban are required for inline beneficiary");
+    }
+
+    let vopProofToken: string;
+    let beneficiaryField: { beneficiary_id: string } | { beneficiary: InlineBeneficiary };
+
+    if (hasInlineBeneficiary) {
+      const inlineBeneficiary: InlineBeneficiary = {
+        name: opts.beneficiaryName!,
+        iban: opts.beneficiaryIban!,
+        ...(opts.beneficiaryBic !== undefined ? { bic: opts.beneficiaryBic } : {}),
+        ...(opts.beneficiaryEmail !== undefined ? { email: opts.beneficiaryEmail } : {}),
+        ...(opts.beneficiaryActivityTag !== undefined ? { activity_tag: opts.beneficiaryActivityTag } : {}),
+      };
+      vopProofToken =
+        opts.vopProofToken ??
+        (await resolveVopProofTokenByNameAndIban(httpClient, inlineBeneficiary.name, inlineBeneficiary.iban));
+      beneficiaryField = { beneficiary: inlineBeneficiary };
+    } else {
+      vopProofToken = opts.vopProofToken ?? (await resolveVopProofTokenByBeneficiaryId(httpClient, opts.beneficiary));
+      beneficiaryField = { beneficiary_id: opts.beneficiary };
+    }
 
     const params: CreateTransferParams = {
-      beneficiary_id: opts.beneficiary,
+      ...beneficiaryField,
       bank_account_id: opts.debitAccount,
       reference: opts.reference,
       amount: opts.amount,

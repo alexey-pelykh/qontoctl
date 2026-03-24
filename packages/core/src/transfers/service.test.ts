@@ -291,6 +291,46 @@ describe("createTransfer", () => {
     });
   });
 
+  it("posts with inline beneficiary instead of beneficiary_id", async () => {
+    fetchSpy.mockReturnValue(jsonResponse({ transfer: newTransfer }));
+
+    const result = await createTransfer(client, {
+      beneficiary: {
+        name: "Jane Doe",
+        iban: "DE89370400440532013000",
+        bic: "COBADEFFXXX",
+        email: "jane@example.com",
+        activity_tag: "consulting",
+      },
+      bank_account_id: "acc-1",
+      reference: "Inline Payment",
+      amount: "250",
+      vop_proof_token: "tok_inline",
+    });
+    expect(result).toEqual(newTransfer);
+
+    const [url, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+    expect(url.pathname).toBe("/v2/sepa/transfers");
+    expect(init.method).toBe("POST");
+
+    const body = JSON.parse(init.body as string) as Record<string, unknown>;
+    expect(body).toEqual({
+      vop_proof_token: "tok_inline",
+      transfer: {
+        beneficiary: {
+          name: "Jane Doe",
+          iban: "DE89370400440532013000",
+          bic: "COBADEFFXXX",
+          email: "jane@example.com",
+          activity_tag: "consulting",
+        },
+        bank_account_id: "acc-1",
+        reference: "Inline Payment",
+        amount: "250",
+      },
+    });
+  });
+
   it("includes optional note and scheduled_date", async () => {
     fetchSpy.mockReturnValue(jsonResponse({ transfer: newTransfer }));
 

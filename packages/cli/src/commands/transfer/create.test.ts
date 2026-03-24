@@ -74,6 +74,7 @@ describe("transfer create command", () => {
   let stderrSpy: any;
 
   beforeEach(() => {
+    vi.clearAllMocks();
     stdoutSpy = vi.spyOn(process.stdout, "write").mockImplementation((() => true) as never);
     stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation((() => true) as never);
     createClientMock.mockResolvedValue({} as never);
@@ -303,6 +304,61 @@ describe("transfer create command", () => {
       expect.anything(),
     );
     expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("mismatch"));
+  });
+
+  it("creates a transfer with inline beneficiary", async () => {
+    verifyPayeeMock.mockResolvedValue({
+      iban: "DE89370400440532013000",
+      name: "Jane Doe",
+      result: "match",
+      vop_proof_token: "tok_inline_auto",
+    });
+    createTransferMock.mockResolvedValue(sampleTransfer);
+
+    const program = new Command();
+    program.option("-o, --output <format>", "", "table");
+    registerTransferCommands(program);
+
+    await program.parseAsync(
+      [
+        "transfer",
+        "create",
+        "--beneficiary-name",
+        "Jane Doe",
+        "--beneficiary-iban",
+        "DE89370400440532013000",
+        "--beneficiary-bic",
+        "COBADEFFXXX",
+        "--debit-account",
+        "acc-1",
+        "--reference",
+        "Inline Payment",
+        "--amount",
+        "250",
+      ],
+      { from: "user" },
+    );
+
+    expect(getBeneficiaryMock).not.toHaveBeenCalled();
+    expect(verifyPayeeMock).toHaveBeenCalledWith(expect.anything(), {
+      iban: "DE89370400440532013000",
+      name: "Jane Doe",
+    });
+    expect(createTransferMock).toHaveBeenCalledWith(
+      expect.anything(),
+      {
+        beneficiary: {
+          name: "Jane Doe",
+          iban: "DE89370400440532013000",
+          bic: "COBADEFFXXX",
+        },
+        bank_account_id: "acc-1",
+        reference: "Inline Payment",
+        amount: "250",
+        vop_proof_token: "tok_inline_auto",
+      },
+      expect.anything(),
+    );
   });
 
   it("auto-resolves vop_proof_token on not_available result with warning", async () => {

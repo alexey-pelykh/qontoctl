@@ -226,6 +226,75 @@ describe("transfer MCP tools", () => {
       expect(body.vop_proof_token).toBe("auto-token-123");
     });
 
+    it("creates transfer with inline beneficiary and auto-resolved VoP token", async () => {
+      fetchSpy.mockImplementation((input: URL, init: RequestInit) => {
+        if (input.pathname === "/v2/sepa/verify_payee" && init.method === "POST") {
+          return jsonResponse({
+            verification: {
+              iban: "DE89370400440532013000",
+              name: "Jane Doe",
+              result: "match",
+              vop_proof_token: "inline-auto-token",
+            },
+          });
+        }
+        if (input.pathname === "/v2/sepa/transfers" && init.method === "POST") {
+          return jsonResponse({ transfer: makeTransfer() });
+        }
+        return jsonResponse({});
+      });
+
+      const result = await mcpClient.callTool({
+        name: "transfer_create",
+        arguments: {
+          beneficiary: {
+            name: "Jane Doe",
+            iban: "DE89370400440532013000",
+            bic: "COBADEFFXXX",
+          },
+          bank_account_id: "acc-1",
+          reference: "Inline Payment",
+          amount: 250,
+        },
+      });
+
+      const content = result.content as { type: string; text: string }[];
+      expect(content).toHaveLength(1);
+      const parsed = JSON.parse((content[0] as { type: string; text: string }).text) as { id: string };
+      expect(parsed.id).toBe("txfr-1");
+
+      // Should NOT have called beneficiary endpoint
+      const calls = fetchSpy.mock.calls as [URL, RequestInit][];
+      const benCall = calls.find((c) => c[0].pathname.includes("/beneficiaries/"));
+      expect(benCall).toBeUndefined();
+
+      // Should have called verify_payee with inline beneficiary data
+      const vopCall = calls.find((c) => c[0].pathname === "/v2/sepa/verify_payee");
+      expect(vopCall).toBeDefined();
+      const vopBody = JSON.parse((vopCall as [URL, RequestInit])[1].body as string) as {
+        iban: string;
+        name: string;
+      };
+      expect(vopBody.iban).toBe("DE89370400440532013000");
+      expect(vopBody.name).toBe("Jane Doe");
+
+      // Should have sent inline beneficiary in transfer body
+      const transferCall = calls.find(
+        (c) => c[0].pathname === "/v2/sepa/transfers" && c[1].method === "POST",
+      ) as [URL, RequestInit] | undefined;
+      expect(transferCall).toBeDefined();
+      const transferBody = JSON.parse((transferCall as [URL, RequestInit])[1].body as string) as {
+        vop_proof_token: string;
+        transfer: { beneficiary: { name: string; iban: string; bic: string } };
+      };
+      expect(transferBody.vop_proof_token).toBe("inline-auto-token");
+      expect(transferBody.transfer.beneficiary).toEqual({
+        name: "Jane Doe",
+        iban: "DE89370400440532013000",
+        bic: "COBADEFFXXX",
+      });
+    });
+
     it("includes VoP status in response on mismatch", async () => {
       mockForAutoResolve("mismatch");
 
