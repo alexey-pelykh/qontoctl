@@ -127,11 +127,17 @@ export function registerTransferTools(server: McpServer, getClient: () => Promis
         if (vopProofToken === undefined) {
           if (args.beneficiary !== undefined) {
             vopResult = await verifyPayee(client, { iban: args.beneficiary.iban, name: args.beneficiary.name });
-          } else {
-            const beneficiary = await getBeneficiary(client, args.beneficiary_id!);
+          } else if (args.beneficiary_id !== undefined) {
+            const beneficiary = await getBeneficiary(client, args.beneficiary_id);
             vopResult = await verifyPayee(client, { iban: beneficiary.iban, name: beneficiary.name });
           }
-          vopProofToken = vopResult.vop_proof_token;
+          if (vopResult !== undefined) {
+            vopProofToken = vopResult.vop_proof_token;
+          }
+        }
+
+        if (vopProofToken === undefined) {
+          throw new Error("Could not resolve VoP proof token");
         }
 
         const params: CreateTransferParams = {
