@@ -85,7 +85,10 @@ export function registerTransferTools(server: McpServer, getClient: () => Promis
       description:
         "Create a SEPA transfer. Provide either beneficiary_id (existing beneficiary) or beneficiary (inline beneficiary object with name and iban), but not both.",
       inputSchema: {
-        beneficiary_id: z.string().optional().describe("Existing beneficiary UUID (mutually exclusive with beneficiary)"),
+        beneficiary_id: z
+          .string()
+          .optional()
+          .describe("Existing beneficiary UUID (mutually exclusive with beneficiary)"),
         beneficiary: z
           .object({
             name: z.string().describe("Beneficiary name"),

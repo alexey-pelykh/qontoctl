@@ -58,8 +58,8 @@ describe("buildTransferQueryParams", () => {
     const result = buildTransferQueryParams(params);
     expect(result).toEqual({
       "beneficiary_ids[]": ["ben-1", "ben-2"],
-      "ids": ["id-1"],
-      "recurring_transfer_ids": ["rec-1", "rec-2"],
+      ids: ["id-1"],
+      recurring_transfer_ids: ["rec-1", "rec-2"],
     });
   });
 

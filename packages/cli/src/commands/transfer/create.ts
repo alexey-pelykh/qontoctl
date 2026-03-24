@@ -73,9 +73,7 @@ export function registerTransferCreateCommand(parent: Command): void {
   const create = parent
     .command("create")
     .description("Create a SEPA transfer")
-    .addOption(
-      new Option("--beneficiary <id>", "existing beneficiary ID (mutually exclusive with --beneficiary-name)"),
-    )
+    .addOption(new Option("--beneficiary <id>", "existing beneficiary ID (mutually exclusive with --beneficiary-name)"))
     .addOption(new Option("--beneficiary-name <name>", "inline beneficiary name (requires --beneficiary-iban)"))
     .addOption(new Option("--beneficiary-iban <iban>", "inline beneficiary IBAN (requires --beneficiary-name)"))
     .option("--beneficiary-bic <bic>", "inline beneficiary BIC")
@@ -87,10 +85,7 @@ export function registerTransferCreateCommand(parent: Command): void {
     .option("--note <text>", "optional note")
     .option("--scheduled-date <date>", "scheduled date (YYYY-MM-DD)")
     .option("--vop-proof-token <token>", "VoP proof token (auto-resolved if omitted)")
-    .option(
-      "--attachment-id <id...>",
-      "attachment IDs (max 5, required for transfers > 30k EUR)",
-    );
+    .option("--attachment-id <id...>", "attachment IDs (max 5, required for transfers > 30k EUR)");
   addInheritableOptions(create);
   addWriteOptions(create);
   create.action(async (_opts: unknown, cmd: Command) => {

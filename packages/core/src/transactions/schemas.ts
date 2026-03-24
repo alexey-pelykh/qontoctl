@@ -73,25 +73,25 @@ export const TransactionSchema = z
     vat_details: z.unknown().optional(),
   })
   .strip() satisfies z.ZodType<
-    Omit<
-      Transaction,
-      | "logo"
-      | "cashflow_category"
-      | "cashflow_subcategory"
-      | "transfer"
-      | "income"
-      | "swift_income"
-      | "direct_debit"
-      | "direct_debit_collection"
-      | "check"
-      | "financing_installment"
-      | "pagopa_payment"
-      | "direct_debit_hold"
-      | "attachments"
-      | "labels"
-      | "vat_details"
-    >
-  >;
+  Omit<
+    Transaction,
+    | "logo"
+    | "cashflow_category"
+    | "cashflow_subcategory"
+    | "transfer"
+    | "income"
+    | "swift_income"
+    | "direct_debit"
+    | "direct_debit_collection"
+    | "check"
+    | "financing_installment"
+    | "pagopa_payment"
+    | "direct_debit_hold"
+    | "attachments"
+    | "labels"
+    | "vat_details"
+  >
+>;
 
 export const TransactionResponseSchema = z.object({
   transaction: TransactionSchema,
