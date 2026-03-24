@@ -49,6 +49,25 @@ describe("BankAccountSchema", () => {
     expect(result.organization_id).toBeUndefined();
   });
 
+  it("accepts optional is_external_account, account_number, and updated_at", () => {
+    const result = BankAccountSchema.parse({
+      ...validBankAccount,
+      is_external_account: false,
+      account_number: "123456789",
+      updated_at: "2026-03-24T12:00:00.000Z",
+    });
+    expect(result.is_external_account).toBe(false);
+    expect(result.account_number).toBe("123456789");
+    expect(result.updated_at).toBe("2026-03-24T12:00:00.000Z");
+  });
+
+  it("accepts missing optional is_external_account, account_number, and updated_at", () => {
+    const result = BankAccountSchema.parse(validBankAccount);
+    expect(result.is_external_account).toBeUndefined();
+    expect(result.account_number).toBeUndefined();
+    expect(result.updated_at).toBeUndefined();
+  });
+
   it("strips unknown fields", () => {
     const result = BankAccountSchema.parse({ ...validBankAccount, extra: true });
     expect(result).not.toHaveProperty("extra");

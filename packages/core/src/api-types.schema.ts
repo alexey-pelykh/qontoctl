@@ -20,6 +20,9 @@ export const BankAccountSchema = z
     authorized_balance: z.coerce.number(),
     authorized_balance_cents: z.coerce.number(),
     slug: z.string().optional(),
+    is_external_account: z.boolean().optional(),
+    account_number: z.string().optional(),
+    updated_at: z.string().optional(),
   })
   .strip() satisfies z.ZodType<BankAccount>;
 
