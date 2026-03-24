@@ -68,6 +68,18 @@ describe("buildTransactionQueryParams", () => {
     });
   });
 
+  it("maps created_at date range params", () => {
+    const params: ListTransactionsParams = {
+      created_at_from: "2025-03-01T00:00:00Z",
+      created_at_to: "2025-03-31T23:59:59Z",
+    };
+    const result = buildTransactionQueryParams(params);
+    expect(result).toEqual({
+      created_at_from: "2025-03-01T00:00:00Z",
+      created_at_to: "2025-03-31T23:59:59Z",
+    });
+  });
+
   it("maps array params with [] suffix", () => {
     const params: ListTransactionsParams = {
       status: ["pending", "completed"],

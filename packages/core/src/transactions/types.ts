@@ -68,6 +68,8 @@ export interface ListTransactionsParams {
   readonly emitted_at_to?: string;
   readonly updated_at_from?: string;
   readonly updated_at_to?: string;
+  readonly created_at_from?: string;
+  readonly created_at_to?: string;
   readonly with_attachments?: boolean;
   readonly includes?: readonly string[];
   readonly sort_by?: string;

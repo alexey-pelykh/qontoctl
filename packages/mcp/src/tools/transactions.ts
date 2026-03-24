@@ -27,6 +27,8 @@ export function registerTransactionTools(server: McpServer, getClient: () => Pro
         emitted_at_to: z.string().optional().describe("End of emission date range (ISO 8601)"),
         updated_at_from: z.string().optional().describe("Start of update date range (ISO 8601)"),
         updated_at_to: z.string().optional().describe("End of update date range (ISO 8601)"),
+        created_at_from: z.string().optional().describe("Filter by created date (from, ISO 8601)"),
+        created_at_to: z.string().optional().describe("Filter by created date (to, ISO 8601)"),
         side: z.enum(["credit", "debit"]).optional().describe("Filter by side (credit or debit)"),
         operation_type: z
           .string()
@@ -57,6 +59,8 @@ export function registerTransactionTools(server: McpServer, getClient: () => Pro
           ...(args.emitted_at_to !== undefined ? { emitted_at_to: args.emitted_at_to } : {}),
           ...(args.updated_at_from !== undefined ? { updated_at_from: args.updated_at_from } : {}),
           ...(args.updated_at_to !== undefined ? { updated_at_to: args.updated_at_to } : {}),
+          ...(args.created_at_from !== undefined ? { created_at_from: args.created_at_from } : {}),
+          ...(args.created_at_to !== undefined ? { created_at_to: args.created_at_to } : {}),
           ...(args.side !== undefined ? { side: args.side } : {}),
           ...(args.sort_by !== undefined ? { sort_by: args.sort_by } : {}),
           ...(args.status !== undefined ? { status: [args.status] } : {}),

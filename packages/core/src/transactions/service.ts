@@ -48,6 +48,12 @@ export function buildTransactionQueryParams(params: ListTransactionsParams): Que
   if (params.updated_at_to !== undefined) {
     query["updated_at_to"] = params.updated_at_to;
   }
+  if (params.created_at_from !== undefined) {
+    query["created_at_from"] = params.created_at_from;
+  }
+  if (params.created_at_to !== undefined) {
+    query["created_at_to"] = params.created_at_to;
+  }
   if (params.with_attachments !== undefined) {
     query["with_attachments"] = String(params.with_attachments);
   }
