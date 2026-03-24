@@ -50,7 +50,7 @@ const ProofTokenSchema = z.object({
 
 export const VopResultSchema = z.object({
   match_result: VopMatchResultSchema,
-  matched_name: z.nullable(z.string()),
+  matched_name: z.nullable(z.string()).optional().default(null),
   proof_token: ProofTokenSchema,
 }) satisfies z.ZodType<VopResult>;
 
@@ -61,7 +61,7 @@ export const BulkVopResultEntrySchema = z.object({
   response: z
     .object({
       match_result: VopMatchResultSchema,
-      matched_name: z.nullable(z.string()),
+      matched_name: z.nullable(z.string()).optional().default(null),
     })
     .optional(),
   error: z
