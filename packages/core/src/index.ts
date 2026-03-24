@@ -170,8 +170,11 @@ export type {
 
 export type { Quote, QuoteAddress, QuoteAmount, QuoteClient, QuoteDiscount, QuoteItem } from "./types/index.js";
 
-export type { Statement, StatementFile } from "./statements/index.js";
+export type { Statement, StatementFile, ListStatementsParams } from "./statements/index.js";
 export {
+  buildStatementQueryParams,
+  getStatement,
+  listStatements,
   StatementFileSchema,
   StatementSchema,
   StatementResponseSchema,
@@ -205,7 +208,14 @@ export {
   BulkVopResultResponseSchema,
 } from "./transfers/index.js";
 
-export type { Transfer, ListTransfersParams, CreateTransferParams, VopEntry, VopResult } from "./transfers/index.js";
+export type {
+  Transfer,
+  InlineBeneficiary,
+  ListTransfersParams,
+  CreateTransferParams,
+  VopEntry,
+  VopResult,
+} from "./transfers/index.js";
 
 export type { Transaction, TransactionLabel, ListTransactionsParams } from "./transactions/index.js";
 

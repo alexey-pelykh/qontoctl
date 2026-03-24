@@ -41,10 +41,25 @@ export interface ListTransfersParams {
 }
 
 /**
+ * An inline beneficiary for creating a SEPA transfer without a pre-existing
+ * beneficiary record.
+ */
+export interface InlineBeneficiary {
+  readonly name: string;
+  readonly iban: string;
+  readonly bic?: string | undefined;
+  readonly email?: string | undefined;
+  readonly activity_tag?: string | undefined;
+}
+
+/**
  * Parameters for creating a SEPA transfer.
+ *
+ * Exactly one of `beneficiary_id` or `beneficiary` must be provided.
  */
 export interface CreateTransferParams {
-  readonly beneficiary_id: string;
+  readonly beneficiary_id?: string | undefined;
+  readonly beneficiary?: InlineBeneficiary | undefined;
   readonly bank_account_id: string;
   readonly reference: string;
   readonly amount: string;

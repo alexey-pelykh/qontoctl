@@ -21,4 +21,11 @@ export {
   BulkVopResultResponseSchema,
 } from "./schemas.js";
 
-export type { Transfer, ListTransfersParams, CreateTransferParams, VopEntry, VopResult } from "./types.js";
+export type {
+  Transfer,
+  InlineBeneficiary,
+  ListTransfersParams,
+  CreateTransferParams,
+  VopEntry,
+  VopResult,
+} from "./types.js";

@@ -82,9 +82,20 @@ export function registerTransferTools(server: McpServer, getClient: () => Promis
   server.registerTool(
     "transfer_create",
     {
-      description: "Create a SEPA transfer",
+      description:
+        "Create a SEPA transfer. Provide either beneficiary_id (existing beneficiary) or beneficiary (inline beneficiary object with name and iban), but not both.",
       inputSchema: {
-        beneficiary_id: z.string().describe("Beneficiary UUID"),
+        beneficiary_id: z.string().optional().describe("Existing beneficiary UUID (mutually exclusive with beneficiary)"),
+        beneficiary: z
+          .object({
+            name: z.string().describe("Beneficiary name"),
+            iban: z.string().describe("Beneficiary IBAN"),
+            bic: z.string().optional().describe("Beneficiary BIC"),
+            email: z.string().optional().describe("Beneficiary email"),
+            activity_tag: z.string().optional().describe("Beneficiary activity tag"),
+          })
+          .optional()
+          .describe("Inline beneficiary object (mutually exclusive with beneficiary_id)"),
         bank_account_id: z.string().describe("Bank account UUID to debit"),
         reference: z.string().describe("Transfer reference"),
         amount: z.number().positive().describe("Amount to transfer"),
@@ -98,17 +109,29 @@ export function registerTransferTools(server: McpServer, getClient: () => Promis
     },
     async (args) =>
       withClient(getClient, async (client) => {
+        if (args.beneficiary_id !== undefined && args.beneficiary !== undefined) {
+          throw new Error("Cannot specify both beneficiary_id and beneficiary");
+        }
+        if (args.beneficiary_id === undefined && args.beneficiary === undefined) {
+          throw new Error("Either beneficiary_id or beneficiary must be provided");
+        }
+
         let vopProofToken = args.vop_proof_token;
         let vopResult: VopResult | undefined;
 
         if (vopProofToken === undefined) {
-          const beneficiary = await getBeneficiary(client, args.beneficiary_id);
-          vopResult = await verifyPayee(client, { iban: beneficiary.iban, name: beneficiary.name });
+          if (args.beneficiary !== undefined) {
+            vopResult = await verifyPayee(client, { iban: args.beneficiary.iban, name: args.beneficiary.name });
+          } else {
+            const beneficiary = await getBeneficiary(client, args.beneficiary_id!);
+            vopResult = await verifyPayee(client, { iban: beneficiary.iban, name: beneficiary.name });
+          }
           vopProofToken = vopResult.vop_proof_token;
         }
 
         const params: CreateTransferParams = {
-          beneficiary_id: args.beneficiary_id,
+          ...(args.beneficiary_id !== undefined ? { beneficiary_id: args.beneficiary_id } : {}),
+          ...(args.beneficiary !== undefined ? { beneficiary: args.beneficiary } : {}),
           bank_account_id: args.bank_account_id,
           reference: args.reference,
           amount: String(args.amount),
