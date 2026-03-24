@@ -2,8 +2,10 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { Command, Option } from "commander";
 import { jsonResponse } from "@qontoctl/core/testing";
 import { createClientInvoiceCommand } from "./client-invoice.js";
+import { OUTPUT_FORMATS } from "../options.js";
 
 vi.mock("../client.js", () => ({
   createClient: vi.fn(),
@@ -11,6 +13,22 @@ vi.mock("../client.js", () => ({
 
 import { createClient } from "../client.js";
 import { HttpClient } from "@qontoctl/core";
+
+/**
+ * Create a lightweight test program with only the global options and
+ * client-invoice commands registered.  This avoids the expensive dynamic
+ * import of the full program module (which loads every command module) that
+ * can exceed the per-test timeout on slower CI runners (e.g. Windows).
+ */
+function createTestProgram(): Command {
+  const program = new Command();
+  program
+    .addOption(new Option("-o, --output <format>", "output format").choices([...OUTPUT_FORMATS]).default("table"))
+    .addOption(new Option("--no-paginate", "disable auto-pagination"));
+  program.addCommand(createClientInvoiceCommand());
+  program.exitOverride();
+  return program;
+}
 
 const sampleInvoice = {
   id: "inv-123",
@@ -122,10 +140,7 @@ describe("client-invoice commands", () => {
         }),
       );
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createClientInvoiceCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["client-invoice", "list"], { from: "user" });
 
@@ -150,10 +165,7 @@ describe("client-invoice commands", () => {
         }),
       );
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createClientInvoiceCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["--output", "json", "client-invoice", "list"], { from: "user" });
 
@@ -172,10 +184,7 @@ describe("client-invoice commands", () => {
     it("shows invoice details in json format", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ client_invoice: sampleInvoice }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createClientInvoiceCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["--output", "json", "client-invoice", "show", "inv-123"], { from: "user" });
 
@@ -189,10 +198,7 @@ describe("client-invoice commands", () => {
     it("calls the correct API endpoint", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ client_invoice: sampleInvoice }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createClientInvoiceCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["client-invoice", "show", "inv-123"], { from: "user" });
 
@@ -205,10 +211,7 @@ describe("client-invoice commands", () => {
     it("creates an invoice in json format", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ client_invoice: sampleInvoice }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createClientInvoiceCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       const body = JSON.stringify({ client_id: "cl-123", items: [] });
       await program.parseAsync(["--output", "json", "client-invoice", "create", "--body", body], { from: "user" });
@@ -222,10 +225,7 @@ describe("client-invoice commands", () => {
     it("sends POST to the correct endpoint", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ client_invoice: sampleInvoice }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createClientInvoiceCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       const body = JSON.stringify({ client_id: "cl-123" });
       await program.parseAsync(["client-invoice", "create", "--body", body], { from: "user" });
@@ -238,10 +238,7 @@ describe("client-invoice commands", () => {
     it("passes idempotency key when provided", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ client_invoice: sampleInvoice }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createClientInvoiceCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       const body = JSON.stringify({ client_id: "cl-123" });
       await program.parseAsync(["client-invoice", "create", "--body", body, "--idempotency-key", "key-abc-123"], {
@@ -258,10 +255,7 @@ describe("client-invoice commands", () => {
     it("updates an invoice in json format", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ client_invoice: sampleInvoice }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createClientInvoiceCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       const body = JSON.stringify({ header: "Updated" });
       await program.parseAsync(["--output", "json", "client-invoice", "update", "inv-123", "--body", body], {
@@ -277,10 +271,7 @@ describe("client-invoice commands", () => {
     it("sends PATCH to the correct endpoint", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ client_invoice: sampleInvoice }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createClientInvoiceCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       const body = JSON.stringify({ header: "Updated" });
       await program.parseAsync(["client-invoice", "update", "inv-123", "--body", body], { from: "user" });
@@ -295,10 +286,7 @@ describe("client-invoice commands", () => {
     it("deletes an invoice with --yes flag", async () => {
       fetchSpy.mockImplementation(() => Promise.resolve(new Response(null, { status: 204 })));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createClientInvoiceCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["--output", "json", "client-invoice", "delete", "inv-123", "--yes"], {
         from: "user",
@@ -314,10 +302,7 @@ describe("client-invoice commands", () => {
     it("sends DELETE to the correct endpoint", async () => {
       fetchSpy.mockImplementation(() => Promise.resolve(new Response(null, { status: 204 })));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createClientInvoiceCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["client-invoice", "delete", "inv-123", "--yes"], { from: "user" });
 
@@ -327,10 +312,7 @@ describe("client-invoice commands", () => {
     });
 
     it("exits with error when --yes is not provided", async () => {
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createClientInvoiceCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["client-invoice", "delete", "inv-123"], { from: "user" });
 
@@ -347,10 +329,7 @@ describe("client-invoice commands", () => {
       const finalized = { ...sampleInvoice, status: "pending", invoice_number: "INV-001" };
       fetchSpy.mockImplementation(() => jsonResponse({ client_invoice: finalized }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createClientInvoiceCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["--output", "json", "client-invoice", "finalize", "inv-123"], { from: "user" });
 
@@ -363,10 +342,7 @@ describe("client-invoice commands", () => {
     it("calls the correct API endpoint", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ client_invoice: sampleInvoice }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createClientInvoiceCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["client-invoice", "finalize", "inv-123"], { from: "user" });
 
@@ -380,10 +356,7 @@ describe("client-invoice commands", () => {
     it("sends an invoice in json format", async () => {
       fetchSpy.mockImplementation(() => Promise.resolve(new Response(null, { status: 204 })));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createClientInvoiceCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["--output", "json", "client-invoice", "send", "inv-123"], { from: "user" });
 
@@ -396,10 +369,7 @@ describe("client-invoice commands", () => {
     it("calls the correct API endpoint", async () => {
       fetchSpy.mockImplementation(() => Promise.resolve(new Response(null, { status: 204 })));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createClientInvoiceCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["client-invoice", "send", "inv-123"], { from: "user" });
 
@@ -414,10 +384,7 @@ describe("client-invoice commands", () => {
       const paid = { ...sampleInvoice, status: "paid" };
       fetchSpy.mockImplementation(() => jsonResponse({ client_invoice: paid }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createClientInvoiceCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["--output", "json", "client-invoice", "mark-paid", "inv-123"], { from: "user" });
 
@@ -430,10 +397,7 @@ describe("client-invoice commands", () => {
     it("calls the correct API endpoint", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ client_invoice: sampleInvoice }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createClientInvoiceCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["client-invoice", "mark-paid", "inv-123"], { from: "user" });
 
@@ -448,10 +412,7 @@ describe("client-invoice commands", () => {
       const pending = { ...sampleInvoice, status: "pending" };
       fetchSpy.mockImplementation(() => jsonResponse({ client_invoice: pending }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createClientInvoiceCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["--output", "json", "client-invoice", "unmark-paid", "inv-123"], { from: "user" });
 
@@ -464,10 +425,7 @@ describe("client-invoice commands", () => {
     it("calls the correct API endpoint", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ client_invoice: sampleInvoice }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createClientInvoiceCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["client-invoice", "unmark-paid", "inv-123"], { from: "user" });
 
@@ -482,10 +440,7 @@ describe("client-invoice commands", () => {
       const cancelled = { ...sampleInvoice, status: "cancelled" };
       fetchSpy.mockImplementation(() => jsonResponse({ client_invoice: cancelled }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createClientInvoiceCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["--output", "json", "client-invoice", "cancel", "inv-123"], { from: "user" });
 
@@ -498,10 +453,7 @@ describe("client-invoice commands", () => {
     it("calls the correct API endpoint", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ client_invoice: sampleInvoice }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createClientInvoiceCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["client-invoice", "cancel", "inv-123"], { from: "user" });
 
@@ -515,10 +467,7 @@ describe("client-invoice commands", () => {
     it("shows upload details in json format", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ upload: sampleUpload }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createClientInvoiceCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["--output", "json", "client-invoice", "upload-show", "inv-123", "upl-456"], {
         from: "user",
@@ -534,10 +483,7 @@ describe("client-invoice commands", () => {
     it("calls the correct API endpoint", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ upload: sampleUpload }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createClientInvoiceCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["client-invoice", "upload-show", "inv-123", "upl-456"], { from: "user" });
 

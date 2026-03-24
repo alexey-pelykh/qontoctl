@@ -2,9 +2,12 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { Command, Option } from "commander";
 import { jsonResponse } from "@qontoctl/core/testing";
 import type { PaginationMeta } from "../../pagination.js";
 import type { Card, CardTypeAppearances } from "@qontoctl/core";
+import { OUTPUT_FORMATS } from "../../options.js";
+import { registerCardCommands } from "./index.js";
 
 vi.mock("../../client.js", () => ({
   createClient: vi.fn(),
@@ -22,6 +25,22 @@ vi.mock("node:fs/promises", () => ({
 
 import { createClient } from "../../client.js";
 import { HttpClient } from "@qontoctl/core";
+
+/**
+ * Create a lightweight test program with only the global options and card
+ * commands registered.  This avoids the expensive dynamic import of the
+ * full program module (which loads every command module) that can exceed
+ * the per-test timeout on slower CI runners (e.g. Windows).
+ */
+function createTestProgram(): Command {
+  const program = new Command();
+  program
+    .addOption(new Option("-o, --output <format>", "output format").choices([...OUTPUT_FORMATS]).default("table"))
+    .addOption(new Option("--no-paginate", "disable auto-pagination"));
+  registerCardCommands(program);
+  program.exitOverride();
+  return program;
+}
 
 function makeMeta(overrides: Partial<PaginationMeta> = {}): PaginationMeta {
   return {
@@ -137,9 +156,7 @@ describe("card commands", () => {
         }),
       );
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["card", "list"], { from: "user" });
 
@@ -160,9 +177,7 @@ describe("card commands", () => {
         }),
       );
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["--output", "json", "card", "list"], { from: "user" });
 
@@ -180,9 +195,7 @@ describe("card commands", () => {
         }),
       );
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(
         [
@@ -222,9 +235,7 @@ describe("card commands", () => {
         }),
       );
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["card", "list"], { from: "user" });
 
@@ -238,9 +249,7 @@ describe("card commands", () => {
       const card = makeCard({ status: "pending" });
       fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(
         [
@@ -269,9 +278,7 @@ describe("card commands", () => {
       const card = makeCard();
       fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(
         [
@@ -310,9 +317,7 @@ describe("card commands", () => {
       const card = makeCard({ status: "pending" });
       fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(
         [
@@ -344,9 +349,7 @@ describe("card commands", () => {
       const card = makeCard();
       fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(
         [
@@ -452,9 +455,7 @@ describe("card commands", () => {
         ]),
       );
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["card", "bulk-create", "--file", "cards.json"], { from: "user" });
 
@@ -483,9 +484,7 @@ describe("card commands", () => {
         ]),
       );
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["--output", "json", "card", "bulk-create", "--file", "cards.json"], { from: "user" });
 
@@ -501,9 +500,7 @@ describe("card commands", () => {
       const card = makeCard({ status: "paused" });
       fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["card", "lock", "card-1"], { from: "user" });
 
@@ -517,9 +514,7 @@ describe("card commands", () => {
       const card = makeCard({ status: "paused" });
       fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["card", "lock", "card-1"], { from: "user" });
 
@@ -532,9 +527,7 @@ describe("card commands", () => {
       const card = makeCard({ status: "paused" });
       fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["--output", "json", "card", "lock", "card-1"], { from: "user" });
 
@@ -551,9 +544,7 @@ describe("card commands", () => {
       const card = makeCard({ status: "live" });
       fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["card", "unlock", "card-1"], { from: "user" });
 
@@ -567,9 +558,7 @@ describe("card commands", () => {
       const card = makeCard({ status: "live" });
       fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["card", "unlock", "card-1"], { from: "user" });
 
@@ -582,9 +571,7 @@ describe("card commands", () => {
       const card = makeCard({ status: "live" });
       fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["--output", "json", "card", "unlock", "card-1"], { from: "user" });
 
@@ -601,9 +588,7 @@ describe("card commands", () => {
       const card = makeCard({ status: "lost" });
       fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["card", "report-lost", "card-1", "--yes"], { from: "user" });
 
@@ -614,9 +599,7 @@ describe("card commands", () => {
     });
 
     it("exits with error when --yes is not provided", async () => {
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["card", "report-lost", "card-1"], { from: "user" });
 
@@ -631,9 +614,7 @@ describe("card commands", () => {
       const card = makeCard({ status: "lost" });
       fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["card", "report-lost", "card-1", "--yes"], { from: "user" });
 
@@ -646,9 +627,7 @@ describe("card commands", () => {
       const card = makeCard({ status: "lost" });
       fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["--output", "json", "card", "report-lost", "card-1", "--yes"], { from: "user" });
 
@@ -664,9 +643,7 @@ describe("card commands", () => {
       const card = makeCard({ status: "stolen" });
       fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["card", "report-stolen", "card-1", "--yes"], { from: "user" });
 
@@ -677,9 +654,7 @@ describe("card commands", () => {
     });
 
     it("exits with error when --yes is not provided", async () => {
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["card", "report-stolen", "card-1"], { from: "user" });
 
@@ -694,9 +669,7 @@ describe("card commands", () => {
       const card = makeCard({ status: "stolen" });
       fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["card", "report-stolen", "card-1", "--yes"], { from: "user" });
 
@@ -709,9 +682,7 @@ describe("card commands", () => {
       const card = makeCard({ status: "stolen" });
       fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["--output", "json", "card", "report-stolen", "card-1", "--yes"], { from: "user" });
 
@@ -727,9 +698,7 @@ describe("card commands", () => {
       const card = makeCard({ status: "discarded" });
       fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["card", "discard", "card-1", "--yes"], { from: "user" });
 
@@ -740,9 +709,7 @@ describe("card commands", () => {
     });
 
     it("exits with error when --yes is not provided", async () => {
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["card", "discard", "card-1"], { from: "user" });
 
@@ -757,9 +724,7 @@ describe("card commands", () => {
       const card = makeCard({ status: "discarded" });
       fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["card", "discard", "card-1", "--yes"], { from: "user" });
 
@@ -772,9 +737,7 @@ describe("card commands", () => {
       const card = makeCard({ status: "discarded" });
       fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["--output", "json", "card", "discard", "card-1", "--yes"], { from: "user" });
 
@@ -790,9 +753,7 @@ describe("card commands", () => {
       const card = makeCard({ payment_monthly_limit: 3000 });
       fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["card", "update-limits", "card-1", "--payment-monthly-limit", "3000"], {
         from: "user",
@@ -807,9 +768,7 @@ describe("card commands", () => {
       const card = makeCard({ payment_monthly_limit: 3000 });
       fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["card", "update-limits", "card-1", "--payment-monthly-limit", "3000"], {
         from: "user",
@@ -826,9 +785,7 @@ describe("card commands", () => {
       const card = makeCard({ payment_monthly_limit: 3000 });
       fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(
         ["--output", "json", "card", "update-limits", "card-1", "--payment-monthly-limit", "3000"],
@@ -845,9 +802,7 @@ describe("card commands", () => {
       const card = makeCard();
       fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(
         [
@@ -899,9 +854,7 @@ describe("card commands", () => {
       const card = makeCard({ nickname: "New Name" });
       fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["card", "update-nickname", "card-1", "--nickname", "New Name"], { from: "user" });
 
@@ -915,9 +868,7 @@ describe("card commands", () => {
       const card = makeCard({ nickname: "New Name" });
       fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["card", "update-nickname", "card-1", "--nickname", "New Name"], { from: "user" });
 
@@ -932,9 +883,7 @@ describe("card commands", () => {
       const card = makeCard({ nickname: "New Name" });
       fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["--output", "json", "card", "update-nickname", "card-1", "--nickname", "New Name"], {
         from: "user",
@@ -953,9 +902,7 @@ describe("card commands", () => {
       const card = makeCard({ atm_option: false, nfc_option: true, online_option: true, foreign_option: false });
       fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(
         [
@@ -983,9 +930,7 @@ describe("card commands", () => {
       const card = makeCard();
       fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(
         [
@@ -1022,9 +967,7 @@ describe("card commands", () => {
       const card = makeCard();
       fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(
         [
@@ -1057,9 +1000,7 @@ describe("card commands", () => {
       const card = makeCard({ active_days: [1, 2, 3], categories: ["transport"] });
       fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(
         ["card", "update-restrictions", "card-1", "--active-days", "1", "2", "3", "--categories", "transport"],
@@ -1075,9 +1016,7 @@ describe("card commands", () => {
       const card = makeCard({ active_days: [1, 2, 3], categories: ["transport"] });
       fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(
         ["card", "update-restrictions", "card-1", "--active-days", "1", "2", "3", "--categories", "transport"],
@@ -1100,9 +1039,7 @@ describe("card commands", () => {
       const card = makeCard({ active_days: [1, 2, 3], categories: ["transport"] });
       fetchSpy.mockImplementation(() => jsonResponse({ card }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(
         [
@@ -1132,9 +1069,7 @@ describe("card commands", () => {
     it("gets iframe url and outputs result", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ iframe_url: "https://secure.qonto.com/iframe/card-1" }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["card", "iframe-url", "card-1"], { from: "user" });
 
@@ -1146,9 +1081,7 @@ describe("card commands", () => {
     it("calls the correct API endpoint for iframe-url", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ iframe_url: "https://secure.qonto.com/iframe/card-1" }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["card", "iframe-url", "card-1"], { from: "user" });
 
@@ -1159,9 +1092,7 @@ describe("card commands", () => {
     it("outputs json format when requested", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ iframe_url: "https://secure.qonto.com/iframe/card-1" }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["--output", "json", "card", "iframe-url", "card-1"], { from: "user" });
 
@@ -1199,9 +1130,7 @@ describe("card commands", () => {
       ];
       fetchSpy.mockImplementation(() => jsonResponse({ card_type_appearances: appearances }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["card", "appearances"], { from: "user" });
 
@@ -1215,9 +1144,7 @@ describe("card commands", () => {
     it("calls the correct API endpoint for appearances", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ card_type_appearances: [] }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["card", "appearances"], { from: "user" });
 
@@ -1251,9 +1178,7 @@ describe("card commands", () => {
       ];
       fetchSpy.mockImplementation(() => jsonResponse({ card_type_appearances: appearances }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["--output", "json", "card", "appearances"], { from: "user" });
 
