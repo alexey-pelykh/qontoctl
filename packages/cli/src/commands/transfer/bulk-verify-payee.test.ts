@@ -36,10 +36,13 @@ const bulkVerifyPayeeMock = vi.mocked(bulkVerifyPayee);
 const { readFile } = await import("node:fs/promises");
 const readFileMock = vi.mocked(readFile);
 
-const sampleResults = [
-  { iban: "FR7612345000010009876543210", name: "John Doe", result: "match" as const },
-  { iban: "DE89370400440532013000", name: "Jane Smith", result: "mismatch" as const },
-];
+const sampleResults = {
+  responses: [
+    { id: "req-1", response: { match_result: "MATCH_RESULT_MATCH" as const, matched_name: "John Doe" } },
+    { id: "req-2", response: { match_result: "MATCH_RESULT_NO_MATCH" as const, matched_name: "Jane Smith" } },
+  ],
+  proof_token: { token: "tok_bulk_123" },
+};
 
 describe("transfer bulk-verify-payee command", () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -75,8 +78,8 @@ describe("transfer bulk-verify-payee command", () => {
     expect(bulkVerifyPayeeMock).toHaveBeenCalledWith(
       expect.anything(),
       [
-        { iban: "FR7612345000010009876543210", name: "John Doe" },
-        { iban: "DE89370400440532013000", name: "Jane Smith" },
+        { iban: "FR7612345000010009876543210", beneficiary_name: "John Doe" },
+        { iban: "DE89370400440532013000", beneficiary_name: "Jane Smith" },
       ],
       expect.anything(),
     );
@@ -84,8 +87,8 @@ describe("transfer bulk-verify-payee command", () => {
     expect(stdoutSpy).toHaveBeenCalled();
     const output = stdoutSpy.mock.calls[0]?.[0] as string;
     const parsed = JSON.parse(output) as typeof sampleResults;
-    expect(parsed).toHaveLength(2);
-    expect(parsed[0]?.result).toBe("match");
+    expect(parsed.responses).toHaveLength(2);
+    expect(parsed.responses[0]?.response?.match_result).toBe("MATCH_RESULT_MATCH");
   });
 
   it("reads CSV without header row", async () => {
@@ -101,8 +104,8 @@ describe("transfer bulk-verify-payee command", () => {
     expect(bulkVerifyPayeeMock).toHaveBeenCalledWith(
       expect.anything(),
       [
-        { iban: "FR7612345000010009876543210", name: "John Doe" },
-        { iban: "DE89370400440532013000", name: "Jane Smith" },
+        { iban: "FR7612345000010009876543210", beneficiary_name: "John Doe" },
+        { iban: "DE89370400440532013000", beneficiary_name: "Jane Smith" },
       ],
       expect.anything(),
     );

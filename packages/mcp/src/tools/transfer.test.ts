@@ -142,19 +142,16 @@ describe("transfer MCP tools", () => {
       },
     };
 
-    function mockForAutoResolve(vopResult: string) {
+    function mockForAutoResolve(matchResult: string) {
       fetchSpy.mockImplementation((input: URL, init: RequestInit) => {
         if (input.pathname === "/v2/sepa/beneficiaries/ben-1" && init.method === "GET") {
           return jsonResponse(beneficiaryBody);
         }
         if (input.pathname === "/v2/sepa/verify_payee" && init.method === "POST") {
           return jsonResponse({
-            verification: {
-              iban: "FR7630001007941234567890185",
-              name: "Acme Corp",
-              result: vopResult,
-              vop_proof_token: "auto-token-123",
-            },
+            match_result: matchResult,
+            matched_name: null,
+            proof_token: { token: "auto-token-123" },
           });
         }
         if (input.pathname === "/v2/sepa/transfers" && init.method === "POST") {
@@ -197,7 +194,7 @@ describe("transfer MCP tools", () => {
     });
 
     it("auto-resolves vop_proof_token via getBeneficiary + verifyPayee on match", async () => {
-      mockForAutoResolve("match");
+      mockForAutoResolve("MATCH_RESULT_MATCH");
 
       const result = await mcpClient.callTool({
         name: "transfer_create",
@@ -230,12 +227,9 @@ describe("transfer MCP tools", () => {
       fetchSpy.mockImplementation((input: URL, init: RequestInit) => {
         if (input.pathname === "/v2/sepa/verify_payee" && init.method === "POST") {
           return jsonResponse({
-            verification: {
-              iban: "DE89370400440532013000",
-              name: "Jane Doe",
-              result: "match",
-              vop_proof_token: "inline-auto-token",
-            },
+            match_result: "MATCH_RESULT_MATCH",
+            matched_name: null,
+            proof_token: { token: "inline-auto-token" },
           });
         }
         if (input.pathname === "/v2/sepa/transfers" && init.method === "POST") {
@@ -273,10 +267,10 @@ describe("transfer MCP tools", () => {
       expect(vopCall).toBeDefined();
       const vopBody = JSON.parse((vopCall as [URL, RequestInit])[1].body as string) as {
         iban: string;
-        name: string;
+        beneficiary_name: string;
       };
       expect(vopBody.iban).toBe("DE89370400440532013000");
-      expect(vopBody.name).toBe("Jane Doe");
+      expect(vopBody.beneficiary_name).toBe("Jane Doe");
 
       // Should have sent inline beneficiary in transfer body
       const transferCall = calls.find((c) => c[0].pathname === "/v2/sepa/transfers" && c[1].method === "POST") as
@@ -323,8 +317,8 @@ describe("transfer MCP tools", () => {
       expect(body.transfer.attachment_ids).toEqual(["att-1", "att-2"]);
     });
 
-    it("includes VoP status in response on mismatch", async () => {
-      mockForAutoResolve("mismatch");
+    it("includes VoP status in response on no_match", async () => {
+      mockForAutoResolve("MATCH_RESULT_NO_MATCH");
 
       const result = await mcpClient.callTool({
         name: "transfer_create",
@@ -333,11 +327,13 @@ describe("transfer MCP tools", () => {
 
       const content = result.content as { type: string; text: string }[];
       expect(content).toHaveLength(2);
-      expect((content[1] as { type: string; text: string }).text).toBe("VoP verification result: mismatch");
+      expect((content[1] as { type: string; text: string }).text).toBe(
+        "VoP verification result: MATCH_RESULT_NO_MATCH",
+      );
     });
 
-    it("includes VoP status in response on not_available", async () => {
-      mockForAutoResolve("not_available");
+    it("includes VoP status in response on not_possible", async () => {
+      mockForAutoResolve("MATCH_RESULT_NOT_POSSIBLE");
 
       const result = await mcpClient.callTool({
         name: "transfer_create",
@@ -346,7 +342,9 @@ describe("transfer MCP tools", () => {
 
       const content = result.content as { type: string; text: string }[];
       expect(content).toHaveLength(2);
-      expect((content[1] as { type: string; text: string }).text).toBe("VoP verification result: not_available");
+      expect((content[1] as { type: string; text: string }).text).toBe(
+        "VoP verification result: MATCH_RESULT_NOT_POSSIBLE",
+      );
     });
   });
 

@@ -228,10 +228,9 @@ describe("transfer create command", () => {
   it("auto-resolves vop_proof_token on match result", async () => {
     getBeneficiaryMock.mockResolvedValue(sampleBeneficiary);
     verifyPayeeMock.mockResolvedValue({
-      iban: sampleBeneficiary.iban,
-      name: sampleBeneficiary.name,
-      result: "match",
-      vop_proof_token: "tok_auto_match",
+      match_result: "MATCH_RESULT_MATCH",
+      matched_name: sampleBeneficiary.name,
+      proof_token: { token: "tok_auto_match" },
     });
     createTransferMock.mockResolvedValue(sampleTransfer);
 
@@ -258,7 +257,7 @@ describe("transfer create command", () => {
     expect(getBeneficiaryMock).toHaveBeenCalledWith(expect.anything(), "ben-1");
     expect(verifyPayeeMock).toHaveBeenCalledWith(expect.anything(), {
       iban: sampleBeneficiary.iban,
-      name: sampleBeneficiary.name,
+      beneficiary_name: sampleBeneficiary.name,
     });
     expect(createTransferMock).toHaveBeenCalledWith(
       expect.anything(),
@@ -268,13 +267,12 @@ describe("transfer create command", () => {
     expect(stderrSpy).not.toHaveBeenCalled();
   });
 
-  it("auto-resolves vop_proof_token on mismatch result with warning", async () => {
+  it("auto-resolves vop_proof_token on no_match result with warning", async () => {
     getBeneficiaryMock.mockResolvedValue(sampleBeneficiary);
     verifyPayeeMock.mockResolvedValue({
-      iban: sampleBeneficiary.iban,
-      name: sampleBeneficiary.name,
-      result: "mismatch",
-      vop_proof_token: "tok_auto_mismatch",
+      match_result: "MATCH_RESULT_NO_MATCH",
+      matched_name: sampleBeneficiary.name,
+      proof_token: { token: "tok_auto_no_match" },
     });
     createTransferMock.mockResolvedValue(sampleTransfer);
 
@@ -300,18 +298,17 @@ describe("transfer create command", () => {
 
     expect(createTransferMock).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({ vop_proof_token: "tok_auto_mismatch" }),
+      expect.objectContaining({ vop_proof_token: "tok_auto_no_match" }),
       expect.anything(),
     );
-    expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("mismatch"));
+    expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("no match"));
   });
 
   it("creates a transfer with inline beneficiary", async () => {
     verifyPayeeMock.mockResolvedValue({
-      iban: "DE89370400440532013000",
-      name: "Jane Doe",
-      result: "match",
-      vop_proof_token: "tok_inline_auto",
+      match_result: "MATCH_RESULT_MATCH",
+      matched_name: "Jane Doe",
+      proof_token: { token: "tok_inline_auto" },
     });
     createTransferMock.mockResolvedValue(sampleTransfer);
 
@@ -342,7 +339,7 @@ describe("transfer create command", () => {
     expect(getBeneficiaryMock).not.toHaveBeenCalled();
     expect(verifyPayeeMock).toHaveBeenCalledWith(expect.anything(), {
       iban: "DE89370400440532013000",
-      name: "Jane Doe",
+      beneficiary_name: "Jane Doe",
     });
     expect(createTransferMock).toHaveBeenCalledWith(
       expect.anything(),
@@ -396,13 +393,12 @@ describe("transfer create command", () => {
     );
   });
 
-  it("auto-resolves vop_proof_token on not_available result with warning", async () => {
+  it("auto-resolves vop_proof_token on not_possible result with warning", async () => {
     getBeneficiaryMock.mockResolvedValue(sampleBeneficiary);
     verifyPayeeMock.mockResolvedValue({
-      iban: sampleBeneficiary.iban,
-      name: sampleBeneficiary.name,
-      result: "not_available",
-      vop_proof_token: "tok_auto_unavail",
+      match_result: "MATCH_RESULT_NOT_POSSIBLE",
+      matched_name: null,
+      proof_token: { token: "tok_auto_not_possible" },
     });
     createTransferMock.mockResolvedValue(sampleTransfer);
 
@@ -428,9 +424,9 @@ describe("transfer create command", () => {
 
     expect(createTransferMock).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({ vop_proof_token: "tok_auto_unavail" }),
+      expect.objectContaining({ vop_proof_token: "tok_auto_not_possible" }),
       expect.anything(),
     );
-    expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("not_available"));
+    expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("not possible"));
   });
 });
