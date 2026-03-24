@@ -129,13 +129,19 @@ export function registerTransferTools(server: McpServer, getClient: () => Promis
 
         if (vopProofToken === undefined) {
           if (args.beneficiary !== undefined) {
-            vopResult = await verifyPayee(client, { iban: args.beneficiary.iban, name: args.beneficiary.name });
+            vopResult = await verifyPayee(client, {
+              iban: args.beneficiary.iban,
+              beneficiary_name: args.beneficiary.name,
+            });
           } else if (args.beneficiary_id !== undefined) {
             const beneficiary = await getBeneficiary(client, args.beneficiary_id);
-            vopResult = await verifyPayee(client, { iban: beneficiary.iban, name: beneficiary.name });
+            vopResult = await verifyPayee(client, {
+              iban: beneficiary.iban,
+              beneficiary_name: beneficiary.name,
+            });
           }
           if (vopResult !== undefined) {
-            vopProofToken = vopResult.vop_proof_token;
+            vopProofToken = vopResult.proof_token.token;
           }
         }
 
@@ -160,10 +166,10 @@ export function registerTransferTools(server: McpServer, getClient: () => Promis
         const content: { type: "text"; text: string }[] = [
           { type: "text" as const, text: JSON.stringify(transfer, null, 2) },
         ];
-        if (vopResult !== undefined && vopResult.result !== "match") {
+        if (vopResult !== undefined && vopResult.match_result !== "MATCH_RESULT_MATCH") {
           content.push({
             type: "text" as const,
-            text: `VoP verification result: ${vopResult.result}`,
+            text: `VoP verification result: ${vopResult.match_result}`,
           });
         }
 
@@ -227,7 +233,7 @@ export function registerTransferTools(server: McpServer, getClient: () => Promis
     },
     async ({ iban, name }) =>
       withClient(getClient, async (client) => {
-        const result: VopResult = await verifyPayee(client, { iban, name });
+        const result: VopResult = await verifyPayee(client, { iban, beneficiary_name: name });
 
         return {
           content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
@@ -248,7 +254,8 @@ export function registerTransferTools(server: McpServer, getClient: () => Promis
     },
     async ({ entries }) =>
       withClient(getClient, async (client) => {
-        const results = await bulkVerifyPayee(client, entries);
+        const vopEntries = entries.map((e) => ({ iban: e.iban, beneficiary_name: e.name }));
+        const results = await bulkVerifyPayee(client, vopEntries);
 
         return {
           content: [{ type: "text" as const, text: JSON.stringify(results, null, 2) }],

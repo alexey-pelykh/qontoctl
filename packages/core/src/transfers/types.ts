@@ -70,19 +70,58 @@ export interface CreateTransferParams {
 }
 
 /**
- * A single Verification of Payee (VoP) entry for bulk requests.
+ * All possible VoP match result values returned by the Qonto API.
+ */
+export type VopMatchResult =
+  | "MATCH_RESULT_MATCH"
+  | "MATCH_RESULT_CLOSE_MATCH"
+  | "MATCH_RESULT_NO_MATCH"
+  | "MATCH_RESULT_NOT_POSSIBLE"
+  | "MATCH_RESULT_UNSPECIFIED";
+
+/**
+ * A single Verification of Payee (VoP) entry for requests.
  */
 export interface VopEntry {
   readonly iban: string;
-  readonly name: string;
+  readonly beneficiary_name: string;
 }
 
 /**
  * Verification of Payee (VoP) result returned by the Qonto API.
  */
 export interface VopResult {
-  readonly iban: string;
-  readonly name: string;
-  readonly result: "match" | "mismatch" | "not_available";
-  readonly vop_proof_token: string;
+  readonly match_result: VopMatchResult;
+  readonly matched_name: string | null;
+  readonly proof_token: { readonly token: string };
+}
+
+/**
+ * A single entry in a bulk VoP response, containing either a successful
+ * response or an error for the given request ID.
+ */
+export interface BulkVopResultEntry {
+  readonly id: string;
+  readonly response?:
+    | {
+        readonly match_result: VopMatchResult;
+        readonly matched_name: string | null;
+      }
+    | undefined;
+  readonly error?:
+    | {
+        readonly code: string;
+        readonly detail: string;
+      }
+    | undefined;
+}
+
+/**
+ * Bulk Verification of Payee (VoP) result returned by the Qonto API.
+ *
+ * Contains per-entry responses/errors and a single batch-level proof token.
+ */
+export interface BulkVopResult {
+  readonly responses: readonly BulkVopResultEntry[];
+  readonly proof_token: { readonly token: string };
 }

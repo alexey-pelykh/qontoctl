@@ -4,7 +4,7 @@
 import { z } from "zod";
 
 import { PaginationMetaSchema } from "../api-types.schema.js";
-import type { Transfer, VopResult } from "./types.js";
+import type { BulkVopResult, BulkVopResultEntry, Transfer, VopMatchResult, VopResult } from "./types.js";
 
 export const TransferSchema = z.object({
   id: z.string(),
@@ -36,17 +36,43 @@ export const TransferListResponseSchema = z.object({
   meta: PaginationMetaSchema,
 });
 
+export const VopMatchResultSchema = z.enum([
+  "MATCH_RESULT_MATCH",
+  "MATCH_RESULT_CLOSE_MATCH",
+  "MATCH_RESULT_NO_MATCH",
+  "MATCH_RESULT_NOT_POSSIBLE",
+  "MATCH_RESULT_UNSPECIFIED",
+]) satisfies z.ZodType<VopMatchResult>;
+
+const ProofTokenSchema = z.object({
+  token: z.string(),
+});
+
 export const VopResultSchema = z.object({
-  iban: z.string(),
-  name: z.string(),
-  result: z.enum(["match", "mismatch", "not_available"]),
-  vop_proof_token: z.string(),
+  match_result: VopMatchResultSchema,
+  matched_name: z.nullable(z.string()),
+  proof_token: ProofTokenSchema,
 }) satisfies z.ZodType<VopResult>;
 
-export const VopResultResponseSchema = z.object({
-  verification: VopResultSchema,
-});
+export const VopResultResponseSchema = VopResultSchema;
+
+export const BulkVopResultEntrySchema = z.object({
+  id: z.string(),
+  response: z
+    .object({
+      match_result: VopMatchResultSchema,
+      matched_name: z.nullable(z.string()),
+    })
+    .optional(),
+  error: z
+    .object({
+      code: z.string(),
+      detail: z.string(),
+    })
+    .optional(),
+}) satisfies z.ZodType<BulkVopResultEntry>;
 
 export const BulkVopResultResponseSchema = z.object({
-  verifications: z.array(VopResultSchema),
-});
+  responses: z.array(BulkVopResultEntrySchema),
+  proof_token: ProofTokenSchema,
+}) satisfies z.ZodType<BulkVopResult>;

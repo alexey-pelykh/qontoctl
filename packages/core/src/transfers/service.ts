@@ -11,7 +11,14 @@ import {
   TransferResponseSchema,
   VopResultResponseSchema,
 } from "./schemas.js";
-import type { CreateTransferParams, ListTransfersParams, Transfer, VopEntry, VopResult } from "./types.js";
+import type {
+  BulkVopResult,
+  CreateTransferParams,
+  ListTransfersParams,
+  Transfer,
+  VopEntry,
+  VopResult,
+} from "./types.js";
 
 /**
  * VoP error codes where the bank failed but Qonto still provides a
@@ -147,8 +154,9 @@ export async function getTransferProof(client: HttpClient, id: string): Promise<
  * Verify a single payee (Verification of Payee / VoP).
  *
  * When the responding bank fails but Qonto still provides a proof token
- * in the error body, this returns a `VopResult` with `result: "not_available"`
- * and the extracted token instead of throwing.
+ * in the error body, this returns a `VopResult` with
+ * `match_result: "MATCH_RESULT_NOT_POSSIBLE"` and the extracted token
+ * instead of throwing.
  */
 export async function verifyPayee(
   client: HttpClient,
@@ -158,16 +166,15 @@ export async function verifyPayee(
   const endpointPath = "/v2/sepa/verify_payee";
   try {
     const response = await client.post(endpointPath, params, options);
-    return parseResponse(VopResultResponseSchema, response, endpointPath).verification;
+    return parseResponse(VopResultResponseSchema, response, endpointPath);
   } catch (error: unknown) {
     if (error instanceof QontoApiError) {
       const token = extractVopProofToken(error);
       if (token !== undefined) {
         return {
-          iban: params.iban,
-          name: params.name,
-          result: "not_available",
-          vop_proof_token: token,
+          match_result: "MATCH_RESULT_NOT_POSSIBLE",
+          matched_name: null,
+          proof_token: { token },
         };
       }
     }
@@ -178,29 +185,40 @@ export async function verifyPayee(
 /**
  * Bulk verify payees (Verification of Payee / VoP).
  *
+ * Each entry is assigned a sequential ID for correlation with the response.
+ * The API returns per-entry responses/errors and a single batch-level proof token.
+ *
  * When the responding bank fails but Qonto still provides a proof token
- * in the error body, this returns `VopResult[]` entries with
- * `result: "not_available"` and the extracted token instead of throwing.
+ * in the error body, this returns a `BulkVopResult` with all entries marked
+ * as `MATCH_RESULT_NOT_POSSIBLE` instead of throwing.
  */
 export async function bulkVerifyPayee(
   client: HttpClient,
   entries: readonly VopEntry[],
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
-): Promise<readonly VopResult[]> {
+): Promise<BulkVopResult> {
   const endpointPath = "/v2/sepa/bulk_verify_payee";
+  const requests = entries.map((entry, index) => ({
+    id: String(index),
+    ...entry,
+  }));
   try {
-    const response = await client.post(endpointPath, { entries }, options);
-    return parseResponse(BulkVopResultResponseSchema, response, endpointPath).verifications;
+    const response = await client.post(endpointPath, { requests }, options);
+    return parseResponse(BulkVopResultResponseSchema, response, endpointPath);
   } catch (error: unknown) {
     if (error instanceof QontoApiError) {
       const token = extractVopProofToken(error);
       if (token !== undefined) {
-        return entries.map((entry) => ({
-          iban: entry.iban,
-          name: entry.name,
-          result: "not_available" as const,
-          vop_proof_token: token,
-        }));
+        return {
+          responses: entries.map((_, index) => ({
+            id: String(index),
+            response: {
+              match_result: "MATCH_RESULT_NOT_POSSIBLE" as const,
+              matched_name: null,
+            },
+          })),
+          proof_token: { token },
+        };
       }
     }
     throw error;

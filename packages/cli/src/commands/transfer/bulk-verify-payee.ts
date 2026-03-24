@@ -4,7 +4,7 @@
 import { readFile } from "node:fs/promises";
 import type { Command } from "commander";
 import { Option } from "commander";
-import { bulkVerifyPayee, type VopEntry, type VopResult } from "@qontoctl/core";
+import { bulkVerifyPayee, type BulkVopResultEntry, type VopEntry } from "@qontoctl/core";
 import { createClient } from "../../client.js";
 import { formatOutput } from "../../formatters/index.js";
 import { addInheritableOptions, addWriteOptions, resolveGlobalOptions } from "../../inherited-options.js";
@@ -15,11 +15,18 @@ interface BulkVerifyPayeeOptions extends GlobalOptions, WriteOptions {
   readonly file: string;
 }
 
-function toTableRow(r: VopResult): Record<string, string> {
+function toTableRow(r: BulkVopResultEntry): Record<string, string> {
+  if (r.error !== undefined) {
+    return {
+      id: r.id,
+      result: `ERROR: ${r.error.code}`,
+      matched_name: "",
+    };
+  }
   return {
-    iban: r.iban,
-    name: r.name,
-    result: r.result,
+    id: r.id,
+    result: r.response?.match_result ?? "",
+    matched_name: r.response?.matched_name ?? "",
   };
 }
 
@@ -38,7 +45,7 @@ function parseCsv(content: string): VopEntry[] {
     const iban = parts[0]?.trim();
     const name = parts[1]?.trim();
     if (iban !== undefined && iban.length > 0 && name !== undefined && name.length > 0) {
-      entries.push({ iban, name });
+      entries.push({ iban, beneficiary_name: name });
     }
   }
 
@@ -75,7 +82,8 @@ export function registerTransferBulkVerifyPayeeCommand(parent: Command): void {
       { verbose: opts.verbose === true || opts.debug === true },
     );
 
-    const data = opts.output === "json" || opts.output === "yaml" ? results : results.map((r) => toTableRow(r));
+    const data =
+      opts.output === "json" || opts.output === "yaml" ? results : results.responses.map((r) => toTableRow(r));
     process.stdout.write(formatOutput(data, opts.output) + "\n");
   });
 }
