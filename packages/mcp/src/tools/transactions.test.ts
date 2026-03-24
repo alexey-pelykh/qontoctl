@@ -203,6 +203,28 @@ describe("transaction MCP tools", () => {
       expect(url.searchParams.get("updated_at_to")).toBe("2025-03-31");
     });
 
+    it("passes created_at date filter params to API", async () => {
+      fetchSpy.mockReturnValue(
+        jsonResponse({
+          transactions: [],
+          meta: makeMeta({ total_count: 0 }),
+        }),
+      );
+
+      await mcpClient.callTool({
+        name: "transaction_list",
+        arguments: {
+          bank_account_id: "acc-1",
+          created_at_from: "2025-04-01",
+          created_at_to: "2025-04-30",
+        },
+      });
+
+      const [url] = fetchSpy.mock.calls[0] as [URL];
+      expect(url.searchParams.get("created_at_from")).toBe("2025-04-01");
+      expect(url.searchParams.get("created_at_to")).toBe("2025-04-30");
+    });
+
     it("auto-resolves bank account from organization", async () => {
       fetchSpy.mockImplementation((input: URL) => {
         if (input.pathname === "/v2/organization") return jsonResponse(ORG_BODY);
