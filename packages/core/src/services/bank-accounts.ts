@@ -90,11 +90,18 @@ export async function updateBankAccount(
  * List all bank accounts for the organization.
  *
  * @param client - The HTTP client to use for the request.
+ * @param params - Optional pagination parameters.
  * @returns The bank accounts.
  */
-export async function listBankAccounts(client: HttpClient): Promise<{ bank_accounts: BankAccount[] }> {
+export async function listBankAccounts(
+  client: HttpClient,
+  params?: { page?: number; per_page?: number },
+): Promise<{ bank_accounts: BankAccount[] }> {
+  const query: Record<string, string> = {};
+  if (params?.page !== undefined) query["page"] = String(params.page);
+  if (params?.per_page !== undefined) query["per_page"] = String(params.per_page);
   const endpointPath = "/v2/bank_accounts";
-  const response = await client.get(endpointPath);
+  const response = await client.get(endpointPath, Object.keys(query).length > 0 ? query : undefined);
   return parseResponse(BankAccountListResponseSchema, response, endpointPath);
 }
 
