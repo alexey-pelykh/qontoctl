@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import { type ChildProcess, spawn, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -39,47 +39,6 @@ function cli(
     stderr: result.stderr,
     exitCode: result.status ?? 1,
   };
-}
-
-/**
- * Run the CLI asynchronously, feeding stdin lines one at a time after
- * each prompt appears on stderr. This is required because Node.js
- * readline/promises closes when the input stream ends, which prevents
- * subsequent question() calls from resolving if all data is piped at once.
- */
-function cliInteractive(
-  args: string[],
-  options: { env?: Record<string, string>; lines: string[] },
-): Promise<{ stdout: string; stderr: string; exitCode: number }> {
-  return new Promise((resolve) => {
-    const child: ChildProcess = spawn("node", [CLI_PATH, ...args], {
-      env: options.env,
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-
-    let stdout = "";
-    let stderr = "";
-    let idx = 0;
-
-    child.stdout?.setEncoding("utf-8");
-    child.stderr?.setEncoding("utf-8");
-    child.stdout?.on("data", (d: string) => (stdout += d));
-
-    // Wait for each prompt on stderr before writing the next input line.
-    child.stderr?.on("data", (d: string) => {
-      stderr += d;
-      if (idx < options.lines.length) {
-        child.stdin?.write(options.lines[idx++] + "\n");
-      }
-      if (idx >= options.lines.length) {
-        child.stdin?.end();
-      }
-    });
-
-    child.on("close", (code) => {
-      resolve({ stdout, stderr, exitCode: code ?? 1 });
-    });
-  });
 }
 
 // ---------------------------------------------------------------------------
@@ -183,11 +142,11 @@ describe("profile commands (e2e)", () => {
       rmSync(addDir, { recursive: true, force: true });
     });
 
-    it("creates a new profile yaml from interactive input", async () => {
-      const { stdout, exitCode } = await cliInteractive(["profile", "add", "myprofile"], {
-        env: homeEnv(addDir),
-        lines: ["test-org-slug", "sk_test_secretkey123"],
-      });
+    it("creates a new profile yaml with non-interactive options", () => {
+      const { stdout, exitCode } = cli(
+        ["profile", "add", "myprofile", "--organization-slug", "test-org-slug", "--secret-key", "sk_test_secretkey123"],
+        { env: homeEnv(addDir) },
+      );
       expect(exitCode).toBe(0);
       expect(stdout).toContain('Profile "myprofile" created');
 
@@ -199,12 +158,12 @@ describe("profile commands (e2e)", () => {
       expect(content).toContain("secret-key: sk_test_secretkey123");
     });
 
-    it("refuses to overwrite an existing profile", async () => {
+    it("refuses to overwrite an existing profile", () => {
       // myprofile was created in the previous test
-      const { stderr, exitCode } = await cliInteractive(["profile", "add", "myprofile"], {
-        env: homeEnv(addDir),
-        lines: ["new-org", "new-key"],
-      });
+      const { stderr, exitCode } = cli(
+        ["profile", "add", "myprofile", "--organization-slug", "new-org", "--secret-key", "new-key"],
+        { env: homeEnv(addDir) },
+      );
       expect(exitCode).not.toBe(0);
       expect(stderr).toContain("already exists");
     });

@@ -10,18 +10,27 @@ import type { Command } from "commander";
 import { CONFIG_DIR, isValidProfileName, loadConfigFile } from "@qontoctl/core";
 import { addInheritableOptions } from "../../inherited-options.js";
 
+interface AddOptions {
+  organizationSlug?: string;
+  secretKey?: string;
+}
+
 /**
  * Register the `profile add <name>` subcommand.
  */
 export function registerAddCommand(parent: Command): void {
-  const add = parent.command("add <name>").description("create a new profile interactively");
+  const add = parent
+    .command("add <name>")
+    .description("create a new profile interactively")
+    .option("--organization-slug <slug>", "organization slug (skip interactive prompt)")
+    .option("--secret-key <key>", "secret key (skip interactive prompt)");
   addInheritableOptions(add);
-  add.action(async (name: string) => {
-    await addProfile(name);
+  add.action(async (name: string, opts: AddOptions) => {
+    await addProfile(name, opts);
   });
 }
 
-async function addProfile(name: string): Promise<void> {
+async function addProfile(name: string, opts: AddOptions): Promise<void> {
   if (!isValidProfileName(name)) {
     console.error("Invalid profile name: must not contain path separators or '..'.");
     process.exitCode = 1;
@@ -36,24 +45,40 @@ async function addProfile(name: string): Promise<void> {
     return;
   }
 
-  const organizationSlug = await text({
-    message: "Organization slug",
-    validate: (value) => {
-      if (!value || value.trim() === "") return "Organization slug cannot be empty.";
-    },
-  });
-  if (isCancel(organizationSlug)) {
-    process.exit(0);
-  }
+  let organizationSlug: string;
+  let secretKey: string;
 
-  const secretKey = await text({
-    message: "Secret key",
-    validate: (value) => {
-      if (!value || value.trim() === "") return "Secret key cannot be empty.";
-    },
-  });
-  if (isCancel(secretKey)) {
-    process.exit(0);
+  if (opts.organizationSlug !== undefined && opts.secretKey !== undefined) {
+    // Non-interactive mode
+    organizationSlug = opts.organizationSlug;
+    secretKey = opts.secretKey;
+  } else if (opts.organizationSlug !== undefined || opts.secretKey !== undefined) {
+    console.error("Both --organization-slug and --secret-key must be provided together.");
+    process.exitCode = 1;
+    return;
+  } else {
+    // Interactive mode
+    const slugResult = await text({
+      message: "Organization slug",
+      validate: (value) => {
+        if (!value || value.trim() === "") return "Organization slug cannot be empty.";
+      },
+    });
+    if (isCancel(slugResult)) {
+      process.exit(0);
+    }
+    organizationSlug = slugResult;
+
+    const keyResult = await text({
+      message: "Secret key",
+      validate: (value) => {
+        if (!value || value.trim() === "") return "Secret key cannot be empty.";
+      },
+    });
+    if (isCancel(keyResult)) {
+      process.exit(0);
+    }
+    secretKey = keyResult;
   }
 
   const config = {
