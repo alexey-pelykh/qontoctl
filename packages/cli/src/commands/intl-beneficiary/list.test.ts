@@ -72,9 +72,7 @@ describe("intl beneficiary list command", () => {
   });
 
   it("lists intl beneficiaries in json format", async () => {
-    const international_beneficiaries = [
-      { id: "intl-ben-1", name: "Global Corp", country: "US", currency: "USD" },
-    ];
+    const international_beneficiaries = [{ id: "intl-ben-1", name: "Global Corp", country: "US", currency: "USD" }];
     fetchSpy.mockImplementation(() =>
       jsonResponse({
         international_beneficiaries,

@@ -56,10 +56,9 @@ describe("intl beneficiary update command", () => {
     program.option("-o, --output <format>", "", "table");
     registerIntlBeneficiaryCommands(program);
 
-    await program.parseAsync(
-      ["intl", "beneficiary", "update", "intl-ben-1", "--field", "name=Updated Corp"],
-      { from: "user" },
-    );
+    await program.parseAsync(["intl", "beneficiary", "update", "intl-ben-1", "--field", "name=Updated Corp"], {
+      from: "user",
+    });
 
     expect(stdoutSpy).toHaveBeenCalled();
     const output = stdoutSpy.mock.calls[0]?.[0] as string;
@@ -74,10 +73,9 @@ describe("intl beneficiary update command", () => {
     program.option("-o, --output <format>", "", "json");
     registerIntlBeneficiaryCommands(program);
 
-    await program.parseAsync(
-      ["intl", "beneficiary", "update", "intl-ben-1", "--field", "name=Updated Corp"],
-      { from: "user" },
-    );
+    await program.parseAsync(["intl", "beneficiary", "update", "intl-ben-1", "--field", "name=Updated Corp"], {
+      from: "user",
+    });
 
     expect(stdoutSpy).toHaveBeenCalled();
     const output = stdoutSpy.mock.calls[0]?.[0] as string;
