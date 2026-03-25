@@ -25,9 +25,7 @@ export function registerRecurringTransferTools(server: McpServer, getClient: () 
         reference: z.string().describe("Transfer reference"),
         note: z.string().optional().describe("Optional note"),
         first_execution_date: z.string().describe("First execution date (YYYY-MM-DD)"),
-        frequency: z
-          .enum(["weekly", "monthly", "quarterly", "half_yearly", "yearly"])
-          .describe("Transfer frequency"),
+        frequency: z.enum(["weekly", "monthly", "quarterly", "half_yearly", "yearly"]).describe("Transfer frequency"),
       },
     },
     async (args) =>

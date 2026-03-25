@@ -28,11 +28,7 @@ export async function cancelRecurringTransfer(
   id: string,
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<void> {
-  await client.post(
-    "/v2/sepa/recurring_transfers/" + encodeURIComponent(id) + "/cancel",
-    undefined,
-    options,
-  );
+  await client.post("/v2/sepa/recurring_transfers/" + encodeURIComponent(id) + "/cancel", undefined, options);
 }
 
 /**

@@ -4,7 +4,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { HttpClient } from "../http-client.js";
 import { jsonResponse } from "../testing/json-response.js";
-import { cancelRecurringTransfer, createRecurringTransfer, getRecurringTransfer, listRecurringTransfers } from "./service.js";
+import {
+  cancelRecurringTransfer,
+  createRecurringTransfer,
+  getRecurringTransfer,
+  listRecurringTransfers,
+} from "./service.js";
 
 const sampleRecurringTransfer = {
   id: "rt-new",
