@@ -119,7 +119,12 @@ describe("createServer", () => {
       expect(toolNames).toContain("intl_beneficiary_remove");
       expect(toolNames).toContain("intl_transfer_requirements");
       expect(toolNames).toContain("intl_transfer_create");
-      expect(tools).toHaveLength(103);
+      expect(toolNames).toContain("insurance_show");
+      expect(toolNames).toContain("insurance_create");
+      expect(toolNames).toContain("insurance_update");
+      expect(toolNames).toContain("insurance_upload_document");
+      expect(toolNames).toContain("insurance_remove_document");
+      expect(tools).toHaveLength(108);
     });
 
     it("tools have descriptions", async () => {

@@ -10,6 +10,7 @@ export { registerClientInvoiceTools } from "./client-invoice.js";
 export { registerBulkTransferTools } from "./bulk-transfer.js";
 export { registerCreditNoteTools } from "./credit-note.js";
 export { registerEInvoicingTools } from "./einvoicing.js";
+export { registerInsuranceTools } from "./insurance.js";
 export { registerIntlBeneficiaryTools } from "./intl-beneficiary.js";
 export { registerIntlTransferTools } from "./intl-transfer.js";
 export { registerInternalTransferTools } from "./internal-transfer.js";
