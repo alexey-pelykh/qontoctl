@@ -170,6 +170,33 @@ describe("TransactionSchema", () => {
     expect(result).not.toHaveProperty("direct_debit_hold");
   });
 
+  it("defaults absent optional nullable fields to null", () => {
+    const input = { ...validTransaction };
+    delete (input as Record<string, unknown>).settled_balance;
+    delete (input as Record<string, unknown>).settled_balance_cents;
+    delete (input as Record<string, unknown>).clean_counterparty_name;
+    delete (input as Record<string, unknown>).settled_at;
+    delete (input as Record<string, unknown>).note;
+    delete (input as Record<string, unknown>).reference;
+    delete (input as Record<string, unknown>).vat_amount;
+    delete (input as Record<string, unknown>).vat_amount_cents;
+    delete (input as Record<string, unknown>).vat_rate;
+    delete (input as Record<string, unknown>).initiator_id;
+    delete (input as Record<string, unknown>).card_last_digits;
+    const result = TransactionSchema.parse(input);
+    expect(result.settled_balance).toBeNull();
+    expect(result.settled_balance_cents).toBeNull();
+    expect(result.clean_counterparty_name).toBeNull();
+    expect(result.settled_at).toBeNull();
+    expect(result.note).toBeNull();
+    expect(result.reference).toBeNull();
+    expect(result.vat_amount).toBeNull();
+    expect(result.vat_amount_cents).toBeNull();
+    expect(result.vat_rate).toBeNull();
+    expect(result.initiator_id).toBeNull();
+    expect(result.card_last_digits).toBeNull();
+  });
+
   it("strips unknown fields", () => {
     const txn = { ...validTransaction, unknown_field: "should be stripped" };
     const result = TransactionSchema.parse(txn);

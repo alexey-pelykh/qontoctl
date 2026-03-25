@@ -19,7 +19,7 @@ export interface BankAccount {
   readonly authorized_balance_cents: number;
   readonly slug?: string | undefined;
   readonly is_external_account?: boolean | undefined;
-  readonly account_number?: string | undefined;
+  readonly account_number?: string | null | undefined;
   readonly updated_at?: string | undefined;
 }
 
@@ -28,7 +28,7 @@ export interface BankAccount {
  */
 export interface Organization {
   readonly slug: string;
-  readonly legal_name: string;
+  readonly legal_name: string | null;
   readonly bank_accounts: readonly BankAccount[];
 }
 

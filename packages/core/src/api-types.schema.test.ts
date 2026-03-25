@@ -61,6 +61,14 @@ describe("BankAccountSchema", () => {
     expect(result.updated_at).toBe("2026-03-24T12:00:00.000Z");
   });
 
+  it("accepts null account_number", () => {
+    const result = BankAccountSchema.parse({
+      ...validBankAccount,
+      account_number: null,
+    });
+    expect(result.account_number).toBeNull();
+  });
+
   it("accepts missing optional is_external_account, account_number, and updated_at", () => {
     const result = BankAccountSchema.parse(validBankAccount);
     expect(result.is_external_account).toBeUndefined();
@@ -88,6 +96,11 @@ describe("OrganizationSchema", () => {
   it("parses a valid organization", () => {
     const result = OrganizationSchema.parse(validOrg);
     expect(result).toEqual(validOrg);
+  });
+
+  it("accepts null legal_name", () => {
+    const result = OrganizationSchema.parse({ ...validOrg, legal_name: null });
+    expect(result.legal_name).toBeNull();
   });
 
   it("strips unknown fields from org and nested bank accounts", () => {

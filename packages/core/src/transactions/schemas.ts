@@ -8,6 +8,8 @@ import type { Transaction, TransactionLabel } from "./types.js";
 
 /**
  * Schema for a label embedded within a transaction.
+ *
+ * https://docs.qonto.com/api-reference/business-api/transactions-statements/transactions/list-transactions
  */
 export const TransactionLabelSchema = z
   .object({
@@ -19,6 +21,9 @@ export const TransactionLabelSchema = z
 
 /**
  * Schema for a transaction returned by the Qonto API.
+ *
+ * https://docs.qonto.com/api-reference/business-api/transactions-statements/transactions/retrieve-a-transaction
+ * https://docs.qonto.com/api-reference/business-api/transactions-statements/transactions/list-transactions
  */
 export const TransactionSchema = z
   .object({
@@ -26,8 +31,8 @@ export const TransactionSchema = z
     transaction_id: z.string(),
     amount: z.number(),
     amount_cents: z.number(),
-    settled_balance: z.number().nullable(),
-    settled_balance_cents: z.number().nullable(),
+    settled_balance: z.number().nullable().optional().default(null),
+    settled_balance_cents: z.number().nullable().optional().default(null),
     local_amount: z.number(),
     local_amount_cents: z.number(),
     side: z.enum(["credit", "debit"]),
@@ -35,23 +40,23 @@ export const TransactionSchema = z
     currency: z.string(),
     local_currency: z.string(),
     label: z.string(),
-    clean_counterparty_name: z.string().nullable(),
-    settled_at: z.string().nullable(),
+    clean_counterparty_name: z.string().nullable().optional().default(null),
+    settled_at: z.string().nullable().optional().default(null),
     emitted_at: z.string(),
     created_at: z.string().nullable(),
     updated_at: z.string(),
     status: z.enum(["pending", "declined", "completed"]),
-    note: z.string().nullable(),
-    reference: z.string().nullable(),
-    vat_amount: z.number().nullable(),
-    vat_amount_cents: z.number().nullable(),
-    vat_rate: z.number().nullable(),
-    initiator_id: z.string().nullable(),
+    note: z.string().nullable().optional().default(null),
+    reference: z.string().nullable().optional().default(null),
+    vat_amount: z.number().nullable().optional().default(null),
+    vat_amount_cents: z.number().nullable().optional().default(null),
+    vat_rate: z.number().nullable().optional().default(null),
+    initiator_id: z.string().nullable().optional().default(null),
     label_ids: z.array(z.string()).readonly(),
     attachment_ids: z.array(z.string()).readonly(),
     attachment_lost: z.boolean(),
     attachment_required: z.boolean(),
-    card_last_digits: z.string().nullable(),
+    card_last_digits: z.string().nullable().optional().default(null),
     category: z.string(),
     subject_type: z.string(),
     bank_account_id: z.string(),

@@ -5,6 +5,8 @@ import { z } from "zod";
 
 import type { BankAccount, Organization, PaginationMeta } from "./api-types.js";
 
+// https://docs.qonto.com/api-reference/business-api/accounts-organizations/organizations/retrieve-the-authenticated-organization-and-list-bank-accounts
+// https://docs.qonto.com/api-reference/business-api/accounts-organizations/business-accounts/list
 export const BankAccountSchema = z
   .object({
     id: z.string(),
@@ -21,15 +23,16 @@ export const BankAccountSchema = z
     authorized_balance_cents: z.coerce.number(),
     slug: z.string().optional(),
     is_external_account: z.boolean().optional(),
-    account_number: z.string().optional(),
+    account_number: z.string().nullable().optional(),
     updated_at: z.string().optional(),
   })
   .strip() satisfies z.ZodType<BankAccount>;
 
+// https://docs.qonto.com/api-reference/business-api/accounts-organizations/organizations/retrieve-the-authenticated-organization-and-list-bank-accounts
 export const OrganizationSchema = z
   .object({
     slug: z.string(),
-    legal_name: z.string(),
+    legal_name: z.string().nullable(),
     bank_accounts: z.array(BankAccountSchema).readonly(),
   })
   .strip() satisfies z.ZodType<Organization>;
