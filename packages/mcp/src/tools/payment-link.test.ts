@@ -108,6 +108,26 @@ describe("payment-link MCP tools", () => {
       const [url] = fetchSpy.mock.calls[0] as [URL];
       expect(url.pathname).toBe("/v2/payment_links");
     });
+
+    it("passes filter and sort parameters", async () => {
+      fetchSpy.mockReturnValue(
+        jsonResponse({
+          payment_links: [],
+          meta: { ...meta, total_count: 0 },
+        }),
+      );
+
+      await mcpClient.callTool({
+        name: "payment_link_list",
+        arguments: { page: 2, per_page: 10, status: "open", sort_by: "amount:asc" },
+      });
+
+      const [url] = fetchSpy.mock.calls[0] as [URL];
+      expect(url.searchParams.get("page")).toBe("2");
+      expect(url.searchParams.get("per_page")).toBe("10");
+      expect(url.searchParams.get("status[]")).toBe("open");
+      expect(url.searchParams.get("sort_by")).toBe("amount:asc");
+    });
   });
 
   describe("payment_link_show", () => {
