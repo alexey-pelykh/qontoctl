@@ -54,6 +54,112 @@ describe.skipIf(!hasCredentials())("recurring-transfer MCP tools (e2e)", () => {
     await client.close();
   });
 
+  describe("recurring_transfer_create", () => {
+    it("creates a recurring transfer", async () => {
+      const beneficiaryResult = await client.callTool({
+        name: "beneficiary_list",
+        arguments: { per_page: 1 },
+      });
+      const beneficiaryText = beneficiaryResult.content[0] as { type: string; text: string };
+      const beneficiaryParsed = JSON.parse(beneficiaryText.text) as {
+        beneficiaries: { id: string }[];
+      };
+      if (beneficiaryParsed.beneficiaries.length === 0) return;
+      const beneficiaryId = (beneficiaryParsed.beneficiaries[0] as { id: string }).id;
+
+      const accountResult = await client.callTool({
+        name: "account_list",
+        arguments: {},
+      });
+      const accountText = accountResult.content[0] as { type: string; text: string };
+      const accountParsed = JSON.parse(accountText.text) as { id: string }[];
+      if (accountParsed.length === 0) return;
+      const accountId = (accountParsed[0] as { id: string }).id;
+
+      const futureDate = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] as string;
+
+      const result = await client.callTool({
+        name: "recurring_transfer_create",
+        arguments: {
+          beneficiary_id: beneficiaryId,
+          bank_account_id: accountId,
+          amount: 1.0,
+          currency: "EUR",
+          reference: "e2e-mcp-recurring",
+          first_execution_date: futureDate,
+          frequency: "monthly",
+        },
+      });
+
+      expect(result.isError).not.toBe(true);
+
+      const textContent = result.content[0] as { type: string; text: string };
+      expect(textContent.type).toBe("text");
+
+      const rt = JSON.parse(textContent.text) as RecurringTransferItem;
+      RecurringTransferSchema.parse(rt);
+      expect(rt).toHaveProperty("id");
+      expect(rt.frequency).toBe("monthly");
+      expect(rt).toHaveProperty("beneficiary_id", beneficiaryId);
+    });
+  });
+
+  describe("recurring_transfer_cancel", () => {
+    it("creates and then cancels a recurring transfer", async () => {
+      const beneficiaryResult = await client.callTool({
+        name: "beneficiary_list",
+        arguments: { per_page: 1 },
+      });
+      const beneficiaryText = beneficiaryResult.content[0] as { type: string; text: string };
+      const beneficiaryParsed = JSON.parse(beneficiaryText.text) as {
+        beneficiaries: { id: string }[];
+      };
+      if (beneficiaryParsed.beneficiaries.length === 0) return;
+      const beneficiaryId = (beneficiaryParsed.beneficiaries[0] as { id: string }).id;
+
+      const accountResult = await client.callTool({
+        name: "account_list",
+        arguments: {},
+      });
+      const accountText = accountResult.content[0] as { type: string; text: string };
+      const accountParsed = JSON.parse(accountText.text) as { id: string }[];
+      if (accountParsed.length === 0) return;
+      const accountId = (accountParsed[0] as { id: string }).id;
+
+      const futureDate = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] as string;
+
+      const createResult = await client.callTool({
+        name: "recurring_transfer_create",
+        arguments: {
+          beneficiary_id: beneficiaryId,
+          bank_account_id: accountId,
+          amount: 1.0,
+          currency: "EUR",
+          reference: "e2e-mcp-cancel",
+          first_execution_date: futureDate,
+          frequency: "monthly",
+        },
+      });
+      expect(createResult.isError).not.toBe(true);
+
+      const createText = createResult.content[0] as { type: string; text: string };
+      const created = JSON.parse(createText.text) as RecurringTransferItem;
+      expect(created).toHaveProperty("id");
+
+      const cancelResult = await client.callTool({
+        name: "recurring_transfer_cancel",
+        arguments: { id: created.id },
+      });
+
+      expect(cancelResult.isError).not.toBe(true);
+
+      const cancelText = cancelResult.content[0] as { type: string; text: string };
+      const canceled = JSON.parse(cancelText.text) as { canceled: boolean; id: string };
+      expect(canceled.canceled).toBe(true);
+      expect(canceled.id).toBe(created.id);
+    });
+  });
+
   describe("recurring_transfer_list", () => {
     it("lists recurring transfers", async () => {
       const result = await client.callTool({

@@ -88,4 +88,80 @@ describe.skipIf(!hasCredentials())("recurring-transfer CLI commands (e2e)", () =
       expect(rt).toHaveProperty("status");
     });
   });
+
+  describe("recurring-transfer create", () => {
+    it("creates a recurring transfer", () => {
+      const beneficiaries = cliJson<{ id: string }[]>("beneficiary", "list", "--no-paginate", "--per-page", "1");
+      if (beneficiaries.length === 0) return;
+      const beneficiaryId = (beneficiaries[0] as { id: string }).id;
+
+      const accounts = cliJson<{ id: string }[]>("account", "list");
+      if (accounts.length === 0) return;
+      const accountId = (accounts[0] as { id: string }).id;
+
+      const futureDate = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] as string;
+
+      const rt = cliJson<RecurringTransferItem>(
+        "recurring-transfer",
+        "create",
+        "--beneficiary",
+        beneficiaryId,
+        "--debit-account",
+        accountId,
+        "--amount",
+        "1.00",
+        "--currency",
+        "EUR",
+        "--reference",
+        "e2e-recurring-test",
+        "--start-date",
+        futureDate,
+        "--schedule",
+        "monthly",
+      );
+      RecurringTransferSchema.parse(rt);
+      expect(rt).toHaveProperty("id");
+      expect(rt.frequency).toBe("monthly");
+      expect(rt).toHaveProperty("beneficiary_id", beneficiaryId);
+    });
+  });
+
+  describe("recurring-transfer cancel", () => {
+    it("creates and then cancels a recurring transfer", () => {
+      const beneficiaries = cliJson<{ id: string }[]>("beneficiary", "list", "--no-paginate", "--per-page", "1");
+      if (beneficiaries.length === 0) return;
+      const beneficiaryId = (beneficiaries[0] as { id: string }).id;
+
+      const accounts = cliJson<{ id: string }[]>("account", "list");
+      if (accounts.length === 0) return;
+      const accountId = (accounts[0] as { id: string }).id;
+
+      const futureDate = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] as string;
+
+      const rt = cliJson<RecurringTransferItem>(
+        "recurring-transfer",
+        "create",
+        "--beneficiary",
+        beneficiaryId,
+        "--debit-account",
+        accountId,
+        "--amount",
+        "1.00",
+        "--currency",
+        "EUR",
+        "--reference",
+        "e2e-cancel-test",
+        "--start-date",
+        futureDate,
+        "--schedule",
+        "monthly",
+      );
+      expect(rt).toHaveProperty("id");
+
+      const cancelOutput = cli("recurring-transfer", "cancel", rt.id, "--yes", "--output", "json");
+      const cancelResult = JSON.parse(cancelOutput) as { canceled: boolean; id: string };
+      expect(cancelResult.canceled).toBe(true);
+      expect(cancelResult.id).toBe(rt.id);
+    });
+  });
 });

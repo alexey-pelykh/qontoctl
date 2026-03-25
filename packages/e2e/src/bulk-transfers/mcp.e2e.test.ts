@@ -53,6 +53,40 @@ describe.skipIf(!hasCredentials())("bulk-transfer MCP tools (e2e)", () => {
     await client.close();
   });
 
+  describe("bulk_transfer_create", () => {
+    it("creates a bulk transfer", async () => {
+      const beneficiaryResult = await client.callTool({
+        name: "beneficiary_list",
+        arguments: { per_page: 1 },
+      });
+      const beneficiaryText = beneficiaryResult.content[0] as { type: string; text: string };
+      const beneficiaryParsed = JSON.parse(beneficiaryText.text) as {
+        beneficiaries: { id: string }[];
+      };
+      if (beneficiaryParsed.beneficiaries.length === 0) return;
+
+      const beneficiaryId = (beneficiaryParsed.beneficiaries[0] as { id: string }).id;
+
+      const result = await client.callTool({
+        name: "bulk_transfer_create",
+        arguments: {
+          transfers: [{ beneficiary_id: beneficiaryId, amount: 1.0, currency: "EUR", reference: "e2e-mcp-bulk" }],
+        },
+      });
+
+      expect(result.isError).not.toBe(true);
+
+      const textContent = result.content[0] as { type: string; text: string };
+      expect(textContent.type).toBe("text");
+
+      const bt = JSON.parse(textContent.text) as BulkTransferItem;
+      BulkTransferSchema.parse(bt);
+      expect(bt).toHaveProperty("id");
+      expect(bt).toHaveProperty("total_count");
+      expect(bt.total_count).toBe(1);
+    });
+  });
+
   describe("bulk_transfer_list", () => {
     it("lists bulk transfers", async () => {
       const result = await client.callTool({

@@ -2,7 +2,9 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { execFileSync } from "node:child_process";
-import { resolve } from "node:path";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { BulkTransferSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
 import { cliCwd, cliEnv, hasCredentials } from "../sandbox.js";
@@ -55,6 +57,32 @@ describe.skipIf(!hasCredentials())("bulk-transfer CLI commands (e2e)", () => {
       const bulkTransfers = cliJson<BulkTransferItem[]>("bulk-transfer", "list", "--per-page", "2", "--page", "1");
       expect(Array.isArray(bulkTransfers)).toBe(true);
       expect(bulkTransfers.length).toBeLessThanOrEqual(2);
+    });
+  });
+
+  describe("bulk-transfer create", () => {
+    it("creates a bulk transfer from a JSON file", () => {
+      const beneficiaries = cliJson<{ id: string }[]>("beneficiary", "list", "--no-paginate", "--per-page", "1");
+      if (beneficiaries.length === 0) return;
+
+      const beneficiaryId = (beneficiaries[0] as { id: string }).id;
+
+      const tmpDir = mkdtempSync(join(tmpdir(), "qontoctl-e2e-"));
+      const filePath = join(tmpDir, "transfers.json");
+      writeFileSync(
+        filePath,
+        JSON.stringify([{ beneficiary_id: beneficiaryId, amount: 1.0, currency: "EUR", reference: "e2e-bulk-test" }]),
+      );
+
+      try {
+        const bt = cliJson<BulkTransferItem>("bulk-transfer", "create", "--file", filePath);
+        BulkTransferSchema.parse(bt);
+        expect(bt).toHaveProperty("id");
+        expect(bt).toHaveProperty("total_count");
+        expect(bt.total_count).toBe(1);
+      } finally {
+        rmSync(tmpDir, { recursive: true });
+      }
     });
   });
 
