@@ -29,6 +29,15 @@ describe("BeneficiarySchema", () => {
     expect(result.activity_tag).toBeNull();
   });
 
+  it("defaults absent email and activity_tag to null", () => {
+    const input = { ...validBeneficiary };
+    delete (input as Record<string, unknown>).email;
+    delete (input as Record<string, unknown>).activity_tag;
+    const result = BeneficiarySchema.parse(input);
+    expect(result.email).toBeNull();
+    expect(result.activity_tag).toBeNull();
+  });
+
   it("strips extra fields", () => {
     const result = BeneficiarySchema.parse({ ...validBeneficiary, extra: "field" });
     expect(result).not.toHaveProperty("extra");

@@ -600,8 +600,18 @@ describe("bulkVerifyPayee", () => {
   it("posts entries to bulk_verify_payee endpoint and returns results", async () => {
     const bulkResponse = {
       responses: [
-        { id: "0", response: { match_result: "MATCH_RESULT_MATCH", matched_name: null } },
-        { id: "1", response: { match_result: "MATCH_RESULT_NO_MATCH", matched_name: null } },
+        {
+          id: "0",
+          beneficiary_name: "John Doe",
+          iban: "FR7612345000010009876543210",
+          response: { match_result: "MATCH_RESULT_MATCH", matched_name: null },
+        },
+        {
+          id: "1",
+          beneficiary_name: "Jane Smith",
+          iban: "DE89370400440532013000",
+          response: { match_result: "MATCH_RESULT_NO_MATCH", matched_name: null },
+        },
       ],
       proof_token: { token: "tok_batch" },
     };
@@ -648,8 +658,18 @@ describe("bulkVerifyPayee", () => {
     ]);
     expect(result).toEqual({
       responses: [
-        { id: "0", response: { match_result: "MATCH_RESULT_NOT_POSSIBLE", matched_name: null } },
-        { id: "1", response: { match_result: "MATCH_RESULT_NOT_POSSIBLE", matched_name: null } },
+        {
+          id: "0",
+          beneficiary_name: "John Doe",
+          iban: "FR7612345000010009876543210",
+          response: { match_result: "MATCH_RESULT_NOT_POSSIBLE", matched_name: null },
+        },
+        {
+          id: "1",
+          beneficiary_name: "Jane Smith",
+          iban: "DE89370400440532013000",
+          response: { match_result: "MATCH_RESULT_NOT_POSSIBLE", matched_name: null },
+        },
       ],
       proof_token: { token: "tok_bulk_error" },
     });

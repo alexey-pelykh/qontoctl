@@ -406,8 +406,18 @@ describe("transfer MCP tools", () => {
       fetchSpy.mockReturnValue(
         jsonResponse({
           responses: [
-            { id: "0", response: { match_result: "MATCH_RESULT_MATCH", matched_name: "Acme Corp" } },
-            { id: "1", response: { match_result: "MATCH_RESULT_NO_MATCH", matched_name: null } },
+            {
+              id: "0",
+              beneficiary_name: "Acme Corp",
+              iban: "FR7630001007941234567890185",
+              response: { match_result: "MATCH_RESULT_MATCH", matched_name: "Acme Corp" },
+            },
+            {
+              id: "1",
+              beneficiary_name: "Jane Doe",
+              iban: "DE89370400440532013000",
+              response: { match_result: "MATCH_RESULT_NO_MATCH", matched_name: null },
+            },
           ],
           proof_token: { token: "bulk-token-456" },
         }),
@@ -438,7 +448,14 @@ describe("transfer MCP tools", () => {
     it("maps input entries to use beneficiary_name", async () => {
       fetchSpy.mockReturnValue(
         jsonResponse({
-          responses: [{ id: "0", response: { match_result: "MATCH_RESULT_MATCH", matched_name: "Acme Corp" } }],
+          responses: [
+            {
+              id: "0",
+              beneficiary_name: "Acme Corp",
+              iban: "FR7630001007941234567890185",
+              response: { match_result: "MATCH_RESULT_MATCH", matched_name: "Acme Corp" },
+            },
+          ],
           proof_token: { token: "bulk-token-789" },
         }),
       );

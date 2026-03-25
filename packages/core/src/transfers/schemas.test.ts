@@ -222,6 +222,8 @@ describe("BulkVopResultEntrySchema", () => {
   it("accepts a successful entry", () => {
     const result = BulkVopResultEntrySchema.parse({
       id: "0",
+      beneficiary_name: "Acme Corp",
+      iban: "FR7630001007941234567890185",
       response: { match_result: "MATCH_RESULT_MATCH", matched_name: null },
     });
     expect(result.id).toBe("0");
@@ -231,18 +233,54 @@ describe("BulkVopResultEntrySchema", () => {
   it("defaults matched_name to null when absent in response", () => {
     const result = BulkVopResultEntrySchema.parse({
       id: "0",
+      beneficiary_name: "Acme Corp",
+      iban: "FR7630001007941234567890185",
       response: { match_result: "MATCH_RESULT_MATCH" },
     });
     expect(result.response?.matched_name).toBeNull();
   });
 
+  it("accepts entry with echoed beneficiary_name and iban", () => {
+    const result = BulkVopResultEntrySchema.parse({
+      id: "0",
+      beneficiary_name: "Acme Corp",
+      iban: "FR7630001007941234567890185",
+      response: { match_result: "MATCH_RESULT_MATCH", matched_name: null },
+    });
+    expect(result.beneficiary_name).toBe("Acme Corp");
+    expect(result.iban).toBe("FR7630001007941234567890185");
+  });
+
+  it("rejects entry without beneficiary_name", () => {
+    expect(() =>
+      BulkVopResultEntrySchema.parse({
+        id: "0",
+        iban: "FR7630001007941234567890185",
+        response: { match_result: "MATCH_RESULT_MATCH", matched_name: null },
+      }),
+    ).toThrow();
+  });
+
   it("accepts an error entry", () => {
     const result = BulkVopResultEntrySchema.parse({
       id: "1",
+      beneficiary_name: "Acme Corp",
+      iban: "FR7630001007941234567890185",
       error: { code: "BANK_UNAVAILABLE", detail: "Bank not reachable" },
     });
     expect(result.id).toBe("1");
     expect(result.error?.code).toBe("BANK_UNAVAILABLE");
+  });
+
+  it("accepts an error entry without detail", () => {
+    const result = BulkVopResultEntrySchema.parse({
+      id: "1",
+      beneficiary_name: "Acme Corp",
+      iban: "FR7630001007941234567890185",
+      error: { code: "SINGLE_REQUEST_ERROR_CODE_ERROR_UNSPECIFIED" },
+    });
+    expect(result.error?.code).toBe("SINGLE_REQUEST_ERROR_CODE_ERROR_UNSPECIFIED");
+    expect(result.error?.detail).toBeUndefined();
   });
 });
 
@@ -250,8 +288,18 @@ describe("BulkVopResultResponseSchema", () => {
   it("validates bulk verification response", () => {
     const response = {
       responses: [
-        { id: "0", response: { match_result: "MATCH_RESULT_MATCH", matched_name: null } },
-        { id: "1", response: { match_result: "MATCH_RESULT_NO_MATCH", matched_name: null } },
+        {
+          id: "0",
+          beneficiary_name: "John Doe",
+          iban: "FR7612345000010009876543210",
+          response: { match_result: "MATCH_RESULT_MATCH", matched_name: null },
+        },
+        {
+          id: "1",
+          beneficiary_name: "Jane Smith",
+          iban: "DE89370400440532013000",
+          response: { match_result: "MATCH_RESULT_NO_MATCH", matched_name: null },
+        },
       ],
       proof_token: { token: "tok_batch" },
     };
@@ -271,8 +319,18 @@ describe("BulkVopResultResponseSchema", () => {
   it("accepts mixed success and error entries", () => {
     const response = {
       responses: [
-        { id: "0", response: { match_result: "MATCH_RESULT_MATCH", matched_name: null } },
-        { id: "1", error: { code: "BANK_ERROR", detail: "Timeout" } },
+        {
+          id: "0",
+          beneficiary_name: "John Doe",
+          iban: "FR7612345000010009876543210",
+          response: { match_result: "MATCH_RESULT_MATCH", matched_name: null },
+        },
+        {
+          id: "1",
+          beneficiary_name: "Jane Smith",
+          iban: "DE89370400440532013000",
+          error: { code: "BANK_ERROR", detail: "Timeout" },
+        },
       ],
       proof_token: { token: "tok_mixed" },
     };
@@ -285,7 +343,14 @@ describe("BulkVopResultResponseSchema", () => {
   it("rejects missing proof_token", () => {
     expect(() =>
       BulkVopResultResponseSchema.parse({
-        responses: [{ id: "0", response: { match_result: "MATCH_RESULT_MATCH", matched_name: null } }],
+        responses: [
+          {
+            id: "0",
+            beneficiary_name: "John Doe",
+            iban: "FR7612345000010009876543210",
+            response: { match_result: "MATCH_RESULT_MATCH", matched_name: null },
+          },
+        ],
       }),
     ).toThrow();
   });

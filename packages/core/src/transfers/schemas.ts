@@ -6,6 +6,8 @@ import { z } from "zod";
 import { PaginationMetaSchema } from "../api-types.schema.js";
 import type { BulkVopResult, BulkVopResultEntry, Transfer, VopMatchResult, VopResult } from "./types.js";
 
+// https://docs.qonto.com/api-reference/business-api/payments-transfers/sepa-transfers/sepa-transfers/show
+// https://docs.qonto.com/api-reference/business-api/payments-transfers/sepa-transfers/sepa-transfers/index
 export const TransferSchema = z.object({
   id: z.string(),
   initiator_id: z.string(),
@@ -36,6 +38,7 @@ export const TransferListResponseSchema = z.object({
   meta: PaginationMetaSchema,
 });
 
+// https://docs.qonto.com/api-reference/business-api/payments-transfers/sepa-transfers/verify-payee/index
 export const VopMatchResultSchema = z.enum([
   "MATCH_RESULT_MATCH",
   "MATCH_RESULT_CLOSE_MATCH",
@@ -48,6 +51,7 @@ const ProofTokenSchema = z.object({
   token: z.string(),
 });
 
+// https://docs.qonto.com/api-reference/business-api/payments-transfers/sepa-transfers/verify-payee/index
 export const VopResultSchema = z.object({
   match_result: VopMatchResultSchema,
   matched_name: z.nullable(z.string()).optional().default(null),
@@ -56,8 +60,11 @@ export const VopResultSchema = z.object({
 
 export const VopResultResponseSchema = VopResultSchema;
 
+// https://docs.qonto.com/api-reference/business-api/payments-transfers/sepa-transfers/verify-payee/bulk-verify-payee
 export const BulkVopResultEntrySchema = z.object({
   id: z.string(),
+  beneficiary_name: z.string(),
+  iban: z.string(),
   response: z
     .object({
       match_result: VopMatchResultSchema,
@@ -67,11 +74,12 @@ export const BulkVopResultEntrySchema = z.object({
   error: z
     .object({
       code: z.string(),
-      detail: z.string(),
+      detail: z.string().optional(),
     })
     .optional(),
 }) satisfies z.ZodType<BulkVopResultEntry>;
 
+// https://docs.qonto.com/api-reference/business-api/payments-transfers/sepa-transfers/verify-payee/bulk-verify-payee
 export const BulkVopResultResponseSchema = z.object({
   responses: z.array(BulkVopResultEntrySchema),
   proof_token: ProofTokenSchema,

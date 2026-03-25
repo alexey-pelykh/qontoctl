@@ -102,6 +102,8 @@ export interface VopResult {
  */
 export interface BulkVopResultEntry {
   readonly id: string;
+  readonly beneficiary_name: string;
+  readonly iban: string;
   readonly response?:
     | {
         readonly match_result: VopMatchResult;
@@ -111,7 +113,7 @@ export interface BulkVopResultEntry {
   readonly error?:
     | {
         readonly code: string;
-        readonly detail: string;
+        readonly detail?: string | undefined;
       }
     | undefined;
 }
