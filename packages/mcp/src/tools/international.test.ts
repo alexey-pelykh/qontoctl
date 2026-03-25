@@ -98,6 +98,35 @@ describe("international MCP tools", () => {
       const [url] = fetchSpy.mock.calls[0] as [URL];
       expect(url.pathname).toBe("/v2/international/currencies");
     });
+
+    it("filters currencies by search term", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ currencies: sampleCurrencies }));
+
+      const result = await mcpClient.callTool({
+        name: "intl_currencies",
+        arguments: { search: "pound" },
+      });
+
+      const content = result.content as { type: string; text: string }[];
+      const first = content[0] as { type: string; text: string };
+      const parsed = JSON.parse(first.text) as typeof sampleCurrencies;
+      expect(parsed).toHaveLength(1);
+      expect((parsed[0] as (typeof sampleCurrencies)[0]).code).toBe("GBP");
+    });
+
+    it("returns empty list when search matches nothing", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ currencies: sampleCurrencies }));
+
+      const result = await mcpClient.callTool({
+        name: "intl_currencies",
+        arguments: { search: "XYZ999" },
+      });
+
+      const content = result.content as { type: string; text: string }[];
+      const first = content[0] as { type: string; text: string };
+      const parsed = JSON.parse(first.text) as typeof sampleCurrencies;
+      expect(parsed).toHaveLength(0);
+    });
   });
 
   describe("intl_quote_create", () => {
@@ -136,6 +165,27 @@ describe("international MCP tools", () => {
       const [url, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
       expect(url.pathname).toBe("/v2/international/quotes");
       expect(opts.method).toBe("POST");
+    });
+
+    it("uses default direction when omitted", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ quote: sampleQuote }));
+
+      const result = await mcpClient.callTool({
+        name: "intl_quote_create",
+        arguments: {
+          currency: "USD",
+          amount: 1000,
+        },
+      });
+
+      const content = result.content as { type: string; text: string }[];
+      const first = content[0] as { type: string; text: string };
+      const parsed = JSON.parse(first.text) as { id: string };
+      expect(parsed.id).toBe("quote-1");
+
+      const [, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      const body = JSON.parse(opts.body as string) as { quote: { direction: string } };
+      expect(body.quote.direction).toBe("send");
     });
   });
 });
