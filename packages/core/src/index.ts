@@ -412,6 +412,25 @@ export type { Attachment } from "./attachments/index.js";
 export { AttachmentSchema } from "./attachments/index.js";
 
 export {
+  getInsuranceContract,
+  createInsuranceContract,
+  updateInsuranceContract,
+  uploadInsuranceDocument,
+  removeInsuranceDocument,
+  InsuranceContractSchema,
+  InsuranceContractResponseSchema,
+  InsuranceDocumentSchema,
+  InsuranceDocumentResponseSchema,
+} from "./insurance-contracts/index.js";
+
+export type {
+  InsuranceContract,
+  InsuranceDocument,
+  CreateInsuranceContractParams,
+  UpdateInsuranceContractParams,
+} from "./insurance-contracts/index.js";
+
+export {
   createBankAccount,
   getBankAccount,
   listBankAccounts,

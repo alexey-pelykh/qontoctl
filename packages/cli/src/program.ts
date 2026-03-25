@@ -9,6 +9,7 @@ import { registerCardCommands } from "./commands/card/index.js";
 import { registerTransactionCommands } from "./commands/transaction/index.js";
 import { registerBulkTransferCommands } from "./commands/bulk-transfer/index.js";
 import { registerEInvoicingCommands } from "./commands/einvoicing.js";
+import { registerInsuranceCommands } from "./commands/insurance.js";
 import { registerIntlBeneficiaryCommands } from "./commands/intl-beneficiary/index.js";
 import { registerIntlTransferCommands } from "./commands/intl-transfer/index.js";
 import { registerRecurringTransferCommands } from "./commands/recurring-transfer/index.js";
@@ -49,6 +50,7 @@ export function createProgram(): Command {
   registerAccountCommands(program);
   registerSupplierInvoiceCommands(program);
   program.addCommand(createTeamCommand());
+  registerInsuranceCommands(program);
   registerIntlBeneficiaryCommands(program);
   registerIntlTransferCommands(program);
   registerProfileCommands(program);
