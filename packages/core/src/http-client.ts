@@ -111,6 +111,9 @@ export interface HttpClientOptions {
 
   /** SCA method preference for write requests. Sent as `X-Qonto-2fa-Preference` header. */
   readonly scaMethod?: string | undefined;
+
+  /** Staging token sent as `X-Qonto-Staging-Token` to route requests to the sandbox environment. */
+  readonly stagingToken?: string | undefined;
 }
 
 const DEFAULT_MAX_RETRIES = 5;
@@ -135,6 +138,11 @@ const SCA_METHOD_HEADER = "X-Qonto-2fa-Preference";
  * Header name for the SCA session token (used on retry after SCA approval).
  */
 const SCA_SESSION_TOKEN_HEADER = "X-Qonto-Sca-Session-Token";
+
+/**
+ * Header name for the staging token (routes requests to sandbox).
+ */
+const STAGING_TOKEN_HEADER = "X-Qonto-Staging-Token";
 
 /**
  * Field names redacted from debug log output to avoid leaking financial data.
@@ -198,6 +206,7 @@ export class HttpClient {
   private readonly logger: HttpClientLogger | undefined;
   private readonly maxRetries: number;
   private readonly scaMethod: string | undefined;
+  private readonly stagingToken: string | undefined;
   private readonly userAgent: string;
 
   constructor(options: HttpClientOptions) {
@@ -208,6 +217,7 @@ export class HttpClient {
     this.logger = options.logger;
     this.maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
     this.scaMethod = options.scaMethod;
+    this.stagingToken = options.stagingToken;
     this.userAgent = buildUserAgent();
   }
 
@@ -518,7 +528,13 @@ export class HttpClient {
       headers["Content-Type"] = "application/json";
     }
 
-    this.logDebug(`Request headers: ${JSON.stringify({ ...headers, Authorization: "[REDACTED]" })}`);
+    if (this.stagingToken !== undefined) {
+      headers[STAGING_TOKEN_HEADER] = this.stagingToken;
+    }
+
+    this.logDebug(
+      `Request headers: ${JSON.stringify({ ...headers, Authorization: "[REDACTED]", ...(this.stagingToken !== undefined ? { [STAGING_TOKEN_HEADER]: "[REDACTED]" } : {}) })}`,
+    );
 
     return headers;
   }

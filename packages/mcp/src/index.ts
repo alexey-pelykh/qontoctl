@@ -23,7 +23,7 @@ await runStdioServer({
     if (config.oauth !== undefined && config.oauth.clientId !== "") {
       authorization = createOAuthAuthorization({
         oauth: config.oauth,
-        tokenUrl: config.sandbox === true ? OAUTH_TOKEN_SANDBOX_URL : OAUTH_TOKEN_URL,
+        tokenUrl: config.oauth.stagingToken !== undefined ? OAUTH_TOKEN_SANDBOX_URL : OAUTH_TOKEN_URL,
       });
 
       // When OAuth is primary, fall back to API key if available
@@ -43,6 +43,7 @@ await runStdioServer({
       onFallback: (method, path) => {
         process.stderr.write(`Warning: OAuth authentication failed, falling back to API key for ${method} ${path}\n`);
       },
+      stagingToken: config.oauth?.stagingToken,
     });
   },
 });

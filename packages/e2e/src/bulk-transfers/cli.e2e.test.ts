@@ -5,7 +5,7 @@ import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { BulkTransferSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
-import { cliEnv, hasCredentials } from "../sandbox.js";
+import { cliCwd, cliEnv, hasCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
@@ -13,6 +13,7 @@ function cli(...args: string[]): string {
   return execFileSync("node", [CLI_PATH, ...args], {
     encoding: "utf-8",
     env: cliEnv(),
+    cwd: cliCwd(),
   });
 }
 
@@ -59,9 +60,10 @@ describe.skipIf(!hasCredentials())("bulk-transfer CLI commands (e2e)", () => {
 
   describe("bulk-transfer show", () => {
     it("shows a bulk transfer by ID", () => {
-      const bulkTransfers = cliJson<BulkTransferItem[]>("bulk-transfer", "list", "--no-paginate", "--per-page", "1");
-      const first = bulkTransfers[0];
-      if (first === undefined) return;
+      const bulkTransfers = cliJson<BulkTransferItem[]>("bulk-transfer", "list", "--no-paginate");
+      if (bulkTransfers.length === 0) return;
+
+      const first = bulkTransfers[0] as BulkTransferItem;
 
       const bt = cliJson<BulkTransferItem>("bulk-transfer", "show", first.id);
       BulkTransferSchema.parse(bt);

@@ -69,7 +69,7 @@ describe("createOAuthAuthorization", () => {
     const result = await authorize();
 
     expect(result).toBe("Bearer new-token");
-    expect(refreshAccessToken).toHaveBeenCalledWith("https://token.example.com", "cid", "csecret", "rt");
+    expect(refreshAccessToken).toHaveBeenCalledWith("https://token.example.com", "cid", "csecret", "rt", undefined);
     expect(oauth.accessToken).toBe("new-token");
     expect(oauth.refreshToken).toBe("new-rt");
     expect(oauth.accessTokenExpiresAt).toBe("2026-01-15T13:00:00.000Z");

@@ -23,7 +23,7 @@ export class ConfigError extends Error {
  * 5. Resolving the API endpoint
  *
  * Endpoint precedence:
- *   QONTOCTL_ENDPOINT > QONTOCTL_SANDBOX > profile endpoint > profile sandbox > default
+ *   QONTOCTL_ENDPOINT > staging-token presence > profile endpoint > default
  *
  * @throws {ConfigError} on validation errors or missing credentials
  */
@@ -87,13 +87,13 @@ export async function resolveConfig(options?: ResolveOptions): Promise<ConfigRes
  * Resolves the API endpoint from config.
  *
  * Precedence (env overlay already applied, so env vars win over file values):
- *   explicit endpoint > sandbox flag > default (production)
+ *   explicit endpoint > staging-token presence > default (production)
  */
-function resolveEndpoint(config: { endpoint?: string; sandbox?: boolean }): string {
+function resolveEndpoint(config: { endpoint?: string; oauth?: { stagingToken?: string } }): string {
   if (config.endpoint !== undefined) {
     return config.endpoint;
   }
-  if (config.sandbox === true) {
+  if (config.oauth?.stagingToken !== undefined) {
     return SANDBOX_BASE_URL;
   }
   return API_BASE_URL;

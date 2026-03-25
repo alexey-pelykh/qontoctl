@@ -590,7 +590,7 @@ describe("registerAuthCommands", () => {
       );
     });
 
-    it("uses sandbox token URL when sandbox is configured", async () => {
+    it("uses staging token URL when staging token is configured", async () => {
       const { OAUTH_TOKEN_SANDBOX_URL } = await import("@qontoctl/core");
       resolveConfigMock.mockResolvedValue({
         config: {
@@ -598,8 +598,8 @@ describe("registerAuthCommands", () => {
             clientId: "cid",
             clientSecret: "csecret",
             refreshToken: "refresh",
+            stagingToken: "test-token",
           },
-          sandbox: true,
         },
         endpoint: "https://thirdparty-sandbox.staging.qonto.co",
         warnings: [],
@@ -617,7 +617,13 @@ describe("registerAuthCommands", () => {
 
       await program.parseAsync(["auth", "refresh"], { from: "user" });
 
-      expect(refreshAccessTokenMock).toHaveBeenCalledWith(OAUTH_TOKEN_SANDBOX_URL, "cid", "csecret", "refresh");
+      expect(refreshAccessTokenMock).toHaveBeenCalledWith(
+        OAUTH_TOKEN_SANDBOX_URL,
+        "cid",
+        "csecret",
+        "refresh",
+        "test-token",
+      );
     });
   });
 
@@ -800,6 +806,7 @@ describe("registerAuthCommands", () => {
         "auth-code",
         "http://localhost:18920/callback",
         "test-code-verifier",
+        undefined,
       );
     });
 
@@ -928,18 +935,19 @@ describe("registerAuthCommands", () => {
         "auth-code",
         "http://localhost:19000/callback",
         expect.any(String),
+        undefined,
       );
     });
 
-    it("uses sandbox endpoints when configured", async () => {
+    it("uses staging endpoints when staging token is configured", async () => {
       resolveConfigMock.mockResolvedValue({
         config: {
           oauth: {
             clientId: "test-client-id",
             clientSecret: "test-client-secret",
             scopes: ["offline_access", "organization.read"],
+            stagingToken: "test-token",
           },
-          sandbox: true,
         },
         endpoint: "https://thirdparty-sandbox.staging.qonto.co",
         warnings: [],
@@ -961,6 +969,7 @@ describe("registerAuthCommands", () => {
         expect.any(String),
         expect.any(String),
         expect.any(String),
+        "test-token",
       );
     });
 

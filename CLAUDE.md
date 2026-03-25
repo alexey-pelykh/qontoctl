@@ -98,6 +98,10 @@ ESLint enforces this via `eslint-plugin-header`.
 
 **Sandbox note:** The Qonto sandbox environment (`thirdparty-sandbox.staging.qonto.co`) is only for OAuth-based integrations. API key authentication uses the production endpoint (`thirdparty.qonto.com`) directly — there is no separate sandbox for API key auth. E2E tests run against production.
 
+**Staging token:** The `oauth.staging-token` config field (or `QONTOCTL_STAGING_TOKEN` env var) injects an `X-Qonto-Staging-Token` header into all API requests, routing them to the Qonto sandbox environment. The staging token lives inside the `oauth` section because the sandbox is OAuth-only. When a staging token is present, sandbox URLs are used automatically. The staging token is also sent with OAuth token exchange, refresh, and revocation requests.
+
+**E2E sandbox in CI:** When `QONTOCTL_STAGING_TOKEN`, `QONTOCTL_CLIENT_ID`, `QONTOCTL_CLIENT_SECRET`, `QONTOCTL_ACCESS_TOKEN`, and `QONTOCTL_REFRESH_TOKEN` secrets are configured in the repository, the `e2e-sandbox` CI job runs E2E tests against the sandbox environment after the main CI job passes. This job is not part of the CI gate and does not block merging.
+
 **Running:**
 
 ```sh

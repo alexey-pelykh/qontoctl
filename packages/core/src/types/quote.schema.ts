@@ -27,9 +27,9 @@ export const QuoteItemSchema = z
     title: z.string(),
     description: z.string().nullable(),
     quantity: z.string(),
-    unit: z.string().nullable(),
+    unit: z.string().nullable().default(null),
     vat_rate: z.string(),
-    vat_exemption_reason: z.string().nullable(),
+    vat_exemption_reason: z.string().nullable().default(null),
     unit_price: QuoteAmountSchema,
     unit_price_cents: z.number(),
     total_amount: QuoteAmountSchema,
@@ -38,17 +38,17 @@ export const QuoteItemSchema = z
     total_vat_cents: z.number(),
     subtotal: QuoteAmountSchema,
     subtotal_cents: z.number(),
-    discount: QuoteDiscountSchema.nullable(),
+    discount: QuoteDiscountSchema.nullable().default(null),
   })
   .strip() satisfies z.ZodType<QuoteItem>;
 
 export const QuoteAddressSchema = z
   .object({
-    street_address: z.string().nullable(),
-    city: z.string().nullable(),
-    zip_code: z.string().nullable(),
-    province_code: z.string().nullable(),
-    country_code: z.string().nullable(),
+    street_address: z.string().nullable().default(null),
+    city: z.string().nullable().default(null),
+    zip_code: z.string().nullable().default(null),
+    province_code: z.string().nullable().default(null),
+    country_code: z.string().nullable().default(null),
   })
   .strip() satisfies z.ZodType<QuoteAddress>;
 
@@ -56,21 +56,21 @@ export const QuoteClientSchema = z
   .object({
     id: z.string(),
     type: z.enum(["individual", "company", "freelancer"]),
-    name: z.string().nullable(),
-    first_name: z.string().nullable(),
-    last_name: z.string().nullable(),
-    email: z.string().nullable(),
-    vat_number: z.string().nullable(),
-    tax_identification_number: z.string().nullable(),
-    address: z.string().nullable(),
-    city: z.string().nullable(),
-    zip_code: z.string().nullable(),
-    province_code: z.string().nullable(),
-    country_code: z.string().nullable(),
-    recipient_code: z.string().nullable(),
-    locale: z.string().nullable(),
-    billing_address: QuoteAddressSchema.nullable(),
-    delivery_address: QuoteAddressSchema.nullable(),
+    name: z.string().nullable().default(null),
+    first_name: z.string().nullable().default(null),
+    last_name: z.string().nullable().default(null),
+    email: z.string().nullable().default(null),
+    vat_number: z.string().nullable().default(null),
+    tax_identification_number: z.string().nullable().default(null),
+    address: z.string().nullable().default(null),
+    city: z.string().nullable().default(null),
+    zip_code: z.string().nullable().default(null),
+    province_code: z.string().nullable().default(null),
+    country_code: z.string().nullable().default(null),
+    recipient_code: z.string().nullable().default(null),
+    locale: z.string().nullable().default(null),
+    billing_address: QuoteAddressSchema.nullable().default(null),
+    delivery_address: QuoteAddressSchema.nullable().default(null),
   })
   .strip() satisfies z.ZodType<QuoteClient>;
 
@@ -96,7 +96,7 @@ export const QuoteSchema = z
     terms_and_conditions: z.string().nullable(),
     header: z.string().nullable(),
     footer: z.string().nullable(),
-    discount: QuoteDiscountSchema.nullable(),
+    discount: QuoteDiscountSchema.nullable().default(null),
     items: z.array(QuoteItemSchema).readonly(),
     client: QuoteClientSchema,
     invoice_ids: z.array(z.string()).readonly(),

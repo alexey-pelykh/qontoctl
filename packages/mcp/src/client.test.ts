@@ -168,7 +168,7 @@ describe("buildClient", () => {
     expect(mocks.saveOAuthTokens).toHaveBeenCalled();
   });
 
-  it("uses sandbox token URL when sandbox is true", async () => {
+  it("uses staging token URL when staging token is configured", async () => {
     const { OAUTH_TOKEN_SANDBOX_URL } = await import("@qontoctl/core");
     const oauth = {
       clientId: "client-id",
@@ -178,7 +178,7 @@ describe("buildClient", () => {
       accessTokenExpiresAt: new Date(Date.now() - 1000).toISOString(),
     };
     mocks.resolveConfig.mockResolvedValue({
-      config: { oauth, sandbox: true },
+      config: { oauth: { ...oauth, stagingToken: "test-token" } },
       endpoint: "https://thirdparty-sandbox.staging.qonto.co",
       warnings: [],
     });
@@ -201,6 +201,7 @@ describe("buildClient", () => {
       "client-id",
       "client-secret",
       "refresh-token",
+      "test-token",
     );
   });
 

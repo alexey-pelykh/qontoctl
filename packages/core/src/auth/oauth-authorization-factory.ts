@@ -37,7 +37,13 @@ export function createOAuthAuthorization(options: CreateOAuthAuthorizationOption
       const expiresAt = new Date(oauth.accessTokenExpiresAt);
       const now = new Date();
       if (expiresAt.getTime() - now.getTime() < 60_000) {
-        const tokens = await refreshAccessToken(tokenUrl, oauth.clientId, oauth.clientSecret, oauth.refreshToken);
+        const tokens = await refreshAccessToken(
+          tokenUrl,
+          oauth.clientId,
+          oauth.clientSecret,
+          oauth.refreshToken,
+          oauth.stagingToken,
+        );
         oauth.accessToken = tokens.accessToken;
         if (tokens.refreshToken) {
           oauth.refreshToken = tokens.refreshToken;

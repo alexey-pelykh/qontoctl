@@ -13,7 +13,7 @@ export function isValidProfileName(name: string): boolean {
   return !/[/\\]/.test(name) && !name.includes("..");
 }
 
-const KNOWN_TOP_LEVEL_KEYS = new Set(["api-key", "oauth", "endpoint", "sandbox"]);
+const KNOWN_TOP_LEVEL_KEYS = new Set(["api-key", "oauth", "endpoint"]);
 const KNOWN_API_KEY_KEYS = new Set(["organization-slug", "secret-key"]);
 const KNOWN_OAUTH_KEYS = new Set([
   "client-id",
@@ -23,6 +23,7 @@ const KNOWN_OAUTH_KEYS = new Set([
   "token-expires-at",
   "access-token-expires-at",
   "scopes",
+  "staging-token",
 ]);
 
 export interface ValidationResult {
@@ -119,6 +120,7 @@ export function validateConfig(raw: unknown): ValidationResult {
       // Prefer new key; fall back to legacy key for backward compat
       const accessTokenExpiresAt = oauth["access-token-expires-at"] ?? oauth["token-expires-at"];
       const scopes = oauth["scopes"];
+      const stagingToken = oauth["staging-token"];
 
       if (clientId !== undefined && typeof clientId !== "string") {
         errors.push('"oauth.client-id" must be a string');
@@ -144,6 +146,10 @@ export function validateConfig(raw: unknown): ValidationResult {
         errors.push('"oauth.scopes" must be an array of strings');
       }
 
+      if (stagingToken !== undefined && typeof stagingToken !== "string") {
+        errors.push('"oauth.staging-token" must be a string');
+      }
+
       if (typeof clientId === "string" || typeof clientSecret === "string") {
         config.oauth = {
           clientId: typeof clientId === "string" ? clientId : "",
@@ -152,6 +158,7 @@ export function validateConfig(raw: unknown): ValidationResult {
           ...(typeof refreshToken === "string" ? { refreshToken } : {}),
           ...(typeof accessTokenExpiresAt === "string" ? { accessTokenExpiresAt } : {}),
           ...(Array.isArray(scopes) && scopes.every((s: unknown) => typeof s === "string") ? { scopes } : {}),
+          ...(typeof stagingToken === "string" ? { stagingToken } : {}),
         };
       }
     }
@@ -169,17 +176,6 @@ export function validateConfig(raw: unknown): ValidationResult {
         } catch {
           errors.push('"endpoint" must be a valid URL');
         }
-      }
-    }
-  }
-
-  if ("sandbox" in doc) {
-    const sandbox = doc["sandbox"];
-    if (sandbox !== null && sandbox !== undefined) {
-      if (typeof sandbox !== "boolean") {
-        errors.push('"sandbox" must be a boolean');
-      } else {
-        config.sandbox = sandbox;
       }
     }
   }

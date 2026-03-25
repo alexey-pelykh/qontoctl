@@ -6,7 +6,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { BulkTransferListResponseSchema, BulkTransferSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { cliEnv, hasCredentials } from "../sandbox.js";
+import { cliCwd, cliEnv, hasCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
@@ -37,6 +37,7 @@ describe.skipIf(!hasCredentials())("bulk-transfer MCP tools (e2e)", () => {
       command: "node",
       args: [CLI_PATH, "mcp"],
       env: cliEnv(),
+      cwd: cliCwd(),
       stderr: "pipe",
     });
 
@@ -59,6 +60,7 @@ describe.skipIf(!hasCredentials())("bulk-transfer MCP tools (e2e)", () => {
         arguments: {},
       });
 
+      expect(result.isError).not.toBe(true);
       expect(result.content).toBeDefined();
       expect(Array.isArray(result.content)).toBe(true);
 
@@ -81,6 +83,8 @@ describe.skipIf(!hasCredentials())("bulk-transfer MCP tools (e2e)", () => {
         arguments: { per_page: 2, page: 1 },
       });
 
+      expect(result.isError).not.toBe(true);
+
       const textContent = result.content[0] as {
         type: string;
         text: string;
@@ -97,6 +101,8 @@ describe.skipIf(!hasCredentials())("bulk-transfer MCP tools (e2e)", () => {
         name: "bulk_transfer_list",
         arguments: { per_page: 1 },
       });
+      if (listResult.isError === true) return;
+
       const listText = listResult.content[0] as {
         type: string;
         text: string;

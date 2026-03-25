@@ -36,7 +36,7 @@ export async function createClient(options: GlobalOptions): Promise<HttpClient> 
   if (config.oauth !== undefined && config.oauth.clientId !== "" && config.oauth.accessToken !== undefined) {
     authorization = createOAuthAuthorization({
       oauth: config.oauth,
-      tokenUrl: config.sandbox === true ? OAUTH_TOKEN_SANDBOX_URL : OAUTH_TOKEN_URL,
+      tokenUrl: config.oauth.stagingToken !== undefined ? OAUTH_TOKEN_SANDBOX_URL : OAUTH_TOKEN_URL,
       profile: options.profile,
     });
 
@@ -75,5 +75,6 @@ export async function createClient(options: GlobalOptions): Promise<HttpClient> 
       process.stderr.write(`Warning: OAuth authentication failed, falling back to API key for ${method} ${path}\n`);
     },
     logger,
+    stagingToken: config.oauth?.stagingToken,
   });
 }

@@ -398,14 +398,16 @@ When both API key and OAuth credentials are configured, OAuth is used when an ac
 
 Environment variables override file values. Without `--profile`:
 
-| Variable                     | Description                             |
-| ---------------------------- | --------------------------------------- |
-| `QONTOCTL_ORGANIZATION_SLUG` | Organization slug                       |
-| `QONTOCTL_SECRET_KEY`        | API secret key                          |
-| `QONTOCTL_CLIENT_ID`         | OAuth client ID                         |
-| `QONTOCTL_CLIENT_SECRET`     | OAuth client secret                     |
-| `QONTOCTL_ENDPOINT`          | Custom API endpoint                     |
-| `QONTOCTL_SANDBOX`           | Use sandbox (`1`/`true` or `0`/`false`) |
+| Variable                     | Description                            |
+| ---------------------------- | -------------------------------------- |
+| `QONTOCTL_ORGANIZATION_SLUG` | Organization slug                      |
+| `QONTOCTL_SECRET_KEY`        | API secret key                         |
+| `QONTOCTL_CLIENT_ID`         | OAuth client ID                        |
+| `QONTOCTL_CLIENT_SECRET`     | OAuth client secret                    |
+| `QONTOCTL_ACCESS_TOKEN`      | OAuth access token                     |
+| `QONTOCTL_REFRESH_TOKEN`     | OAuth refresh token                    |
+| `QONTOCTL_ENDPOINT`          | Custom API endpoint                    |
+| `QONTOCTL_STAGING_TOKEN`     | Staging token (activates sandbox URLs) |
 
 With `--profile <name>`, prefix becomes `QONTOCTL_{NAME}_` (uppercased, hyphens replaced with underscores). For example, `--profile acme` reads `QONTOCTL_ACME_ORGANIZATION_SLUG`.
 

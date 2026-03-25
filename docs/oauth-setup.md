@@ -129,22 +129,24 @@ QontoCtl automatically refreshes expired tokens when `offline_access` scope is g
 For development and testing with the Qonto sandbox environment:
 
 1. Create a separate OAuth app on the sandbox developer portal
-2. Configure a sandbox profile:
+2. Configure a sandbox profile with a staging token:
 
 ```yaml
-sandbox: true
 oauth:
     client-id: "sandbox-client-id"
     client-secret: "sandbox-client-secret"
+    staging-token: "your-staging-token"
 ```
 
 Or via environment variables:
 
 ```sh
-export QONTOCTL_SANDBOX=true
+export QONTOCTL_STAGING_TOKEN="your-staging-token"
 export QONTOCTL_CLIENT_ID="sandbox-client-id"
 export QONTOCTL_CLIENT_SECRET="sandbox-client-secret"
 ```
+
+When `oauth.staging-token` is configured (or the `QONTOCTL_STAGING_TOKEN` env var is set), sandbox URLs are used automatically.
 
 The sandbox uses separate OAuth endpoints:
 

@@ -168,44 +168,115 @@ describe("applyEnvOverlay", () => {
     expect(result.endpoint).toBe("https://staging.example.com");
   });
 
-  it("overlays QONTOCTL_SANDBOX=1 as sandbox true", () => {
-    const config = {};
-    const result = applyEnvOverlay(config, {
-      env: { QONTOCTL_SANDBOX: "1" },
-    });
-    expect(result.sandbox).toBe(true);
-  });
-
-  it("overlays QONTOCTL_SANDBOX=true as sandbox true", () => {
-    const config = {};
-    const result = applyEnvOverlay(config, {
-      env: { QONTOCTL_SANDBOX: "true" },
-    });
-    expect(result.sandbox).toBe(true);
-  });
-
-  it("overlays QONTOCTL_SANDBOX=0 as sandbox false", () => {
-    const config = {};
-    const result = applyEnvOverlay(config, {
-      env: { QONTOCTL_SANDBOX: "0" },
-    });
-    expect(result.sandbox).toBe(false);
-  });
-
-  it("overlays profile-scoped sandbox env var", () => {
-    const config = {};
-    const result = applyEnvOverlay(config, {
-      profile: "staging",
-      env: { QONTOCTL_STAGING_SANDBOX: "1" },
-    });
-    expect(result.sandbox).toBe(true);
-  });
-
   it("endpoint env var overrides file endpoint", () => {
     const config = { endpoint: "https://file.example.com" };
     const result = applyEnvOverlay(config, {
       env: { QONTOCTL_ENDPOINT: "https://env.example.com" },
     });
     expect(result.endpoint).toBe("https://env.example.com");
+  });
+
+  it("overlays QONTOCTL_STAGING_TOKEN env var into oauth section", () => {
+    const config = {};
+    const result = applyEnvOverlay(config, {
+      env: { QONTOCTL_STAGING_TOKEN: "tok_abc123" },
+    });
+    expect(result.oauth?.stagingToken).toBe("tok_abc123");
+  });
+
+  it("creates oauth section when staging token env var is set but no oauth in config", () => {
+    const config = {};
+    const result = applyEnvOverlay(config, {
+      env: { QONTOCTL_STAGING_TOKEN: "tok_abc123" },
+    });
+    expect(result.oauth).toBeDefined();
+    expect(result.oauth?.clientId).toBe("");
+    expect(result.oauth?.clientSecret).toBe("");
+    expect(result.oauth?.stagingToken).toBe("tok_abc123");
+  });
+
+  it("overlays profile-scoped staging token env var into oauth section", () => {
+    const config = {};
+    const result = applyEnvOverlay(config, {
+      profile: "staging",
+      env: { QONTOCTL_STAGING_STAGING_TOKEN: "tok_staging" },
+    });
+    expect(result.oauth?.stagingToken).toBe("tok_staging");
+  });
+
+  it("staging token env var overrides file staging token in oauth", () => {
+    const config = {
+      oauth: { clientId: "cid", clientSecret: "csecret", stagingToken: "file_token" },
+    };
+    const result = applyEnvOverlay(config, {
+      env: { QONTOCTL_STAGING_TOKEN: "env_token" },
+    });
+    expect(result.oauth?.stagingToken).toBe("env_token");
+  });
+
+  it("preserves existing oauth fields when staging token env var is set", () => {
+    const config = {
+      oauth: {
+        clientId: "cid",
+        clientSecret: "csecret",
+        accessToken: "at",
+        refreshToken: "rt",
+        accessTokenExpiresAt: "2026-01-01T00:00:00Z",
+        scopes: ["offline_access"],
+      },
+    };
+    const result = applyEnvOverlay(config, {
+      env: { QONTOCTL_STAGING_TOKEN: "tok_abc123" },
+    });
+    expect(result.oauth?.clientId).toBe("cid");
+    expect(result.oauth?.clientSecret).toBe("csecret");
+    expect(result.oauth?.accessToken).toBe("at");
+    expect(result.oauth?.refreshToken).toBe("rt");
+    expect(result.oauth?.accessTokenExpiresAt).toBe("2026-01-01T00:00:00Z");
+    expect(result.oauth?.scopes).toEqual(["offline_access"]);
+    expect(result.oauth?.stagingToken).toBe("tok_abc123");
+  });
+
+  it("overlays QONTOCTL_ACCESS_TOKEN env var", () => {
+    const config = {};
+    const result = applyEnvOverlay(config, {
+      env: { QONTOCTL_ACCESS_TOKEN: "at_env123" },
+    });
+    expect(result.oauth?.accessToken).toBe("at_env123");
+  });
+
+  it("overlays QONTOCTL_REFRESH_TOKEN env var", () => {
+    const config = {};
+    const result = applyEnvOverlay(config, {
+      env: { QONTOCTL_REFRESH_TOKEN: "rt_env456" },
+    });
+    expect(result.oauth?.refreshToken).toBe("rt_env456");
+  });
+
+  it("access token env var overrides file access token", () => {
+    const config = {
+      oauth: { clientId: "cid", clientSecret: "csecret", accessToken: "file_at" },
+    };
+    const result = applyEnvOverlay(config, {
+      env: { QONTOCTL_ACCESS_TOKEN: "env_at" },
+    });
+    expect(result.oauth?.accessToken).toBe("env_at");
+  });
+
+  it("overlays profile-scoped access token", () => {
+    const config = {};
+    const result = applyEnvOverlay(config, {
+      profile: "staging",
+      env: { QONTOCTL_STAGING_ACCESS_TOKEN: "at_staging" },
+    });
+    expect(result.oauth?.accessToken).toBe("at_staging");
+  });
+
+  it("returns config unchanged when no staging token env var is set", () => {
+    const config = {
+      oauth: { clientId: "cid", clientSecret: "csecret", stagingToken: "file_token" },
+    };
+    const result = applyEnvOverlay(config, { env: {} });
+    expect(result.oauth?.stagingToken).toBe("file_token");
   });
 });

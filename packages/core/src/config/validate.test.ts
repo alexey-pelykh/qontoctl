@@ -144,27 +144,9 @@ describe("validateConfig", () => {
     expect(result.errors).toEqual([]);
   });
 
-  it("parses sandbox boolean true", () => {
+  it("warns on unknown sandbox key (no longer a valid config key)", () => {
     const result = validateConfig({ sandbox: true });
-    expect(result.config.sandbox).toBe(true);
-    expect(result.errors).toEqual([]);
-  });
-
-  it("parses sandbox boolean false", () => {
-    const result = validateConfig({ sandbox: false });
-    expect(result.config.sandbox).toBe(false);
-    expect(result.errors).toEqual([]);
-  });
-
-  it("errors when sandbox is not a boolean", () => {
-    const result = validateConfig({ sandbox: "yes" });
-    expect(result.errors).toContain('"sandbox" must be a boolean');
-  });
-
-  it("allows null sandbox", () => {
-    const result = validateConfig({ sandbox: null });
-    expect(result.config.sandbox).toBeUndefined();
-    expect(result.errors).toEqual([]);
+    expect(result.warnings).toContain('Unknown configuration key: "sandbox"');
   });
 
   it("parses oauth with access-token-expires-at", () => {
@@ -246,6 +228,52 @@ describe("validateConfig", () => {
       },
     });
     expect(result.warnings).toEqual([]);
+  });
+
+  it("parses valid staging-token inside oauth section", () => {
+    const result = validateConfig({
+      oauth: {
+        "client-id": "cid",
+        "client-secret": "csecret",
+        "staging-token": "tok_abc123",
+      },
+    });
+    expect(result.config.oauth?.stagingToken).toBe("tok_abc123");
+    expect(result.errors).toEqual([]);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it("errors when oauth.staging-token is not a string", () => {
+    const result = validateConfig({
+      oauth: { "client-id": "cid", "staging-token": 123 },
+    });
+    expect(result.errors).toContain('"oauth.staging-token" must be a string');
+  });
+
+  it("errors when oauth.staging-token is null", () => {
+    const result = validateConfig({
+      oauth: {
+        "client-id": "cid",
+        "client-secret": "csecret",
+        "staging-token": null,
+      },
+    });
+    expect(result.errors).toContain('"oauth.staging-token" must be a string');
+  });
+
+  it("does not warn on staging-token as known oauth key", () => {
+    const result = validateConfig({
+      oauth: {
+        "client-id": "cid",
+        "staging-token": "tok_abc123",
+      },
+    });
+    expect(result.warnings).toEqual([]);
+  });
+
+  it("warns on staging-token as unknown top-level key", () => {
+    const result = validateConfig({ "staging-token": "tok_abc123" });
+    expect(result.warnings).toContain('Unknown configuration key: "staging-token"');
   });
 });
 

@@ -5,13 +5,14 @@ import { type ExecFileSyncOptionsWithStringEncoding, execFileSync } from "node:c
 import { resolve } from "node:path";
 import { RequestSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
-import { cliEnv, hasCredentials } from "../sandbox.js";
+import { cliCwd, cliEnv, hasCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
 const execOpts: ExecFileSyncOptionsWithStringEncoding = {
   encoding: "utf-8",
   env: cliEnv(),
+  cwd: cliCwd(),
   timeout: 15_000,
 };
 

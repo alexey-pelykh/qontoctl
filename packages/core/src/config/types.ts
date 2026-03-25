@@ -21,6 +21,8 @@ export interface OAuthCredentials {
   accessTokenExpiresAt?: string;
   /** OAuth scopes granted to the access token. */
   scopes?: string[];
+  /** Staging token for sandbox environment (OAuth-only). */
+  stagingToken?: string;
 }
 
 /**
@@ -30,7 +32,6 @@ export interface QontoctlConfig {
   apiKey?: ApiKeyCredentials;
   oauth?: OAuthCredentials;
   endpoint?: string;
-  sandbox?: boolean;
 }
 
 /**

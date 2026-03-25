@@ -22,7 +22,7 @@ export interface ClientOptions {
  * Build an authenticated HttpClient from the user's qontoctl configuration.
  *
  * Resolution order follows @qontoctl/core: profile file -> default file -> env vars.
- * Endpoint is resolved from config (endpoint field, sandbox flag, or default production).
+ * Endpoint is resolved from config (endpoint field, staging-token presence, or default production).
  *
  * Auth precedence: OAuth (with auto-refresh) > API key.
  */
@@ -34,7 +34,7 @@ export async function buildClient(options?: ClientOptions): Promise<HttpClient> 
 
   if (config.oauth !== undefined && config.oauth.clientId !== "") {
     const oauth = config.oauth;
-    const tokenUrl = config.sandbox === true ? OAUTH_TOKEN_SANDBOX_URL : OAUTH_TOKEN_URL;
+    const tokenUrl = oauth.stagingToken !== undefined ? OAUTH_TOKEN_SANDBOX_URL : OAUTH_TOKEN_URL;
     const profile = options?.profile;
 
     authorization = async () => {
@@ -42,7 +42,13 @@ export async function buildClient(options?: ClientOptions): Promise<HttpClient> 
         const expiresAt = new Date(oauth.accessTokenExpiresAt);
         const now = new Date();
         if (expiresAt.getTime() - now.getTime() < 60_000) {
-          const tokens = await refreshAccessToken(tokenUrl, oauth.clientId, oauth.clientSecret, oauth.refreshToken);
+          const tokens = await refreshAccessToken(
+            tokenUrl,
+            oauth.clientId,
+            oauth.clientSecret,
+            oauth.refreshToken,
+            oauth.stagingToken,
+          );
           oauth.accessToken = tokens.accessToken;
           if (tokens.refreshToken) {
             oauth.refreshToken = tokens.refreshToken;
@@ -80,6 +86,7 @@ export async function buildClient(options?: ClientOptions): Promise<HttpClient> 
     onFallback: (method, path) => {
       process.stderr.write(`Warning: OAuth authentication failed, falling back to API key for ${method} ${path}\n`);
     },
+    stagingToken: config.oauth?.stagingToken,
   };
 
   return new HttpClient(clientOptions);
