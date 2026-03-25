@@ -33,4 +33,12 @@ describe("parseResponse", () => {
     expect(result).not.toHaveProperty("bonus");
     expect(result.transfer).not.toHaveProperty("extra");
   });
+
+  it("re-throws non-ZodError errors unchanged", () => {
+    const throwingSchema = z.unknown().transform(() => {
+      throw new TypeError("unexpected");
+    });
+    expect(() => parseResponse(throwingSchema, {}, "/v2/test")).toThrow(TypeError);
+    expect(() => parseResponse(throwingSchema, {}, "/v2/test")).toThrow("unexpected");
+  });
 });
