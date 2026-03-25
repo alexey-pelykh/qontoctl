@@ -4,7 +4,137 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { HttpClient } from "../http-client.js";
 import { jsonResponse } from "../testing/json-response.js";
-import { getRecurringTransfer, listRecurringTransfers } from "./service.js";
+import { cancelRecurringTransfer, createRecurringTransfer, getRecurringTransfer, listRecurringTransfers } from "./service.js";
+
+const sampleRecurringTransfer = {
+  id: "rt-new",
+  initiator_id: "user-1",
+  bank_account_id: "acc-1",
+  amount: 100,
+  amount_cents: 10000,
+  amount_currency: "EUR",
+  beneficiary_id: "ben-1",
+  reference: "Monthly rent",
+  note: "Rent payment",
+  first_execution_date: "2026-01-01",
+  last_execution_date: null,
+  next_execution_date: "2026-02-01",
+  frequency: "monthly",
+  status: "active",
+  created_at: "2026-01-01T10:00:00Z",
+  updated_at: "2026-01-01T10:00:00Z",
+};
+
+describe("createRecurringTransfer", () => {
+  let fetchSpy: ReturnType<typeof vi.fn>;
+  let client: HttpClient;
+
+  beforeEach(() => {
+    fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    client = new HttpClient({
+      baseUrl: "https://thirdparty.qonto.com",
+      authorization: "slug:secret",
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("posts to the correct endpoint and returns recurring transfer", async () => {
+    fetchSpy.mockReturnValue(jsonResponse({ recurring_transfer: sampleRecurringTransfer }));
+
+    const result = await createRecurringTransfer(client, {
+      beneficiary_id: "ben-1",
+      bank_account_id: "acc-1",
+      amount: 100,
+      currency: "EUR",
+      reference: "Monthly rent",
+      note: "Rent payment",
+      first_execution_date: "2026-01-01",
+      frequency: "monthly",
+    });
+    expect(result).toEqual(sampleRecurringTransfer);
+
+    const [url, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+    expect(url.pathname).toBe("/v2/sepa/recurring_transfers");
+    expect(init.method).toBe("POST");
+
+    const body = JSON.parse(init.body as string) as Record<string, unknown>;
+    expect(body).toEqual({
+      recurring_transfer: {
+        beneficiary_id: "ben-1",
+        bank_account_id: "acc-1",
+        amount: 100,
+        currency: "EUR",
+        reference: "Monthly rent",
+        note: "Rent payment",
+        first_execution_date: "2026-01-01",
+        frequency: "monthly",
+      },
+    });
+  });
+
+  it("sends idempotency key header when provided", async () => {
+    fetchSpy.mockReturnValue(jsonResponse({ recurring_transfer: sampleRecurringTransfer }));
+
+    await createRecurringTransfer(
+      client,
+      {
+        beneficiary_id: "ben-1",
+        bank_account_id: "acc-1",
+        amount: 100,
+        currency: "EUR",
+        reference: "Monthly rent",
+        first_execution_date: "2026-01-01",
+        frequency: "monthly",
+      },
+      { idempotencyKey: "idem-456" },
+    );
+
+    const [, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+    const headers = init.headers as Record<string, string>;
+    expect(headers["X-Qonto-Idempotency-Key"]).toBe("idem-456");
+  });
+});
+
+describe("cancelRecurringTransfer", () => {
+  let fetchSpy: ReturnType<typeof vi.fn>;
+  let client: HttpClient;
+
+  beforeEach(() => {
+    fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    client = new HttpClient({
+      baseUrl: "https://thirdparty.qonto.com",
+      authorization: "slug:secret",
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("posts to the cancel endpoint", async () => {
+    fetchSpy.mockReturnValue(jsonResponse({}));
+
+    await cancelRecurringTransfer(client, "rt-1");
+
+    const [url, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+    expect(url.pathname).toBe("/v2/sepa/recurring_transfers/rt-1/cancel");
+    expect(init.method).toBe("POST");
+  });
+
+  it("encodes special characters in the ID", async () => {
+    fetchSpy.mockReturnValue(jsonResponse({}));
+
+    await cancelRecurringTransfer(client, "a/b");
+
+    const [url] = fetchSpy.mock.calls[0] as [URL];
+    expect(url.pathname).toBe("/v2/sepa/recurring_transfers/a%2Fb/cancel");
+  });
+});
 
 describe("getRecurringTransfer", () => {
   let fetchSpy: ReturnType<typeof vi.fn>;

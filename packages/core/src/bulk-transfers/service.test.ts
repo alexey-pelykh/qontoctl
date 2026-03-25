@@ -4,7 +4,90 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { HttpClient } from "../http-client.js";
 import { jsonResponse } from "../testing/json-response.js";
-import { getBulkTransfer, listBulkTransfers } from "./service.js";
+import { createBulkTransfer, getBulkTransfer, listBulkTransfers } from "./service.js";
+
+describe("createBulkTransfer", () => {
+  let fetchSpy: ReturnType<typeof vi.fn>;
+  let client: HttpClient;
+
+  beforeEach(() => {
+    fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    client = new HttpClient({
+      baseUrl: "https://thirdparty.qonto.com",
+      authorization: "slug:secret",
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("posts to the correct endpoint and returns bulk transfer", async () => {
+    const bulkTransfer = {
+      id: "bt-new",
+      initiator_id: "user-1",
+      created_at: "2026-01-15T10:00:00Z",
+      updated_at: "2026-01-15T10:00:00Z",
+      total_count: 2,
+      completed_count: 0,
+      pending_count: 2,
+      failed_count: 0,
+      results: [],
+    };
+    fetchSpy.mockReturnValue(jsonResponse({ bulk_transfer: bulkTransfer }));
+
+    const result = await createBulkTransfer(client, {
+      transfers: [
+        { beneficiary_id: "ben-1", amount: 100, currency: "EUR", reference: "Invoice 1" },
+        { beneficiary_id: "ben-2", amount: 200, currency: "EUR" },
+      ],
+    });
+    expect(result).toEqual(bulkTransfer);
+
+    const [url, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+    expect(url.pathname).toBe("/v2/sepa/bulk_transfers");
+    expect(init.method).toBe("POST");
+
+    const body = JSON.parse(init.body as string) as Record<string, unknown>;
+    expect(body).toEqual({
+      bulk_transfer: {
+        transfers: [
+          { beneficiary_id: "ben-1", amount: 100, currency: "EUR", reference: "Invoice 1" },
+          { beneficiary_id: "ben-2", amount: 200, currency: "EUR" },
+        ],
+      },
+    });
+  });
+
+  it("sends idempotency key header when provided", async () => {
+    fetchSpy.mockReturnValue(
+      jsonResponse({
+        bulk_transfer: {
+          id: "bt-idem",
+          initiator_id: "user-1",
+          created_at: "2026-01-15T10:00:00Z",
+          updated_at: "2026-01-15T10:00:00Z",
+          total_count: 1,
+          completed_count: 0,
+          pending_count: 1,
+          failed_count: 0,
+          results: [],
+        },
+      }),
+    );
+
+    await createBulkTransfer(
+      client,
+      { transfers: [{ beneficiary_id: "ben-1", amount: 50, currency: "EUR" }] },
+      { idempotencyKey: "idem-123" },
+    );
+
+    const [, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+    const headers = init.headers as Record<string, string>;
+    expect(headers["X-Qonto-Idempotency-Key"]).toBe("idem-123");
+  });
+});
 
 describe("getBulkTransfer", () => {
   let fetchSpy: ReturnType<typeof vi.fn>;

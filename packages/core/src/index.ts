@@ -392,6 +392,7 @@ export {
 export type { InternalTransfer, CreateInternalTransferParams } from "./internal-transfers/index.js";
 
 export {
+  createBulkTransfer,
   getBulkTransfer,
   listBulkTransfers,
   BulkTransferSchema,
@@ -401,9 +402,17 @@ export {
   BulkTransferResultErrorSchema,
 } from "./bulk-transfers/index.js";
 
-export type { BulkTransfer, BulkTransferResult, BulkTransferResultError } from "./bulk-transfers/index.js";
+export type {
+  BulkTransfer,
+  BulkTransferItem,
+  BulkTransferResult,
+  BulkTransferResultError,
+  CreateBulkTransferParams,
+} from "./bulk-transfers/index.js";
 
 export {
+  cancelRecurringTransfer,
+  createRecurringTransfer,
   getRecurringTransfer,
   listRecurringTransfers,
   RecurringTransferSchema,
@@ -411,7 +420,7 @@ export {
   RecurringTransferListResponseSchema,
 } from "./recurring-transfers/index.js";
 
-export type { RecurringTransfer } from "./recurring-transfers/index.js";
+export type { CreateRecurringTransferParams, RecurringTransfer } from "./recurring-transfers/index.js";
 
 export {
   uploadAttachment,

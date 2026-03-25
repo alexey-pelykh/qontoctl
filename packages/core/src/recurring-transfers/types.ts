@@ -2,6 +2,20 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 /**
+ * Parameters for creating a recurring transfer.
+ */
+export interface CreateRecurringTransferParams {
+  readonly beneficiary_id: string;
+  readonly bank_account_id: string;
+  readonly amount: number;
+  readonly currency: string;
+  readonly reference: string;
+  readonly note?: string | undefined;
+  readonly first_execution_date: string;
+  readonly frequency: "weekly" | "monthly" | "quarterly" | "half_yearly" | "yearly";
+}
+
+/**
  * A recurring transfer as returned by the Qonto API.
  */
 export interface RecurringTransfer {

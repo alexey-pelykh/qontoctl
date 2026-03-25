@@ -5,7 +5,35 @@ import type { PaginationMeta } from "../api-types.js";
 import type { HttpClient } from "../http-client.js";
 import { parseResponse } from "../response.js";
 import { RecurringTransferListResponseSchema, RecurringTransferResponseSchema } from "./schemas.js";
-import type { RecurringTransfer } from "./types.js";
+import type { CreateRecurringTransferParams, RecurringTransfer } from "./types.js";
+
+/**
+ * Create a recurring transfer.
+ */
+export async function createRecurringTransfer(
+  client: HttpClient,
+  params: CreateRecurringTransferParams,
+  options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
+): Promise<RecurringTransfer> {
+  const endpointPath = "/v2/sepa/recurring_transfers";
+  const response = await client.post(endpointPath, { recurring_transfer: params }, options);
+  return parseResponse(RecurringTransferResponseSchema, response, endpointPath).recurring_transfer;
+}
+
+/**
+ * Cancel a recurring transfer.
+ */
+export async function cancelRecurringTransfer(
+  client: HttpClient,
+  id: string,
+  options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
+): Promise<void> {
+  await client.post(
+    "/v2/sepa/recurring_transfers/" + encodeURIComponent(id) + "/cancel",
+    undefined,
+    options,
+  );
+}
 
 /**
  * Fetch a single recurring transfer by ID.
