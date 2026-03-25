@@ -17,6 +17,7 @@ import { registerIntlQuoteCommands } from "./commands/intl-quote/index.js";
 import { registerIntlTransferCommands } from "./commands/intl-transfer/index.js";
 import { registerRecurringTransferCommands } from "./commands/recurring-transfer/index.js";
 import { registerOrgCommands } from "./commands/org.js";
+import { createPaymentLinkCommand } from "./commands/payment-link.js";
 import { registerAccountCommands } from "./commands/account.js";
 import { registerSupplierInvoiceCommands } from "./commands/supplier-invoice/index.js";
 import { createTeamCommand } from "./commands/team.js";
@@ -59,6 +60,7 @@ export function createProgram(): Command {
   registerIntlEligibilityCommand(program);
   registerIntlQuoteCommands(program);
   registerIntlTransferCommands(program);
+  program.addCommand(createPaymentLinkCommand());
   registerProfileCommands(program);
 
   program.action(() => {

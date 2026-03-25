@@ -47,4 +47,24 @@ export type {
 } from "./request.js";
 export type { Team } from "./team.js";
 export { TeamSchema, TeamResponseSchema, TeamListResponseSchema } from "./team.schema.js";
+export type {
+  PaymentLink,
+  PaymentLinkAmount,
+  PaymentLinkItem,
+  PaymentLinkPayment,
+  PaymentLinkPaymentMethod,
+  PaymentLinkConnection,
+} from "./payment-link.js";
+export {
+  PaymentLinkAmountSchema,
+  PaymentLinkItemSchema,
+  PaymentLinkSchema,
+  PaymentLinkResponseSchema,
+  PaymentLinkListResponseSchema,
+  PaymentLinkPaymentSchema,
+  PaymentLinkPaymentListResponseSchema,
+  PaymentLinkPaymentMethodSchema,
+  PaymentLinkPaymentMethodListResponseSchema,
+  PaymentLinkConnectionSchema,
+} from "./payment-link.schema.js";
 export type { WebhookSubscription } from "./webhook-subscription.js";

@@ -467,6 +467,47 @@ export type { CreateBankAccountParams, UpdateBankAccountParams } from "./service
 export { getEInvoicingSettings } from "./services/einvoicing.js";
 export { getOrganization } from "./services/organization.js";
 
+export type {
+  PaymentLink,
+  PaymentLinkAmount,
+  PaymentLinkItem,
+  PaymentLinkPayment,
+  PaymentLinkPaymentMethod,
+  PaymentLinkConnection,
+} from "./types/index.js";
+export {
+  PaymentLinkAmountSchema,
+  PaymentLinkItemSchema,
+  PaymentLinkSchema,
+  PaymentLinkResponseSchema,
+  PaymentLinkListResponseSchema,
+  PaymentLinkPaymentSchema,
+  PaymentLinkPaymentListResponseSchema,
+  PaymentLinkPaymentMethodSchema,
+  PaymentLinkPaymentMethodListResponseSchema,
+  PaymentLinkConnectionSchema,
+} from "./types/index.js";
+
+export {
+  buildPaymentLinkQueryParams,
+  listPaymentLinks,
+  getPaymentLink,
+  createPaymentLink,
+  deactivatePaymentLink,
+  listPaymentLinkPayments,
+  listPaymentMethods,
+  connectPaymentLinks,
+  getConnectionStatus,
+} from "./services/payment-links.js";
+
+export type {
+  ListPaymentLinksParams,
+  CreateBasketPaymentLinkParams,
+  CreateInvoicePaymentLinkParams,
+  CreatePaymentLinkParams,
+  ConnectPaymentLinksParams,
+} from "./services/payment-links.js";
+
 export {
   ScaDeniedError,
   ScaTimeoutError,

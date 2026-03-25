@@ -18,6 +18,7 @@ export { registerInternalTransferTools } from "./internal-transfer.js";
 export { registerLabelTools } from "./label.js";
 export { registerMembershipTools } from "./membership.js";
 export { registerOrgTools } from "./org.js";
+export { registerPaymentLinkTools } from "./payment-link.js";
 export { registerQuoteTools } from "./quote.js";
 export { registerRecurringTransferTools } from "./recurring-transfer.js";
 export { registerRequestTools } from "./request.js";

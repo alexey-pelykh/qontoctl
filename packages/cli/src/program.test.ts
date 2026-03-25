@@ -58,6 +58,7 @@ describe("createProgram", () => {
       expect(names).toContain("team");
       expect(names).toContain("insurance");
       expect(names).toContain("intl");
+      expect(names).toContain("payment-link");
       expect(names).toContain("profile");
       expect(program.commands).toHaveLength(15);
     });
