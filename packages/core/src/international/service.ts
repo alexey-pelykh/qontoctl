@@ -3,11 +3,7 @@
 
 import type { HttpClient } from "../http-client.js";
 import { parseResponse } from "../response.js";
-import {
-  IntlCurrencyListResponseSchema,
-  IntlEligibilityResponseSchema,
-  IntlQuoteResponseSchema,
-} from "./schemas.js";
+import { IntlCurrencyListResponseSchema, IntlEligibilityResponseSchema, IntlQuoteResponseSchema } from "./schemas.js";
 import type { CreateIntlQuoteParams, IntlCurrency, IntlEligibility, IntlQuote } from "./types.js";
 
 /**
