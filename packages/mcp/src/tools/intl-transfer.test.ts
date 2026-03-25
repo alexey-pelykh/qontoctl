@@ -55,9 +55,7 @@ describe("intl-transfer MCP tools", () => {
 
   describe("intl_transfer_requirements", () => {
     it("returns requirements from API", async () => {
-      fetchSpy.mockReturnValue(
-        jsonResponse({ requirements: makeRequirements() }),
-      );
+      fetchSpy.mockReturnValue(jsonResponse({ requirements: makeRequirements() }));
 
       const result = await mcpClient.callTool({
         name: "intl_transfer_requirements",
@@ -75,9 +73,7 @@ describe("intl-transfer MCP tools", () => {
     });
 
     it("calls the correct API endpoint", async () => {
-      fetchSpy.mockReturnValue(
-        jsonResponse({ requirements: makeRequirements() }),
-      );
+      fetchSpy.mockReturnValue(jsonResponse({ requirements: makeRequirements() }));
 
       await mcpClient.callTool({
         name: "intl_transfer_requirements",
@@ -91,9 +87,7 @@ describe("intl-transfer MCP tools", () => {
 
   describe("intl_transfer_create", () => {
     it("creates an international transfer", async () => {
-      fetchSpy.mockReturnValue(
-        jsonResponse({ international_transfer: makeIntlTransfer() }),
-      );
+      fetchSpy.mockReturnValue(jsonResponse({ international_transfer: makeIntlTransfer() }));
 
       const result = await mcpClient.callTool({
         name: "intl_transfer_create",
@@ -110,9 +104,7 @@ describe("intl-transfer MCP tools", () => {
     });
 
     it("calls the correct API endpoint with proper body", async () => {
-      fetchSpy.mockReturnValue(
-        jsonResponse({ international_transfer: makeIntlTransfer() }),
-      );
+      fetchSpy.mockReturnValue(jsonResponse({ international_transfer: makeIntlTransfer() }));
 
       await mcpClient.callTool({
         name: "intl_transfer_create",
@@ -134,9 +126,7 @@ describe("intl-transfer MCP tools", () => {
     });
 
     it("passes additional fields in the transfer body", async () => {
-      fetchSpy.mockReturnValue(
-        jsonResponse({ international_transfer: makeIntlTransfer() }),
-      );
+      fetchSpy.mockReturnValue(jsonResponse({ international_transfer: makeIntlTransfer() }));
 
       await mcpClient.callTool({
         name: "intl_transfer_create",
@@ -161,9 +151,7 @@ describe("intl-transfer MCP tools", () => {
     });
 
     it("creates transfer without optional fields", async () => {
-      fetchSpy.mockReturnValue(
-        jsonResponse({ international_transfer: makeIntlTransfer() }),
-      );
+      fetchSpy.mockReturnValue(jsonResponse({ international_transfer: makeIntlTransfer() }));
 
       await mcpClient.callTool({
         name: "intl_transfer_create",
