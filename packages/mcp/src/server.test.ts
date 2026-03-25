@@ -127,7 +127,10 @@ describe("createServer", () => {
       expect(toolNames).toContain("insurance_update");
       expect(toolNames).toContain("insurance_upload_document");
       expect(toolNames).toContain("insurance_remove_document");
-      expect(tools).toHaveLength(111);
+      expect(toolNames).toContain("bulk_transfer_create");
+      expect(toolNames).toContain("recurring_transfer_create");
+      expect(toolNames).toContain("recurring_transfer_cancel");
+      expect(tools).toHaveLength(114);
     });
 
     it("tools have descriptions", async () => {
