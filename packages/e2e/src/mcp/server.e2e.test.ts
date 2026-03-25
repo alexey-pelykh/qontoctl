@@ -115,6 +115,11 @@ const EXPECTED_TOOLS = [
   "webhook_create",
   "webhook_update",
   "webhook_delete",
+  "insurance_show",
+  "insurance_create",
+  "insurance_update",
+  "insurance_upload_document",
+  "insurance_remove_document",
 ] as const;
 
 describe("MCP server via stdio (e2e)", () => {
