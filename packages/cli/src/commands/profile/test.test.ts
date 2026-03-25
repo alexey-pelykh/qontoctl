@@ -99,4 +99,99 @@ describe("profile test", () => {
     expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining("Configuration error"));
     expect(process.exitCode).toBe(1);
   });
+
+  it("reports no credentials for OAuth-only profile", async () => {
+    const configDir = join(testHome, ".qontoctl");
+    await mkdir(configDir, { recursive: true });
+    await writeFile(
+      join(configDir, "oauth-only.yaml"),
+      "oauth:\n  client-id: test-client-id\n  client-secret: test-client-secret\n",
+    );
+
+    const program = createProgram();
+    program.exitOverride();
+
+    await program.parseAsync(["--profile", "oauth-only", "profile", "test"], { from: "user" });
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith("Configuration error: no credentials found.");
+    expect(process.exitCode).toBe(1);
+  });
+
+  it("reports rate limit error", async () => {
+    const configDir = join(testHome, ".qontoctl");
+    await mkdir(configDir, { recursive: true });
+    await writeFile(
+      join(configDir, "work.yaml"),
+      "api-key:\n  organization-slug: my-org\n  secret-key: sk_test_1234\n",
+    );
+
+    fetchSpy.mockImplementation(() =>
+      Promise.resolve(new Response("", { status: 429, headers: { "Retry-After": "0.001" } })),
+    );
+
+    const program = createProgram();
+    program.exitOverride();
+
+    await program.parseAsync(["--profile", "work", "profile", "test"], { from: "user" });
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining("Rate limited"));
+    expect(process.exitCode).toBe(1);
+  });
+
+  it("outputs verbose logs with --verbose", async () => {
+    const configDir = join(testHome, ".qontoctl");
+    await mkdir(configDir, { recursive: true });
+    await writeFile(
+      join(configDir, "work.yaml"),
+      "api-key:\n  organization-slug: my-org\n  secret-key: sk_test_1234\n",
+    );
+
+    fetchSpy.mockImplementation(() =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            organization: { name: "My Company", slug: "my-company-1234" },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      ),
+    );
+
+    const program = createProgram();
+    program.exitOverride();
+
+    await program.parseAsync(["--profile", "work", "--verbose", "profile", "test"], { from: "user" });
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringMatching(/^\[verbose\] GET /));
+    expect(consoleSpy).toHaveBeenCalledWith('Success: connected to organization "My Company" (my-company-1234)');
+  });
+
+  it("outputs debug warning and logs with --debug", async () => {
+    const configDir = join(testHome, ".qontoctl");
+    await mkdir(configDir, { recursive: true });
+    await writeFile(
+      join(configDir, "work.yaml"),
+      "api-key:\n  organization-slug: my-org\n  secret-key: sk_test_1234\n",
+    );
+
+    fetchSpy.mockImplementation(() =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            organization: { name: "My Company", slug: "my-company-1234" },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      ),
+    );
+
+    const program = createProgram();
+    program.exitOverride();
+
+    await program.parseAsync(["--profile", "work", "--debug", "profile", "test"], { from: "user" });
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining("Debug mode logs full API responses"));
+    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringMatching(/^\[debug\] /));
+    expect(consoleSpy).toHaveBeenCalledWith('Success: connected to organization "My Company" (my-company-1234)');
+  });
 });
