@@ -15,6 +15,7 @@ import {
   registerCreditNoteTools,
   registerEInvoicingTools,
   registerInsuranceTools,
+  registerInternationalTools,
   registerIntlBeneficiaryTools,
   registerIntlTransferTools,
   registerInternalTransferTools,
@@ -61,6 +62,7 @@ export function createServer(options?: CreateServerOptions): McpServer {
   registerCreditNoteTools(server, getClient);
   registerEInvoicingTools(server, getClient);
   registerInsuranceTools(server, getClient);
+  registerInternationalTools(server, getClient);
   registerIntlBeneficiaryTools(server, getClient);
   registerIntlTransferTools(server, getClient);
   registerInternalTransferTools(server, getClient);

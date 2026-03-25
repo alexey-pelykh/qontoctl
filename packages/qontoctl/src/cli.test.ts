@@ -277,8 +277,11 @@ describe("qontoctl CLI", () => {
       const names = intl.commands.map((c) => c.name());
 
       expect(names).toContain("beneficiary");
+      expect(names).toContain("currencies");
+      expect(names).toContain("eligibility");
+      expect(names).toContain("quote");
       expect(names).toContain("transfer");
-      expect(intl.commands).toHaveLength(2);
+      expect(intl.commands).toHaveLength(5);
     });
 
     it("subcommands have descriptions", () => {

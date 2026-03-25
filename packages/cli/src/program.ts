@@ -11,6 +11,9 @@ import { registerBulkTransferCommands } from "./commands/bulk-transfer/index.js"
 import { registerEInvoicingCommands } from "./commands/einvoicing.js";
 import { registerInsuranceCommands } from "./commands/insurance.js";
 import { registerIntlBeneficiaryCommands } from "./commands/intl-beneficiary/index.js";
+import { registerIntlCurrenciesCommand } from "./commands/intl-currencies.js";
+import { registerIntlEligibilityCommand } from "./commands/intl-eligibility.js";
+import { registerIntlQuoteCommands } from "./commands/intl-quote/index.js";
 import { registerIntlTransferCommands } from "./commands/intl-transfer/index.js";
 import { registerRecurringTransferCommands } from "./commands/recurring-transfer/index.js";
 import { registerOrgCommands } from "./commands/org.js";
@@ -52,6 +55,9 @@ export function createProgram(): Command {
   program.addCommand(createTeamCommand());
   registerInsuranceCommands(program);
   registerIntlBeneficiaryCommands(program);
+  registerIntlCurrenciesCommand(program);
+  registerIntlEligibilityCommand(program);
+  registerIntlQuoteCommands(program);
   registerIntlTransferCommands(program);
   registerProfileCommands(program);
 
