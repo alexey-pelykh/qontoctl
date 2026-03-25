@@ -22,10 +22,7 @@ export function registerPaymentLinkTools(server: McpServer, getClient: () => Pro
       inputSchema: {
         page: z.number().int().positive().optional().describe("Page number"),
         per_page: z.number().int().positive().max(100).optional().describe("Items per page (max 100)"),
-        status: z
-          .enum(["open", "expired", "canceled", "paid", "processing"])
-          .optional()
-          .describe("Filter by status"),
+        status: z.enum(["open", "expired", "canceled", "paid", "processing"]).optional().describe("Filter by status"),
         sort_by: z
           .enum(["amount:asc", "amount:desc", "expiration_date:asc", "expiration_date:desc"])
           .optional()
