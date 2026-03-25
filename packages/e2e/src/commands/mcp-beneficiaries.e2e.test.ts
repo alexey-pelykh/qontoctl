@@ -6,7 +6,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { BeneficiaryListResponseSchema, BeneficiarySchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { cliEnv, hasCredentials } from "../sandbox.js";
+import { cliCwd, cliEnv, hasCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
@@ -30,6 +30,7 @@ describe.skipIf(!hasCredentials())("MCP beneficiary tools (e2e)", () => {
       command: "node",
       args: [CLI_PATH, "mcp"],
       env: cliEnv(),
+      cwd: cliCwd(),
       stderr: "pipe",
     });
 

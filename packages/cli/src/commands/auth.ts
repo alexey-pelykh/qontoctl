@@ -78,8 +78,8 @@ interface OAuthEndpoints {
   revokeUrl: string;
 }
 
-function resolveOAuthEndpoints(sandbox: boolean | undefined): OAuthEndpoints {
-  if (sandbox === true) {
+function resolveOAuthEndpoints(stagingToken?: string): OAuthEndpoints {
+  if (stagingToken !== undefined) {
     return {
       authUrl: OAUTH_AUTH_SANDBOX_URL,
       tokenUrl: OAUTH_TOKEN_SANDBOX_URL,
@@ -93,9 +93,7 @@ function resolveOAuthEndpoints(sandbox: boolean | undefined): OAuthEndpoints {
   };
 }
 
-async function resolveOAuthConfig(
-  profile: string | undefined,
-): Promise<{ oauth: OAuthCredentials; sandbox: boolean | undefined }> {
+async function resolveOAuthConfig(profile: string | undefined): Promise<{ oauth: OAuthCredentials }> {
   const { config } = await resolveConfig({ profile });
   if (config.oauth === undefined) {
     throw new Error(
@@ -103,7 +101,7 @@ async function resolveOAuthConfig(
         'Add "oauth.client-id" and "oauth.client-secret" to your config file.',
     );
   }
-  return { oauth: config.oauth, sandbox: config.sandbox };
+  return { oauth: config.oauth };
 }
 
 function openBrowser(url: string): void {
@@ -297,8 +295,8 @@ export function registerAuthCommands(program: Command): void {
     const port = Number.parseInt(opts.port, 10);
     const redirectUri = `http://localhost:${port}/callback`;
 
-    const { oauth, sandbox } = await resolveOAuthConfig(opts.profile);
-    const { authUrl, tokenUrl } = resolveOAuthEndpoints(sandbox);
+    const { oauth } = await resolveOAuthConfig(opts.profile);
+    const { authUrl, tokenUrl } = resolveOAuthEndpoints(oauth.stagingToken);
 
     // Resolve scopes: use stored, or prompt interactively
     let scopes: string[];
@@ -371,6 +369,7 @@ export function registerAuthCommands(program: Command): void {
         callback.code,
         redirectUri,
         codeVerifier,
+        oauth.stagingToken,
       );
 
       // Calculate expiration time
@@ -397,15 +396,21 @@ export function registerAuthCommands(program: Command): void {
   addInheritableOptions(refresh);
   refresh.action(async (_options: unknown, cmd: Command) => {
     const opts = resolveGlobalOptions<GlobalOptions>(cmd);
-    const { oauth, sandbox } = await resolveOAuthConfig(opts.profile);
-    const { tokenUrl } = resolveOAuthEndpoints(sandbox);
+    const { oauth } = await resolveOAuthConfig(opts.profile);
+    const { tokenUrl } = resolveOAuthEndpoints(oauth.stagingToken);
 
     if (!oauth.refreshToken) {
       throw new Error('No refresh token available. Run "qontoctl auth login" with offline_access scope first.');
     }
 
     process.stderr.write("Refreshing access token...\n");
-    const tokens = await refreshAccessToken(tokenUrl, oauth.clientId, oauth.clientSecret, oauth.refreshToken);
+    const tokens = await refreshAccessToken(
+      tokenUrl,
+      oauth.clientId,
+      oauth.clientSecret,
+      oauth.refreshToken,
+      oauth.stagingToken,
+    );
 
     const expiresAt = new Date(Date.now() + tokens.expiresIn * 1000).toISOString();
 
@@ -472,13 +477,13 @@ export function registerAuthCommands(program: Command): void {
   addInheritableOptions(revoke);
   revoke.action(async (_options: unknown, cmd: Command) => {
     const opts = resolveGlobalOptions<GlobalOptions>(cmd);
-    const { oauth, sandbox } = await resolveOAuthConfig(opts.profile);
-    const { revokeUrl } = resolveOAuthEndpoints(sandbox);
+    const { oauth } = await resolveOAuthConfig(opts.profile);
+    const { revokeUrl } = resolveOAuthEndpoints(oauth.stagingToken);
 
     if (oauth.accessToken) {
       process.stderr.write("Revoking access token...\n");
       try {
-        await revokeToken(revokeUrl, oauth.clientId, oauth.clientSecret, oauth.accessToken);
+        await revokeToken(revokeUrl, oauth.clientId, oauth.clientSecret, oauth.accessToken, oauth.stagingToken);
       } catch (error) {
         process.stderr.write(`Warning: Failed to revoke access token: ${String(error)}\n`);
       }
@@ -487,7 +492,7 @@ export function registerAuthCommands(program: Command): void {
     if (oauth.refreshToken) {
       process.stderr.write("Revoking refresh token...\n");
       try {
-        await revokeToken(revokeUrl, oauth.clientId, oauth.clientSecret, oauth.refreshToken);
+        await revokeToken(revokeUrl, oauth.clientId, oauth.clientSecret, oauth.refreshToken, oauth.stagingToken);
       } catch (error) {
         process.stderr.write(`Warning: Failed to revoke refresh token: ${String(error)}\n`);
       }

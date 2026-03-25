@@ -7,18 +7,23 @@ const ENV_PREFIX = "QONTOCTL";
 const ORG_SLUG_SUFFIX = "ORGANIZATION_SLUG";
 const SECRET_KEY_SUFFIX = "SECRET_KEY";
 const ENDPOINT_SUFFIX = "ENDPOINT";
-const SANDBOX_SUFFIX = "SANDBOX";
 const CLIENT_ID_SUFFIX = "CLIENT_ID";
 const CLIENT_SECRET_SUFFIX = "CLIENT_SECRET";
+const ACCESS_TOKEN_SUFFIX = "ACCESS_TOKEN";
+const REFRESH_TOKEN_SUFFIX = "REFRESH_TOKEN";
+const STAGING_TOKEN_SUFFIX = "STAGING_TOKEN";
 
 /**
  * Overlays environment variables onto a config.
  *
  * - Without profile: reads `QONTOCTL_ORGANIZATION_SLUG`, `QONTOCTL_SECRET_KEY`,
- *   `QONTOCTL_ENDPOINT`, and `QONTOCTL_SANDBOX`
+ *   `QONTOCTL_ENDPOINT`, `QONTOCTL_CLIENT_ID`, `QONTOCTL_CLIENT_SECRET`,
+ *   `QONTOCTL_ACCESS_TOKEN`, `QONTOCTL_REFRESH_TOKEN`, and `QONTOCTL_STAGING_TOKEN`
  * - With profile: reads `QONTOCTL_{PROFILE}_ORGANIZATION_SLUG`,
- *   `QONTOCTL_{PROFILE}_SECRET_KEY`, `QONTOCTL_{PROFILE}_ENDPOINT`, and
- *   `QONTOCTL_{PROFILE}_SANDBOX` (profile name uppercased, hyphens→underscores)
+ *   `QONTOCTL_{PROFILE}_SECRET_KEY`, `QONTOCTL_{PROFILE}_ENDPOINT`,
+ *   `QONTOCTL_{PROFILE}_CLIENT_ID`, `QONTOCTL_{PROFILE}_CLIENT_SECRET`,
+ *   `QONTOCTL_{PROFILE}_ACCESS_TOKEN`, `QONTOCTL_{PROFILE}_REFRESH_TOKEN`, and
+ *   `QONTOCTL_{PROFILE}_STAGING_TOKEN` (profile name uppercased, hyphens→underscores)
  *
  * Env vars take precedence over file values.
  */
@@ -35,9 +40,11 @@ export function applyEnvOverlay(
   const orgSlug = env[`${prefix}_${ORG_SLUG_SUFFIX}`];
   const secretKey = env[`${prefix}_${SECRET_KEY_SUFFIX}`];
   const endpoint = env[`${prefix}_${ENDPOINT_SUFFIX}`];
-  const sandbox = env[`${prefix}_${SANDBOX_SUFFIX}`];
   const clientId = env[`${prefix}_${CLIENT_ID_SUFFIX}`];
   const clientSecret = env[`${prefix}_${CLIENT_SECRET_SUFFIX}`];
+  const accessToken = env[`${prefix}_${ACCESS_TOKEN_SUFFIX}`];
+  const refreshToken = env[`${prefix}_${REFRESH_TOKEN_SUFFIX}`];
+  const stagingToken = env[`${prefix}_${STAGING_TOKEN_SUFFIX}`];
 
   let result = config;
 
@@ -52,19 +59,22 @@ export function applyEnvOverlay(
     };
   }
 
-  if (clientId !== undefined || clientSecret !== undefined) {
+  if (clientId !== undefined || clientSecret !== undefined || accessToken !== undefined || refreshToken !== undefined) {
     const existing = result.oauth;
+    const mergedAccessToken = accessToken ?? existing?.accessToken;
+    const mergedRefreshToken = refreshToken ?? existing?.refreshToken;
     result = {
       ...result,
       oauth: {
         clientId: clientId ?? existing?.clientId ?? "",
         clientSecret: clientSecret ?? existing?.clientSecret ?? "",
-        ...(existing?.accessToken !== undefined ? { accessToken: existing.accessToken } : {}),
-        ...(existing?.refreshToken !== undefined ? { refreshToken: existing.refreshToken } : {}),
+        ...(mergedAccessToken !== undefined ? { accessToken: mergedAccessToken } : {}),
+        ...(mergedRefreshToken !== undefined ? { refreshToken: mergedRefreshToken } : {}),
         ...(existing?.accessTokenExpiresAt !== undefined
           ? { accessTokenExpiresAt: existing.accessTokenExpiresAt }
           : {}),
         ...(existing?.scopes !== undefined ? { scopes: existing.scopes } : {}),
+        ...(existing?.stagingToken !== undefined ? { stagingToken: existing.stagingToken } : {}),
       },
     };
   }
@@ -73,8 +83,22 @@ export function applyEnvOverlay(
     result = { ...result, endpoint };
   }
 
-  if (sandbox !== undefined) {
-    result = { ...result, sandbox: sandbox === "1" || sandbox === "true" };
+  if (stagingToken !== undefined) {
+    const existingOAuth = result.oauth;
+    result = {
+      ...result,
+      oauth: {
+        clientId: existingOAuth?.clientId ?? "",
+        clientSecret: existingOAuth?.clientSecret ?? "",
+        ...(existingOAuth?.accessToken !== undefined ? { accessToken: existingOAuth.accessToken } : {}),
+        ...(existingOAuth?.refreshToken !== undefined ? { refreshToken: existingOAuth.refreshToken } : {}),
+        ...(existingOAuth?.accessTokenExpiresAt !== undefined
+          ? { accessTokenExpiresAt: existingOAuth.accessTokenExpiresAt }
+          : {}),
+        ...(existingOAuth?.scopes !== undefined ? { scopes: existingOAuth.scopes } : {}),
+        stagingToken,
+      },
+    };
   }
 
   return result;

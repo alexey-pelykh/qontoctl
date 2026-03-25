@@ -16,7 +16,7 @@ export interface BulkTransferResult {
   readonly client_transfer_id: string;
   readonly transfer_id: string | null;
   readonly status: "pending" | "completed" | "failed";
-  readonly errors: readonly BulkTransferResultError[];
+  readonly errors: readonly BulkTransferResultError[] | null;
 }
 
 /**

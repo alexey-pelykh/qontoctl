@@ -221,10 +221,10 @@ describe("resolveConfig", () => {
     expect(result.endpoint).toBe("https://custom.example.com");
   });
 
-  it("resolves sandbox endpoint from config file", async () => {
+  it("resolves staging endpoint when staging-token is configured in oauth", async () => {
     await writeFile(
       join(testDir, ".qontoctl.yaml"),
-      "api-key:\n  organization-slug: org\n  secret-key: secret\nsandbox: true\n",
+      "oauth:\n  client-id: cid\n  client-secret: csecret\n  staging-token: tok_abc123\n",
     );
 
     const result = await resolveConfig({
@@ -235,10 +235,10 @@ describe("resolveConfig", () => {
     expect(result.endpoint).toBe("https://thirdparty-sandbox.staging.qonto.co");
   });
 
-  it("explicit endpoint takes precedence over sandbox", async () => {
+  it("explicit endpoint takes precedence over staging-token in oauth", async () => {
     await writeFile(
       join(testDir, ".qontoctl.yaml"),
-      "api-key:\n  organization-slug: org\n  secret-key: secret\nendpoint: https://custom.example.com\nsandbox: true\n",
+      "oauth:\n  client-id: cid\n  client-secret: csecret\n  staging-token: tok_abc123\nendpoint: https://custom.example.com\n",
     );
 
     const result = await resolveConfig({
@@ -249,10 +249,10 @@ describe("resolveConfig", () => {
     expect(result.endpoint).toBe("https://custom.example.com");
   });
 
-  it("QONTOCTL_ENDPOINT env var takes precedence over file sandbox", async () => {
+  it("QONTOCTL_ENDPOINT env var takes precedence over staging-token in oauth", async () => {
     await writeFile(
       join(testDir, ".qontoctl.yaml"),
-      "api-key:\n  organization-slug: org\n  secret-key: secret\nsandbox: true\n",
+      "oauth:\n  client-id: cid\n  client-secret: csecret\n  staging-token: tok_abc123\n",
     );
 
     const result = await resolveConfig({
@@ -263,28 +263,28 @@ describe("resolveConfig", () => {
     expect(result.endpoint).toBe("https://env.example.com");
   });
 
-  it("QONTOCTL_SANDBOX=1 env var resolves to sandbox endpoint", async () => {
+  it("QONTOCTL_STAGING_TOKEN env var resolves to staging endpoint", async () => {
     const result = await resolveConfig({
       cwd: testDir,
       home: testHome,
       env: {
-        QONTOCTL_ORGANIZATION_SLUG: "org",
-        QONTOCTL_SECRET_KEY: "secret",
-        QONTOCTL_SANDBOX: "1",
+        QONTOCTL_CLIENT_ID: "cid",
+        QONTOCTL_CLIENT_SECRET: "csecret",
+        QONTOCTL_STAGING_TOKEN: "tok_abc123",
       },
     });
     expect(result.endpoint).toBe("https://thirdparty-sandbox.staging.qonto.co");
   });
 
-  it("QONTOCTL_ENDPOINT takes precedence over QONTOCTL_SANDBOX", async () => {
+  it("QONTOCTL_ENDPOINT takes precedence over QONTOCTL_STAGING_TOKEN", async () => {
     const result = await resolveConfig({
       cwd: testDir,
       home: testHome,
       env: {
-        QONTOCTL_ORGANIZATION_SLUG: "org",
-        QONTOCTL_SECRET_KEY: "secret",
+        QONTOCTL_CLIENT_ID: "cid",
+        QONTOCTL_CLIENT_SECRET: "csecret",
         QONTOCTL_ENDPOINT: "https://env.example.com",
-        QONTOCTL_SANDBOX: "1",
+        QONTOCTL_STAGING_TOKEN: "tok_abc123",
       },
     });
     expect(result.endpoint).toBe("https://env.example.com");

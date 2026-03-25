@@ -30,6 +30,7 @@ export async function exchangeCode(
   code: string,
   redirectUri: string,
   codeVerifier?: string,
+  stagingToken?: string,
 ): Promise<OAuthTokens> {
   const body = new URLSearchParams({
     grant_type: "authorization_code",
@@ -43,7 +44,7 @@ export async function exchangeCode(
     body.set("code_verifier", codeVerifier);
   }
 
-  return requestTokens(tokenUrl, body);
+  return requestTokens(tokenUrl, body, stagingToken);
 }
 
 /**
@@ -59,6 +60,7 @@ export async function refreshAccessToken(
   clientId: string,
   clientSecret: string,
   refreshToken: string,
+  stagingToken?: string,
 ): Promise<OAuthTokens> {
   const body = new URLSearchParams({
     grant_type: "refresh_token",
@@ -67,7 +69,7 @@ export async function refreshAccessToken(
     refresh_token: refreshToken,
   });
 
-  return requestTokens(tokenUrl, body);
+  return requestTokens(tokenUrl, body, stagingToken);
 }
 
 /**
@@ -83,6 +85,7 @@ export async function revokeToken(
   clientId: string,
   clientSecret: string,
   token: string,
+  stagingToken?: string,
 ): Promise<void> {
   const body = new URLSearchParams({
     client_id: clientId,
@@ -90,9 +93,14 @@ export async function revokeToken(
     token,
   });
 
+  const headers: Record<string, string> = {
+    "Content-Type": "application/x-www-form-urlencoded",
+    ...(stagingToken !== undefined ? { "X-Qonto-Staging-Token": stagingToken } : {}),
+  };
+
   const response = await fetch(revokeUrl, {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    headers,
     body: body.toString(),
   });
 
@@ -109,10 +117,15 @@ interface TokenResponse {
   readonly token_type: string;
 }
 
-async function requestTokens(tokenUrl: string, body: URLSearchParams): Promise<OAuthTokens> {
+async function requestTokens(tokenUrl: string, body: URLSearchParams, stagingToken?: string): Promise<OAuthTokens> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/x-www-form-urlencoded",
+    ...(stagingToken !== undefined ? { "X-Qonto-Staging-Token": stagingToken } : {}),
+  };
+
   const response = await fetch(tokenUrl, {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    headers,
     body: body.toString(),
   });
 

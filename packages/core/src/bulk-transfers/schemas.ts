@@ -24,7 +24,7 @@ export const BulkTransferResultSchema = z
     client_transfer_id: z.string(),
     transfer_id: z.string().nullable(),
     status: z.enum(["pending", "completed", "failed"]),
-    errors: z.array(BulkTransferResultErrorSchema).readonly(),
+    errors: z.array(BulkTransferResultErrorSchema).readonly().nullable(),
   })
   .strip() satisfies z.ZodType<BulkTransferResult>;
 

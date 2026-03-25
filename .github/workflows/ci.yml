@@ -100,6 +100,25 @@ jobs:
         id: publish-github-pages
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
 
+  e2e-sandbox:
+    name: E2E (Sandbox)
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    needs:
+      - ci
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: ./.github/actions/setup
+      - run: pnpm build
+      - run: pnpm test:e2e
+        env:
+          QONTOCTL_STAGING_TOKEN: ${{ secrets.QONTOCTL_STAGING_TOKEN }}
+          QONTOCTL_CLIENT_ID: ${{ secrets.QONTOCTL_CLIENT_ID }}
+          QONTOCTL_CLIENT_SECRET: ${{ secrets.QONTOCTL_CLIENT_SECRET }}
+          QONTOCTL_ACCESS_TOKEN: ${{ secrets.QONTOCTL_ACCESS_TOKEN }}
+          QONTOCTL_REFRESH_TOKEN: ${{ secrets.QONTOCTL_REFRESH_TOKEN }}
+
   ci-gate:
     name: CI
     if: always()
