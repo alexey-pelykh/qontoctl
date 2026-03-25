@@ -3,7 +3,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { jsonResponse } from "@qontoctl/core/testing";
+import { binaryResponse, jsonResponse } from "@qontoctl/core/testing";
 import { connectInMemory } from "../testing/mcp-helpers.js";
 
 function makeMeta(overrides: Record<string, unknown> = {}) {
@@ -474,6 +474,71 @@ describe("transfer MCP tools", () => {
         requests: { id: string; iban: string; beneficiary_name: string }[];
       };
       expect(body.requests[0]?.beneficiary_name).toBe("Acme Corp");
+    });
+  });
+
+  describe("transfer_cancel", () => {
+    it("returns canceled confirmation", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({}));
+
+      const result = await mcpClient.callTool({
+        name: "transfer_cancel",
+        arguments: { id: "txfr-cancel-1" },
+      });
+
+      const content = result.content as { type: string; text: string }[];
+      expect(content).toHaveLength(1);
+      const parsed = JSON.parse((content[0] as { type: string; text: string }).text) as {
+        canceled: boolean;
+        id: string;
+      };
+      expect(parsed.canceled).toBe(true);
+      expect(parsed.id).toBe("txfr-cancel-1");
+    });
+
+    it("calls the correct API endpoint with POST", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({}));
+
+      await mcpClient.callTool({
+        name: "transfer_cancel",
+        arguments: { id: "txfr-cancel-1" },
+      });
+
+      const [url, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      expect(url.pathname).toBe("/v2/sepa/transfers/txfr-cancel-1/cancel");
+      expect(init.method).toBe("POST");
+    });
+  });
+
+  describe("transfer_proof", () => {
+    it("returns PDF as base64-encoded embedded resource", async () => {
+      const pdfData = Buffer.from("%PDF-1.4 test proof");
+      fetchSpy.mockReturnValue(binaryResponse(pdfData));
+
+      const result = await mcpClient.callTool({
+        name: "transfer_proof",
+        arguments: { id: "txfr-proof-1" },
+      });
+
+      const content = result.content as { type: string; resource: { uri: string; mimeType: string; blob: string } }[];
+      expect(content).toHaveLength(1);
+      expect((content[0] as { type: string }).type).toBe("resource");
+      const resource = (content[0] as { resource: { uri: string; mimeType: string; blob: string } }).resource;
+      expect(resource.uri).toBe("transfer-proof://txfr-proof-1");
+      expect(resource.mimeType).toBe("application/pdf");
+      expect(Buffer.from(resource.blob, "base64").toString()).toBe("%PDF-1.4 test proof");
+    });
+
+    it("calls the correct API endpoint", async () => {
+      fetchSpy.mockReturnValue(binaryResponse(Buffer.from("data")));
+
+      await mcpClient.callTool({
+        name: "transfer_proof",
+        arguments: { id: "txfr-proof-1" },
+      });
+
+      const [url] = fetchSpy.mock.calls[0] as [URL];
+      expect(url.pathname).toBe("/v2/sepa/transfers/txfr-proof-1/proof");
     });
   });
 
