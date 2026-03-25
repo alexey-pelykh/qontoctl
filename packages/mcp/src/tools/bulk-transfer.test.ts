@@ -106,6 +106,28 @@ describe("bulk-transfer MCP tools", () => {
     });
   });
 
+  describe("bulk_transfer_create", () => {
+    it("creates a bulk transfer", async () => {
+      fetchSpy.mockReturnValue(
+        jsonResponse({
+          bulk_transfer: makeBulkTransfer(),
+        }),
+      );
+
+      const result = await mcpClient.callTool({
+        name: "bulk_transfer_create",
+        arguments: {
+          transfers: [{ beneficiary_id: "ben-1", amount: 100, currency: "EUR" }],
+        },
+      });
+
+      const content = result.content as { type: string; text: string }[];
+      expect(content).toHaveLength(1);
+      const parsed = JSON.parse((content[0] as { type: string; text: string }).text) as { id: string };
+      expect(parsed.id).toBe("bt-1");
+    });
+  });
+
   describe("bulk_transfer_show", () => {
     it("returns a single bulk transfer", async () => {
       fetchSpy.mockReturnValue(

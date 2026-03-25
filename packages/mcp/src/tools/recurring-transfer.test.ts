@@ -113,6 +113,49 @@ describe("recurring-transfer MCP tools", () => {
     });
   });
 
+  describe("recurring_transfer_create", () => {
+    it("creates a recurring transfer", async () => {
+      fetchSpy.mockReturnValue(
+        jsonResponse({
+          recurring_transfer: makeRecurringTransfer(),
+        }),
+      );
+
+      const result = await mcpClient.callTool({
+        name: "recurring_transfer_create",
+        arguments: {
+          beneficiary_id: "ben-1",
+          bank_account_id: "acc-1",
+          amount: 100,
+          currency: "EUR",
+          reference: "Monthly rent",
+          first_execution_date: "2026-01-01",
+          frequency: "monthly",
+        },
+      });
+
+      const content = result.content as { type: string; text: string }[];
+      expect(content).toHaveLength(1);
+      const parsed = JSON.parse((content[0] as { type: string; text: string }).text) as { id: string };
+      expect(parsed.id).toBe("rt-1");
+    });
+  });
+
+  describe("recurring_transfer_cancel", () => {
+    it("cancels a recurring transfer", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({}));
+
+      const result = await mcpClient.callTool({
+        name: "recurring_transfer_cancel",
+        arguments: { id: "rt-1" },
+      });
+
+      const content = result.content as { type: string; text: string }[];
+      expect(content).toHaveLength(1);
+      expect((content[0] as { type: string; text: string }).text).toContain("rt-1");
+    });
+  });
+
   describe("recurring_transfer_show", () => {
     it("returns a single recurring transfer", async () => {
       fetchSpy.mockReturnValue(
