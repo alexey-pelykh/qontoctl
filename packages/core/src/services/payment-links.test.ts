@@ -235,11 +235,7 @@ describe("createPaymentLink", () => {
   it("passes idempotency key in headers when provided", async () => {
     fetchSpy.mockReturnValue(jsonResponse({ payment_link: paymentLink }));
 
-    await createPaymentLink(
-      client,
-      { potential_payment_methods: ["card"], items: [] },
-      { idempotencyKey: "idem-123" },
-    );
+    await createPaymentLink(client, { potential_payment_methods: ["card"], items: [] }, { idempotencyKey: "idem-123" });
 
     const [, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
     const headers = init.headers as Record<string, string>;
