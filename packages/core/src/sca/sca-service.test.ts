@@ -188,6 +188,22 @@ describe("SCA service", () => {
       expect(sleepCalls).toEqual([5000]);
     });
 
+    it("uses default sleep when none provided", async () => {
+      vi.useFakeTimers();
+      try {
+        fetchSpy
+          .mockReturnValueOnce(jsonResponse({ sca_session: { status: "waiting" } }))
+          .mockReturnValue(jsonResponse({ sca_session: { status: "allow" } }));
+
+        const promise = pollScaSession(client, "tok-default", { intervalMs: 100 });
+        await vi.advanceTimersByTimeAsync(200);
+        const session = await promise;
+        expect(session.status).toBe("allow");
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it("throws ScaDeniedError after polling when deny comes", async () => {
       fetchSpy
         .mockReturnValueOnce(jsonResponse({ sca_session: { status: "waiting" } }))

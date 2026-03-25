@@ -4,7 +4,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { HttpClient } from "../http-client.js";
 import { jsonResponse } from "../testing/json-response.js";
-import { buildBeneficiaryQueryParams, createBeneficiary, getBeneficiary, updateBeneficiary } from "./service.js";
+import {
+  buildBeneficiaryQueryParams,
+  createBeneficiary,
+  getBeneficiary,
+  listBeneficiaries,
+  trustBeneficiaries,
+  untrustBeneficiaries,
+  updateBeneficiary,
+} from "./service.js";
 import type { ListBeneficiariesParams } from "./types.js";
 
 describe("buildBeneficiaryQueryParams", () => {
@@ -215,5 +223,119 @@ describe("updateBeneficiary", () => {
         name: "Updated Corp",
       },
     });
+  });
+});
+
+describe("listBeneficiaries", () => {
+  let fetchSpy: ReturnType<typeof vi.fn>;
+  let client: HttpClient;
+
+  const MOCK_BENEFICIARY = {
+    id: "ben-1",
+    name: "Acme Corp",
+    iban: "FR7630001007941234567890185",
+    bic: "BNPAFRPP",
+    email: null,
+    activity_tag: null,
+    status: "validated",
+    trusted: true,
+    created_at: "2025-01-01T00:00:00Z",
+    updated_at: "2025-01-02T00:00:00Z",
+  };
+
+  beforeEach(() => {
+    fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    client = new HttpClient({
+      baseUrl: "https://thirdparty.qonto.com",
+      authorization: "slug:secret",
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("lists beneficiaries without params", async () => {
+    fetchSpy.mockReturnValue(
+      jsonResponse({
+        beneficiaries: [MOCK_BENEFICIARY],
+        meta: { current_page: 1, next_page: null, prev_page: null, total_pages: 1, total_count: 1, per_page: 25 },
+      }),
+    );
+    const result = await listBeneficiaries(client);
+    expect(result.beneficiaries).toHaveLength(1);
+    const [url] = fetchSpy.mock.calls[0] as [URL];
+    expect(url.pathname).toBe("/v2/sepa/beneficiaries");
+  });
+
+  it("passes filter and pagination params", async () => {
+    fetchSpy.mockReturnValue(
+      jsonResponse({
+        beneficiaries: [],
+        meta: { current_page: 2, next_page: 3, prev_page: 1, total_pages: 3, total_count: 50, per_page: 10 },
+      }),
+    );
+    await listBeneficiaries(client, { page: 2, per_page: 10, status: ["validated"] });
+    const [url] = fetchSpy.mock.calls[0] as [URL];
+    expect(url.searchParams.get("page")).toBe("2");
+    expect(url.searchParams.get("per_page")).toBe("10");
+    expect(url.searchParams.getAll("status[]")).toEqual(["validated"]);
+  });
+});
+
+describe("trustBeneficiaries", () => {
+  let fetchSpy: ReturnType<typeof vi.fn>;
+  let client: HttpClient;
+
+  beforeEach(() => {
+    fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    client = new HttpClient({
+      baseUrl: "https://thirdparty.qonto.com",
+      authorization: "slug:secret",
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("sends POST to /trust with ids", async () => {
+    fetchSpy.mockReturnValue(jsonResponse({}));
+    await trustBeneficiaries(client, ["ben-1", "ben-2"]);
+    const [url, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+    expect(url.pathname).toBe("/v2/sepa/beneficiaries/trust");
+    expect(opts.method).toBe("POST");
+    const body = JSON.parse(opts.body as string) as Record<string, unknown>;
+    expect(body).toEqual({ ids: ["ben-1", "ben-2"] });
+  });
+});
+
+describe("untrustBeneficiaries", () => {
+  let fetchSpy: ReturnType<typeof vi.fn>;
+  let client: HttpClient;
+
+  beforeEach(() => {
+    fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    client = new HttpClient({
+      baseUrl: "https://thirdparty.qonto.com",
+      authorization: "slug:secret",
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("sends POST to /untrust with ids", async () => {
+    fetchSpy.mockReturnValue(jsonResponse({}));
+    await untrustBeneficiaries(client, ["ben-1"]);
+    const [url, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+    expect(url.pathname).toBe("/v2/sepa/beneficiaries/untrust");
+    expect(opts.method).toBe("POST");
+    const body = JSON.parse(opts.body as string) as Record<string, unknown>;
+    expect(body).toEqual({ ids: ["ben-1"] });
   });
 });
