@@ -3,11 +3,7 @@
 
 import type { Command } from "commander";
 import { Option } from "commander";
-import {
-  createRecurringTransfer,
-  type CreateRecurringTransferParams,
-  type RecurringTransfer,
-} from "@qontoctl/core";
+import { createRecurringTransfer, type CreateRecurringTransferParams, type RecurringTransfer } from "@qontoctl/core";
 import { createClient } from "../../client.js";
 import { formatOutput } from "../../formatters/index.js";
 import { addInheritableOptions, addWriteOptions, resolveGlobalOptions } from "../../inherited-options.js";
@@ -81,8 +77,7 @@ export function registerRecurringTransferCreateCommand(parent: Command): void {
       { verbose: opts.verbose === true || opts.debug === true },
     );
 
-    const data =
-      opts.output === "json" || opts.output === "yaml" ? recurringTransfer : [toTableRow(recurringTransfer)];
+    const data = opts.output === "json" || opts.output === "yaml" ? recurringTransfer : [toTableRow(recurringTransfer)];
     process.stdout.write(formatOutput(data, opts.output) + "\n");
   });
 }
