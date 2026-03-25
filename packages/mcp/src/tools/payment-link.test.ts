@@ -200,9 +200,7 @@ describe("payment-link MCP tools", () => {
 
   describe("payment_link_deactivate", () => {
     it("deactivates a payment link and returns the result", async () => {
-      fetchSpy.mockReturnValue(
-        jsonResponse({ payment_link: { ...samplePaymentLink, status: "canceled" } }),
-      );
+      fetchSpy.mockReturnValue(jsonResponse({ payment_link: { ...samplePaymentLink, status: "canceled" } }));
 
       const result = await mcpClient.callTool({
         name: "payment_link_deactivate",
@@ -218,9 +216,7 @@ describe("payment-link MCP tools", () => {
     });
 
     it("sends PATCH to the correct endpoint", async () => {
-      fetchSpy.mockReturnValue(
-        jsonResponse({ payment_link: { ...samplePaymentLink, status: "canceled" } }),
-      );
+      fetchSpy.mockReturnValue(jsonResponse({ payment_link: { ...samplePaymentLink, status: "canceled" } }));
 
       await mcpClient.callTool({
         name: "payment_link_deactivate",

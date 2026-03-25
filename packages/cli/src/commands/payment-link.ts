@@ -95,9 +95,7 @@ export function createPaymentLinkCommand(): Command {
     const opts = resolveGlobalOptions<GlobalOptions>(cmd);
     const client = await createClient(opts);
 
-    const response = await client.get<{ payment_link: PaymentLink }>(
-      `/v2/payment_links/${encodeURIComponent(id)}`,
-    );
+    const response = await client.get<{ payment_link: PaymentLink }>(`/v2/payment_links/${encodeURIComponent(id)}`);
     const pl = response.payment_link;
 
     const data = opts.output === "json" || opts.output === "yaml" ? pl : [paymentLinkToTableRow(pl)];
@@ -172,8 +170,7 @@ export function createPaymentLinkCommand(): Command {
       opts,
     );
 
-    const data =
-      opts.output === "json" || opts.output === "yaml" ? result.items : result.items.map(paymentToTableRow);
+    const data = opts.output === "json" || opts.output === "yaml" ? result.items : result.items.map(paymentToTableRow);
 
     process.stdout.write(formatOutput(data, opts.output) + "\n");
   });
