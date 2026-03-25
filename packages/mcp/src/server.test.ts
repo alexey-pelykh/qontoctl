@@ -130,7 +130,15 @@ describe("createServer", () => {
       expect(toolNames).toContain("bulk_transfer_create");
       expect(toolNames).toContain("recurring_transfer_create");
       expect(toolNames).toContain("recurring_transfer_cancel");
-      expect(tools).toHaveLength(114);
+      expect(toolNames).toContain("payment_link_list");
+      expect(toolNames).toContain("payment_link_show");
+      expect(toolNames).toContain("payment_link_create");
+      expect(toolNames).toContain("payment_link_deactivate");
+      expect(toolNames).toContain("payment_link_payments");
+      expect(toolNames).toContain("payment_link_methods");
+      expect(toolNames).toContain("payment_link_connect");
+      expect(toolNames).toContain("payment_link_connection_status");
+      expect(tools).toHaveLength(122);
     });
 
     it("tools have descriptions", async () => {

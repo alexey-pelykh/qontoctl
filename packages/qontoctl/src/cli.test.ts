@@ -96,8 +96,9 @@ describe("qontoctl CLI", () => {
       expect(names).toContain("statement");
       expect(names).toContain("transfer");
       expect(names).toContain("insurance");
+      expect(names).toContain("payment-link");
       expect(names).toContain("mcp");
-      expect(program.commands).toHaveLength(28);
+      expect(program.commands).toHaveLength(29);
     });
 
     it("commands have descriptions", () => {

@@ -126,6 +126,14 @@ const EXPECTED_TOOLS = [
   "insurance_update",
   "insurance_upload_document",
   "insurance_remove_document",
+  "payment_link_list",
+  "payment_link_show",
+  "payment_link_create",
+  "payment_link_deactivate",
+  "payment_link_payments",
+  "payment_link_methods",
+  "payment_link_connect",
+  "payment_link_connection_status",
 ] as const;
 
 describe("MCP server via stdio (e2e)", () => {
