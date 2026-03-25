@@ -364,6 +364,20 @@ export type {
   CreateIntlTransferParams,
 } from "./international-transfers/index.js";
 
+export {
+  getIntlEligibility,
+  listIntlCurrencies,
+  createIntlQuote,
+  IntlEligibilitySchema,
+  IntlEligibilityResponseSchema,
+  IntlCurrencySchema,
+  IntlCurrencyListResponseSchema,
+  IntlQuoteSchema,
+  IntlQuoteResponseSchema,
+} from "./international/index.js";
+
+export type { IntlEligibility, IntlCurrency, IntlQuote, CreateIntlQuoteParams } from "./international/index.js";
+
 export { parseResponse } from "./response.js";
 
 export type { BankAccount, Organization, PaginationMeta } from "./api-types.js";
