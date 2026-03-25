@@ -3,10 +3,37 @@
 
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { type HttpClient, getBulkTransfer, listBulkTransfers } from "@qontoctl/core";
+import { type HttpClient, createBulkTransfer, getBulkTransfer, listBulkTransfers } from "@qontoctl/core";
 import { withClient } from "../errors.js";
 
 export function registerBulkTransferTools(server: McpServer, getClient: () => Promise<HttpClient>): void {
+  server.registerTool(
+    "bulk_transfer_create",
+    {
+      description: "Create a bulk transfer",
+      inputSchema: {
+        transfers: z
+          .array(
+            z.object({
+              beneficiary_id: z.string().describe("Beneficiary UUID"),
+              amount: z.number().positive().describe("Transfer amount"),
+              currency: z.string().describe("Currency code (e.g. EUR)"),
+              reference: z.string().optional().describe("Transfer reference"),
+            }),
+          )
+          .min(1)
+          .describe("Array of transfers to create"),
+      },
+    },
+    async (args) =>
+      withClient(getClient, async (client) => {
+        const bulkTransfer = await createBulkTransfer(client, { transfers: args.transfers });
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify(bulkTransfer, null, 2) }],
+        };
+      }),
+  );
+
   server.registerTool(
     "bulk_transfer_list",
     {

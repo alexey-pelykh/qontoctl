@@ -20,6 +20,23 @@ export interface BulkTransferResult {
 }
 
 /**
+ * A single transfer item within a bulk transfer creation request.
+ */
+export interface BulkTransferItem {
+  readonly beneficiary_id: string;
+  readonly amount: number;
+  readonly currency: string;
+  readonly reference?: string | undefined;
+}
+
+/**
+ * Parameters for creating a bulk transfer.
+ */
+export interface CreateBulkTransferParams {
+  readonly transfers: readonly BulkTransferItem[];
+}
+
+/**
  * A bulk transfer as returned by the Qonto API.
  */
 export interface BulkTransfer {

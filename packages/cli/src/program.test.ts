@@ -167,9 +167,10 @@ describe("createProgram", () => {
       const bulkTransfer = findCommand(program, "bulk-transfer");
       const names = bulkTransfer.commands.map((c) => c.name());
 
+      expect(names).toContain("create");
       expect(names).toContain("list");
       expect(names).toContain("show");
-      expect(bulkTransfer.commands).toHaveLength(2);
+      expect(bulkTransfer.commands).toHaveLength(3);
     });
 
     it("registers expected recurring-transfer subcommands", () => {
@@ -177,9 +178,11 @@ describe("createProgram", () => {
       const recurringTransfer = findCommand(program, "recurring-transfer");
       const names = recurringTransfer.commands.map((c) => c.name());
 
+      expect(names).toContain("cancel");
+      expect(names).toContain("create");
       expect(names).toContain("list");
       expect(names).toContain("show");
-      expect(recurringTransfer.commands).toHaveLength(2);
+      expect(recurringTransfer.commands).toHaveLength(4);
     });
 
     it("registers expected org subcommands", () => {

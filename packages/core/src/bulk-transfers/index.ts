@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-export { getBulkTransfer, listBulkTransfers } from "./service.js";
+export { createBulkTransfer, getBulkTransfer, listBulkTransfers } from "./service.js";
 
 export {
   BulkTransferSchema,
@@ -11,4 +11,10 @@ export {
   BulkTransferResultErrorSchema,
 } from "./schemas.js";
 
-export type { BulkTransfer, BulkTransferResult, BulkTransferResultError } from "./types.js";
+export type {
+  BulkTransfer,
+  BulkTransferItem,
+  BulkTransferResult,
+  BulkTransferResultError,
+  CreateBulkTransferParams,
+} from "./types.js";

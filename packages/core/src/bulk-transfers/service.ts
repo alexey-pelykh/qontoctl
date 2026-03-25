@@ -5,7 +5,7 @@ import type { PaginationMeta } from "../api-types.js";
 import type { HttpClient } from "../http-client.js";
 import { parseResponse } from "../response.js";
 import { BulkTransferListResponseSchema, BulkTransferResponseSchema } from "./schemas.js";
-import type { BulkTransfer } from "./types.js";
+import type { BulkTransfer, CreateBulkTransferParams } from "./types.js";
 
 /**
  * Fetch a single bulk transfer by ID.
@@ -13,6 +13,19 @@ import type { BulkTransfer } from "./types.js";
 export async function getBulkTransfer(client: HttpClient, id: string): Promise<BulkTransfer> {
   const endpointPath = `/v2/sepa/bulk_transfers/${encodeURIComponent(id)}`;
   const response = await client.get(endpointPath);
+  return parseResponse(BulkTransferResponseSchema, response, endpointPath).bulk_transfer;
+}
+
+/**
+ * Create a bulk transfer.
+ */
+export async function createBulkTransfer(
+  client: HttpClient,
+  params: CreateBulkTransferParams,
+  options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
+): Promise<BulkTransfer> {
+  const endpointPath = "/v2/sepa/bulk_transfers";
+  const response = await client.post(endpointPath, { bulk_transfer: params }, options);
   return parseResponse(BulkTransferResponseSchema, response, endpointPath).bulk_transfer;
 }
 
