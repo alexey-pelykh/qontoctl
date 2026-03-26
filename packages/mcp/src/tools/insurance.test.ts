@@ -139,6 +139,26 @@ describe("insurance MCP tools", () => {
       expect(url.pathname).toBe("/v2/insurance_contracts/ic-1");
       expect(opts.method).toBe("PUT");
     });
+
+    it("omits undefined optional fields from the request body", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ insurance_contract: sampleContract }));
+
+      await mcpClient.callTool({
+        name: "insurance_update",
+        arguments: {
+          id: "ic-1",
+          provider_name: "Allianz",
+        },
+      });
+
+      const [, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      const body = JSON.parse(opts.body as string) as Record<string, unknown>;
+      expect(body).toEqual({
+        insurance_contract: {
+          provider_name: "Allianz",
+        },
+      });
+    });
   });
 
   describe("insurance_upload_document", () => {
