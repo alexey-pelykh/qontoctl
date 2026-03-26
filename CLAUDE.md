@@ -112,7 +112,7 @@ pnpm test:e2e                       # Full E2E suite
 - Tests run sequentially (`--concurrency=1`) to avoid API race conditions
 - Per-test timeout: 30 seconds
 
-**What's covered:** organization/account listing, transactions (filtering, pagination), bank statements, labels (CRUD), memberships, MCP server initialization, and MCP tool invocations.
+**What's covered:** Each domain has its own directory under `packages/e2e/src/` with CLI and MCP test files. Check the directory structure for current coverage — do not rely on a hardcoded list.
 
 ### TypeScript
 
