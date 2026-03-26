@@ -8,6 +8,7 @@ import { fetchPaginated } from "../pagination.js";
 import { formatOutput } from "../formatters/index.js";
 import { addInheritableOptions, addWriteOptions, resolveGlobalOptions } from "../inherited-options.js";
 import type { GlobalOptions, PaginationOptions, WriteOptions } from "../options.js";
+import { parseJson } from "../parse-json.js";
 
 interface PaymentLinkListOptions extends GlobalOptions, PaginationOptions {
   readonly status?: string | undefined;
@@ -114,7 +115,7 @@ export function createPaymentLinkCommand(): Command {
     const opts = resolveGlobalOptions<GlobalOptions & WriteOptions & { body: string }>(cmd);
     const client = await createClient(opts);
 
-    const body: unknown = JSON.parse(opts.body);
+    const body: unknown = parseJson(opts.body, "--body");
     const response = await client.post<{ payment_link: PaymentLink }>(
       "/v2/payment_links",
       body,
@@ -210,7 +211,7 @@ export function createPaymentLinkCommand(): Command {
     const opts = resolveGlobalOptions<GlobalOptions & WriteOptions & { body: string }>(cmd);
     const client = await createClient(opts);
 
-    const body: unknown = JSON.parse(opts.body);
+    const body: unknown = parseJson(opts.body, "--body");
     const response = await client.post<{
       connection_location: string;
       status: string;

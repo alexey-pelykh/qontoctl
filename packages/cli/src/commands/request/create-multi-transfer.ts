@@ -14,6 +14,7 @@ import { createClient } from "../../client.js";
 import { formatOutput } from "../../formatters/index.js";
 import { addInheritableOptions, addWriteOptions, resolveGlobalOptions } from "../../inherited-options.js";
 import type { GlobalOptions, WriteOptions } from "../../options.js";
+import { parseJson } from "../../parse-json.js";
 import { executeWithCliSca } from "../../sca.js";
 
 interface CreateMultiTransferOptions extends GlobalOptions, WriteOptions {
@@ -49,7 +50,7 @@ export function registerRequestCreateMultiTransferCommand(parent: Command): void
     const httpClient = await createClient(opts);
 
     const fileContent = await readFile(opts.file, "utf-8");
-    const transfers = JSON.parse(fileContent) as readonly MultiTransferItem[];
+    const transfers = parseJson(fileContent, `--file ${opts.file}`) as readonly MultiTransferItem[];
 
     const params: CreateMultiTransferRequestParams = {
       note: opts.note,
