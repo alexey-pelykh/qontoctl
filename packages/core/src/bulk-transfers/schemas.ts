@@ -45,11 +45,15 @@ export const BulkTransferSchema = z
   })
   .strip() satisfies z.ZodType<BulkTransfer>;
 
-export const BulkTransferResponseSchema = z.object({
-  bulk_transfer: BulkTransferSchema,
-});
+export const BulkTransferResponseSchema = z
+  .object({
+    bulk_transfer: BulkTransferSchema,
+  })
+  .strip();
 
-export const BulkTransferListResponseSchema = z.object({
-  bulk_transfers: z.array(BulkTransferSchema),
-  meta: PaginationMetaSchema,
-});
+export const BulkTransferListResponseSchema = z
+  .object({
+    bulk_transfers: z.array(BulkTransferSchema),
+    meta: PaginationMetaSchema,
+  })
+  .strip();

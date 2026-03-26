@@ -15,7 +15,9 @@ export const ScaSessionStatusSchema = z.enum(["waiting", "allow", "deny"]);
  * Note: The API response contains only `status` inside the `sca_session` envelope.
  * The `token` field is added by the service layer from the request parameter.
  */
-export const ScaSessionSchema = z.object({
-  token: z.string(),
-  status: ScaSessionStatusSchema,
-}) satisfies z.ZodType<ScaSession>;
+export const ScaSessionSchema = z
+  .object({
+    token: z.string(),
+    status: ScaSessionStatusSchema,
+  })
+  .strip() satisfies z.ZodType<ScaSession>;

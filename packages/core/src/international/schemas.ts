@@ -5,6 +5,8 @@ import { z } from "zod";
 
 import type { IntlCurrency, IntlEligibility, IntlQuote } from "./types.js";
 
+// International API schemas use .loose() to pass through unknown fields.
+// These endpoints are less stable and may return additional undocumented properties.
 export const IntlEligibilitySchema = z
   .object({
     eligible: z.boolean(),
@@ -12,9 +14,11 @@ export const IntlEligibilitySchema = z
   })
   .loose() satisfies z.ZodType<IntlEligibility>;
 
-export const IntlEligibilityResponseSchema = z.object({
-  eligibility: IntlEligibilitySchema,
-});
+export const IntlEligibilityResponseSchema = z
+  .object({
+    eligibility: IntlEligibilitySchema,
+  })
+  .strip();
 
 export const IntlCurrencySchema = z
   .object({
@@ -25,9 +29,11 @@ export const IntlCurrencySchema = z
   })
   .loose() satisfies z.ZodType<IntlCurrency>;
 
-export const IntlCurrencyListResponseSchema = z.object({
-  currencies: z.array(IntlCurrencySchema),
-});
+export const IntlCurrencyListResponseSchema = z
+  .object({
+    currencies: z.array(IntlCurrencySchema),
+  })
+  .strip();
 
 export const IntlQuoteSchema = z
   .object({
@@ -43,6 +49,8 @@ export const IntlQuoteSchema = z
   })
   .loose() satisfies z.ZodType<IntlQuote>;
 
-export const IntlQuoteResponseSchema = z.object({
-  quote: IntlQuoteSchema,
-});
+export const IntlQuoteResponseSchema = z
+  .object({
+    quote: IntlQuoteSchema,
+  })
+  .strip();

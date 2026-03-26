@@ -76,11 +76,15 @@ export const CreditNoteSchema = z
   })
   .strip() satisfies z.ZodType<CreditNote>;
 
-export const CreditNoteResponseSchema = z.object({
-  credit_note: CreditNoteSchema,
-});
+export const CreditNoteResponseSchema = z
+  .object({
+    credit_note: CreditNoteSchema,
+  })
+  .strip();
 
-export const CreditNoteListResponseSchema = z.object({
-  credit_notes: z.array(CreditNoteSchema),
-  meta: PaginationMetaSchema,
-});
+export const CreditNoteListResponseSchema = z
+  .object({
+    credit_notes: z.array(CreditNoteSchema),
+    meta: PaginationMetaSchema,
+  })
+  .strip();

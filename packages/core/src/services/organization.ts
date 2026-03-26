@@ -8,7 +8,7 @@ import { OrganizationSchema } from "../api-types.schema.js";
 import type { HttpClient } from "../http-client.js";
 import { parseResponse } from "../response.js";
 
-const OrganizationResponseSchema = z.object({ organization: OrganizationSchema });
+const OrganizationResponseSchema = z.object({ organization: OrganizationSchema }).strip();
 
 /**
  * Fetch the authenticated organization details, including its bank accounts.

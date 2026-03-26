@@ -6,6 +6,8 @@ import { z } from "zod";
 import { PaginationMetaSchema } from "../api-types.schema.js";
 import type { IntlBeneficiary, IntlBeneficiaryRequirementField, IntlBeneficiaryRequirements } from "./types.js";
 
+// International beneficiary schemas use .loose() to pass through unknown fields.
+// These endpoints are less stable and may return additional undocumented properties.
 export const IntlBeneficiarySchema = z
   .object({
     id: z.string(),
@@ -17,14 +19,18 @@ export const IntlBeneficiarySchema = z
   })
   .loose() satisfies z.ZodType<IntlBeneficiary>;
 
-export const IntlBeneficiaryResponseSchema = z.object({
-  international_beneficiary: IntlBeneficiarySchema,
-});
+export const IntlBeneficiaryResponseSchema = z
+  .object({
+    international_beneficiary: IntlBeneficiarySchema,
+  })
+  .strip();
 
-export const IntlBeneficiaryListResponseSchema = z.object({
-  international_beneficiaries: z.array(IntlBeneficiarySchema),
-  meta: PaginationMetaSchema,
-});
+export const IntlBeneficiaryListResponseSchema = z
+  .object({
+    international_beneficiaries: z.array(IntlBeneficiarySchema),
+    meta: PaginationMetaSchema,
+  })
+  .strip();
 
 export const IntlBeneficiaryRequirementFieldSchema = z
   .object({
@@ -44,6 +50,8 @@ export const IntlBeneficiaryRequirementsSchema = z
   })
   .loose() satisfies z.ZodType<IntlBeneficiaryRequirements>;
 
-export const IntlBeneficiaryRequirementsResponseSchema = z.object({
-  requirements: IntlBeneficiaryRequirementsSchema,
-});
+export const IntlBeneficiaryRequirementsResponseSchema = z
+  .object({
+    requirements: IntlBeneficiaryRequirementsSchema,
+  })
+  .strip();

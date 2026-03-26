@@ -6,23 +6,29 @@ import { z } from "zod";
 import { PaginationMetaSchema } from "../api-types.schema.js";
 import type { WebhookSubscription } from "../types/webhook-subscription.js";
 
-export const WebhookSubscriptionSchema = z.object({
-  id: z.string(),
-  organization_id: z.string(),
-  membership_id: z.string(),
-  callback_url: z.string(),
-  types: z.array(z.string()),
-  description: z.nullable(z.string()),
-  secret: z.nullable(z.string()),
-  created_at: z.string(),
-  updated_at: z.string(),
-}) satisfies z.ZodType<WebhookSubscription>;
+export const WebhookSubscriptionSchema = z
+  .object({
+    id: z.string(),
+    organization_id: z.string(),
+    membership_id: z.string(),
+    callback_url: z.string(),
+    types: z.array(z.string()),
+    description: z.nullable(z.string()),
+    secret: z.nullable(z.string()),
+    created_at: z.string(),
+    updated_at: z.string(),
+  })
+  .strip() satisfies z.ZodType<WebhookSubscription>;
 
-export const WebhookSubscriptionResponseSchema = z.object({
-  webhook_subscription: WebhookSubscriptionSchema,
-});
+export const WebhookSubscriptionResponseSchema = z
+  .object({
+    webhook_subscription: WebhookSubscriptionSchema,
+  })
+  .strip();
 
-export const WebhookSubscriptionListResponseSchema = z.object({
-  webhook_subscriptions: z.array(WebhookSubscriptionSchema),
-  meta: PaginationMetaSchema,
-});
+export const WebhookSubscriptionListResponseSchema = z
+  .object({
+    webhook_subscriptions: z.array(WebhookSubscriptionSchema),
+    meta: PaginationMetaSchema,
+  })
+  .strip();

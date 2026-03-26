@@ -13,11 +13,15 @@ export const TeamSchema = z
   })
   .strip() satisfies z.ZodType<Team>;
 
-export const TeamResponseSchema = z.object({
-  team: TeamSchema,
-});
+export const TeamResponseSchema = z
+  .object({
+    team: TeamSchema,
+  })
+  .strip();
 
-export const TeamListResponseSchema = z.object({
-  teams: z.array(TeamSchema),
-  meta: PaginationMetaSchema,
-});
+export const TeamListResponseSchema = z
+  .object({
+    teams: z.array(TeamSchema),
+    meta: PaginationMetaSchema,
+  })
+  .strip();

@@ -103,11 +103,15 @@ export const QuoteSchema = z
   })
   .strip() satisfies z.ZodType<Quote>;
 
-export const QuoteResponseSchema = z.object({
-  quote: QuoteSchema,
-});
+export const QuoteResponseSchema = z
+  .object({
+    quote: QuoteSchema,
+  })
+  .strip();
 
-export const QuoteListResponseSchema = z.object({
-  quotes: z.array(QuoteSchema),
-  meta: PaginationMetaSchema,
-});
+export const QuoteListResponseSchema = z
+  .object({
+    quotes: z.array(QuoteSchema),
+    meta: PaginationMetaSchema,
+  })
+  .strip();

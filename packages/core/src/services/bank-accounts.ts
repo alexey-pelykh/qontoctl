@@ -8,10 +8,12 @@ import { BankAccountSchema } from "../api-types.schema.js";
 import type { HttpClient } from "../http-client.js";
 import { parseResponse } from "../response.js";
 
-const BankAccountResponseSchema = z.object({ bank_account: BankAccountSchema });
-const BankAccountListResponseSchema = z.object({
-  bank_accounts: z.array(BankAccountSchema),
-});
+const BankAccountResponseSchema = z.object({ bank_account: BankAccountSchema }).strip();
+const BankAccountListResponseSchema = z
+  .object({
+    bank_accounts: z.array(BankAccountSchema),
+  })
+  .strip();
 
 export interface CreateBankAccountParams {
   readonly name: string;

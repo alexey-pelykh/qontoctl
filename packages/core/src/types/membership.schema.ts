@@ -23,11 +23,15 @@ export const MembershipSchema = z
   })
   .strip() satisfies z.ZodType<Membership>;
 
-export const MembershipResponseSchema = z.object({
-  membership: MembershipSchema,
-});
+export const MembershipResponseSchema = z
+  .object({
+    membership: MembershipSchema,
+  })
+  .strip();
 
-export const MembershipListResponseSchema = z.object({
-  memberships: z.array(MembershipSchema),
-  meta: PaginationMetaSchema,
-});
+export const MembershipListResponseSchema = z
+  .object({
+    memberships: z.array(MembershipSchema),
+    meta: PaginationMetaSchema,
+  })
+  .strip();

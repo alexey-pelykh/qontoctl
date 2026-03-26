@@ -7,11 +7,13 @@ import type { Attachment } from "./types.js";
 /**
  * Zod schema for an attachment returned by the Qonto API.
  */
-export const AttachmentSchema = z.object({
-  id: z.string(),
-  file_name: z.string(),
-  file_size: z.coerce.string(),
-  file_content_type: z.string(),
-  url: z.string(),
-  created_at: z.string(),
-}) satisfies z.ZodType<Attachment>;
+export const AttachmentSchema = z
+  .object({
+    id: z.string(),
+    file_name: z.string(),
+    file_size: z.coerce.string(),
+    file_content_type: z.string(),
+    url: z.string(),
+    created_at: z.string(),
+  })
+  .strip() satisfies z.ZodType<Attachment>;
