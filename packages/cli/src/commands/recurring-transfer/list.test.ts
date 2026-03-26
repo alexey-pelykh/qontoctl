@@ -2,7 +2,10 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { Command, Option } from "commander";
 import { jsonResponse } from "@qontoctl/core/testing";
+import { registerRecurringTransferCommands } from "./index.js";
+import { OUTPUT_FORMATS } from "../../options.js";
 
 vi.mock("../../client.js", async () => {
   const { HttpClient } = await import("@qontoctl/core");
@@ -15,6 +18,22 @@ vi.mock("../../client.js", async () => {
     ),
   };
 });
+
+/**
+ * Create a lightweight test program with only the global options and
+ * recurring-transfer commands registered.  This avoids the expensive dynamic
+ * import of the full program module (which loads every command module)
+ * that can exceed the per-test timeout on slower CI runners (e.g. Windows).
+ */
+function createTestProgram(): Command {
+  const program = new Command();
+  program
+    .addOption(new Option("-o, --output <format>", "output format").choices([...OUTPUT_FORMATS]).default("table"))
+    .addOption(new Option("--no-paginate", "disable auto-pagination"));
+  registerRecurringTransferCommands(program);
+  program.exitOverride();
+  return program;
+}
 
 function makeMeta(overrides: Record<string, unknown> = {}) {
   return {
@@ -51,9 +70,7 @@ describe("recurring-transfer list command", () => {
     vi.stubEnv("QONTOCTL_ORGANIZATION_SLUG", "test-org");
     vi.stubEnv("QONTOCTL_SECRET_KEY", "test-secret");
 
-    const { createProgram } = await import("../../program.js");
-    const program = createProgram();
-    program.exitOverride();
+    const program = createTestProgram();
     await program.parseAsync(["node", "qontoctl", "recurring-transfer", "list", ...args]);
   }
 

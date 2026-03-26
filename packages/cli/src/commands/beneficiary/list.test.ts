@@ -3,6 +3,9 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { jsonResponse } from "@qontoctl/core/testing";
+import { Command, Option } from "commander";
+import { registerBeneficiaryCommands } from "./index.js";
+import { OUTPUT_FORMATS } from "../../options.js";
 import type { PaginationMeta } from "../../pagination.js";
 
 function makeMeta(overrides: Partial<PaginationMeta> = {}): PaginationMeta {
@@ -23,6 +26,32 @@ vi.mock("../../client.js", () => ({
 
 import { createClient } from "../../client.js";
 import { HttpClient } from "@qontoctl/core";
+
+/**
+ * Create a lightweight test program with only the global options and
+ * beneficiary commands registered.  This avoids the expensive dynamic
+ * import of the full program module (which loads every command module)
+ * that can exceed the per-test timeout on slower CI runners (e.g. Windows).
+ */
+function createTestProgram(): Command {
+  const program = new Command();
+  program
+    .addOption(new Option("-o, --output <format>", "output format").choices([...OUTPUT_FORMATS]).default("table"))
+    .addOption(new Option("--page <number>", "fetch a specific page of results").argParser(parsePositiveInt))
+    .addOption(new Option("--per-page <number>", "number of results per page").argParser(parsePositiveInt))
+    .addOption(new Option("--no-paginate", "disable auto-pagination"));
+  registerBeneficiaryCommands(program);
+  program.exitOverride();
+  return program;
+}
+
+function parsePositiveInt(value: string): number {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    throw new Error(`Expected a positive integer, got "${value}".`);
+  }
+  return parsed;
+}
 
 describe("beneficiary list command", () => {
   let fetchSpy: ReturnType<typeof vi.fn>;
@@ -79,9 +108,7 @@ describe("beneficiary list command", () => {
       }),
     );
 
-    const { createProgram } = await import("../../program.js");
-    const program = createProgram();
-    program.exitOverride();
+    const program = createTestProgram();
 
     await program.parseAsync(["beneficiary", "list"], { from: "user" });
 
@@ -115,9 +142,7 @@ describe("beneficiary list command", () => {
       }),
     );
 
-    const { createProgram } = await import("../../program.js");
-    const program = createProgram();
-    program.exitOverride();
+    const program = createTestProgram();
 
     await program.parseAsync(["--output", "json", "beneficiary", "list"], { from: "user" });
 
@@ -136,9 +161,7 @@ describe("beneficiary list command", () => {
       }),
     );
 
-    const { createProgram } = await import("../../program.js");
-    const program = createProgram();
-    program.exitOverride();
+    const program = createTestProgram();
 
     await program.parseAsync(["beneficiary", "list", "--status", "validated", "--trusted"], { from: "user" });
 
@@ -155,9 +178,7 @@ describe("beneficiary list command", () => {
       }),
     );
 
-    const { createProgram } = await import("../../program.js");
-    const program = createProgram();
-    program.exitOverride();
+    const program = createTestProgram();
 
     await program.parseAsync(["--page", "2", "--per-page", "50", "beneficiary", "list"], { from: "user" });
 
@@ -174,9 +195,7 @@ describe("beneficiary list command", () => {
       }),
     );
 
-    const { createProgram } = await import("../../program.js");
-    const program = createProgram();
-    program.exitOverride();
+    const program = createTestProgram();
 
     await program.parseAsync(["beneficiary", "list"], { from: "user" });
 

@@ -2,8 +2,10 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { Command, Option } from "commander";
 import { jsonResponse } from "@qontoctl/core/testing";
 import { createClientCommand } from "./client.js";
+import { OUTPUT_FORMATS } from "../options.js";
 
 vi.mock("../client.js", () => ({
   createClient: vi.fn(),
@@ -33,6 +35,22 @@ const sampleClient = {
   created_at: "2026-01-15T10:00:00Z",
   updated_at: "2026-01-15T10:00:00Z",
 };
+
+/**
+ * Create a lightweight test program with only the global options and client
+ * commands registered.  This avoids the expensive dynamic import of the
+ * full program module (which loads every command module) that can exceed
+ * the per-test timeout on slower CI runners (e.g. Windows).
+ */
+function createTestProgram(): Command {
+  const program = new Command();
+  program
+    .addOption(new Option("-o, --output <format>", "output format").choices([...OUTPUT_FORMATS]).default("table"))
+    .addOption(new Option("--no-paginate", "disable auto-pagination"));
+  program.addCommand(createClientCommand());
+  program.exitOverride();
+  return program;
+}
 
 describe("client commands", () => {
   let fetchSpy: ReturnType<typeof vi.fn>;
@@ -74,10 +92,7 @@ describe("client commands", () => {
         }),
       );
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createClientCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["client", "list"], { from: "user" });
 
@@ -102,10 +117,7 @@ describe("client commands", () => {
         }),
       );
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createClientCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["--output", "json", "client", "list"], { from: "user" });
 
@@ -125,10 +137,7 @@ describe("client commands", () => {
     it("shows client details in json format", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ client: sampleClient }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createClientCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["--output", "json", "client", "show", "cl-123"], { from: "user" });
 
@@ -143,10 +152,7 @@ describe("client commands", () => {
     it("calls the correct API endpoint", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ client: sampleClient }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createClientCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["client", "show", "cl-123"], { from: "user" });
 
@@ -159,10 +165,7 @@ describe("client commands", () => {
     it("creates a company client in table format", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ client: sampleClient }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createClientCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["client", "create", "--kind", "company", "--name", "Acme Corp"], { from: "user" });
 
@@ -175,10 +178,7 @@ describe("client commands", () => {
     it("creates a client in json format", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ client: sampleClient }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createClientCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["--output", "json", "client", "create", "--kind", "company", "--name", "Acme Corp"], {
         from: "user",
@@ -194,10 +194,7 @@ describe("client commands", () => {
     it("sends POST with flat body to the correct endpoint", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ client: sampleClient }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createClientCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(
         ["client", "create", "--kind", "company", "--name", "Acme Corp", "--email", "contact@acme.com"],
@@ -218,10 +215,7 @@ describe("client commands", () => {
     it("passes idempotency key when provided", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ client: sampleClient }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createClientCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(
         ["client", "create", "--kind", "company", "--name", "Acme Corp", "--idempotency-key", "key-abc-123"],
@@ -238,10 +232,7 @@ describe("client commands", () => {
     it("updates a client in json format", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ client: { ...sampleClient, name: "Acme Inc" } }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createClientCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["--output", "json", "client", "update", "cl-123", "--name", "Acme Inc"], {
         from: "user",
@@ -257,10 +248,7 @@ describe("client commands", () => {
     it("sends PATCH with flat body to the correct endpoint", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ client: sampleClient }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createClientCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["client", "update", "cl-123", "--name", "Acme Inc", "--email", "new@acme.com"], {
         from: "user",
@@ -281,10 +269,7 @@ describe("client commands", () => {
     it("deletes a client with --yes flag", async () => {
       fetchSpy.mockImplementation(() => Promise.resolve(new Response(null, { status: 204 })));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createClientCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["--output", "json", "client", "delete", "cl-123", "--yes"], { from: "user" });
 
@@ -298,10 +283,7 @@ describe("client commands", () => {
     it("sends DELETE to the correct endpoint", async () => {
       fetchSpy.mockImplementation(() => Promise.resolve(new Response(null, { status: 204 })));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createClientCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["client", "delete", "cl-123", "--yes"], { from: "user" });
 
@@ -311,10 +293,7 @@ describe("client commands", () => {
     });
 
     it("exits with error when --yes is not provided", async () => {
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createClientCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["client", "delete", "cl-123"], { from: "user" });
 

@@ -2,7 +2,10 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { Command, Option } from "commander";
 import { jsonResponse } from "@qontoctl/core/testing";
+import { registerSupplierInvoiceCommands } from "./index.js";
+import { OUTPUT_FORMATS } from "../../options.js";
 
 vi.mock("../../client.js", () => ({
   createClient: vi.fn(),
@@ -14,6 +17,22 @@ vi.mock("node:fs/promises", () => ({
 
 import { createClient } from "../../client.js";
 import { HttpClient } from "@qontoctl/core";
+
+/**
+ * Create a lightweight test program with only the global options and
+ * supplier-invoice commands registered.  This avoids the expensive dynamic
+ * import of the full program module (which loads every command module)
+ * that can exceed the per-test timeout on slower CI runners (e.g. Windows).
+ */
+function createTestProgram(): Command {
+  const program = new Command();
+  program
+    .addOption(new Option("-o, --output <format>", "output format").choices([...OUTPUT_FORMATS]).default("table"))
+    .addOption(new Option("--no-paginate", "disable auto-pagination"));
+  registerSupplierInvoiceCommands(program);
+  program.exitOverride();
+  return program;
+}
 
 describe("supplier-invoice bulk-create command", () => {
   let fetchSpy: ReturnType<typeof vi.fn>;
@@ -74,9 +93,7 @@ describe("supplier-invoice bulk-create command", () => {
       }),
     );
 
-    const { createProgram } = await import("../../program.js");
-    const program = createProgram();
-    program.exitOverride();
+    const program = createTestProgram();
 
     await program.parseAsync(["supplier-invoice", "bulk-create", "/tmp/invoice.pdf"], { from: "user" });
 
@@ -118,9 +135,7 @@ describe("supplier-invoice bulk-create command", () => {
       }),
     );
 
-    const { createProgram } = await import("../../program.js");
-    const program = createProgram();
-    program.exitOverride();
+    const program = createTestProgram();
 
     await program.parseAsync(["--output", "json", "supplier-invoice", "bulk-create", "/tmp/invoice.pdf"], {
       from: "user",
@@ -145,9 +160,7 @@ describe("supplier-invoice bulk-create command", () => {
       }),
     );
 
-    const { createProgram } = await import("../../program.js");
-    const program = createProgram();
-    program.exitOverride();
+    const program = createTestProgram();
 
     await program.parseAsync(["supplier-invoice", "bulk-create", "/tmp/bad.txt"], { from: "user" });
 
@@ -165,9 +178,7 @@ describe("supplier-invoice bulk-create command", () => {
       }),
     );
 
-    const { createProgram } = await import("../../program.js");
-    const program = createProgram();
-    program.exitOverride();
+    const program = createTestProgram();
 
     await program.parseAsync(["supplier-invoice", "bulk-create", "/tmp/invoice.pdf"], { from: "user" });
 

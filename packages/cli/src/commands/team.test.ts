@@ -2,7 +2,10 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { Command, Option } from "commander";
 import { jsonResponse } from "@qontoctl/core/testing";
+import { createTeamCommand } from "./team.js";
+import { OUTPUT_FORMATS } from "../options.js";
 import type { PaginationMeta } from "../pagination.js";
 
 function makeMeta(overrides: Partial<PaginationMeta> = {}): PaginationMeta {
@@ -23,6 +26,32 @@ vi.mock("../client.js", () => ({
 
 import { createClient } from "../client.js";
 import { HttpClient } from "@qontoctl/core";
+
+/**
+ * Create a lightweight test program with only the global options and team
+ * commands registered.  This avoids the expensive dynamic import of the
+ * full program module (which loads every command module) that can exceed
+ * the per-test timeout on slower CI runners (e.g. Windows).
+ */
+function createTestProgram(): Command {
+  const program = new Command();
+  program
+    .addOption(new Option("-o, --output <format>", "output format").choices([...OUTPUT_FORMATS]).default("table"))
+    .addOption(new Option("--page <number>", "fetch a specific page of results").argParser(parsePositiveInt))
+    .addOption(new Option("--per-page <number>", "number of results per page").argParser(parsePositiveInt))
+    .addOption(new Option("--no-paginate", "disable auto-pagination"));
+  program.addCommand(createTeamCommand());
+  program.exitOverride();
+  return program;
+}
+
+function parsePositiveInt(value: string): number {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    throw new Error(`Expected a positive integer, got "${value}".`);
+  }
+  return parsed;
+}
 
 describe("team commands", () => {
   let fetchSpy: ReturnType<typeof vi.fn>;
@@ -58,9 +87,7 @@ describe("team commands", () => {
         }),
       );
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["team", "list"], { from: "user" });
 
@@ -81,9 +108,7 @@ describe("team commands", () => {
         }),
       );
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["--output", "json", "team", "list"], {
         from: "user",
@@ -107,9 +132,7 @@ describe("team commands", () => {
         }),
       );
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["--page", "3", "--per-page", "25", "team", "list"], { from: "user" });
 
@@ -126,9 +149,7 @@ describe("team commands", () => {
         }),
       );
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["team", "list"], { from: "user" });
 
@@ -146,9 +167,7 @@ describe("team commands", () => {
     it("creates a team in json format", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ team: createdTeam }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["--output", "json", "team", "create", "--name", "Design"], { from: "user" });
 
@@ -162,9 +181,7 @@ describe("team commands", () => {
     it("creates a team in table format", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ team: createdTeam }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["team", "create", "--name", "Design"], { from: "user" });
 
@@ -177,9 +194,7 @@ describe("team commands", () => {
     it("sends POST with name body to the correct endpoint", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ team: createdTeam }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["team", "create", "--name", "Design"], { from: "user" });
 
@@ -193,9 +208,7 @@ describe("team commands", () => {
     it("passes idempotency key when provided", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ team: createdTeam }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["team", "create", "--name", "Design", "--idempotency-key", "key-abc-123"], {
         from: "user",

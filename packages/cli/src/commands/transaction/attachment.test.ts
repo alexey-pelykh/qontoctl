@@ -2,7 +2,10 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { Command, Option } from "commander";
 import { jsonResponse } from "@qontoctl/core/testing";
+import { registerTransactionCommands } from "./index.js";
+import { OUTPUT_FORMATS } from "../../options.js";
 
 vi.mock("../../client.js", () => ({
   createClient: vi.fn(),
@@ -16,6 +19,22 @@ vi.mock("@clack/prompts", () => ({
 import { confirm, isCancel } from "@clack/prompts";
 import { createClient } from "../../client.js";
 import { HttpClient } from "@qontoctl/core";
+
+/**
+ * Create a lightweight test program with only the global options and
+ * transaction commands registered.  This avoids the expensive dynamic
+ * import of the full program module (which loads every command module)
+ * that can exceed the per-test timeout on slower CI runners (e.g. Windows).
+ */
+function createTestProgram(): Command {
+  const program = new Command();
+  program
+    .addOption(new Option("-o, --output <format>", "output format").choices([...OUTPUT_FORMATS]).default("table"))
+    .addOption(new Option("--no-paginate", "disable auto-pagination"));
+  registerTransactionCommands(program);
+  program.exitOverride();
+  return program;
+}
 
 const sampleAttachment = {
   id: "att-123",
@@ -51,9 +70,7 @@ describe("transaction attachment commands", () => {
     it("lists attachments for a transaction in table format", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ attachments: [sampleAttachment] }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["transaction", "attachment", "list", "tx-1"], { from: "user" });
 
@@ -66,9 +83,7 @@ describe("transaction attachment commands", () => {
     it("lists attachments in json format", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ attachments: [sampleAttachment] }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["--output", "json", "transaction", "attachment", "list", "tx-1"], { from: "user" });
 
@@ -82,9 +97,7 @@ describe("transaction attachment commands", () => {
     it("sends GET to the correct API endpoint", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ attachments: [sampleAttachment] }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["transaction", "attachment", "list", "tx-1"], { from: "user" });
 
@@ -98,9 +111,7 @@ describe("transaction attachment commands", () => {
     it("attaches a file to a transaction via multipart form-data", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ attachment: sampleAttachment }));
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["transaction", "attachment", "add", "tx-1", "package.json"], { from: "user" });
 
@@ -118,9 +129,7 @@ describe("transaction attachment commands", () => {
       fetchSpy.mockImplementation(() => jsonResponse({}));
       const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation((() => true) as never);
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["transaction", "attachment", "add", "tx-1", "package.json"], { from: "user" });
 
@@ -135,9 +144,7 @@ describe("transaction attachment commands", () => {
       fetchSpy.mockImplementation(() => Promise.resolve(new Response(null, { status: 204 })));
       const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation((() => true) as never);
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["transaction", "attachment", "remove", "tx-1", "att-123"], { from: "user" });
 
@@ -157,9 +164,7 @@ describe("transaction attachment commands", () => {
       fetchSpy.mockImplementation(() => Promise.resolve(new Response(null, { status: 204 })));
       const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation((() => true) as never);
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["transaction", "attachment", "remove", "tx-1"], { from: "user" });
 
@@ -180,9 +185,7 @@ describe("transaction attachment commands", () => {
       vi.mocked(isCancel).mockReturnValue(false);
       const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation((() => true) as never);
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["transaction", "attachment", "remove", "tx-1"], { from: "user" });
 
@@ -197,9 +200,7 @@ describe("transaction attachment commands", () => {
       vi.mocked(isCancel).mockReturnValue(true);
       const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation((() => true) as never);
 
-      const { createProgram } = await import("../../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["transaction", "attachment", "remove", "tx-1"], { from: "user" });
 

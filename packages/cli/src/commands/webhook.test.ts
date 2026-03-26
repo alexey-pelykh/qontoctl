@@ -2,8 +2,10 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { Command, Option } from "commander";
 import { jsonResponse } from "@qontoctl/core/testing";
 import { createWebhookCommand } from "./webhook.js";
+import { OUTPUT_FORMATS } from "../options.js";
 import type { PaginationMeta } from "../pagination.js";
 
 function makeMeta(overrides: Partial<PaginationMeta> = {}): PaginationMeta {
@@ -24,6 +26,32 @@ vi.mock("../client.js", () => ({
 
 import { createClient } from "../client.js";
 import { HttpClient } from "@qontoctl/core";
+
+/**
+ * Create a lightweight test program with only the global options and webhook
+ * commands registered.  This avoids the expensive dynamic import of the
+ * full program module (which loads every command module) that can exceed
+ * the per-test timeout on slower CI runners (e.g. Windows).
+ */
+function createTestProgram(): Command {
+  const program = new Command();
+  program
+    .addOption(new Option("-o, --output <format>", "output format").choices([...OUTPUT_FORMATS]).default("table"))
+    .addOption(new Option("--page <number>", "fetch a specific page of results").argParser(parsePositiveInt))
+    .addOption(new Option("--per-page <number>", "number of results per page").argParser(parsePositiveInt))
+    .addOption(new Option("--no-paginate", "disable auto-pagination"));
+  program.addCommand(createWebhookCommand());
+  program.exitOverride();
+  return program;
+}
+
+function parsePositiveInt(value: string): number {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    throw new Error(`Expected a positive integer, got "${value}".`);
+  }
+  return parsed;
+}
 
 describe("webhook commands", () => {
   let fetchSpy: ReturnType<typeof vi.fn>;
@@ -82,10 +110,7 @@ describe("webhook commands", () => {
         }),
       );
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createWebhookCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["webhook", "list"], { from: "user" });
 
@@ -118,10 +143,7 @@ describe("webhook commands", () => {
         }),
       );
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createWebhookCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["--output", "json", "webhook", "list"], {
         from: "user",
@@ -152,10 +174,7 @@ describe("webhook commands", () => {
         }),
       );
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createWebhookCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["--page", "2", "--per-page", "50", "webhook", "list"], { from: "user" });
 
@@ -172,10 +191,7 @@ describe("webhook commands", () => {
         }),
       );
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createWebhookCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["webhook", "list"], { from: "user" });
 
@@ -200,10 +216,7 @@ describe("webhook commands", () => {
     it("shows webhook details in json format", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ webhook_subscription: sampleWebhook }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createWebhookCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["--output", "json", "webhook", "show", "wh-1"], { from: "user" });
 
@@ -218,10 +231,7 @@ describe("webhook commands", () => {
     it("shows webhook details in table format", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ webhook_subscription: sampleWebhook }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createWebhookCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["webhook", "show", "wh-1"], { from: "user" });
 
@@ -235,10 +245,7 @@ describe("webhook commands", () => {
     it("calls the correct API endpoint", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ webhook_subscription: sampleWebhook }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createWebhookCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["webhook", "show", "wh-1"], { from: "user" });
 
@@ -263,10 +270,7 @@ describe("webhook commands", () => {
     it("creates a webhook in json format", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ webhook_subscription: createdWebhook }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createWebhookCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(
         [
@@ -294,10 +298,7 @@ describe("webhook commands", () => {
     it("sends POST to the correct endpoint with body", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ webhook_subscription: createdWebhook }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createWebhookCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(
         ["webhook", "create", "--url", "https://example.com/hook", "--events", "transactions.created"],
@@ -317,10 +318,7 @@ describe("webhook commands", () => {
     it("passes idempotency key when provided", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ webhook_subscription: createdWebhook }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createWebhookCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(
         [
@@ -358,10 +356,7 @@ describe("webhook commands", () => {
     it("updates a webhook in json format", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ webhook_subscription: updatedWebhook }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createWebhookCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(
         ["--output", "json", "webhook", "update", "wh-1", "--url", "https://example.com/new-hook"],
@@ -378,10 +373,7 @@ describe("webhook commands", () => {
     it("sends PUT to the correct endpoint with body", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ webhook_subscription: updatedWebhook }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createWebhookCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(
         [
@@ -412,10 +404,7 @@ describe("webhook commands", () => {
     it("deletes a webhook with --yes flag", async () => {
       fetchSpy.mockImplementation(() => Promise.resolve(new Response(null, { status: 204 })));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createWebhookCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["--output", "json", "webhook", "delete", "wh-1", "--yes"], {
         from: "user",
@@ -431,10 +420,7 @@ describe("webhook commands", () => {
     it("sends DELETE to the correct endpoint", async () => {
       fetchSpy.mockImplementation(() => Promise.resolve(new Response(null, { status: 204 })));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createWebhookCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["webhook", "delete", "wh-1", "--yes"], { from: "user" });
 
@@ -444,10 +430,7 @@ describe("webhook commands", () => {
     });
 
     it("exits with error when --yes is not provided", async () => {
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createWebhookCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["webhook", "delete", "wh-1"], { from: "user" });
 

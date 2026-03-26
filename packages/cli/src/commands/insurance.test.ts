@@ -2,10 +2,11 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { Command } from "commander";
+import { Command, Option } from "commander";
 import { jsonResponse } from "@qontoctl/core/testing";
 import { HttpClient } from "@qontoctl/core";
 import { registerInsuranceCommands } from "./insurance.js";
+import { OUTPUT_FORMATS } from "../options.js";
 
 vi.mock("../client.js", () => ({
   createClient: vi.fn(),
@@ -33,6 +34,22 @@ const sampleDocument = {
   url: "https://example.com/documents/doc-123",
   created_at: "2026-01-01T10:00:00Z",
 };
+
+/**
+ * Create a lightweight test program with only the global options and insurance
+ * commands registered.  This avoids the expensive dynamic import of the
+ * full program module (which loads every command module) that can exceed
+ * the per-test timeout on slower CI runners (e.g. Windows).
+ */
+function createTestProgram(): Command {
+  const program = new Command();
+  program
+    .addOption(new Option("-o, --output <format>", "output format").choices([...OUTPUT_FORMATS]).default("table"))
+    .addOption(new Option("--no-paginate", "disable auto-pagination"));
+  registerInsuranceCommands(program);
+  program.exitOverride();
+  return program;
+}
 
 describe("insurance commands", () => {
   let fetchSpy: ReturnType<typeof vi.fn>;
@@ -70,9 +87,7 @@ describe("insurance commands", () => {
     it("shows contract details in table format", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ insurance_contract: sampleContract }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["insurance", "show", "ic-123"], { from: "user" });
 
@@ -85,9 +100,7 @@ describe("insurance commands", () => {
     it("shows contract details in json format", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ insurance_contract: sampleContract }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["--output", "json", "insurance", "show", "ic-123"], { from: "user" });
 
@@ -102,9 +115,7 @@ describe("insurance commands", () => {
     it("sends GET to the correct API endpoint", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ insurance_contract: sampleContract }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["insurance", "show", "ic-123"], { from: "user" });
 
@@ -118,9 +129,7 @@ describe("insurance commands", () => {
     it("creates a contract in table format", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ insurance_contract: sampleContract }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(
         [
@@ -145,9 +154,7 @@ describe("insurance commands", () => {
     it("sends POST with correct body", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ insurance_contract: sampleContract }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(
         [
@@ -185,9 +192,7 @@ describe("insurance commands", () => {
     it("updates a contract", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ insurance_contract: sampleContract }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["insurance", "update", "ic-123", "--provider-name", "Allianz"], { from: "user" });
 
@@ -204,9 +209,7 @@ describe("insurance commands", () => {
     it("uploads a document via multipart form-data", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ insurance_document: sampleDocument }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["insurance", "upload-doc", "ic-123", "package.json"], { from: "user" });
 
@@ -223,9 +226,7 @@ describe("insurance commands", () => {
 
   describe("insurance remove-doc", () => {
     it("requires --yes confirmation", async () => {
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["insurance", "remove-doc", "ic-123", "doc-123"], { from: "user" });
 
@@ -239,9 +240,7 @@ describe("insurance commands", () => {
     it("removes a document when --yes is provided", async () => {
       fetchSpy.mockImplementation(() => Promise.resolve(new Response(null, { status: 204 })));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["insurance", "remove-doc", "ic-123", "doc-123", "--yes"], { from: "user" });
 

@@ -2,8 +2,10 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { Command, Option } from "commander";
 import { jsonResponse } from "@qontoctl/core/testing";
 import { createMembershipCommand } from "./membership.js";
+import { OUTPUT_FORMATS } from "../options.js";
 import type { PaginationMeta } from "../pagination.js";
 
 function makeMeta(overrides: Partial<PaginationMeta> = {}): PaginationMeta {
@@ -24,6 +26,32 @@ vi.mock("../client.js", () => ({
 
 import { createClient } from "../client.js";
 import { HttpClient } from "@qontoctl/core";
+
+/**
+ * Create a lightweight test program with only the global options and membership
+ * commands registered.  This avoids the expensive dynamic import of the
+ * full program module (which loads every command module) that can exceed
+ * the per-test timeout on slower CI runners (e.g. Windows).
+ */
+function createTestProgram(): Command {
+  const program = new Command();
+  program
+    .addOption(new Option("-o, --output <format>", "output format").choices([...OUTPUT_FORMATS]).default("table"))
+    .addOption(new Option("--page <number>", "fetch a specific page of results").argParser(parsePositiveInt))
+    .addOption(new Option("--per-page <number>", "number of results per page").argParser(parsePositiveInt))
+    .addOption(new Option("--no-paginate", "disable auto-pagination"));
+  program.addCommand(createMembershipCommand());
+  program.exitOverride();
+  return program;
+}
+
+function parsePositiveInt(value: string): number {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    throw new Error(`Expected a positive integer, got "${value}".`);
+  }
+  return parsed;
+}
 
 describe("membership commands", () => {
   let fetchSpy: ReturnType<typeof vi.fn>;
@@ -85,10 +113,7 @@ describe("membership commands", () => {
         }),
       );
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createMembershipCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["membership", "list"], { from: "user" });
 
@@ -126,10 +151,7 @@ describe("membership commands", () => {
         }),
       );
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createMembershipCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["--output", "json", "membership", "list"], {
         from: "user",
@@ -163,10 +185,7 @@ describe("membership commands", () => {
         }),
       );
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createMembershipCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["--page", "3", "--per-page", "25", "membership", "list"], { from: "user" });
 
@@ -183,10 +202,7 @@ describe("membership commands", () => {
         }),
       );
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createMembershipCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["membership", "list"], { from: "user" });
 
@@ -214,10 +230,7 @@ describe("membership commands", () => {
     it("shows current user's membership in json format", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ membership: sampleMembership }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createMembershipCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["--output", "json", "membership", "show"], { from: "user" });
 
@@ -233,10 +246,7 @@ describe("membership commands", () => {
     it("shows current user's membership in table format", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ membership: sampleMembership }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createMembershipCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["membership", "show"], { from: "user" });
 
@@ -251,10 +261,7 @@ describe("membership commands", () => {
     it("calls the correct API endpoint", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ membership: sampleMembership }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createMembershipCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["membership", "show"], { from: "user" });
 
@@ -282,10 +289,7 @@ describe("membership commands", () => {
     it("invites a new member in json format", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ membership: invitedMembership }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createMembershipCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(
         ["--output", "json", "membership", "invite", "--email", "charlie@example.com", "--role", "employee"],
@@ -304,10 +308,7 @@ describe("membership commands", () => {
     it("invites a new member in table format", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ membership: invitedMembership }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createMembershipCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(["membership", "invite", "--email", "charlie@example.com", "--role", "employee"], {
         from: "user",
@@ -323,10 +324,7 @@ describe("membership commands", () => {
     it("sends POST with nested membership body to the correct endpoint", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ membership: invitedMembership }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createMembershipCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(
         [
@@ -362,10 +360,7 @@ describe("membership commands", () => {
     it("passes idempotency key when provided", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ membership: invitedMembership }));
 
-      const { createProgram } = await import("../program.js");
-      const program = createProgram();
-      program.addCommand(createMembershipCommand());
-      program.exitOverride();
+      const program = createTestProgram();
 
       await program.parseAsync(
         [
