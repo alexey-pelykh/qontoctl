@@ -51,6 +51,7 @@ const DEFAULT_SCOPES = [
   "payment.write",
   "supplier_invoice.read",
   "supplier_invoice.write",
+  "webhook",
 ];
 
 const SCOPE_DESCRIPTIONS: Record<string, string> = {
@@ -70,6 +71,7 @@ const SCOPE_DESCRIPTIONS: Record<string, string> = {
   "payment.write": "SEPA transfers and beneficiary management",
   "supplier_invoice.read": "Supplier invoice listing and details",
   "supplier_invoice.write": "Supplier invoice creation",
+  webhook: "Webhook subscription management",
 };
 
 interface OAuthEndpoints {

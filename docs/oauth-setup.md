@@ -43,6 +43,7 @@ Select which scopes to grant your OAuth app. For full QontoCtl functionality, se
 | `payment.write`           | SEPA transfers and beneficiary management                                          |
 | `supplier_invoice.read`   | Supplier invoice listing and details                                               |
 | `supplier_invoice.write`  | Supplier invoice creation                                                          |
+| `webhook`                 | Webhook subscription management                                                    |
 
 > **Tip**: The `qontoctl auth setup` command prints this scope list interactively for easy reference.
 
