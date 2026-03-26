@@ -434,6 +434,84 @@ describe("card commands", () => {
         }),
       );
     });
+
+    it("rejects invalid boolean option value", async () => {
+      const program = createTestProgram();
+
+      await expect(
+        program.parseAsync(
+          [
+            "card",
+            "create",
+            "--holder-id",
+            "mem-1",
+            "--initiator-id",
+            "mem-2",
+            "--organization-id",
+            "org-1",
+            "--bank-account-id",
+            "acc-1",
+            "--card-level",
+            "virtual",
+            "--atm-option",
+            "yes",
+          ],
+          { from: "user" },
+        ),
+      ).rejects.toThrow('Expected "true" or "false", got "yes".');
+    });
+
+    it("rejects invalid numeric option value", async () => {
+      const program = createTestProgram();
+
+      await expect(
+        program.parseAsync(
+          [
+            "card",
+            "create",
+            "--holder-id",
+            "mem-1",
+            "--initiator-id",
+            "mem-2",
+            "--organization-id",
+            "org-1",
+            "--bank-account-id",
+            "acc-1",
+            "--card-level",
+            "virtual",
+            "--atm-monthly-limit",
+            "abc",
+          ],
+          { from: "user" },
+        ),
+      ).rejects.toThrow('Expected a numeric amount, got "abc".');
+    });
+
+    it("rejects invalid active-days value", async () => {
+      const program = createTestProgram();
+
+      await expect(
+        program.parseAsync(
+          [
+            "card",
+            "create",
+            "--holder-id",
+            "mem-1",
+            "--initiator-id",
+            "mem-2",
+            "--organization-id",
+            "org-1",
+            "--bank-account-id",
+            "acc-1",
+            "--card-level",
+            "virtual",
+            "--active-days",
+            "monday",
+          ],
+          { from: "user" },
+        ),
+      ).rejects.toThrow('Expected a numeric weekday (1-7), got "monday".');
+    });
   });
 
   describe("card bulk-create", () => {
