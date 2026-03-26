@@ -19,9 +19,9 @@ import type {
   RequestType,
 } from "./types.js";
 
-const FlashCardResponseSchema = z.object({ request_flash_card: RequestFlashCardSchema });
-const VirtualCardResponseSchema = z.object({ request_virtual_card: RequestVirtualCardSchema });
-const MultiTransferResponseSchema = z.object({ request_multi_transfer: RequestMultiTransferSchema });
+const FlashCardResponseSchema = z.object({ request_flash_card: RequestFlashCardSchema }).strip();
+const VirtualCardResponseSchema = z.object({ request_virtual_card: RequestVirtualCardSchema }).strip();
+const MultiTransferResponseSchema = z.object({ request_multi_transfer: RequestMultiTransferSchema }).strip();
 
 /**
  * Maps request type discriminants to their API path segments (plural forms).

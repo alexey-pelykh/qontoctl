@@ -12,16 +12,18 @@ import type {
   RequestVirtualCard,
 } from "./request.js";
 
-const RequestBaseSchema = z.object({
-  id: z.string(),
-  status: z.enum(["pending", "approved", "declined", "canceled"]),
-  initiator_id: z.string(),
-  approver_id: z.string().nullable(),
-  note: z.string(),
-  declined_note: z.string().nullable(),
-  processed_at: z.string().nullable(),
-  created_at: z.string(),
-});
+const RequestBaseSchema = z
+  .object({
+    id: z.string(),
+    status: z.enum(["pending", "approved", "declined", "canceled"]),
+    initiator_id: z.string(),
+    approver_id: z.string().nullable(),
+    note: z.string(),
+    declined_note: z.string().nullable(),
+    processed_at: z.string().nullable(),
+    created_at: z.string(),
+  })
+  .strip();
 
 export const RequestFlashCardSchema = RequestBaseSchema.extend({
   request_type: z.literal("flash_card"),
@@ -64,7 +66,9 @@ export const RequestSchema = z.discriminatedUnion("request_type", [
   RequestMultiTransferSchema,
 ]) satisfies z.ZodType<Request>;
 
-export const RequestListResponseSchema = z.object({
-  requests: z.array(RequestSchema),
-  meta: PaginationMetaSchema,
-});
+export const RequestListResponseSchema = z
+  .object({
+    requests: z.array(RequestSchema),
+    meta: PaginationMetaSchema,
+  })
+  .strip();

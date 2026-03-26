@@ -98,11 +98,15 @@ export const TransactionSchema = z
   >
 >;
 
-export const TransactionResponseSchema = z.object({
-  transaction: TransactionSchema,
-});
+export const TransactionResponseSchema = z
+  .object({
+    transaction: TransactionSchema,
+  })
+  .strip();
 
-export const TransactionListResponseSchema = z.object({
-  transactions: z.array(TransactionSchema),
-  meta: PaginationMetaSchema,
-});
+export const TransactionListResponseSchema = z
+  .object({
+    transactions: z.array(TransactionSchema),
+    meta: PaginationMetaSchema,
+  })
+  .strip();

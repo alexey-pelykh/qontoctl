@@ -8,35 +8,41 @@ import type { BulkVopResult, BulkVopResultEntry, Transfer, VopMatchResult, VopRe
 
 // https://docs.qonto.com/api-reference/business-api/payments-transfers/sepa-transfers/sepa-transfers/show
 // https://docs.qonto.com/api-reference/business-api/payments-transfers/sepa-transfers/sepa-transfers/index
-export const TransferSchema = z.object({
-  id: z.string(),
-  initiator_id: z.string(),
-  bank_account_id: z.string(),
-  beneficiary_id: z.string(),
-  amount: z.number(),
-  amount_cents: z.number(),
-  amount_currency: z.string(),
-  status: z.enum(["pending", "processing", "canceled", "declined", "settled"]),
-  reference: z.string(),
-  note: z.nullable(z.string()),
-  scheduled_date: z.string(),
-  created_at: z.string(),
-  updated_at: z.string(),
-  processed_at: z.nullable(z.string()),
-  completed_at: z.nullable(z.string()),
-  transaction_id: z.nullable(z.string()),
-  recurring_transfer_id: z.nullable(z.string()),
-  declined_reason: z.nullable(z.string()),
-}) satisfies z.ZodType<Transfer>;
+export const TransferSchema = z
+  .object({
+    id: z.string(),
+    initiator_id: z.string(),
+    bank_account_id: z.string(),
+    beneficiary_id: z.string(),
+    amount: z.number(),
+    amount_cents: z.number(),
+    amount_currency: z.string(),
+    status: z.enum(["pending", "processing", "canceled", "declined", "settled"]),
+    reference: z.string(),
+    note: z.nullable(z.string()),
+    scheduled_date: z.string(),
+    created_at: z.string(),
+    updated_at: z.string(),
+    processed_at: z.nullable(z.string()),
+    completed_at: z.nullable(z.string()),
+    transaction_id: z.nullable(z.string()),
+    recurring_transfer_id: z.nullable(z.string()),
+    declined_reason: z.nullable(z.string()),
+  })
+  .strip() satisfies z.ZodType<Transfer>;
 
-export const TransferResponseSchema = z.object({
-  transfer: TransferSchema,
-});
+export const TransferResponseSchema = z
+  .object({
+    transfer: TransferSchema,
+  })
+  .strip();
 
-export const TransferListResponseSchema = z.object({
-  transfers: z.array(TransferSchema),
-  meta: PaginationMetaSchema,
-});
+export const TransferListResponseSchema = z
+  .object({
+    transfers: z.array(TransferSchema),
+    meta: PaginationMetaSchema,
+  })
+  .strip();
 
 // https://docs.qonto.com/api-reference/business-api/payments-transfers/sepa-transfers/verify-payee/index
 export const VopMatchResultSchema = z.enum([
@@ -47,40 +53,48 @@ export const VopMatchResultSchema = z.enum([
   "MATCH_RESULT_UNSPECIFIED",
 ]) satisfies z.ZodType<VopMatchResult>;
 
-const ProofTokenSchema = z.object({
-  token: z.string(),
-});
+const ProofTokenSchema = z
+  .object({
+    token: z.string(),
+  })
+  .strip();
 
 // https://docs.qonto.com/api-reference/business-api/payments-transfers/sepa-transfers/verify-payee/index
-export const VopResultSchema = z.object({
-  match_result: VopMatchResultSchema,
-  matched_name: z.nullable(z.string()).optional().default(null),
-  proof_token: ProofTokenSchema,
-}) satisfies z.ZodType<VopResult>;
+export const VopResultSchema = z
+  .object({
+    match_result: VopMatchResultSchema,
+    matched_name: z.nullable(z.string()).optional().default(null),
+    proof_token: ProofTokenSchema,
+  })
+  .strip() satisfies z.ZodType<VopResult>;
 
 export const VopResultResponseSchema = VopResultSchema;
 
 // https://docs.qonto.com/api-reference/business-api/payments-transfers/sepa-transfers/verify-payee/bulk-verify-payee
-export const BulkVopResultEntrySchema = z.object({
-  id: z.string(),
-  beneficiary_name: z.string(),
-  iban: z.string(),
-  response: z
-    .object({
-      match_result: VopMatchResultSchema,
-      matched_name: z.nullable(z.string()).optional().default(null),
-    })
-    .optional(),
-  error: z
-    .object({
-      code: z.string(),
-      detail: z.string().optional(),
-    })
-    .optional(),
-}) satisfies z.ZodType<BulkVopResultEntry>;
+export const BulkVopResultEntrySchema = z
+  .object({
+    id: z.string(),
+    beneficiary_name: z.string(),
+    iban: z.string(),
+    response: z
+      .object({
+        match_result: VopMatchResultSchema,
+        matched_name: z.nullable(z.string()).optional().default(null),
+      })
+      .optional(),
+    error: z
+      .object({
+        code: z.string(),
+        detail: z.string().optional(),
+      })
+      .optional(),
+  })
+  .strip() satisfies z.ZodType<BulkVopResultEntry>;
 
 // https://docs.qonto.com/api-reference/business-api/payments-transfers/sepa-transfers/verify-payee/bulk-verify-payee
-export const BulkVopResultResponseSchema = z.object({
-  responses: z.array(BulkVopResultEntrySchema),
-  proof_token: ProofTokenSchema,
-}) satisfies z.ZodType<BulkVopResult>;
+export const BulkVopResultResponseSchema = z
+  .object({
+    responses: z.array(BulkVopResultEntrySchema),
+    proof_token: ProofTokenSchema,
+  })
+  .strip() satisfies z.ZodType<BulkVopResult>;

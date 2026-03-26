@@ -9,28 +9,36 @@ import type { Statement, StatementFile } from "./types.js";
 /**
  * Zod schema for statement file metadata.
  */
-export const StatementFileSchema = z.object({
-  file_name: z.string(),
-  file_content_type: z.string(),
-  file_size: z.coerce.string(),
-  file_url: z.string(),
-}) satisfies z.ZodType<StatementFile>;
+export const StatementFileSchema = z
+  .object({
+    file_name: z.string(),
+    file_content_type: z.string(),
+    file_size: z.coerce.string(),
+    file_url: z.string(),
+  })
+  .strip() satisfies z.ZodType<StatementFile>;
 
 /**
  * Zod schema for a bank statement returned by the Qonto API.
  */
-export const StatementSchema = z.object({
-  id: z.string(),
-  bank_account_id: z.string(),
-  period: z.string(),
-  file: StatementFileSchema,
-}) satisfies z.ZodType<Statement>;
+export const StatementSchema = z
+  .object({
+    id: z.string(),
+    bank_account_id: z.string(),
+    period: z.string(),
+    file: StatementFileSchema,
+  })
+  .strip() satisfies z.ZodType<Statement>;
 
-export const StatementResponseSchema = z.object({
-  statement: StatementSchema,
-});
+export const StatementResponseSchema = z
+  .object({
+    statement: StatementSchema,
+  })
+  .strip();
 
-export const StatementListResponseSchema = z.object({
-  statements: z.array(StatementSchema),
-  meta: PaginationMetaSchema,
-});
+export const StatementListResponseSchema = z
+  .object({
+    statements: z.array(StatementSchema),
+    meta: PaginationMetaSchema,
+  })
+  .strip();

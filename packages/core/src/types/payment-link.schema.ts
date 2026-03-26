@@ -52,14 +52,18 @@ export const PaymentLinkSchema = z
   })
   .strip() satisfies z.ZodType<PaymentLink>;
 
-export const PaymentLinkResponseSchema = z.object({
-  payment_link: PaymentLinkSchema,
-});
+export const PaymentLinkResponseSchema = z
+  .object({
+    payment_link: PaymentLinkSchema,
+  })
+  .strip();
 
-export const PaymentLinkListResponseSchema = z.object({
-  payment_links: z.array(PaymentLinkSchema),
-  meta: PaginationMetaSchema,
-});
+export const PaymentLinkListResponseSchema = z
+  .object({
+    payment_links: z.array(PaymentLinkSchema),
+    meta: PaginationMetaSchema,
+  })
+  .strip();
 
 export const PaymentLinkPaymentSchema = z
   .object({
@@ -73,10 +77,12 @@ export const PaymentLinkPaymentSchema = z
   })
   .strip() satisfies z.ZodType<PaymentLinkPayment>;
 
-export const PaymentLinkPaymentListResponseSchema = z.object({
-  payments: z.array(PaymentLinkPaymentSchema),
-  meta: PaginationMetaSchema,
-});
+export const PaymentLinkPaymentListResponseSchema = z
+  .object({
+    payments: z.array(PaymentLinkPaymentSchema),
+    meta: PaginationMetaSchema,
+  })
+  .strip();
 
 export const PaymentLinkPaymentMethodSchema = z
   .object({
@@ -85,9 +91,11 @@ export const PaymentLinkPaymentMethodSchema = z
   })
   .strip() satisfies z.ZodType<PaymentLinkPaymentMethod>;
 
-export const PaymentLinkPaymentMethodListResponseSchema = z.object({
-  payment_link_payment_methods: z.array(PaymentLinkPaymentMethodSchema),
-});
+export const PaymentLinkPaymentMethodListResponseSchema = z
+  .object({
+    payment_link_payment_methods: z.array(PaymentLinkPaymentMethodSchema),
+  })
+  .strip();
 
 export const PaymentLinkConnectionSchema = z
   .object({

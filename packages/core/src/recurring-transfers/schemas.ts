@@ -30,11 +30,15 @@ export const RecurringTransferSchema = z
   })
   .strip() satisfies z.ZodType<RecurringTransfer>;
 
-export const RecurringTransferResponseSchema = z.object({
-  recurring_transfer: RecurringTransferSchema,
-});
+export const RecurringTransferResponseSchema = z
+  .object({
+    recurring_transfer: RecurringTransferSchema,
+  })
+  .strip();
 
-export const RecurringTransferListResponseSchema = z.object({
-  recurring_transfers: z.array(RecurringTransferSchema),
-  meta: PaginationMetaSchema,
-});
+export const RecurringTransferListResponseSchema = z
+  .object({
+    recurring_transfers: z.array(RecurringTransferSchema),
+    meta: PaginationMetaSchema,
+  })
+  .strip();

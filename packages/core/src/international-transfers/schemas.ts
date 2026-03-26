@@ -5,6 +5,8 @@ import { z } from "zod";
 
 import type { IntlTransfer, IntlTransferRequirementField, IntlTransferRequirements } from "./types.js";
 
+// International transfer schemas use .loose() to pass through unknown fields.
+// These endpoints are less stable and may return additional undocumented properties.
 export const IntlTransferRequirementFieldSchema = z
   .object({
     key: z.string(),
@@ -23,9 +25,11 @@ export const IntlTransferRequirementsSchema = z
   })
   .loose() satisfies z.ZodType<IntlTransferRequirements>;
 
-export const IntlTransferRequirementsResponseSchema = z.object({
-  requirements: IntlTransferRequirementsSchema,
-});
+export const IntlTransferRequirementsResponseSchema = z
+  .object({
+    requirements: IntlTransferRequirementsSchema,
+  })
+  .strip();
 
 export const IntlTransferSchema = z
   .object({
@@ -33,6 +37,8 @@ export const IntlTransferSchema = z
   })
   .loose() satisfies z.ZodType<IntlTransfer>;
 
-export const IntlTransferResponseSchema = z.object({
-  international_transfer: IntlTransferSchema,
-});
+export const IntlTransferResponseSchema = z
+  .object({
+    international_transfer: IntlTransferSchema,
+  })
+  .strip();

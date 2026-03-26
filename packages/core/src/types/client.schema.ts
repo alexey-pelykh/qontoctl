@@ -41,11 +41,15 @@ export const ClientSchema = z
   })
   .strip() satisfies z.ZodType<Client>;
 
-export const ClientResponseSchema = z.object({
-  client: ClientSchema,
-});
+export const ClientResponseSchema = z
+  .object({
+    client: ClientSchema,
+  })
+  .strip();
 
-export const ClientListResponseSchema = z.object({
-  clients: z.array(ClientSchema),
-  meta: PaginationMetaSchema,
-});
+export const ClientListResponseSchema = z
+  .object({
+    clients: z.array(ClientSchema),
+    meta: PaginationMetaSchema,
+  })
+  .strip();

@@ -14,11 +14,15 @@ export const LabelSchema = z
   })
   .strip() satisfies z.ZodType<Label>;
 
-export const LabelResponseSchema = z.object({
-  label: LabelSchema,
-});
+export const LabelResponseSchema = z
+  .object({
+    label: LabelSchema,
+  })
+  .strip();
 
-export const LabelListResponseSchema = z.object({
-  labels: z.array(LabelSchema),
-  meta: PaginationMetaSchema,
-});
+export const LabelListResponseSchema = z
+  .object({
+    labels: z.array(LabelSchema),
+    meta: PaginationMetaSchema,
+  })
+  .strip();

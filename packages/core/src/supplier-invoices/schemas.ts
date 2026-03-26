@@ -51,14 +51,18 @@ export const SupplierInvoiceSchema = z
   })
   .strip() satisfies z.ZodType<SupplierInvoice>;
 
-export const SupplierInvoiceResponseSchema = z.object({
-  supplier_invoice: SupplierInvoiceSchema,
-});
+export const SupplierInvoiceResponseSchema = z
+  .object({
+    supplier_invoice: SupplierInvoiceSchema,
+  })
+  .strip();
 
-export const SupplierInvoiceListResponseSchema = z.object({
-  supplier_invoices: z.array(SupplierInvoiceSchema),
-  meta: PaginationMetaSchema,
-});
+export const SupplierInvoiceListResponseSchema = z
+  .object({
+    supplier_invoices: z.array(SupplierInvoiceSchema),
+    meta: PaginationMetaSchema,
+  })
+  .strip();
 
 /**
  * Schema for an error from the bulk create response.
