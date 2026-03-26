@@ -6,6 +6,10 @@ import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { jsonResponse } from "@qontoctl/core/testing";
 import { connectInMemory } from "../testing/mcp-helpers.js";
 
+vi.mock("node:fs/promises", () => ({
+  readFile: vi.fn().mockResolvedValue(Buffer.from("fake-file-content")),
+}));
+
 function makeAttachment(overrides: Record<string, unknown> = {}) {
   return {
     id: "att-1",
@@ -30,6 +34,43 @@ describe("attachment MCP tools", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  describe("attachment_upload", () => {
+    it("reads a file and uploads it as an attachment", async () => {
+      fetchSpy.mockReturnValue(
+        jsonResponse({
+          attachment: makeAttachment({ file_name: "invoice.pdf" }),
+        }),
+      );
+
+      const result = await mcpClient.callTool({
+        name: "attachment_upload",
+        arguments: { file_path: "/tmp/invoice.pdf" },
+      });
+
+      expect(result.isError).toBeFalsy();
+      const content = result.content as { type: string; text: string }[];
+      expect(content).toHaveLength(1);
+      const parsed = JSON.parse((content[0] as { type: string; text: string }).text) as { id: string };
+      expect(parsed.id).toBe("att-1");
+    });
+
+    it("calls the correct API endpoint", async () => {
+      fetchSpy.mockReturnValue(
+        jsonResponse({
+          attachment: makeAttachment(),
+        }),
+      );
+
+      await mcpClient.callTool({
+        name: "attachment_upload",
+        arguments: { file_path: "/tmp/receipt.pdf" },
+      });
+
+      const [url] = fetchSpy.mock.calls[0] as [URL];
+      expect(url.pathname).toBe("/v2/attachments");
+    });
   });
 
   describe("attachment_show", () => {
@@ -100,6 +141,58 @@ describe("attachment MCP tools", () => {
       await mcpClient.callTool({
         name: "transaction_attachment_list",
         arguments: { transaction_id: "txn-1" },
+      });
+
+      const [url] = fetchSpy.mock.calls[0] as [URL];
+      expect(url.pathname).toBe("/v2/transactions/txn-1/attachments");
+    });
+  });
+
+  describe("transaction_attachment_add", () => {
+    it("reads a file and attaches it to a transaction", async () => {
+      fetchSpy.mockReturnValue(
+        jsonResponse({
+          attachment: makeAttachment({ file_name: "receipt.png" }),
+        }),
+      );
+
+      const result = await mcpClient.callTool({
+        name: "transaction_attachment_add",
+        arguments: { transaction_id: "txn-1", file_path: "/tmp/receipt.png" },
+      });
+
+      expect(result.isError).toBeFalsy();
+      const content = result.content as { type: string; text: string }[];
+      expect(content).toHaveLength(1);
+      const parsed = JSON.parse((content[0] as { type: string; text: string }).text) as { id: string };
+      expect(parsed.id).toBe("att-1");
+    });
+
+    it("handles response without attachment data", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({}));
+
+      const result = await mcpClient.callTool({
+        name: "transaction_attachment_add",
+        arguments: { transaction_id: "txn-1", file_path: "/tmp/receipt.png" },
+      });
+
+      expect(result.isError).toBeFalsy();
+      const content = result.content as { type: string; text: string }[];
+      expect(content).toHaveLength(1);
+      expect((content[0] as { type: string; text: string }).text).toContain("receipt.png");
+      expect((content[0] as { type: string; text: string }).text).toContain("txn-1");
+    });
+
+    it("calls the correct API endpoint", async () => {
+      fetchSpy.mockReturnValue(
+        jsonResponse({
+          attachment: makeAttachment(),
+        }),
+      );
+
+      await mcpClient.callTool({
+        name: "transaction_attachment_add",
+        arguments: { transaction_id: "txn-1", file_path: "/tmp/receipt.png" },
       });
 
       const [url] = fetchSpy.mock.calls[0] as [URL];
