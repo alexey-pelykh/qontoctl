@@ -83,9 +83,7 @@ describe("bulk-transfer show command", () => {
   });
 
   it("calls the correct API endpoint with encoded ID", async () => {
-    fetchSpy.mockImplementation(() =>
-      jsonResponse({ bulk_transfer: { ...completeBulkTransfer, id: "a/b" } }),
-    );
+    fetchSpy.mockImplementation(() => jsonResponse({ bulk_transfer: { ...completeBulkTransfer, id: "a/b" } }));
 
     await runCommand("a/b", "--output", "json");
 
