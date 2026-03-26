@@ -118,10 +118,16 @@ export function registerTransferTools(server: McpServer, getClient: () => Promis
     async (args) =>
       withClient(getClient, async (client) => {
         if (args.beneficiary_id !== undefined && args.beneficiary !== undefined) {
-          throw new Error("Cannot specify both beneficiary_id and beneficiary");
+          return {
+            content: [{ type: "text" as const, text: "Cannot specify both beneficiary_id and beneficiary" }],
+            isError: true,
+          };
         }
         if (args.beneficiary_id === undefined && args.beneficiary === undefined) {
-          throw new Error("Either beneficiary_id or beneficiary must be provided");
+          return {
+            content: [{ type: "text" as const, text: "Either beneficiary_id or beneficiary must be provided" }],
+            isError: true,
+          };
         }
 
         let vopProofToken = args.vop_proof_token;
@@ -146,7 +152,10 @@ export function registerTransferTools(server: McpServer, getClient: () => Promis
         }
 
         if (vopProofToken === undefined) {
-          throw new Error("Could not resolve VoP proof token");
+          return {
+            content: [{ type: "text" as const, text: "Could not resolve VoP proof token" }],
+            isError: true,
+          };
         }
 
         const params: CreateTransferParams = {
