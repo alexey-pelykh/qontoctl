@@ -87,12 +87,13 @@ export function registerInsuranceTools(server: McpServer, getClient: () => Promi
     },
     async (args) =>
       withClient(getClient, async (client) => {
-        const contract = await updateInsuranceContract(client, args.id, {
-          insurance_type: args.insurance_type,
-          provider_name: args.provider_name,
-          contract_number: args.contract_number,
-          start_date: args.start_date,
-          end_date: args.end_date,
+        const { id, ...fields } = args;
+        const contract = await updateInsuranceContract(client, id, {
+          ...(fields.insurance_type !== undefined ? { insurance_type: fields.insurance_type } : {}),
+          ...(fields.provider_name !== undefined ? { provider_name: fields.provider_name } : {}),
+          ...(fields.contract_number !== undefined ? { contract_number: fields.contract_number } : {}),
+          ...(fields.start_date !== undefined ? { start_date: fields.start_date } : {}),
+          ...(fields.end_date !== undefined ? { end_date: fields.end_date } : {}),
         });
 
         return {
