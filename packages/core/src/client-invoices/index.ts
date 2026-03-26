@@ -22,9 +22,13 @@ export type {
   ClientInvoiceAmount,
   ClientInvoiceDiscount,
   ClientInvoiceItem,
+  ClientInvoiceItemParams,
+  ClientInvoiceDiscountParams,
   ClientInvoiceAddress,
   ClientInvoiceClient,
   ClientInvoiceUpload,
+  CreateClientInvoiceParams,
+  UpdateClientInvoiceParams,
   ListClientInvoicesParams,
 } from "./types.js";
 

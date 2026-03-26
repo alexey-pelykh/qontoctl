@@ -236,11 +236,12 @@ describe("client-invoice MCP tools", () => {
       const [url, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
       expect(url.pathname).toBe("/v2/client_invoices");
       expect(opts.method).toBe("POST");
-      const body = JSON.parse(opts.body as string) as Record<string, unknown>;
-      expect(body).toHaveProperty("client_id", "c-456");
-      expect(body).toHaveProperty("header", "Header");
-      expect(body).toHaveProperty("footer", "Footer");
-      expect(body).toHaveProperty("discount");
+      const body = JSON.parse(opts.body as string) as { client_invoice: Record<string, unknown> };
+      expect(body).toHaveProperty("client_invoice");
+      expect(body.client_invoice).toHaveProperty("client_id", "c-456");
+      expect(body.client_invoice).toHaveProperty("header", "Header");
+      expect(body.client_invoice).toHaveProperty("footer", "Footer");
+      expect(body.client_invoice).toHaveProperty("discount");
     });
   });
 

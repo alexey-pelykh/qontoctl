@@ -5,7 +5,7 @@ import { readFile } from "node:fs/promises";
 import { basename } from "node:path";
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { HttpClient } from "@qontoctl/core";
+import type { CreateClientInvoiceParams, HttpClient, UpdateClientInvoiceParams } from "@qontoctl/core";
 import {
   listClientInvoices,
   getClientInvoice,
@@ -131,19 +131,19 @@ export function registerClientInvoiceTools(server: McpServer, getClient: () => P
     },
     async (args) =>
       withClient(getClient, async (client) => {
-        const body: Record<string, unknown> = {
+        const params: CreateClientInvoiceParams = {
           client_id: args.client_id,
           issue_date: args.issue_date,
           due_date: args.due_date,
           currency: args.currency,
           terms_and_conditions: args.terms_and_conditions,
           items: args.items,
+          ...(args.header !== undefined ? { header: args.header } : {}),
+          ...(args.footer !== undefined ? { footer: args.footer } : {}),
+          ...(args.discount !== undefined ? { discount: args.discount } : {}),
         };
-        if (args.header !== undefined) body["header"] = args.header;
-        if (args.footer !== undefined) body["footer"] = args.footer;
-        if (args.discount !== undefined) body["discount"] = args.discount;
 
-        const inv = await createClientInvoice(client, body);
+        const inv = await createClientInvoice(client, params);
 
         return {
           content: [
@@ -195,14 +195,20 @@ export function registerClientInvoiceTools(server: McpServer, getClient: () => P
     },
     async ({ id, ...fields }) =>
       withClient(getClient, async (client) => {
-        const body: Record<string, unknown> = {};
-        for (const [key, value] of Object.entries(fields)) {
-          if (value !== undefined) {
-            body[key] = value;
-          }
-        }
+        const params: UpdateClientInvoiceParams = {
+          ...(fields.issue_date !== undefined ? { issue_date: fields.issue_date } : {}),
+          ...(fields.due_date !== undefined ? { due_date: fields.due_date } : {}),
+          ...(fields.currency !== undefined ? { currency: fields.currency } : {}),
+          ...(fields.terms_and_conditions !== undefined
+            ? { terms_and_conditions: fields.terms_and_conditions }
+            : {}),
+          ...(fields.header !== undefined ? { header: fields.header } : {}),
+          ...(fields.footer !== undefined ? { footer: fields.footer } : {}),
+          ...(fields.items !== undefined ? { items: fields.items } : {}),
+          ...(fields.discount !== undefined ? { discount: fields.discount } : {}),
+        };
 
-        const inv = await updateClientInvoice(client, id, body);
+        const inv = await updateClientInvoice(client, id, params);
 
         return {
           content: [

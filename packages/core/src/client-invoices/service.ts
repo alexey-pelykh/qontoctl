@@ -6,7 +6,13 @@ import type { HttpClient, QueryParams } from "../http-client.js";
 import { z } from "zod";
 import { parseResponse } from "../response.js";
 import { ClientInvoiceListResponseSchema, ClientInvoiceResponseSchema, ClientInvoiceUploadSchema } from "./schemas.js";
-import type { ClientInvoice, ClientInvoiceUpload, ListClientInvoicesParams } from "./types.js";
+import type {
+  ClientInvoice,
+  ClientInvoiceUpload,
+  CreateClientInvoiceParams,
+  ListClientInvoicesParams,
+  UpdateClientInvoiceParams,
+} from "./types.js";
 const ClientInvoiceUploadResponseSchema = z.object({ upload: ClientInvoiceUploadSchema });
 
 /**
@@ -81,11 +87,11 @@ export async function getClientInvoice(client: HttpClient, id: string): Promise<
  */
 export async function createClientInvoice(
   client: HttpClient,
-  body: unknown,
+  params: CreateClientInvoiceParams,
   options?: { readonly idempotencyKey?: string },
 ): Promise<ClientInvoice> {
   const endpointPath = "/v2/client_invoices";
-  const response = await client.post(endpointPath, body, options);
+  const response = await client.post(endpointPath, { client_invoice: params }, options);
   return parseResponse(ClientInvoiceResponseSchema, response, endpointPath).client_invoice;
 }
 
@@ -95,11 +101,11 @@ export async function createClientInvoice(
 export async function updateClientInvoice(
   client: HttpClient,
   id: string,
-  body: unknown,
+  params: UpdateClientInvoiceParams,
   options?: { readonly idempotencyKey?: string },
 ): Promise<ClientInvoice> {
   const endpointPath = `/v2/client_invoices/${encodeURIComponent(id)}`;
-  const response = await client.patch(endpointPath, body, options);
+  const response = await client.patch(endpointPath, { client_invoice: params }, options);
   return parseResponse(ClientInvoiceResponseSchema, response, endpointPath).client_invoice;
 }
 
