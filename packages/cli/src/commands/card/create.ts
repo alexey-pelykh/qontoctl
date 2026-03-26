@@ -77,9 +77,7 @@ export function registerCardCreateCommand(parent: Command): void {
       new Option("--atm-daily-limit-option <bool>", "enable daily ATM limit (true/false)").argParser(parseBool),
     )
     .addOption(new Option("--atm-daily-limit <amount>", "daily ATM withdrawal limit (EUR)").argParser(parseAmount))
-    .addOption(
-      new Option("--payment-monthly-limit <amount>", "monthly payment limit (EUR)").argParser(parseAmount),
-    )
+    .addOption(new Option("--payment-monthly-limit <amount>", "monthly payment limit (EUR)").argParser(parseAmount))
     .addOption(
       new Option("--payment-daily-limit-option <bool>", "enable daily payment limit (true/false)").argParser(parseBool),
     )
@@ -89,9 +87,7 @@ export function registerCardCreateCommand(parent: Command): void {
         parseBool,
       ),
     )
-    .addOption(
-      new Option("--payment-transaction-limit <amount>", "per-transaction limit (EUR)").argParser(parseAmount),
-    )
+    .addOption(new Option("--payment-transaction-limit <amount>", "per-transaction limit (EUR)").argParser(parseAmount))
     .addOption(
       new Option("--payment-lifespan-limit <amount>", "total spending cap (flash cards, EUR)").argParser(parseAmount),
     )
