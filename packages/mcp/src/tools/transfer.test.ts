@@ -161,6 +161,42 @@ describe("transfer MCP tools", () => {
       });
     }
 
+    it("returns error when both beneficiary_id and beneficiary are provided", async () => {
+      const result = await mcpClient.callTool({
+        name: "transfer_create",
+        arguments: {
+          beneficiary_id: "ben-1",
+          beneficiary: { name: "Jane Doe", iban: "DE89370400440532013000" },
+          bank_account_id: "acc-1",
+          reference: "Test",
+          amount: 100,
+        },
+      });
+
+      expect(result.isError).toBe(true);
+      const content = result.content as { type: string; text: string }[];
+      expect((content[0] as { type: string; text: string }).text).toBe(
+        "Cannot specify both beneficiary_id and beneficiary",
+      );
+    });
+
+    it("returns error when neither beneficiary_id nor beneficiary is provided", async () => {
+      const result = await mcpClient.callTool({
+        name: "transfer_create",
+        arguments: {
+          bank_account_id: "acc-1",
+          reference: "Test",
+          amount: 100,
+        },
+      });
+
+      expect(result.isError).toBe(true);
+      const content = result.content as { type: string; text: string }[];
+      expect((content[0] as { type: string; text: string }).text).toBe(
+        "Either beneficiary_id or beneficiary must be provided",
+      );
+    });
+
     it("uses provided vop_proof_token directly without auto-resolve", async () => {
       fetchSpy.mockImplementation((input: URL, init: RequestInit) => {
         if (input.pathname === "/v2/sepa/transfers" && init.method === "POST") {
