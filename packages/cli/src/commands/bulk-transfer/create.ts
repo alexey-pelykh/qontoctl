@@ -9,6 +9,7 @@ import { createClient } from "../../client.js";
 import { formatOutput } from "../../formatters/index.js";
 import { addInheritableOptions, addWriteOptions, resolveGlobalOptions } from "../../inherited-options.js";
 import type { GlobalOptions, WriteOptions } from "../../options.js";
+import { parseJson } from "../../parse-json.js";
 import { executeWithCliSca } from "../../sca.js";
 
 interface BulkTransferCreateOptions extends GlobalOptions, WriteOptions {
@@ -38,7 +39,7 @@ export function registerBulkTransferCreateCommand(parent: Command): void {
     const httpClient = await createClient(opts);
 
     const fileContent = await readFile(opts.file, "utf-8");
-    const transfers = JSON.parse(fileContent) as readonly BulkTransferItem[];
+    const transfers = parseJson(fileContent, `--file ${opts.file}`) as readonly BulkTransferItem[];
 
     const bulkTransfer = await executeWithCliSca(
       httpClient,

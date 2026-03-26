@@ -23,6 +23,7 @@ import { fetchPaginated } from "../pagination.js";
 import { formatOutput } from "../formatters/index.js";
 import { addInheritableOptions, addWriteOptions, resolveGlobalOptions } from "../inherited-options.js";
 import type { GlobalOptions, PaginationOptions, WriteOptions } from "../options.js";
+import { parseJson } from "../parse-json.js";
 
 interface ClientInvoiceListOptions extends GlobalOptions, PaginationOptions {
   readonly status?: string | undefined;
@@ -159,7 +160,7 @@ export function createClientInvoiceCommand(): Command {
     const opts = resolveGlobalOptions<GlobalOptions & WriteOptions & { body: string }>(cmd);
     const client = await createClient(opts);
 
-    const body: unknown = JSON.parse(opts.body);
+    const body: unknown = parseJson(opts.body, "--body");
     const inv = await createClientInvoice(
       client,
       body,
@@ -182,7 +183,7 @@ export function createClientInvoiceCommand(): Command {
     const opts = resolveGlobalOptions<GlobalOptions & WriteOptions & { body: string }>(cmd);
     const client = await createClient(opts);
 
-    const body: unknown = JSON.parse(opts.body);
+    const body: unknown = parseJson(opts.body, "--body");
     const inv = await updateClientInvoice(
       client,
       id,

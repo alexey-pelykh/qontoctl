@@ -9,6 +9,7 @@ import { createClient } from "../../client.js";
 import { formatOutput } from "../../formatters/index.js";
 import { addInheritableOptions, addWriteOptions, resolveGlobalOptions } from "../../inherited-options.js";
 import type { GlobalOptions, WriteOptions } from "../../options.js";
+import { parseJson } from "../../parse-json.js";
 import { executeWithCliSca } from "../../sca.js";
 
 interface CardCreateOptions extends GlobalOptions, WriteOptions {
@@ -151,7 +152,7 @@ export function registerCardBulkCreateCommand(parent: Command): void {
     const client = await createClient(opts);
 
     const content = await readFile(opts.file, "utf-8");
-    const cards = JSON.parse(content) as CreateCardParams[];
+    const cards = parseJson(content, `--file ${opts.file}`) as CreateCardParams[];
 
     const { bulkCreateCards } = await import("@qontoctl/core");
 
