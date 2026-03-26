@@ -115,6 +115,55 @@ export interface ClientInvoice {
 }
 
 /**
+ * A line item for creating or updating a client invoice.
+ */
+export interface ClientInvoiceItemParams {
+  readonly title: string;
+  readonly quantity: string;
+  readonly unit_price: ClientInvoiceAmount;
+  readonly vat_rate: string;
+  readonly description?: string | undefined;
+  readonly unit?: string | undefined;
+}
+
+/**
+ * A discount for creating or updating a client invoice.
+ */
+export interface ClientInvoiceDiscountParams {
+  readonly type: "percentage" | "amount";
+  readonly value: string;
+}
+
+/**
+ * Parameters for creating a client invoice.
+ */
+export interface CreateClientInvoiceParams {
+  readonly client_id: string;
+  readonly issue_date: string;
+  readonly due_date: string;
+  readonly currency: string;
+  readonly terms_and_conditions: string;
+  readonly items: readonly ClientInvoiceItemParams[];
+  readonly header?: string | undefined;
+  readonly footer?: string | undefined;
+  readonly discount?: ClientInvoiceDiscountParams | undefined;
+}
+
+/**
+ * Parameters for updating a client invoice.
+ */
+export interface UpdateClientInvoiceParams {
+  readonly issue_date?: string | undefined;
+  readonly due_date?: string | undefined;
+  readonly currency?: string | undefined;
+  readonly terms_and_conditions?: string | undefined;
+  readonly header?: string | undefined;
+  readonly footer?: string | undefined;
+  readonly items?: readonly ClientInvoiceItemParams[] | undefined;
+  readonly discount?: ClientInvoiceDiscountParams | undefined;
+}
+
+/**
  * Parameters for listing client invoices.
  */
 export interface ListClientInvoicesParams {

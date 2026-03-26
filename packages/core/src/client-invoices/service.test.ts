@@ -19,7 +19,7 @@ import {
   uploadClientInvoiceFile,
   getClientInvoiceUpload,
 } from "./service.js";
-import type { ListClientInvoicesParams } from "./types.js";
+import type { CreateClientInvoiceParams, ListClientInvoicesParams, UpdateClientInvoiceParams } from "./types.js";
 
 describe("buildClientInvoiceQueryParams", () => {
   it("returns empty object for empty params", () => {
@@ -271,8 +271,15 @@ describe("createClientInvoice", () => {
   it("creates a client invoice via POST", async () => {
     fetchSpy.mockReturnValue(jsonResponse({ client_invoice: sampleInvoice }));
 
-    const body = { client_invoice: { client_id: "client-1" } };
-    const result = await createClientInvoice(client, body);
+    const params: CreateClientInvoiceParams = {
+      client_id: "client-1",
+      issue_date: "2026-01-15",
+      due_date: "2026-02-15",
+      currency: "EUR",
+      terms_and_conditions: "Net 30",
+      items: [{ title: "Service", quantity: "1", unit_price: { value: "100.00", currency: "EUR" }, vat_rate: "20.00" }],
+    };
+    const result = await createClientInvoice(client, params);
 
     expect(result).toEqual(sampleInvoice);
 
@@ -280,7 +287,7 @@ describe("createClientInvoice", () => {
     expect(url.pathname).toBe("/v2/client_invoices");
     expect(opts.method).toBe("POST");
     const parsedBody = JSON.parse(opts.body as string) as Record<string, unknown>;
-    expect(parsedBody).toEqual(body);
+    expect(parsedBody).toEqual({ client_invoice: params });
   });
 });
 
@@ -304,8 +311,8 @@ describe("updateClientInvoice", () => {
   it("updates a client invoice via PATCH", async () => {
     fetchSpy.mockReturnValue(jsonResponse({ client_invoice: sampleInvoice }));
 
-    const body = { client_invoice: { header: "Updated" } };
-    const result = await updateClientInvoice(client, "inv-1", body);
+    const params: UpdateClientInvoiceParams = { header: "Updated" };
+    const result = await updateClientInvoice(client, "inv-1", params);
 
     expect(result).toEqual(sampleInvoice);
 
@@ -313,13 +320,13 @@ describe("updateClientInvoice", () => {
     expect(url.pathname).toBe("/v2/client_invoices/inv-1");
     expect(opts.method).toBe("PATCH");
     const parsedBody = JSON.parse(opts.body as string) as Record<string, unknown>;
-    expect(parsedBody).toEqual(body);
+    expect(parsedBody).toEqual({ client_invoice: params });
   });
 
   it("encodes special characters in the ID", async () => {
     fetchSpy.mockReturnValue(jsonResponse({ client_invoice: sampleInvoice }));
 
-    await updateClientInvoice(client, "a/b", {});
+    await updateClientInvoice(client, "a/b", {} as UpdateClientInvoiceParams);
 
     const [url] = fetchSpy.mock.calls[0] as [URL];
     expect(url.pathname).toBe("/v2/client_invoices/a%2Fb");

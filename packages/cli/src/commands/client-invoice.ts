@@ -4,7 +4,13 @@
 import { readFile } from "node:fs/promises";
 import { basename } from "node:path";
 import { Command, Option } from "commander";
-import type { ClientInvoice, ClientInvoiceUpload, QueryParams } from "@qontoctl/core";
+import type {
+  ClientInvoice,
+  ClientInvoiceUpload,
+  CreateClientInvoiceParams,
+  QueryParams,
+  UpdateClientInvoiceParams,
+} from "@qontoctl/core";
 import {
   getClientInvoice,
   createClientInvoice,
@@ -160,10 +166,10 @@ export function createClientInvoiceCommand(): Command {
     const opts = resolveGlobalOptions<GlobalOptions & WriteOptions & { body: string }>(cmd);
     const client = await createClient(opts);
 
-    const body: unknown = parseJson(opts.body, "--body");
+    const params = parseJson(opts.body, "--body") as CreateClientInvoiceParams;
     const inv = await createClientInvoice(
       client,
-      body,
+      params,
       opts.idempotencyKey !== undefined ? { idempotencyKey: opts.idempotencyKey } : undefined,
     );
 
@@ -183,11 +189,11 @@ export function createClientInvoiceCommand(): Command {
     const opts = resolveGlobalOptions<GlobalOptions & WriteOptions & { body: string }>(cmd);
     const client = await createClient(opts);
 
-    const body: unknown = parseJson(opts.body, "--body");
+    const params = parseJson(opts.body, "--body") as UpdateClientInvoiceParams;
     const inv = await updateClientInvoice(
       client,
       id,
-      body,
+      params,
       opts.idempotencyKey !== undefined ? { idempotencyKey: opts.idempotencyKey } : undefined,
     );
 
