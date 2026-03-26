@@ -199,9 +199,7 @@ export function registerClientInvoiceTools(server: McpServer, getClient: () => P
           ...(fields.issue_date !== undefined ? { issue_date: fields.issue_date } : {}),
           ...(fields.due_date !== undefined ? { due_date: fields.due_date } : {}),
           ...(fields.currency !== undefined ? { currency: fields.currency } : {}),
-          ...(fields.terms_and_conditions !== undefined
-            ? { terms_and_conditions: fields.terms_and_conditions }
-            : {}),
+          ...(fields.terms_and_conditions !== undefined ? { terms_and_conditions: fields.terms_and_conditions } : {}),
           ...(fields.header !== undefined ? { header: fields.header } : {}),
           ...(fields.footer !== undefined ? { footer: fields.footer } : {}),
           ...(fields.items !== undefined ? { items: fields.items } : {}),
