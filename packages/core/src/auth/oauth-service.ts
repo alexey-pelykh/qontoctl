@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
+import { z } from "zod";
+
+import { parseResponse } from "../response.js";
 import { AuthError } from "./api-key.js";
 
 /**
@@ -112,10 +115,19 @@ export async function revokeToken(
 
 interface TokenResponse {
   readonly access_token: string;
-  readonly refresh_token?: string;
+  readonly refresh_token?: string | undefined;
   readonly expires_in: number;
   readonly token_type: string;
 }
+
+const TokenResponseSchema = z
+  .object({
+    access_token: z.string(),
+    refresh_token: z.string().optional(),
+    expires_in: z.number(),
+    token_type: z.string(),
+  })
+  .strip() satisfies z.ZodType<TokenResponse>;
 
 async function requestTokens(tokenUrl: string, body: URLSearchParams, stagingToken?: string): Promise<OAuthTokens> {
   const headers: Record<string, string> = {
@@ -134,7 +146,7 @@ async function requestTokens(tokenUrl: string, body: URLSearchParams, stagingTok
     throw new AuthError(`OAuth token request failed (${response.status}): ${text}`);
   }
 
-  const data = (await response.json()) as TokenResponse;
+  const data = parseResponse(TokenResponseSchema, await response.json(), tokenUrl);
 
   return {
     accessToken: data.access_token,

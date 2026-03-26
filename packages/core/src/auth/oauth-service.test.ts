@@ -112,6 +112,20 @@ describe("exchangeCode", () => {
       ),
     ).rejects.toThrow(/400/);
   });
+
+  it("throws on invalid token response shape", async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonResponse({ unexpected: "data" }));
+
+    await expect(
+      exchangeCode(
+        "https://oauth.example.com/token",
+        "client-id",
+        "client-secret",
+        "auth-code",
+        "http://localhost:8080/callback",
+      ),
+    ).rejects.toThrow(/Invalid API response/);
+  });
 });
 
 describe("refreshAccessToken", () => {
