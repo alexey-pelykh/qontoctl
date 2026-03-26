@@ -5,6 +5,18 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { jsonResponse } from "@qontoctl/core/testing";
 import { createProgram } from "../../program.js";
 
+vi.mock("../../client.js", async () => {
+  const { HttpClient } = await import("@qontoctl/core");
+  return {
+    createClient: vi.fn().mockResolvedValue(
+      new HttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "test-org:test-secret",
+      }),
+    ),
+  };
+});
+
 function makeMeta(overrides: Record<string, unknown> = {}) {
   return {
     current_page: 1,

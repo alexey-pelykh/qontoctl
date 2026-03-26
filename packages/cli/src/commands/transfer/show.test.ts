@@ -5,6 +5,18 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { jsonResponse } from "@qontoctl/core/testing";
 import { registerTransferCommands } from "./index.js";
 
+vi.mock("../../client.js", async () => {
+  const { HttpClient } = await import("@qontoctl/core");
+  return {
+    createClient: vi.fn().mockResolvedValue(
+      new HttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "test-org:test-secret",
+      }),
+    ),
+  };
+});
+
 describe("transfer show command", () => {
   let fetchSpy: ReturnType<typeof vi.fn>;
   let writtenOutput: string[];
