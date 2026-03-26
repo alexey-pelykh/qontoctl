@@ -24,7 +24,7 @@ export function registerBeneficiaryUntrustCommand(parent: Command): void {
           ...(opts.idempotencyKey !== undefined ? { idempotencyKey: opts.idempotencyKey } : {}),
           ...(scaSessionToken !== undefined ? { scaSessionToken } : {}),
         }),
-      { verbose: opts.verbose },
+      { verbose: opts.verbose === true || opts.debug === true },
     );
 
     if (opts.output === "json" || opts.output === "yaml") {

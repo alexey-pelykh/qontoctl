@@ -62,7 +62,7 @@ export function registerIntlTransferCreateCommand(parent: Command): void {
           ...(opts.idempotencyKey !== undefined ? { idempotencyKey: opts.idempotencyKey } : {}),
           ...(scaSessionToken !== undefined ? { scaSessionToken } : {}),
         }),
-      { verbose: opts.verbose },
+      { verbose: opts.verbose === true || opts.debug === true },
     );
 
     const data = opts.output === "json" || opts.output === "yaml" ? transfer : [toTableRow(transfer)];
