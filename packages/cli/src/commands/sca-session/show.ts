@@ -25,9 +25,7 @@ export function registerScaSessionShowCommand(parent: Command): void {
     const session = await getScaSession(client, token);
 
     const data =
-      opts.output === "json" || opts.output === "yaml"
-        ? session
-        : [{ token: session.token, status: session.status }];
+      opts.output === "json" || opts.output === "yaml" ? session : [{ token: session.token, status: session.status }];
 
     process.stdout.write(formatOutput(data, opts.output) + "\n");
   });
