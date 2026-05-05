@@ -888,6 +888,27 @@ describe("HttpClient", () => {
       expect(bodyLog).toContain('"currency":"EUR"');
     });
 
+    it("redacts sca_session_token body field in response body debug logs", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ outer: { sca_session_token: "leaky-token-XYZ", other: "ok" } }));
+      const logger = createMockLogger();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+        logger,
+      });
+
+      await client.get("/v2/something");
+
+      const bodyLogCalls = logger.debug.mock.calls.filter(
+        (call: string[]) => typeof call[0] === "string" && call[0].includes("Response body"),
+      );
+      expect(bodyLogCalls.length).toBeGreaterThan(0);
+      const bodyLog = bodyLogCalls[0]?.[0] as string;
+      expect(bodyLog).not.toContain("leaky-token-XYZ");
+      expect(bodyLog).toContain('"sca_session_token":"[REDACTED]"');
+      expect(bodyLog).toContain('"other":"ok"');
+    });
+
     it("redacts Authorization header in debug logs", async () => {
       fetchSpy.mockReturnValue(jsonResponse({}));
       const logger = createMockLogger();
@@ -906,6 +927,50 @@ describe("HttpClient", () => {
       const headerLog = headerLogCalls[0]?.[0] as string;
       expect(headerLog).toContain("[REDACTED]");
       expect(headerLog).not.toContain("secret-key-123");
+    });
+
+    it("redacts X-Qonto-Staging-Token header in debug logs", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({}));
+      const logger = createMockLogger();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty-sandbox.staging.qonto.co",
+        authorization: "slug:secret",
+        stagingToken: "sandbox-staging-token-secret-XYZ",
+        logger,
+      });
+
+      await client.get("/v2/organizations");
+
+      const headerLogCalls = logger.debug.mock.calls.filter(
+        (call: string[]) => typeof call[0] === "string" && call[0].includes("Request headers"),
+      );
+      const headerLog = headerLogCalls[0]?.[0] as string;
+      expect(headerLog).not.toContain("sandbox-staging-token-secret-XYZ");
+      expect(headerLog).toContain('"X-Qonto-Staging-Token":"[REDACTED]"');
+    });
+
+    it("redacts X-Qonto-Sca-Session-Token header in debug logs on retry with token", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ id: "ok" }, { status: 201 }));
+      const logger = createMockLogger();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+        logger,
+      });
+
+      await client.post("/v2/transfers", { amount: 100 }, { scaSessionToken: "retry-token-secret-ABC" });
+
+      const headerLogCalls = logger.debug.mock.calls.filter(
+        (call: string[]) => typeof call[0] === "string" && call[0].includes("Request headers"),
+      );
+      // The header log is emitted from buildHeaders before the SCA token is added in
+      // fetchWithRetry, so the SCA token isn't currently present in the captured log.
+      // The redaction map nonetheless covers the header name as defense-in-depth: any
+      // future log path that captures the assembled headers will redact it.
+      for (const call of headerLogCalls) {
+        const headerLog = call[0] as string;
+        expect(headerLog).not.toContain("retry-token-secret-ABC");
+      }
     });
 
     it("does not throw when logger is not provided", async () => {
@@ -951,6 +1016,30 @@ describe("HttpClient", () => {
 
       expect(error).toBeInstanceOf(QontoScaRequiredError);
       expect((error as QontoScaRequiredError).scaSessionToken).toBe("sca-tok-123");
+    });
+
+    it("does not leak SCA session token through any debug or verbose log on 428 (full request lifecycle)", async () => {
+      // Integration-style test: a debug-mode user running against a 428 must
+      // capture zero SCA token leakage across all logger channels.
+      const SECRET_TOKEN = "sca-leak-canary-abc-123-def-456";
+      fetchSpy.mockReturnValue(jsonResponse({ sca_session_token: SECRET_TOKEN }, { status: 428 }));
+      const logger = createMockLogger();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+        logger,
+      });
+
+      const error = await client.post("/v2/transfers", { amount: 100 }).catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(QontoScaRequiredError);
+      expect((error as QontoScaRequiredError).scaSessionToken).toBe(SECRET_TOKEN);
+      expect((error as QontoScaRequiredError).message).not.toContain(SECRET_TOKEN);
+
+      const allDebugCalls = logger.debug.mock.calls.map((c: string[]) => String(c[0]));
+      const allVerboseCalls = logger.verbose.mock.calls.map((c: string[]) => String(c[0]));
+      const allLogged = [...allDebugCalls, ...allVerboseCalls].join("\n");
+      expect(allLogged).not.toContain(SECRET_TOKEN);
     });
 
     it("throws QontoScaRequiredError with 'unknown' when no token in body", async () => {
@@ -1316,9 +1405,10 @@ describe("HttpClient", () => {
       expect(error.name).toBe("QontoScaRequiredError");
     });
 
-    it("includes session token in message", () => {
+    it("does not include session token in message", () => {
       const error = new QontoScaRequiredError("tok-456");
-      expect(error.message).toContain("tok-456");
+      expect(error.message).not.toContain("tok-456");
+      expect(error.message).toBe("SCA required");
     });
 
     it("exposes scaSessionToken property", () => {

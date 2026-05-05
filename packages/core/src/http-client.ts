@@ -69,11 +69,13 @@ export class QontoRateLimitError extends Error {
  * Error thrown when the Qonto API requires Strong Customer Authentication (428).
  *
  * The SCA session token can be used to poll the SCA session status and
- * retry the original request once approved.
+ * retry the original request once approved. The token is intentionally
+ * omitted from `.message` to avoid leaking it through generic error
+ * logging; callers needing the token can read `.scaSessionToken` directly.
  */
 export class QontoScaRequiredError extends Error {
   constructor(public readonly scaSessionToken: string) {
-    super(`SCA required (session token: ${scaSessionToken})`);
+    super(`SCA required`);
     this.name = "QontoScaRequiredError";
   }
 }
@@ -145,15 +147,30 @@ const SCA_SESSION_TOKEN_HEADER = "X-Qonto-Sca-Session-Token";
 const STAGING_TOKEN_HEADER = "X-Qonto-Staging-Token";
 
 /**
- * Field names redacted from debug log output to avoid leaking financial data.
+ * Field and header names redacted from debug log output.
+ *
+ * Covers two classes of secrets:
+ * - Financial data (IBAN, BIC, balances) that must not appear in logs.
+ * - Authentication and SCA tokens that grant API access if leaked.
+ *
+ * Header names are stored lowercase; matching is case-insensitive so the
+ * same set redacts both body fields (snake_case) and HTTP header names
+ * (which arrive in mixed case from `Headers` / our own builders).
  */
 const SENSITIVE_FIELDS: ReadonlySet<string> = new Set([
+  // Financial body fields
   "iban",
   "bic",
   "balance",
   "balance_cents",
   "authorized_balance",
   "authorized_balance_cents",
+  // SCA session token (body field and header form)
+  "sca_session_token",
+  "x-qonto-sca-session-token",
+  // Authentication and environment headers
+  "authorization",
+  "x-qonto-staging-token",
 ]);
 
 function redactSensitiveFields(value: unknown): unknown {
@@ -166,7 +183,7 @@ function redactSensitiveFields(value: unknown): unknown {
   if (typeof value === "object") {
     const result: Record<string, unknown> = {};
     for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
-      result[key] = SENSITIVE_FIELDS.has(key) ? "[REDACTED]" : redactSensitiveFields(val);
+      result[key] = SENSITIVE_FIELDS.has(key.toLowerCase()) ? "[REDACTED]" : redactSensitiveFields(val);
     }
     return result;
   }
@@ -393,7 +410,9 @@ export class HttpClient {
       const elapsed = performance.now() - startTime;
 
       this.logVerbose(`${response.status} ${response.statusText} (${elapsed.toFixed(0)}ms)`);
-      this.logDebug(`Response headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()))}`);
+      this.logDebug(
+        `Response headers: ${JSON.stringify(redactSensitiveFields(Object.fromEntries(response.headers.entries())))}`,
+      );
 
       if (response.status === 429) {
         const retryAfter = this.parseRetryAfter(response);
@@ -456,7 +475,9 @@ export class HttpClient {
         const fallbackElapsed = performance.now() - fallbackStart;
 
         this.logVerbose(`${fallbackResponse.status} ${fallbackResponse.statusText} (${fallbackElapsed.toFixed(0)}ms)`);
-        this.logDebug(`Response headers: ${JSON.stringify(Object.fromEntries(fallbackResponse.headers.entries()))}`);
+        this.logDebug(
+          `Response headers: ${JSON.stringify(redactSensitiveFields(Object.fromEntries(fallbackResponse.headers.entries())))}`,
+        );
 
         if (fallbackResponse.status === 428) {
           const errorBody = await this.safeReadJson(fallbackResponse);
@@ -532,9 +553,7 @@ export class HttpClient {
       headers[STAGING_TOKEN_HEADER] = this.stagingToken;
     }
 
-    this.logDebug(
-      `Request headers: ${JSON.stringify({ ...headers, Authorization: "[REDACTED]", ...(this.stagingToken !== undefined ? { [STAGING_TOKEN_HEADER]: "[REDACTED]" } : {}) })}`,
-    );
+    this.logDebug(`Request headers: ${JSON.stringify(redactSensitiveFields(headers))}`);
 
     return headers;
   }
