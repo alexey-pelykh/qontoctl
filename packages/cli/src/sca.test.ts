@@ -172,16 +172,61 @@ describe("executeWithCliSca", () => {
 
     const result = await executeWithCliSca(
       client,
-      async (scaToken) => {
+      async ({ scaSessionToken }) => {
         callCount++;
         if (callCount === 1) {
           throw new QontoScaRequiredError("tok-cli-5");
         }
-        return `result-with-${scaToken ?? "none"}`;
+        return `result-with-${scaSessionToken ?? "none"}`;
       },
       { poll: { sleep: noopSleep }, createSpinner: () => mockSpin },
     );
 
     expect(result).toBe("result-with-tok-cli-5");
+  });
+
+  it("forwards a stable idempotency key across both attempts", async () => {
+    fetchSpy.mockImplementation(() => jsonResponse({ sca_session: { status: "allow" } }));
+    const mockSpin = createMockSpinner();
+    const seenKeys: string[] = [];
+    let called = false;
+
+    await executeWithCliSca(
+      client,
+      async ({ idempotencyKey }) => {
+        seenKeys.push(idempotencyKey);
+        if (!called) {
+          called = true;
+          throw new QontoScaRequiredError("tok-cli-idem");
+        }
+        return "ok";
+      },
+      { poll: { sleep: noopSleep }, createSpinner: () => mockSpin },
+    );
+
+    expect(seenKeys).toHaveLength(2);
+    expect(seenKeys[0]).toBe(seenKeys[1]);
+  });
+
+  it("forwards a supplied idempotency key to the operation", async () => {
+    fetchSpy.mockImplementation(() => jsonResponse({ sca_session: { status: "allow" } }));
+    const mockSpin = createMockSpinner();
+    const seenKeys: string[] = [];
+    let called = false;
+
+    await executeWithCliSca(
+      client,
+      async ({ idempotencyKey }) => {
+        seenKeys.push(idempotencyKey);
+        if (!called) {
+          called = true;
+          throw new QontoScaRequiredError("tok-cli-idem-supplied");
+        }
+        return "ok";
+      },
+      { poll: { sleep: noopSleep }, createSpinner: () => mockSpin, idempotencyKey: "cli-supplied-key" },
+    );
+
+    expect(seenKeys).toEqual(["cli-supplied-key", "cli-supplied-key"]);
   });
 });

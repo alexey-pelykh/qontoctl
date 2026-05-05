@@ -46,12 +46,12 @@ export function registerRequestCreateFlashCardCommand(parent: Command): void {
 
     const request = await executeWithCliSca(
       httpClient,
-      async (scaSessionToken) =>
+      async ({ scaSessionToken, idempotencyKey }) =>
         createFlashCardRequest(httpClient, params, {
-          ...(opts.idempotencyKey !== undefined ? { idempotencyKey: opts.idempotencyKey } : {}),
+          idempotencyKey,
           ...(scaSessionToken !== undefined ? { scaSessionToken } : {}),
         }),
-      { verbose: opts.verbose === true || opts.debug === true },
+      { verbose: opts.verbose === true || opts.debug === true, idempotencyKey: opts.idempotencyKey },
     );
 
     const data = opts.output === "json" || opts.output === "yaml" ? request : [toTableRow(request)];

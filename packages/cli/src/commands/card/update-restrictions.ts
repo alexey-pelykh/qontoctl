@@ -46,12 +46,12 @@ export function registerCardUpdateRestrictionsCommand(parent: Command): void {
 
     const card = await executeWithCliSca(
       client,
-      (scaSessionToken) =>
+      ({ scaSessionToken, idempotencyKey }) =>
         updateCardRestrictions(client, id, params, {
-          ...(opts.idempotencyKey !== undefined ? { idempotencyKey: opts.idempotencyKey } : {}),
+          idempotencyKey,
           ...(scaSessionToken !== undefined ? { scaSessionToken } : {}),
         }),
-      { verbose: opts.verbose === true || opts.debug === true },
+      { verbose: opts.verbose === true || opts.debug === true, idempotencyKey: opts.idempotencyKey },
     );
 
     const data: unknown =

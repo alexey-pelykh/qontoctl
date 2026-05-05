@@ -529,5 +529,6 @@ export type {
   ScaSessionStatus,
   PollScaSessionOptions,
   ExecuteWithScaCallbacks,
+  ExecuteWithScaContext,
   ExecuteWithScaOptions,
 } from "./sca/index.js";

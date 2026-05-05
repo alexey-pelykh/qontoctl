@@ -78,12 +78,12 @@ export function registerCardUpdateLimitsCommand(parent: Command): void {
 
     const card = await executeWithCliSca(
       client,
-      (scaSessionToken) =>
+      ({ scaSessionToken, idempotencyKey }) =>
         updateCardLimits(client, id, params, {
-          ...(opts.idempotencyKey !== undefined ? { idempotencyKey: opts.idempotencyKey } : {}),
+          idempotencyKey,
           ...(scaSessionToken !== undefined ? { scaSessionToken } : {}),
         }),
-      { verbose: opts.verbose === true || opts.debug === true },
+      { verbose: opts.verbose === true || opts.debug === true, idempotencyKey: opts.idempotencyKey },
     );
 
     process.stdout.write(formatOutput(formatCard(card, opts.output), opts.output) + "\n");

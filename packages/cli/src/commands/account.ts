@@ -110,16 +110,16 @@ export function registerAccountCommands(program: Command): void {
 
     const bankAccount = await executeWithCliSca(
       client,
-      (scaSessionToken) =>
+      ({ scaSessionToken, idempotencyKey }) =>
         createBankAccount(
           client,
           { name: opts.name },
           {
-            ...(opts.idempotencyKey !== undefined ? { idempotencyKey: opts.idempotencyKey } : {}),
+            idempotencyKey,
             ...(scaSessionToken !== undefined ? { scaSessionToken } : {}),
           },
         ),
-      { verbose: opts.verbose === true || opts.debug === true },
+      { verbose: opts.verbose === true || opts.debug === true, idempotencyKey: opts.idempotencyKey },
     );
 
     const data =
@@ -158,12 +158,12 @@ export function registerAccountCommands(program: Command): void {
 
     const bankAccount = await executeWithCliSca(
       client,
-      (scaSessionToken) =>
+      ({ scaSessionToken, idempotencyKey }) =>
         updateBankAccount(client, id, params, {
-          ...(opts.idempotencyKey !== undefined ? { idempotencyKey: opts.idempotencyKey } : {}),
+          idempotencyKey,
           ...(scaSessionToken !== undefined ? { scaSessionToken } : {}),
         }),
-      { verbose: opts.verbose === true || opts.debug === true },
+      { verbose: opts.verbose === true || opts.debug === true, idempotencyKey: opts.idempotencyKey },
     );
 
     const data =
@@ -205,12 +205,12 @@ export function registerAccountCommands(program: Command): void {
 
     await executeWithCliSca(
       client,
-      (scaSessionToken) =>
+      ({ scaSessionToken, idempotencyKey }) =>
         closeBankAccount(client, id, {
-          ...(opts.idempotencyKey !== undefined ? { idempotencyKey: opts.idempotencyKey } : {}),
+          idempotencyKey,
           ...(scaSessionToken !== undefined ? { scaSessionToken } : {}),
         }),
-      { verbose: opts.verbose === true || opts.debug === true },
+      { verbose: opts.verbose === true || opts.debug === true, idempotencyKey: opts.idempotencyKey },
     );
 
     if (opts.output === "json" || opts.output === "yaml") {

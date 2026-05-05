@@ -21,8 +21,12 @@ vi.mock("@qontoctl/core", async (importOriginal) => {
 });
 
 vi.mock("../../sca.js", () => ({
-  executeWithCliSca: vi.fn((_client: unknown, operation: (scaSessionToken?: string) => Promise<unknown>) =>
-    operation(undefined),
+  executeWithCliSca: vi.fn(
+    (
+      _client: unknown,
+      operation: (ctx: { scaSessionToken?: string; idempotencyKey: string }) => Promise<unknown>,
+      options?: { idempotencyKey?: string },
+    ) => operation({ idempotencyKey: options?.idempotencyKey ?? "test-idempotency-key" }),
   ),
 }));
 
