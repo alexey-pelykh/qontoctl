@@ -12,6 +12,7 @@ export { createMembershipCommand } from "./membership.js";
 export { createPaymentLinkCommand } from "./payment-link.js";
 export { createQuoteCommand } from "./quote.js";
 export { registerRequestCommands } from "./request/index.js";
+export { registerScaSessionCommands } from "./sca-session/index.js";
 export { registerStatementCommands } from "./statement.js";
 export { registerOrgCommands } from "./org.js";
 export { registerAccountCommands } from "./account.js";
