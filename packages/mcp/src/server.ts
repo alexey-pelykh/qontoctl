@@ -26,6 +26,7 @@ import {
   registerQuoteTools,
   registerRecurringTransferTools,
   registerRequestTools,
+  registerScaSessionTools,
   registerStatementTools,
   registerSupplierInvoiceTools,
   registerTeamTools,
@@ -74,6 +75,7 @@ export function createServer(options?: CreateServerOptions): McpServer {
   registerQuoteTools(server, getClient);
   registerRecurringTransferTools(server, getClient);
   registerRequestTools(server, getClient);
+  registerScaSessionTools(server, getClient);
   registerStatementTools(server, getClient);
   registerSupplierInvoiceTools(server, getClient);
   registerTeamTools(server, getClient);

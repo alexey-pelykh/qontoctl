@@ -292,6 +292,56 @@ describe("HttpClient", () => {
     });
   });
 
+  describe("staging token", () => {
+    it("isSandbox is false when no staging token is configured", () => {
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+      });
+
+      expect(client.isSandbox).toBe(false);
+    });
+
+    it("isSandbox is true when a staging token is configured", () => {
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty-sandbox.staging.qonto.co",
+        authorization: "slug:secret",
+        stagingToken: "tok-staging",
+      });
+
+      expect(client.isSandbox).toBe(true);
+    });
+
+    it("sends the staging token header when configured", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({}));
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty-sandbox.staging.qonto.co",
+        authorization: "slug:secret",
+        stagingToken: "tok-staging",
+      });
+
+      await client.get("/v2/organizations");
+
+      const [, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      const headers = init.headers as Record<string, string>;
+      expect(headers["X-Qonto-Staging-Token"]).toBe("tok-staging");
+    });
+
+    it("omits the staging token header when not configured", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({}));
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+      });
+
+      await client.get("/v2/organizations");
+
+      const [, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      const headers = init.headers as Record<string, string>;
+      expect(headers["X-Qonto-Staging-Token"]).toBeUndefined();
+    });
+  });
+
   describe("idempotency keys", () => {
     const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

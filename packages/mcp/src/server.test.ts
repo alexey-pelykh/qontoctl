@@ -138,7 +138,9 @@ describe("createServer", () => {
       expect(toolNames).toContain("payment_link_methods");
       expect(toolNames).toContain("payment_link_connect");
       expect(toolNames).toContain("payment_link_connection_status");
-      expect(tools).toHaveLength(122);
+      expect(toolNames).toContain("sca_session_show");
+      expect(toolNames).toContain("sca_session_mock_decision");
+      expect(tools).toHaveLength(124);
     });
 
     it("tools have descriptions", async () => {

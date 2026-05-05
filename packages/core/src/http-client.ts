@@ -222,6 +222,17 @@ export class HttpClient {
   }
 
   /**
+   * Whether this client is configured for the Qonto sandbox environment.
+   *
+   * True when a staging token is set, which routes requests through the
+   * sandbox host via the `X-Qonto-Staging-Token` header. Sandbox-only
+   * operations (e.g. `mockScaDecision`) should gate on this flag.
+   */
+  get isSandbox(): boolean {
+    return this.stagingToken !== undefined;
+  }
+
+  /**
    * Sends an HTTP request and parses the response as JSON.
    *
    * **Trust boundary**: The parsed JSON is cast to `T` without runtime validation.
