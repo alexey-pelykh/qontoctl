@@ -19,6 +19,7 @@ import { registerRecurringTransferCommands } from "./commands/recurring-transfer
 import { registerOrgCommands } from "./commands/org.js";
 import { createPaymentLinkCommand } from "./commands/payment-link.js";
 import { registerAccountCommands } from "./commands/account.js";
+import { registerScaSessionCommands } from "./commands/sca-session/index.js";
 import { registerSupplierInvoiceCommands } from "./commands/supplier-invoice/index.js";
 import { createTeamCommand } from "./commands/team.js";
 import { registerAuthCommands } from "./commands/auth.js";
@@ -52,6 +53,7 @@ export function createProgram(): Command {
   registerRecurringTransferCommands(program);
   registerOrgCommands(program);
   registerAccountCommands(program);
+  registerScaSessionCommands(program);
   registerSupplierInvoiceCommands(program);
   program.addCommand(createTeamCommand());
   registerInsuranceCommands(program);

@@ -77,6 +77,7 @@ describe("qontoctl CLI", () => {
       expect(names).toContain("recurring-transfer");
       expect(names).toContain("org");
       expect(names).toContain("account");
+      expect(names).toContain("sca-session");
       expect(names).toContain("supplier-invoice");
       expect(names).toContain("team");
       expect(names).toContain("intl");
@@ -98,7 +99,7 @@ describe("qontoctl CLI", () => {
       expect(names).toContain("insurance");
       expect(names).toContain("payment-link");
       expect(names).toContain("mcp");
-      expect(program.commands).toHaveLength(29);
+      expect(program.commands).toHaveLength(30);
     });
 
     it("commands have descriptions", () => {

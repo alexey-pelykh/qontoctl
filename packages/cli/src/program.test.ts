@@ -54,13 +54,14 @@ describe("createProgram", () => {
       expect(names).toContain("recurring-transfer");
       expect(names).toContain("org");
       expect(names).toContain("account");
+      expect(names).toContain("sca-session");
       expect(names).toContain("supplier-invoice");
       expect(names).toContain("team");
       expect(names).toContain("insurance");
       expect(names).toContain("intl");
       expect(names).toContain("payment-link");
       expect(names).toContain("profile");
-      expect(program.commands).toHaveLength(16);
+      expect(program.commands).toHaveLength(17);
     });
 
     it("commands have descriptions", () => {
@@ -207,6 +208,16 @@ describe("createProgram", () => {
       expect(names).toContain("update");
       expect(names).toContain("close");
       expect(account.commands).toHaveLength(6);
+    });
+
+    it("registers expected sca-session subcommands", () => {
+      const program = createProgram();
+      const scaSession = findCommand(program, "sca-session");
+      const names = scaSession.commands.map((c) => c.name());
+
+      expect(names).toContain("show");
+      expect(names).toContain("mock-decision");
+      expect(scaSession.commands).toHaveLength(2);
     });
 
     it("registers expected supplier-invoice subcommands", () => {
