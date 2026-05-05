@@ -89,6 +89,8 @@ const EXPECTED_TOOLS = [
   "request_create_flash_card",
   "request_create_virtual_card",
   "request_create_multi_transfer",
+  "sca_session_show",
+  "sca_session_mock_decision",
   "supplier_invoice_list",
   "supplier_invoice_show",
   "supplier_invoice_bulk_create",
