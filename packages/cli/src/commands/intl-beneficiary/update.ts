@@ -51,12 +51,12 @@ export function registerIntlBeneficiaryUpdateCommand(parent: Command): void {
 
     const b = await executeWithCliSca(
       httpClient,
-      async (scaSessionToken) =>
+      async ({ scaSessionToken, idempotencyKey }) =>
         updateIntlBeneficiary(httpClient, id, params, {
-          ...(opts.idempotencyKey !== undefined ? { idempotencyKey: opts.idempotencyKey } : {}),
+          idempotencyKey,
           ...(scaSessionToken !== undefined ? { scaSessionToken } : {}),
         }),
-      { verbose: opts.verbose === true || opts.debug === true },
+      { verbose: opts.verbose === true || opts.debug === true, idempotencyKey: opts.idempotencyKey },
     );
 
     const data = opts.output === "json" || opts.output === "yaml" ? b : [toTableRow(b)];

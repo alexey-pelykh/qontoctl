@@ -66,7 +66,7 @@ const org = await getOrganization(client);
 
 - **`getScaSession(client, scaId)`** — retrieve an SCA session by ID
 - **`pollScaSession(client, scaId, options?)`** — poll an SCA session until completion
-- **`executeWithSca(fn, callbacks, options?)`** — execute an API call with SCA handling
+- **`executeWithSca(client, operation, options?)`** — execute an API call with SCA handling. The `operation` callback receives an `ExecuteWithScaContext` carrying a stable `idempotencyKey` (shared across the initial 428 attempt and the post-SCA retry) and an optional `scaSessionToken` (set on retry); callers MUST forward `context.idempotencyKey` to the underlying request so both wire attempts emit the same `X-Qonto-Idempotency-Key`. Supply `options.idempotencyKey` to pin the value (e.g. when the user passes `--idempotency-key`); otherwise a UUID is generated once and reused.
 - **`mockScaDecision(client, scaId, decision)`** — mock an SCA decision (sandbox only)
 - **`ScaDeniedError`** — error when SCA is denied by the user
 - **`ScaTimeoutError`** — error when SCA polling times out

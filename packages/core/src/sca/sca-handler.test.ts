@@ -55,12 +55,12 @@ describe("executeWithSca", () => {
 
     const result = await executeWithSca(
       client,
-      async (scaToken) => {
+      async ({ scaSessionToken }) => {
         callCount++;
         if (callCount === 1) {
           throw new QontoScaRequiredError("tok-sca-1");
         }
-        return `retried-with-${scaToken ?? "none"}`;
+        return `retried-with-${scaSessionToken ?? "none"}`;
       },
       { poll: { sleep: noopSleep } },
     );
@@ -152,5 +152,124 @@ describe("executeWithSca", () => {
     );
 
     expect(callOrder).toEqual(["approved", "retry"]);
+  });
+
+  it("threads the same idempotency key to both attempts when none is supplied", async () => {
+    fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "allow" } }));
+    const seenKeys: string[] = [];
+    let called = false;
+
+    await executeWithSca(
+      client,
+      async ({ idempotencyKey }) => {
+        seenKeys.push(idempotencyKey);
+        if (!called) {
+          called = true;
+          throw new QontoScaRequiredError("tok-idem-auto");
+        }
+        return "ok";
+      },
+      { poll: { sleep: noopSleep } },
+    );
+
+    expect(seenKeys).toHaveLength(2);
+    expect(seenKeys[0]).toBe(seenKeys[1]);
+    expect(seenKeys[0]).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+  });
+
+  it("uses the supplied idempotency key on both attempts", async () => {
+    fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "allow" } }));
+    const seenKeys: string[] = [];
+    let called = false;
+
+    await executeWithSca(
+      client,
+      async ({ idempotencyKey }) => {
+        seenKeys.push(idempotencyKey);
+        if (!called) {
+          called = true;
+          throw new QontoScaRequiredError("tok-idem-supplied");
+        }
+        return "ok";
+      },
+      { idempotencyKey: "user-supplied-key", poll: { sleep: noopSleep } },
+    );
+
+    expect(seenKeys).toEqual(["user-supplied-key", "user-supplied-key"]);
+  });
+
+  it("emits matching X-Qonto-Idempotency-Key header on both wire requests across SCA retry", async () => {
+    // First call: 428 SCA Required from the API.
+    // Then: poll returns allow.
+    // Retry: 200 OK.
+    fetchSpy
+      .mockImplementationOnce(() =>
+        Promise.resolve(
+          new Response(JSON.stringify({ sca_session_token: "tok-wire-1" }), {
+            status: 428,
+            headers: { "Content-Type": "application/json" },
+          }),
+        ),
+      )
+      .mockImplementationOnce(() => jsonResponse({ sca_session: { status: "allow" } }))
+      .mockImplementationOnce(() => jsonResponse({ id: "tx-1" }));
+
+    await executeWithSca(
+      client,
+      async ({ scaSessionToken, idempotencyKey }) =>
+        client.post(
+          "/v2/transfers",
+          { amount: 100 },
+          {
+            idempotencyKey,
+            ...(scaSessionToken !== undefined ? { scaSessionToken } : {}),
+          },
+        ),
+      { poll: { sleep: noopSleep } },
+    );
+
+    // Three fetch calls: initial transfer (428), SCA poll, retry transfer.
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
+
+    const initialHeaders = fetchSpy.mock.calls[0]?.[1]?.headers as Record<string, string>;
+    const retryHeaders = fetchSpy.mock.calls[2]?.[1]?.headers as Record<string, string>;
+
+    expect(initialHeaders["X-Qonto-Idempotency-Key"]).toBeDefined();
+    expect(retryHeaders["X-Qonto-Idempotency-Key"]).toBe(initialHeaders["X-Qonto-Idempotency-Key"]);
+    expect(retryHeaders["X-Qonto-Sca-Session-Token"]).toBe("tok-wire-1");
+  });
+
+  it("emits supplied X-Qonto-Idempotency-Key header on both wire requests across SCA retry", async () => {
+    fetchSpy
+      .mockImplementationOnce(() =>
+        Promise.resolve(
+          new Response(JSON.stringify({ sca_session_token: "tok-wire-2" }), {
+            status: 428,
+            headers: { "Content-Type": "application/json" },
+          }),
+        ),
+      )
+      .mockImplementationOnce(() => jsonResponse({ sca_session: { status: "allow" } }))
+      .mockImplementationOnce(() => jsonResponse({ id: "tx-2" }));
+
+    await executeWithSca(
+      client,
+      async ({ scaSessionToken, idempotencyKey }) =>
+        client.post(
+          "/v2/transfers",
+          { amount: 200 },
+          {
+            idempotencyKey,
+            ...(scaSessionToken !== undefined ? { scaSessionToken } : {}),
+          },
+        ),
+      { idempotencyKey: "supplied-stable-key", poll: { sleep: noopSleep } },
+    );
+
+    const initialHeaders = fetchSpy.mock.calls[0]?.[1]?.headers as Record<string, string>;
+    const retryHeaders = fetchSpy.mock.calls[2]?.[1]?.headers as Record<string, string>;
+
+    expect(initialHeaders["X-Qonto-Idempotency-Key"]).toBe("supplied-stable-key");
+    expect(retryHeaders["X-Qonto-Idempotency-Key"]).toBe("supplied-stable-key");
   });
 });

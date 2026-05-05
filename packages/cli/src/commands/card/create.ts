@@ -147,12 +147,12 @@ export function registerCardCreateCommand(parent: Command): void {
 
     const card = await executeWithCliSca(
       client,
-      (scaSessionToken) =>
+      ({ scaSessionToken, idempotencyKey }) =>
         createCard(client, params, {
-          ...(opts.idempotencyKey !== undefined ? { idempotencyKey: opts.idempotencyKey } : {}),
+          idempotencyKey,
           ...(scaSessionToken !== undefined ? { scaSessionToken } : {}),
         }),
-      { verbose: opts.verbose === true || opts.debug === true },
+      { verbose: opts.verbose === true || opts.debug === true, idempotencyKey: opts.idempotencyKey },
     );
 
     process.stdout.write(formatOutput(formatCard(card, opts.output), opts.output) + "\n");
@@ -177,12 +177,12 @@ export function registerCardBulkCreateCommand(parent: Command): void {
 
     const result = await executeWithCliSca(
       client,
-      (scaSessionToken) =>
+      ({ scaSessionToken, idempotencyKey }) =>
         bulkCreateCards(client, cards, {
-          ...(opts.idempotencyKey !== undefined ? { idempotencyKey: opts.idempotencyKey } : {}),
+          idempotencyKey,
           ...(scaSessionToken !== undefined ? { scaSessionToken } : {}),
         }),
-      { verbose: opts.verbose === true || opts.debug === true },
+      { verbose: opts.verbose === true || opts.debug === true, idempotencyKey: opts.idempotencyKey },
     );
 
     const data =

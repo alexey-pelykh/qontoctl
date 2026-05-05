@@ -74,12 +74,12 @@ export function registerTransferBulkVerifyPayeeCommand(parent: Command): void {
 
     const results = await executeWithCliSca(
       httpClient,
-      async (scaSessionToken) =>
+      async ({ scaSessionToken, idempotencyKey }) =>
         bulkVerifyPayee(httpClient, entries, {
-          ...(opts.idempotencyKey !== undefined ? { idempotencyKey: opts.idempotencyKey } : {}),
+          idempotencyKey,
           ...(scaSessionToken !== undefined ? { scaSessionToken } : {}),
         }),
-      { verbose: opts.verbose === true || opts.debug === true },
+      { verbose: opts.verbose === true || opts.debug === true, idempotencyKey: opts.idempotencyKey },
     );
 
     const data =
