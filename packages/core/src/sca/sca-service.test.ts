@@ -139,7 +139,8 @@ describe("SCA service", () => {
       const error = await pollScaSession(client, "tok-3", { sleep: noopSleep }).catch((e: unknown) => e);
 
       expect(error).toBeInstanceOf(ScaDeniedError);
-      expect((error as ScaDeniedError).token).toBe("tok-3");
+      expect((error as ScaDeniedError).scaSessionToken).toBe("tok-3");
+      expect(error.message).not.toContain("tok-3");
     });
 
     it("throws ScaTimeoutError when timeout is exceeded", async () => {
@@ -151,8 +152,9 @@ describe("SCA service", () => {
       }).catch((e: unknown) => e);
 
       expect(error).toBeInstanceOf(ScaTimeoutError);
-      expect((error as ScaTimeoutError).token).toBe("tok-4");
+      expect((error as ScaTimeoutError).scaSessionToken).toBe("tok-4");
       expect((error as ScaTimeoutError).timeoutMs).toBe(0);
+      expect(error.message).not.toContain("tok-4");
     });
 
     it("calls onPoll callback with attempt number and elapsed time", async () => {
