@@ -22,6 +22,7 @@ export { registerPaymentLinkTools } from "./payment-link.js";
 export { registerQuoteTools } from "./quote.js";
 export { registerRecurringTransferTools } from "./recurring-transfer.js";
 export { registerRequestTools } from "./request.js";
+export { registerScaSessionTools } from "./sca-session.js";
 export { registerStatementTools } from "./statement.js";
 export { registerSupplierInvoiceTools } from "./supplier-invoice.js";
 export { registerTransactionTools } from "./transactions.js";

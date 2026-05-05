@@ -16,13 +16,19 @@ export interface McpTestContext {
 /**
  * Set up an in-memory MCP client + server pair for integration testing.
  * Stubs global `fetch` with the provided spy.
+ *
+ * Pass `stagingToken` to construct the underlying HttpClient in sandbox mode,
+ * which flips `client.isSandbox` and routes requests through the sandbox host.
  */
 export async function connectInMemory(
   fetchSpy: ReturnType<typeof import("vitest").vi.fn>,
-  options?: { maxRetries?: number },
+  options?: { maxRetries?: number; stagingToken?: string },
 ): Promise<McpTestContext> {
   const httpClient = new HttpClient({
-    baseUrl: "https://thirdparty.qonto.com",
+    baseUrl:
+      options?.stagingToken !== undefined
+        ? "https://thirdparty-sandbox.staging.qonto.co"
+        : "https://thirdparty.qonto.com",
     authorization: "slug:secret",
     ...options,
   });
