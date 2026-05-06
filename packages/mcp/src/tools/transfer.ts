@@ -174,8 +174,7 @@ export function registerTransferTools(server: McpServer, getClient: () => Promis
 
         return executeWithMcpSca(
           client,
-          (context) =>
-            createTransfer(client, params, coreOptionsFromContext(context)),
+          (context) => createTransfer(client, params, coreOptionsFromContext(context)),
           (transfer) => {
             const content: { type: "text"; text: string }[] = [
               { type: "text" as const, text: JSON.stringify(transfer, null, 2) },

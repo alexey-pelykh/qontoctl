@@ -68,9 +68,10 @@ export function scaOptionsFromArgs(args: {
  * absent so it does not satisfy `exactOptionalPropertyTypes` checks. Used by
  * every wired tool to forward the wrapper's context to its underlying core call.
  */
-export function coreOptionsFromContext(
-  context: ExecuteWithScaContext,
-): { readonly idempotencyKey: string; readonly scaSessionToken?: string } {
+export function coreOptionsFromContext(context: ExecuteWithScaContext): {
+  readonly idempotencyKey: string;
+  readonly scaSessionToken?: string;
+} {
   return {
     idempotencyKey: context.idempotencyKey,
     ...(context.scaSessionToken !== undefined ? { scaSessionToken: context.scaSessionToken } : {}),

@@ -54,8 +54,7 @@ export function registerIntlTransferTools(server: McpServer, getClient: () => Pr
 
         return executeWithMcpSca(
           client,
-          (context) =>
-            createIntlTransfer(client, params, coreOptionsFromContext(context)),
+          (context) => createIntlTransfer(client, params, coreOptionsFromContext(context)),
           (transfer) => ({
             content: [
               {

@@ -104,8 +104,7 @@ export function registerBeneficiaryTools(server: McpServer, getClient: () => Pro
 
         return executeWithMcpSca(
           client,
-          (context) =>
-            createBeneficiary(client, params, coreOptionsFromContext(context)),
+          (context) => createBeneficiary(client, params, coreOptionsFromContext(context)),
           (beneficiary) => ({
             content: [{ type: "text" as const, text: JSON.stringify(beneficiary, null, 2) }],
           }),
@@ -141,8 +140,7 @@ export function registerBeneficiaryTools(server: McpServer, getClient: () => Pro
 
         return executeWithMcpSca(
           client,
-          (context) =>
-            updateBeneficiary(client, args.id, params, coreOptionsFromContext(context)),
+          (context) => updateBeneficiary(client, args.id, params, coreOptionsFromContext(context)),
           (beneficiary) => ({
             content: [{ type: "text" as const, text: JSON.stringify(beneficiary, null, 2) }],
           }),
@@ -165,8 +163,7 @@ export function registerBeneficiaryTools(server: McpServer, getClient: () => Pro
       withClient(getClient, async (client) =>
         executeWithMcpSca(
           client,
-          (context) =>
-            trustBeneficiaries(client, args.ids, coreOptionsFromContext(context)),
+          (context) => trustBeneficiaries(client, args.ids, coreOptionsFromContext(context)),
           () => ({
             content: [{ type: "text" as const, text: JSON.stringify({ trusted: true, ids: args.ids }, null, 2) }],
           }),
@@ -189,8 +186,7 @@ export function registerBeneficiaryTools(server: McpServer, getClient: () => Pro
       withClient(getClient, async (client) =>
         executeWithMcpSca(
           client,
-          (context) =>
-            untrustBeneficiaries(client, args.ids, coreOptionsFromContext(context)),
+          (context) => untrustBeneficiaries(client, args.ids, coreOptionsFromContext(context)),
           () => ({
             content: [{ type: "text" as const, text: JSON.stringify({ untrusted: true, ids: args.ids }, null, 2) }],
           }),
