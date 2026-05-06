@@ -106,6 +106,22 @@ export function hasCredentials(): boolean {
 }
 
 /**
+ * Check whether a Qonto sandbox staging token is configured — either via
+ * `QONTOCTL_STAGING_TOKEN` env var or via `oauth.staging-token` in
+ * `.qontoctl.yaml`.
+ *
+ * Used by `describe.skipIf(!hasStagingToken())` guards in E2E tests for
+ * sandbox-only behavior (e.g., `mockScaDecision` is only available in the
+ * Qonto sandbox environment).
+ */
+export function hasStagingToken(): boolean {
+  if (process.env["QONTOCTL_STAGING_TOKEN"] !== undefined) {
+    return true;
+  }
+  return readConfigFileCredentials()?.stagingToken !== undefined;
+}
+
+/**
  * Retrieve credentials from environment variables or `.qontoctl.yaml`.
  * Throws if no credentials are available (callers should be guarded by
  * `hasCredentials()`).
