@@ -135,7 +135,20 @@ export function registerTransferTools(server: McpServer, getClient: () => Promis
         let vopProofToken = args.vop_proof_token;
         let vopResult: VopResult | undefined;
 
-        if (vopProofToken === undefined) {
+        // WI-K decision (#437): when retrying with a caller-supplied
+        // `sca_session_token`, do NOT auto-resolve `vop_proof_token` via
+        // verifyPayee. PSD2 RTS Art. 5 (dynamic linking) binds the SCA
+        // session token to the original transfer's request body — including
+        // the `vop_proof_token` field. Re-running verifyPayee on retry would
+        // produce a fresh `vop_proof_token`, changing the request shape, and
+        // Qonto rejects the bound session with HTTP 422 ("Not found"). See
+        // docs/security/sca-token-binding.md for the empirical evidence (#438).
+        // A second concern eliminated here: if Qonto ever extends SCA
+        // protection to /v2/sepa/verify_payee, auto-resolution on retry would
+        // itself trigger a nested SCA session. Skipping forces an explicit
+        // contract: the caller MUST provide the same `vop_proof_token` used
+        // on the original attempt alongside `sca_session_token`.
+        if (vopProofToken === undefined && args.sca_session_token === undefined) {
           if (args.beneficiary !== undefined) {
             vopResult = await verifyPayee(client, {
               iban: args.beneficiary.iban,
@@ -154,6 +167,24 @@ export function registerTransferTools(server: McpServer, getClient: () => Promis
         }
 
         if (vopProofToken === undefined) {
+          if (args.sca_session_token !== undefined) {
+            return {
+              content: [
+                {
+                  type: "text" as const,
+                  text: [
+                    "vop_proof_token is required when retrying with sca_session_token.",
+                    "",
+                    "The SCA session token is bound to the original transfer's vop_proof_token (PSD2",
+                    "dynamic linking, RTS Art. 5). Auto-resolution would generate a fresh token and",
+                    "break the binding — Qonto would reject the retry. Supply the vop_proof_token",
+                    "from the original attempt, or omit sca_session_token to start a fresh flow.",
+                  ].join("\n"),
+                },
+              ],
+              isError: true,
+            };
+          }
           return {
             content: [{ type: "text" as const, text: "Could not resolve VoP proof token" }],
             isError: true,

@@ -516,6 +516,77 @@ describe("transfer MCP tools", () => {
         const text = (result.content as { type: string; text: string }[])[0]?.text ?? "";
         expect(text).toContain(SCA_TOKEN);
       });
+
+      // WI-K (#437): when retrying with caller-supplied sca_session_token,
+      // vop_proof_token auto-resolution is intentionally skipped so PSD2
+      // dynamic linking (RTS Art. 5) is preserved on the bound retry.
+      it("skips vop_proof_token auto-resolution when sca_session_token is supplied (WI-K)", async () => {
+        fetchSpy.mockImplementation((input: URL, init: RequestInit) => {
+          if (input.pathname === "/v2/sepa/transfers" && init.method === "POST") {
+            return jsonResponse({ transfer: makeTransfer({ id: "txfr-skip-autoresolve" }) });
+          }
+          return jsonResponse({});
+        });
+
+        const result = await mcpClient.callTool({
+          name: "transfer_create",
+          arguments: {
+            ...createArgs,
+            vop_proof_token: "explicit-from-original",
+            sca_session_token: SCA_TOKEN,
+          },
+        });
+
+        // Success: not an error response.
+        expect(result.isError).not.toBe(true);
+
+        // Auto-resolution must NOT have run: no /beneficiaries/ or /verify_payee call.
+        const calls = fetchSpy.mock.calls as [URL, RequestInit][];
+        const benCall = calls.find((c) => c[0].pathname.includes("/beneficiaries/"));
+        const vopCall = calls.find((c) => c[0].pathname.includes("/verify_payee"));
+        expect(benCall).toBeUndefined();
+        expect(vopCall).toBeUndefined();
+
+        // The transfer call carries the explicit caller-supplied vop_proof_token.
+        const transferCall = calls.find((c) => c[0].pathname === "/v2/sepa/transfers") as
+          | [URL, RequestInit]
+          | undefined;
+        expect(transferCall).toBeDefined();
+        const body = JSON.parse((transferCall as [URL, RequestInit])[1].body as string) as {
+          vop_proof_token: string;
+        };
+        expect(body.vop_proof_token).toBe("explicit-from-original");
+
+        // The retry carries the SCA session token header (binding the prior approval).
+        const headers = (transferCall as [URL, RequestInit])[1].headers as Record<string, string> | undefined;
+        expect(headers?.["X-Qonto-Sca-Session-Token"]).toBe(SCA_TOKEN);
+      });
+
+      it("returns informative error when sca_session_token is supplied without vop_proof_token (WI-K)", async () => {
+        fetchSpy.mockImplementation(() => jsonResponse({}));
+
+        const result = await mcpClient.callTool({
+          name: "transfer_create",
+          arguments: {
+            ...createArgs,
+            sca_session_token: SCA_TOKEN,
+            // vop_proof_token deliberately omitted
+          },
+        });
+
+        expect(result.isError).toBe(true);
+        const text = (result.content as { type: string; text: string }[])[0]?.text ?? "";
+        expect(text).toContain("vop_proof_token is required when retrying with sca_session_token");
+        expect(text).toContain("PSD2");
+
+        // No outbound API calls should have been issued (in particular,
+        // verify_payee must NOT run — that is the whole point of the skip).
+        const calls = fetchSpy.mock.calls as [URL, RequestInit][];
+        const vopCall = calls.find((c) => c[0].pathname.includes("/verify_payee"));
+        const transferCall = calls.find((c) => c[0].pathname === "/v2/sepa/transfers");
+        expect(vopCall).toBeUndefined();
+        expect(transferCall).toBeUndefined();
+      });
     });
   });
 
