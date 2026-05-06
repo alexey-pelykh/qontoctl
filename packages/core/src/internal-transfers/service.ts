@@ -13,7 +13,7 @@ import type { CreateInternalTransferParams, InternalTransfer } from "./types.js"
 export async function createInternalTransfer(
   client: HttpClient,
   params: CreateInternalTransferParams,
-  options?: { readonly idempotencyKey?: string },
+  options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<InternalTransfer> {
   const endpointPath = "/v2/internal_transfers";
   const response = await client.post(endpointPath, { internal_transfer: params }, options);

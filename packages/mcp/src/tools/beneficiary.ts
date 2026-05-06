@@ -13,6 +13,7 @@ import {
   untrustBeneficiaries,
 } from "@qontoctl/core";
 import { withClient } from "../errors.js";
+import { coreOptionsFromContext, executeWithMcpSca, scaContinuationSchema, scaOptionsFromArgs } from "../sca.js";
 
 export function registerBeneficiaryTools(server: McpServer, getClient: () => Promise<HttpClient>): void {
   server.registerTool(
@@ -80,13 +81,15 @@ export function registerBeneficiaryTools(server: McpServer, getClient: () => Pro
   server.registerTool(
     "beneficiary_add",
     {
-      description: "Create a new SEPA beneficiary",
+      description:
+        "Create a new SEPA beneficiary. SCA: this operation may require Strong Customer Authentication; the tool polls inline by default (wait=30s) and falls back to a structured pending response so the caller can continue via sca_session_show + sca_session_token.",
       inputSchema: {
         name: z.string().describe("Beneficiary name"),
         iban: z.string().describe("IBAN"),
         bic: z.string().optional().describe("BIC/SWIFT code"),
         email: z.string().optional().describe("Email address"),
         activity_tag: z.string().optional().describe("Activity tag"),
+        ...scaContinuationSchema,
       },
     },
     async (args) =>
@@ -99,23 +102,23 @@ export function registerBeneficiaryTools(server: McpServer, getClient: () => Pro
           ...(args.activity_tag !== undefined ? { activity_tag: args.activity_tag } : {}),
         };
 
-        const beneficiary = await createBeneficiary(client, params);
-
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify(beneficiary, null, 2),
-            },
-          ],
-        };
+        return executeWithMcpSca(
+          client,
+          (context) =>
+            createBeneficiary(client, params, coreOptionsFromContext(context)),
+          (beneficiary) => ({
+            content: [{ type: "text" as const, text: JSON.stringify(beneficiary, null, 2) }],
+          }),
+          scaOptionsFromArgs(args),
+        );
       }),
   );
 
   server.registerTool(
     "beneficiary_update",
     {
-      description: "Update an existing SEPA beneficiary",
+      description:
+        "Update an existing SEPA beneficiary. SCA: this operation may require Strong Customer Authentication; the tool polls inline by default (wait=30s) and falls back to a structured pending response so the caller can continue via sca_session_show + sca_session_token.",
       inputSchema: {
         id: z.string().describe("Beneficiary ID (UUID)"),
         name: z.string().optional().describe("Beneficiary name"),
@@ -123,28 +126,28 @@ export function registerBeneficiaryTools(server: McpServer, getClient: () => Pro
         bic: z.string().optional().describe("BIC/SWIFT code"),
         email: z.string().optional().describe("Email address"),
         activity_tag: z.string().optional().describe("Activity tag"),
+        ...scaContinuationSchema,
       },
     },
-    async ({ id, ...fields }) =>
+    async (args) =>
       withClient(getClient, async (client) => {
         const params: UpdateBeneficiaryParams = {
-          ...(fields.name !== undefined ? { name: fields.name } : {}),
-          ...(fields.iban !== undefined ? { iban: fields.iban } : {}),
-          ...(fields.bic !== undefined ? { bic: fields.bic } : {}),
-          ...(fields.email !== undefined ? { email: fields.email } : {}),
-          ...(fields.activity_tag !== undefined ? { activity_tag: fields.activity_tag } : {}),
+          ...(args.name !== undefined ? { name: args.name } : {}),
+          ...(args.iban !== undefined ? { iban: args.iban } : {}),
+          ...(args.bic !== undefined ? { bic: args.bic } : {}),
+          ...(args.email !== undefined ? { email: args.email } : {}),
+          ...(args.activity_tag !== undefined ? { activity_tag: args.activity_tag } : {}),
         };
 
-        const beneficiary = await updateBeneficiary(client, id, params);
-
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify(beneficiary, null, 2),
-            },
-          ],
-        };
+        return executeWithMcpSca(
+          client,
+          (context) =>
+            updateBeneficiary(client, args.id, params, coreOptionsFromContext(context)),
+          (beneficiary) => ({
+            content: [{ type: "text" as const, text: JSON.stringify(beneficiary, null, 2) }],
+          }),
+          scaOptionsFromArgs(args),
+        );
       }),
   );
 
@@ -152,47 +155,47 @@ export function registerBeneficiaryTools(server: McpServer, getClient: () => Pro
     "beneficiary_trust",
     {
       description:
-        "Trust one or more SEPA beneficiaries (requires Embed-partner-only `beneficiary.trust` OAuth scope; standard third-party apps will receive 403)",
+        "Trust one or more SEPA beneficiaries (requires Embed-partner-only `beneficiary.trust` OAuth scope; standard third-party apps will receive 403). SCA: this operation may require Strong Customer Authentication; the tool polls inline by default (wait=30s) and falls back to a structured pending response so the caller can continue via sca_session_show + sca_session_token.",
       inputSchema: {
         ids: z.array(z.string()).min(1).describe("Beneficiary IDs to trust"),
+        ...scaContinuationSchema,
       },
     },
-    async ({ ids }) =>
-      withClient(getClient, async (client) => {
-        await trustBeneficiaries(client, ids);
-
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify({ trusted: true, ids }, null, 2),
-            },
-          ],
-        };
-      }),
+    async (args) =>
+      withClient(getClient, async (client) =>
+        executeWithMcpSca(
+          client,
+          (context) =>
+            trustBeneficiaries(client, args.ids, coreOptionsFromContext(context)),
+          () => ({
+            content: [{ type: "text" as const, text: JSON.stringify({ trusted: true, ids: args.ids }, null, 2) }],
+          }),
+          scaOptionsFromArgs(args),
+        ),
+      ),
   );
 
   server.registerTool(
     "beneficiary_untrust",
     {
       description:
-        "Untrust one or more SEPA beneficiaries (requires Embed-partner-only `beneficiary.trust` OAuth scope; standard third-party apps will receive 403)",
+        "Untrust one or more SEPA beneficiaries (requires Embed-partner-only `beneficiary.trust` OAuth scope; standard third-party apps will receive 403). SCA: this operation may require Strong Customer Authentication; the tool polls inline by default (wait=30s) and falls back to a structured pending response so the caller can continue via sca_session_show + sca_session_token.",
       inputSchema: {
         ids: z.array(z.string()).min(1).describe("Beneficiary IDs to untrust"),
+        ...scaContinuationSchema,
       },
     },
-    async ({ ids }) =>
-      withClient(getClient, async (client) => {
-        await untrustBeneficiaries(client, ids);
-
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify({ untrusted: true, ids }, null, 2),
-            },
-          ],
-        };
-      }),
+    async (args) =>
+      withClient(getClient, async (client) =>
+        executeWithMcpSca(
+          client,
+          (context) =>
+            untrustBeneficiaries(client, args.ids, coreOptionsFromContext(context)),
+          () => ({
+            content: [{ type: "text" as const, text: JSON.stringify({ untrusted: true, ids: args.ids }, null, 2) }],
+          }),
+          scaOptionsFromArgs(args),
+        ),
+      ),
   );
 }

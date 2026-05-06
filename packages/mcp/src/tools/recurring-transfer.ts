@@ -11,12 +11,14 @@ import {
   listRecurringTransfers,
 } from "@qontoctl/core";
 import { withClient } from "../errors.js";
+import { coreOptionsFromContext, executeWithMcpSca, scaContinuationSchema, scaOptionsFromArgs } from "../sca.js";
 
 export function registerRecurringTransferTools(server: McpServer, getClient: () => Promise<HttpClient>): void {
   server.registerTool(
     "recurring_transfer_create",
     {
-      description: "Create a recurring transfer",
+      description:
+        "Create a recurring transfer. SCA: this operation may require Strong Customer Authentication; the tool polls inline by default (wait=30s) and falls back to a structured pending response so the caller can continue via sca_session_show + sca_session_token.",
       inputSchema: {
         beneficiary_id: z.string().describe("Beneficiary UUID"),
         bank_account_id: z.string().describe("Bank account UUID to debit"),
@@ -26,24 +28,34 @@ export function registerRecurringTransferTools(server: McpServer, getClient: () 
         note: z.string().optional().describe("Optional note"),
         first_execution_date: z.string().describe("First execution date (YYYY-MM-DD)"),
         frequency: z.enum(["weekly", "monthly", "quarterly", "half_yearly", "yearly"]).describe("Transfer frequency"),
+        ...scaContinuationSchema,
       },
     },
     async (args) =>
-      withClient(getClient, async (client) => {
-        const recurringTransfer = await createRecurringTransfer(client, {
-          beneficiary_id: args.beneficiary_id,
-          bank_account_id: args.bank_account_id,
-          amount: args.amount,
-          currency: args.currency,
-          reference: args.reference,
-          first_execution_date: args.first_execution_date,
-          frequency: args.frequency,
-          ...(args.note !== undefined ? { note: args.note } : {}),
-        });
-        return {
-          content: [{ type: "text" as const, text: JSON.stringify(recurringTransfer, null, 2) }],
-        };
-      }),
+      withClient(getClient, async (client) =>
+        executeWithMcpSca(
+          client,
+          (context) =>
+            createRecurringTransfer(
+              client,
+              {
+                beneficiary_id: args.beneficiary_id,
+                bank_account_id: args.bank_account_id,
+                amount: args.amount,
+                currency: args.currency,
+                reference: args.reference,
+                first_execution_date: args.first_execution_date,
+                frequency: args.frequency,
+                ...(args.note !== undefined ? { note: args.note } : {}),
+              },
+              coreOptionsFromContext(context),
+            ),
+          (recurringTransfer) => ({
+            content: [{ type: "text" as const, text: JSON.stringify(recurringTransfer, null, 2) }],
+          }),
+          scaOptionsFromArgs(args),
+        ),
+      ),
   );
 
   server.registerTool(

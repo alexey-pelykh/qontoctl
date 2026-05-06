@@ -382,6 +382,137 @@ describe("transfer MCP tools", () => {
         "VoP verification result: MATCH_RESULT_NOT_POSSIBLE",
       );
     });
+
+    describe("SCA continuation", () => {
+      const SCA_TOKEN = "sca-tok-mcp-transfer-create";
+
+      it("returns structured pending response on 428 with wait=0 (pure two-step)", async () => {
+        fetchSpy.mockImplementation((input: URL, init: RequestInit) => {
+          if (input.pathname === "/v2/sepa/transfers" && init.method === "POST") {
+            return new Response(JSON.stringify({ sca_session_token: SCA_TOKEN }), {
+              status: 428,
+              headers: { "content-type": "application/json" },
+            });
+          }
+          return jsonResponse({});
+        });
+
+        const result = await mcpClient.callTool({
+          name: "transfer_create",
+          arguments: { ...createArgs, vop_proof_token: "explicit", wait: 0 },
+        });
+
+        expect(result.isError).toBe(false);
+        const text = (result.content as { type: string; text: string }[])[0]?.text ?? "";
+        expect(text).toContain("SCA required");
+        expect(text).toContain(SCA_TOKEN);
+        expect(text).toContain("sca_session_show");
+        expect(text).toContain("sca_session_token");
+        // The dead-end formatter is NOT used.
+        expect(text).not.toContain("Poll GET");
+        expect(text).not.toContain("/v2/sca/sessions/");
+      });
+
+      it("retries the operation with the supplied sca_session_token (no polling)", async () => {
+        let postCount = 0;
+        const observedScaTokens: (string | null)[] = [];
+
+        fetchSpy.mockImplementation((input: URL, init: RequestInit) => {
+          if (input.pathname === "/v2/sepa/transfers" && init.method === "POST") {
+            const headers = init.headers as Record<string, string> | undefined;
+            observedScaTokens.push(headers?.["X-Qonto-Sca-Session-Token"] ?? null);
+            postCount++;
+            return jsonResponse({ transfer: makeTransfer({ id: "txfr-after-retry" }) });
+          }
+          return jsonResponse({});
+        });
+
+        const result = await mcpClient.callTool({
+          name: "transfer_create",
+          arguments: {
+            ...createArgs,
+            vop_proof_token: "explicit",
+            sca_session_token: SCA_TOKEN,
+          },
+        });
+
+        expect(postCount).toBe(1);
+        expect(observedScaTokens[0]).toBe(SCA_TOKEN);
+
+        const text = (result.content as { type: string; text: string }[])[0]?.text ?? "";
+        const parsed = JSON.parse(text) as { id: string };
+        expect(parsed.id).toBe("txfr-after-retry");
+      });
+
+      it("preserves a stable idempotency key across the initial 428 + post-poll retry", async () => {
+        let postCount = 0;
+        const observedIdempotencyKeys: (string | null)[] = [];
+
+        fetchSpy.mockImplementation((input: URL, init: RequestInit) => {
+          const headers = init.headers as Record<string, string> | undefined;
+
+          if (input.pathname === "/v2/sepa/transfers" && init.method === "POST") {
+            postCount++;
+            observedIdempotencyKeys.push(headers?.["X-Qonto-Idempotency-Key"] ?? null);
+            if (postCount === 1) {
+              // First attempt: 428 SCA required.
+              return new Response(
+                JSON.stringify({
+                  errors: [{ code: "sca_required", detail: "SCA required", sca_session_token: SCA_TOKEN }],
+                }),
+                {
+                  status: 428,
+                  headers: { "content-type": "application/json", "X-Qonto-Sca-Session-Token": SCA_TOKEN },
+                },
+              );
+            }
+            return jsonResponse({ transfer: makeTransfer({ id: "txfr-poll-retry" }) });
+          }
+          if (input.pathname.startsWith("/v2/sca/sessions/")) {
+            return jsonResponse({ sca_session: { status: "allow" } });
+          }
+          return jsonResponse({});
+        });
+
+        const result = await mcpClient.callTool({
+          name: "transfer_create",
+          arguments: {
+            ...createArgs,
+            vop_proof_token: "explicit",
+            wait: 5,
+          },
+        });
+
+        expect(postCount).toBe(2);
+        expect(observedIdempotencyKeys[0]).toBeTruthy();
+        expect(observedIdempotencyKeys[0]).toBe(observedIdempotencyKeys[1]);
+
+        const text = (result.content as { type: string; text: string }[])[0]?.text ?? "";
+        const parsed = JSON.parse(text) as { id: string };
+        expect(parsed.id).toBe("txfr-poll-retry");
+      });
+
+      it("accepts wait=false in the input schema (pure two-step)", async () => {
+        fetchSpy.mockImplementation((input: URL, init: RequestInit) => {
+          if (input.pathname === "/v2/sepa/transfers" && init.method === "POST") {
+            return new Response(JSON.stringify({ sca_session_token: SCA_TOKEN }), {
+              status: 428,
+              headers: { "content-type": "application/json" },
+            });
+          }
+          return jsonResponse({});
+        });
+
+        const result = await mcpClient.callTool({
+          name: "transfer_create",
+          arguments: { ...createArgs, vop_proof_token: "explicit", wait: false },
+        });
+
+        expect(result.isError).toBe(false);
+        const text = (result.content as { type: string; text: string }[])[0]?.text ?? "";
+        expect(text).toContain(SCA_TOKEN);
+      });
+    });
   });
 
   describe("transfer_verify_payee", () => {

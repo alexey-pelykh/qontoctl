@@ -168,18 +168,27 @@ describe("withClient", () => {
       expect(text).toContain("SCA required");
       expect(text).toContain("approve this operation on their Qonto mobile app");
       expect(text).toContain("sca-tok-abc");
-      expect(text).toContain("/v2/sca/sessions/sca-tok-abc");
     });
 
-    it("includes polling instructions and status descriptions", async () => {
+    it("references the MCP continuation surface (sca_session_show + sca_session_token), not the HTTP endpoint", async () => {
       const result = await withClient(succeedingFactory, async () => {
         throw new QontoScaRequiredError("sca-tok-def");
       });
 
       const text = (result.content[0] as { type: "text"; text: string }).text;
-      expect(text).toContain("waiting");
-      expect(text).toContain("allow");
-      expect(text).toContain("deny");
+      expect(text).toContain("sca_session_show");
+      expect(text).toContain("sca_session_token");
+      expect(text).not.toContain("/v2/sca/sessions/");
+      expect(text).not.toContain("Poll GET");
+    });
+
+    it("indicates that no inline poll occurred (this is a fallback dead-end path; wrapped tools poll inline)", async () => {
+      const result = await withClient(succeedingFactory, async () => {
+        throw new QontoScaRequiredError("sca-tok-fallback");
+      });
+
+      const text = (result.content[0] as { type: "text"; text: string }).text;
+      expect(text).toContain("No inline poll was requested");
       expect(text).toContain("15 minutes");
     });
 
@@ -218,7 +227,7 @@ describe("withClient", () => {
 
       const text = (result.content[0] as { type: "text"; text: string }).text;
       expect(text).not.toContain("Session token");
-      expect(text).not.toContain("Poll GET /v2/sca/sessions/");
+      expect(text).not.toContain("sca_session_show");
       expect(text).not.toContain("approve this operation on their Qonto mobile app");
     });
 

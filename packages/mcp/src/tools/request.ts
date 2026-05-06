@@ -14,6 +14,7 @@ import {
   createMultiTransferRequest,
 } from "@qontoctl/core";
 import { withClient } from "../errors.js";
+import { coreOptionsFromContext, executeWithMcpSca, scaContinuationSchema, scaOptionsFromArgs } from "../sca.js";
 
 const requestTypeEnum = z.enum(["flash_card", "virtual_card", "transfer", "multi_transfer"]);
 
@@ -51,45 +52,72 @@ export function registerRequestTools(server: McpServer, getClient: () => Promise
   server.registerTool(
     "request_approve",
     {
-      description: "Approve a pending request (SCA may be required)",
+      description:
+        "Approve a pending request. SCA: this operation may require Strong Customer Authentication; the tool polls inline by default (wait=30s) and falls back to a structured pending response so the caller can continue via sca_session_show + sca_session_token.",
       inputSchema: {
         request_type: requestTypeEnum.describe("Type of request to approve"),
         id: z.string().describe("Request UUID"),
         debit_iban: z.string().optional().describe("IBAN of account to debit or link to the card"),
+        ...scaContinuationSchema,
       },
     },
-    async ({ request_type, id, debit_iban }) =>
-      withClient(getClient, async (client) => {
-        await approveRequest(client, request_type, id, debit_iban !== undefined ? { debit_iban } : undefined);
-        return {
-          content: [{ type: "text" as const, text: JSON.stringify({ approved: true, id }, null, 2) }],
-        };
-      }),
+    async (args) =>
+      withClient(getClient, async (client) =>
+        executeWithMcpSca(
+          client,
+          (context) =>
+            approveRequest(
+              client,
+              args.request_type,
+              args.id,
+              args.debit_iban !== undefined ? { debit_iban: args.debit_iban } : undefined,
+              coreOptionsFromContext(context),
+            ),
+          () => ({
+            content: [{ type: "text" as const, text: JSON.stringify({ approved: true, id: args.id }, null, 2) }],
+          }),
+          scaOptionsFromArgs(args),
+        ),
+      ),
   );
 
   server.registerTool(
     "request_decline",
     {
-      description: "Decline a pending request",
+      description:
+        "Decline a pending request. SCA: this operation may require Strong Customer Authentication; the tool polls inline by default (wait=30s) and falls back to a structured pending response so the caller can continue via sca_session_show + sca_session_token.",
       inputSchema: {
         request_type: requestTypeEnum.describe("Type of request to decline"),
         id: z.string().describe("Request UUID"),
         declined_note: z.string().describe("Reason for declining"),
+        ...scaContinuationSchema,
       },
     },
-    async ({ request_type, id, declined_note }) =>
-      withClient(getClient, async (client) => {
-        await declineRequest(client, request_type, id, { declined_note });
-        return {
-          content: [{ type: "text" as const, text: JSON.stringify({ declined: true, id }, null, 2) }],
-        };
-      }),
+    async (args) =>
+      withClient(getClient, async (client) =>
+        executeWithMcpSca(
+          client,
+          (context) =>
+            declineRequest(
+              client,
+              args.request_type,
+              args.id,
+              { declined_note: args.declined_note },
+              coreOptionsFromContext(context),
+            ),
+          () => ({
+            content: [{ type: "text" as const, text: JSON.stringify({ declined: true, id: args.id }, null, 2) }],
+          }),
+          scaOptionsFromArgs(args),
+        ),
+      ),
   );
 
   server.registerTool(
     "request_create_flash_card",
     {
-      description: "Create a flash card request",
+      description:
+        "Create a flash card request. SCA: this operation may require Strong Customer Authentication; the tool polls inline by default (wait=30s) and falls back to a structured pending response so the caller can continue via sca_session_show + sca_session_token.",
       inputSchema: {
         note: z.string().optional().describe("Description to help the approver"),
         payment_lifespan_limit: z.string().optional().describe("Spending limit (e.g. 250.00)"),
@@ -97,50 +125,76 @@ export function registerRequestTools(server: McpServer, getClient: () => Promise
           .string()
           .optional()
           .describe("Card expiration datetime (ISO 8601, must be future, max 1 year)"),
+        ...scaContinuationSchema,
       },
     },
-    async ({ note, payment_lifespan_limit, pre_expires_at }) =>
-      withClient(getClient, async (client) => {
-        const request = await createFlashCardRequest(client, {
-          ...(note !== undefined ? { note } : {}),
-          ...(payment_lifespan_limit !== undefined ? { payment_lifespan_limit } : {}),
-          ...(pre_expires_at !== undefined ? { pre_expires_at } : {}),
-        });
-        return {
-          content: [{ type: "text" as const, text: JSON.stringify(request, null, 2) }],
-        };
-      }),
+    async (args) =>
+      withClient(getClient, async (client) =>
+        executeWithMcpSca(
+          client,
+          (context) =>
+            createFlashCardRequest(
+              client,
+              {
+                ...(args.note !== undefined ? { note: args.note } : {}),
+                ...(args.payment_lifespan_limit !== undefined
+                  ? { payment_lifespan_limit: args.payment_lifespan_limit }
+                  : {}),
+                ...(args.pre_expires_at !== undefined ? { pre_expires_at: args.pre_expires_at } : {}),
+              },
+              coreOptionsFromContext(context),
+            ),
+          (request) => ({
+            content: [{ type: "text" as const, text: JSON.stringify(request, null, 2) }],
+          }),
+          scaOptionsFromArgs(args),
+        ),
+      ),
   );
 
   server.registerTool(
     "request_create_virtual_card",
     {
-      description: "Create a virtual card request",
+      description:
+        "Create a virtual card request. SCA: this operation may require Strong Customer Authentication; the tool polls inline by default (wait=30s) and falls back to a structured pending response so the caller can continue via sca_session_show + sca_session_token.",
       inputSchema: {
         note: z.string().optional().describe("Description to help the approver (max 125 chars)"),
         payment_monthly_limit: z.string().optional().describe("Monthly spending limit (e.g. 5.00)"),
         card_level: z.enum(["virtual", "virtual_partner"]).optional().describe("Card level").default("virtual"),
         card_design: z.string().optional().describe("Card design identifier"),
+        ...scaContinuationSchema,
       },
     },
-    async ({ note, payment_monthly_limit, card_level, card_design }) =>
-      withClient(getClient, async (client) => {
-        const request = await createVirtualCardRequest(client, {
-          ...(note !== undefined ? { note } : {}),
-          ...(payment_monthly_limit !== undefined ? { payment_monthly_limit } : {}),
-          card_level,
-          ...(card_design !== undefined ? { card_design } : {}),
-        });
-        return {
-          content: [{ type: "text" as const, text: JSON.stringify(request, null, 2) }],
-        };
-      }),
+    async (args) =>
+      withClient(getClient, async (client) =>
+        executeWithMcpSca(
+          client,
+          (context) =>
+            createVirtualCardRequest(
+              client,
+              {
+                ...(args.note !== undefined ? { note: args.note } : {}),
+                ...(args.payment_monthly_limit !== undefined
+                  ? { payment_monthly_limit: args.payment_monthly_limit }
+                  : {}),
+                card_level: args.card_level,
+                ...(args.card_design !== undefined ? { card_design: args.card_design } : {}),
+              },
+              coreOptionsFromContext(context),
+            ),
+          (request) => ({
+            content: [{ type: "text" as const, text: JSON.stringify(request, null, 2) }],
+          }),
+          scaOptionsFromArgs(args),
+        ),
+      ),
   );
 
   server.registerTool(
     "request_create_multi_transfer",
     {
-      description: "Create a multi-transfer request (1-400 transfers)",
+      description:
+        "Create a multi-transfer request (1-400 transfers). SCA: this operation may require Strong Customer Authentication; the tool polls inline by default (wait=30s) and falls back to a structured pending response so the caller can continue via sca_session_show + sca_session_token.",
       inputSchema: {
         note: z.string().describe("Description for the request (max 140 chars)"),
         transfers: z
@@ -160,19 +214,29 @@ export function registerRequestTools(server: McpServer, getClient: () => Promise
           .describe("Array of transfer items"),
         scheduled_date: z.string().optional().describe("Execution date (YYYY-MM-DD)"),
         debit_iban: z.string().optional().describe("Source account IBAN"),
+        ...scaContinuationSchema,
       },
     },
-    async ({ note, transfers, scheduled_date, debit_iban }) =>
-      withClient(getClient, async (client) => {
-        const request = await createMultiTransferRequest(client, {
-          note,
-          transfers,
-          ...(scheduled_date !== undefined ? { scheduled_date } : {}),
-          ...(debit_iban !== undefined ? { debit_iban } : {}),
-        });
-        return {
-          content: [{ type: "text" as const, text: JSON.stringify(request, null, 2) }],
-        };
-      }),
+    async (args) =>
+      withClient(getClient, async (client) =>
+        executeWithMcpSca(
+          client,
+          (context) =>
+            createMultiTransferRequest(
+              client,
+              {
+                note: args.note,
+                transfers: args.transfers,
+                ...(args.scheduled_date !== undefined ? { scheduled_date: args.scheduled_date } : {}),
+                ...(args.debit_iban !== undefined ? { debit_iban: args.debit_iban } : {}),
+              },
+              coreOptionsFromContext(context),
+            ),
+          (request) => ({
+            content: [{ type: "text" as const, text: JSON.stringify(request, null, 2) }],
+          }),
+          scaOptionsFromArgs(args),
+        ),
+      ),
   );
 }
