@@ -8,6 +8,7 @@ import {
   QontoApiError,
   QontoOAuthScopeError,
   QontoRateLimitError,
+  QontoScaNotEnrolledError,
   QontoScaRequiredError,
   ScaTimeoutError,
   ScaDeniedError,
@@ -133,6 +134,36 @@ describe("handleCliError", () => {
       expect(output).toContain("sca-tok-test");
       expect(output).toContain("approve the operation on your Qonto mobile app");
       expect(process.exitCode).toBe(1);
+    });
+  });
+
+  describe("QontoScaNotEnrolledError", () => {
+    it("shows enrollment guidance with HTTP status and error details", () => {
+      const error = new QontoScaNotEnrolledError([
+        { code: "sca_not_enrolled", detail: "You must enable SCA to perform this action" },
+      ]);
+
+      handleCliError(error, false);
+
+      const output = stderrSpy.mock.calls[0]?.[0] as string;
+      expect(output).toContain("Qonto API error (HTTP 428):");
+      expect(output).toContain("sca_not_enrolled: You must enable SCA to perform this action");
+      expect(output).toContain("Strong Customer Authentication (SCA) is not enabled");
+      expect(output).toContain("configuration error");
+      expect(output).toContain("Enroll a paired device or passkey in the Qonto mobile app");
+      expect(output).toContain("https://docs.qonto.com/api-reference/business-api/authentication/sca/sca-flows");
+      expect(process.exitCode).toBe(1);
+    });
+
+    it("is matched before generic QontoApiError handler", () => {
+      // Same setup as above; assertion focuses on dispatch order.
+      const error = new QontoScaNotEnrolledError([{ code: "sca_not_enrolled", detail: "..." }]);
+
+      handleCliError(error, false);
+
+      const output = stderrSpy.mock.calls[0]?.[0] as string;
+      // Generic QontoApiError handler would NOT include enrollment guidance.
+      expect(output).toContain("not enabled on this Qonto account");
     });
   });
 
