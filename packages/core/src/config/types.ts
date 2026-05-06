@@ -26,12 +26,26 @@ export interface OAuthCredentials {
 }
 
 /**
+ * SCA-related configuration.
+ */
+export interface ScaConfig {
+  /**
+   * SCA method preference, sent as the `X-Qonto-2fa-Preference` header on
+   * write requests. Production allows `paired-device`, `passkey`, `sms-otp`;
+   * sandbox additionally allows `mock`. Free-form `string` to accommodate
+   * future Qonto values without a core release.
+   */
+  method?: string;
+}
+
+/**
  * Parsed configuration from a `.qontoctl.yaml` file.
  */
 export interface QontoctlConfig {
   apiKey?: ApiKeyCredentials;
   oauth?: OAuthCredentials;
   endpoint?: string;
+  sca?: ScaConfig;
 }
 
 /**

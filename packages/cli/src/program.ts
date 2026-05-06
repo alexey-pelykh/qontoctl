@@ -41,7 +41,8 @@ export function createProgram(): Command {
     .addOption(new Option("--debug", "enable debug output (implies --verbose)"))
     .addOption(new Option("--page <number>", "fetch a specific page of results").argParser(parsePositiveInt))
     .addOption(new Option("--per-page <number>", "number of results per page").argParser(parsePositiveInt))
-    .addOption(new Option("--no-paginate", "disable auto-pagination"));
+    .addOption(new Option("--no-paginate", "disable auto-pagination"))
+    .addOption(new Option("--sca-method <value>", "SCA method preference (advanced; for testing)").hideHelp());
 
   registerCompletionCommand(program);
   registerBeneficiaryCommands(program);

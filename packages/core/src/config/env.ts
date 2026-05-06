@@ -12,18 +12,21 @@ const CLIENT_SECRET_SUFFIX = "CLIENT_SECRET";
 const ACCESS_TOKEN_SUFFIX = "ACCESS_TOKEN";
 const REFRESH_TOKEN_SUFFIX = "REFRESH_TOKEN";
 const STAGING_TOKEN_SUFFIX = "STAGING_TOKEN";
+const SCA_METHOD_SUFFIX = "SCA_METHOD";
 
 /**
  * Overlays environment variables onto a config.
  *
  * - Without profile: reads `QONTOCTL_ORGANIZATION_SLUG`, `QONTOCTL_SECRET_KEY`,
  *   `QONTOCTL_ENDPOINT`, `QONTOCTL_CLIENT_ID`, `QONTOCTL_CLIENT_SECRET`,
- *   `QONTOCTL_ACCESS_TOKEN`, `QONTOCTL_REFRESH_TOKEN`, and `QONTOCTL_STAGING_TOKEN`
+ *   `QONTOCTL_ACCESS_TOKEN`, `QONTOCTL_REFRESH_TOKEN`, `QONTOCTL_STAGING_TOKEN`,
+ *   and `QONTOCTL_SCA_METHOD`
  * - With profile: reads `QONTOCTL_{PROFILE}_ORGANIZATION_SLUG`,
  *   `QONTOCTL_{PROFILE}_SECRET_KEY`, `QONTOCTL_{PROFILE}_ENDPOINT`,
  *   `QONTOCTL_{PROFILE}_CLIENT_ID`, `QONTOCTL_{PROFILE}_CLIENT_SECRET`,
- *   `QONTOCTL_{PROFILE}_ACCESS_TOKEN`, `QONTOCTL_{PROFILE}_REFRESH_TOKEN`, and
- *   `QONTOCTL_{PROFILE}_STAGING_TOKEN` (profile name uppercased, hyphens→underscores)
+ *   `QONTOCTL_{PROFILE}_ACCESS_TOKEN`, `QONTOCTL_{PROFILE}_REFRESH_TOKEN`,
+ *   `QONTOCTL_{PROFILE}_STAGING_TOKEN`, and `QONTOCTL_{PROFILE}_SCA_METHOD`
+ *   (profile name uppercased, hyphens→underscores)
  *
  * Env vars take precedence over file values.
  */
@@ -45,6 +48,7 @@ export function applyEnvOverlay(
   const accessToken = env[`${prefix}_${ACCESS_TOKEN_SUFFIX}`];
   const refreshToken = env[`${prefix}_${REFRESH_TOKEN_SUFFIX}`];
   const stagingToken = env[`${prefix}_${STAGING_TOKEN_SUFFIX}`];
+  const scaMethod = env[`${prefix}_${SCA_METHOD_SUFFIX}`];
 
   let result = config;
 
@@ -99,6 +103,10 @@ export function applyEnvOverlay(
         stagingToken,
       },
     };
+  }
+
+  if (scaMethod !== undefined) {
+    result = { ...result, sca: { ...result.sca, method: scaMethod } };
   }
 
   return result;

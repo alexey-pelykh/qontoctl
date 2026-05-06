@@ -275,6 +275,57 @@ describe("validateConfig", () => {
     const result = validateConfig({ "staging-token": "tok_abc123" });
     expect(result.warnings).toContain('Unknown configuration key: "staging-token"');
   });
+
+  it("parses valid sca.method", () => {
+    const result = validateConfig({ sca: { method: "passkey" } });
+    expect(result.config.sca).toEqual({ method: "passkey" });
+    expect(result.errors).toEqual([]);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it("accepts hyphenated header values like paired-device", () => {
+    const result = validateConfig({ sca: { method: "paired-device" } });
+    expect(result.config.sca).toEqual({ method: "paired-device" });
+    expect(result.errors).toEqual([]);
+  });
+
+  it("allows null sca section", () => {
+    const result = validateConfig({ sca: null });
+    expect(result.config.sca).toBeUndefined();
+    expect(result.errors).toEqual([]);
+  });
+
+  it("returns empty config for empty sca mapping", () => {
+    const result = validateConfig({ sca: {} });
+    expect(result.config.sca).toBeUndefined();
+    expect(result.errors).toEqual([]);
+  });
+
+  it("errors when sca section is not a mapping", () => {
+    const result = validateConfig({ sca: "passkey" });
+    expect(result.errors).toContain('"sca" must be a mapping');
+  });
+
+  it("errors when sca section is an array", () => {
+    const result = validateConfig({ sca: [] });
+    expect(result.errors).toContain('"sca" must be a mapping');
+  });
+
+  it("errors when sca.method is not a string", () => {
+    const result = validateConfig({ sca: { method: 123 } });
+    expect(result.errors).toContain('"sca.method" must be a string');
+  });
+
+  it("warns on unknown keys inside sca", () => {
+    const result = validateConfig({ sca: { method: "passkey", future: "value" } });
+    expect(result.warnings).toContain('Unknown key in "sca": "future"');
+    expect(result.config.sca).toEqual({ method: "passkey" });
+  });
+
+  it("does not warn on sca as known top-level key", () => {
+    const result = validateConfig({ sca: { method: "mock" } });
+    expect(result.warnings).toEqual([]);
+  });
 });
 
 describe("isValidProfileName", () => {

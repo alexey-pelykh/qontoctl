@@ -6,6 +6,7 @@ import {
   type HttpClientLogger,
   HttpClient,
   resolveConfig,
+  resolveScaMethod,
   buildApiKeyAuthorization,
   createOAuthAuthorization,
   OAUTH_TOKEN_URL,
@@ -67,6 +68,8 @@ export async function createClient(options: GlobalOptions): Promise<HttpClient> 
     };
   }
 
+  const scaMethod = resolveScaMethod(config, options.scaMethod);
+
   return new HttpClient({
     baseUrl: endpoint,
     authorization,
@@ -76,5 +79,6 @@ export async function createClient(options: GlobalOptions): Promise<HttpClient> 
     },
     logger,
     stagingToken: config.oauth?.stagingToken,
+    ...(scaMethod !== undefined ? { scaMethod } : {}),
   });
 }

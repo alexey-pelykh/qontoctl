@@ -286,4 +286,144 @@ describe("createClient", () => {
       "Warning: OAuth authentication failed, falling back to API key for GET /v2/organizations\n",
     );
   });
+
+  describe("scaMethod plumbing", () => {
+    it("does not pass scaMethod by default (production, no override)", async () => {
+      const options: GlobalOptions = { output: "table" };
+      await createClient(options);
+
+      const ctorArgs = HttpClientMock.mock.calls[0]?.[0] as HttpClientOptions | undefined;
+      expect(ctorArgs?.scaMethod).toBeUndefined();
+    });
+
+    it("forwards --sca-method flag value to HttpClient", async () => {
+      const options: GlobalOptions = { output: "table", scaMethod: "passkey" };
+      await createClient(options);
+
+      const ctorArgs = HttpClientMock.mock.calls[0]?.[0] as HttpClientOptions | undefined;
+      expect(ctorArgs?.scaMethod).toBe("passkey");
+    });
+
+    it("forwards config.sca.method when no flag override", async () => {
+      resolveConfigMock.mockResolvedValue({
+        config: {
+          apiKey: { organizationSlug: "org", secretKey: "secret" },
+          sca: { method: "sms-otp" },
+        },
+        endpoint: "https://thirdparty.qonto.com",
+        warnings: [],
+      });
+
+      const options: GlobalOptions = { output: "table" };
+      await createClient(options);
+
+      const ctorArgs = HttpClientMock.mock.calls[0]?.[0] as HttpClientOptions | undefined;
+      expect(ctorArgs?.scaMethod).toBe("sms-otp");
+    });
+
+    it("--sca-method flag wins over config.sca.method", async () => {
+      resolveConfigMock.mockResolvedValue({
+        config: {
+          apiKey: { organizationSlug: "org", secretKey: "secret" },
+          sca: { method: "passkey" },
+        },
+        endpoint: "https://thirdparty.qonto.com",
+        warnings: [],
+      });
+
+      const options: GlobalOptions = { output: "table", scaMethod: "paired-device" };
+      await createClient(options);
+
+      const ctorArgs = HttpClientMock.mock.calls[0]?.[0] as HttpClientOptions | undefined;
+      expect(ctorArgs?.scaMethod).toBe("paired-device");
+    });
+
+    it('auto-defaults to "mock" when sandbox (stagingToken set) and no override or config', async () => {
+      resolveConfigMock.mockResolvedValue({
+        config: {
+          oauth: {
+            clientId: "cid",
+            clientSecret: "csecret",
+            accessToken: "at",
+            stagingToken: "tok_sandbox",
+            accessTokenExpiresAt: new Date(Date.now() + 3600_000).toISOString(),
+          },
+        },
+        endpoint: "https://thirdparty-sandbox.staging.qonto.co",
+        warnings: [],
+      });
+
+      const options: GlobalOptions = { output: "table" };
+      await createClient(options);
+
+      const ctorArgs = HttpClientMock.mock.calls[0]?.[0] as HttpClientOptions | undefined;
+      expect(ctorArgs?.scaMethod).toBe("mock");
+    });
+
+    it("config.sca.method wins over sandbox auto-default", async () => {
+      resolveConfigMock.mockResolvedValue({
+        config: {
+          oauth: {
+            clientId: "cid",
+            clientSecret: "csecret",
+            accessToken: "at",
+            stagingToken: "tok_sandbox",
+            accessTokenExpiresAt: new Date(Date.now() + 3600_000).toISOString(),
+          },
+          sca: { method: "passkey" },
+        },
+        endpoint: "https://thirdparty-sandbox.staging.qonto.co",
+        warnings: [],
+      });
+
+      const options: GlobalOptions = { output: "table" };
+      await createClient(options);
+
+      const ctorArgs = HttpClientMock.mock.calls[0]?.[0] as HttpClientOptions | undefined;
+      expect(ctorArgs?.scaMethod).toBe("passkey");
+    });
+
+    it("--sca-method flag wins over sandbox auto-default", async () => {
+      resolveConfigMock.mockResolvedValue({
+        config: {
+          oauth: {
+            clientId: "cid",
+            clientSecret: "csecret",
+            accessToken: "at",
+            stagingToken: "tok_sandbox",
+            accessTokenExpiresAt: new Date(Date.now() + 3600_000).toISOString(),
+          },
+        },
+        endpoint: "https://thirdparty-sandbox.staging.qonto.co",
+        warnings: [],
+      });
+
+      const options: GlobalOptions = { output: "table", scaMethod: "paired-device" };
+      await createClient(options);
+
+      const ctorArgs = HttpClientMock.mock.calls[0]?.[0] as HttpClientOptions | undefined;
+      expect(ctorArgs?.scaMethod).toBe("paired-device");
+    });
+
+    it("does NOT auto-default in production (no stagingToken)", async () => {
+      resolveConfigMock.mockResolvedValue({
+        config: {
+          oauth: {
+            clientId: "cid",
+            clientSecret: "csecret",
+            accessToken: "at",
+            accessTokenExpiresAt: new Date(Date.now() + 3600_000).toISOString(),
+          },
+        },
+        endpoint: "https://thirdparty.qonto.com",
+        warnings: [],
+      });
+
+      const options: GlobalOptions = { output: "table" };
+      await createClient(options);
+
+      const ctorArgs = HttpClientMock.mock.calls[0]?.[0] as HttpClientOptions | undefined;
+      expect(ctorArgs?.scaMethod).toBeUndefined();
+    });
+  });
 });

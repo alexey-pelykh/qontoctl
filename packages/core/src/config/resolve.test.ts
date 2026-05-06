@@ -6,7 +6,7 @@ import { mkdir, writeFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
-import { resolveConfig, ConfigError } from "./resolve.js";
+import { resolveConfig, resolveScaMethod, ConfigError } from "./resolve.js";
 
 describe("resolveConfig", () => {
   let testDir: string;
@@ -288,5 +288,94 @@ describe("resolveConfig", () => {
       },
     });
     expect(result.endpoint).toBe("https://env.example.com");
+  });
+
+  it("loads sca.method from config file", async () => {
+    await writeFile(
+      join(testDir, ".qontoctl.yaml"),
+      "api-key:\n  organization-slug: org\n  secret-key: secret\nsca:\n  method: passkey\n",
+    );
+
+    const result = await resolveConfig({
+      cwd: testDir,
+      home: testHome,
+      env: {},
+    });
+    expect(result.config.sca?.method).toBe("passkey");
+  });
+
+  it("QONTOCTL_SCA_METHOD env var overlays sca.method", async () => {
+    await writeFile(
+      join(testDir, ".qontoctl.yaml"),
+      "api-key:\n  organization-slug: org\n  secret-key: secret\nsca:\n  method: passkey\n",
+    );
+
+    const result = await resolveConfig({
+      cwd: testDir,
+      home: testHome,
+      env: { QONTOCTL_SCA_METHOD: "sms-otp" },
+    });
+    expect(result.config.sca?.method).toBe("sms-otp");
+  });
+});
+
+describe("resolveScaMethod", () => {
+  it("returns override when provided", () => {
+    expect(resolveScaMethod({}, "paired-device")).toBe("paired-device");
+  });
+
+  it("override wins over config and sandbox default", () => {
+    expect(
+      resolveScaMethod(
+        {
+          sca: { method: "passkey" },
+          oauth: { clientId: "c", clientSecret: "s", stagingToken: "tok" },
+        },
+        "paired-device",
+      ),
+    ).toBe("paired-device");
+  });
+
+  it("returns config.sca.method when no override", () => {
+    expect(resolveScaMethod({ sca: { method: "sms-otp" } })).toBe("sms-otp");
+  });
+
+  it("config wins over sandbox default", () => {
+    expect(
+      resolveScaMethod({
+        sca: { method: "passkey" },
+        oauth: { clientId: "c", clientSecret: "s", stagingToken: "tok" },
+      }),
+    ).toBe("passkey");
+  });
+
+  it('returns "mock" when in sandbox and no override or config', () => {
+    expect(
+      resolveScaMethod({
+        oauth: { clientId: "c", clientSecret: "s", stagingToken: "tok" },
+      }),
+    ).toBe("mock");
+  });
+
+  it("does NOT auto-default in production (no staging token)", () => {
+    expect(resolveScaMethod({})).toBeUndefined();
+    expect(
+      resolveScaMethod({
+        oauth: { clientId: "c", clientSecret: "s" },
+      }),
+    ).toBeUndefined();
+    expect(
+      resolveScaMethod({
+        apiKey: { organizationSlug: "org", secretKey: "sec" },
+      }),
+    ).toBeUndefined();
+  });
+
+  it("does NOT auto-default when override is undefined but config has empty sca", () => {
+    expect(resolveScaMethod({ sca: {} })).toBeUndefined();
+  });
+
+  it("undefined override is treated as no override (falls through to config/default)", () => {
+    expect(resolveScaMethod({ sca: { method: "passkey" } }, undefined)).toBe("passkey");
   });
 });

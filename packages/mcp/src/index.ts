@@ -7,6 +7,7 @@ import {
   buildApiKeyAuthorization,
   createOAuthAuthorization,
   resolveConfig,
+  resolveScaMethod,
   OAUTH_TOKEN_URL,
   OAUTH_TOKEN_SANDBOX_URL,
   type Authorization,
@@ -36,6 +37,10 @@ await runStdioServer({
       throw new Error("No credentials found in configuration");
     }
 
+    // SCA method is resolved from env/config only — never as a tool input —
+    // so an LLM client cannot pick the SCA method, only an operator can.
+    const scaMethod = resolveScaMethod(config);
+
     return new HttpClient({
       baseUrl: endpoint,
       authorization,
@@ -44,6 +49,7 @@ await runStdioServer({
         process.stderr.write(`Warning: OAuth authentication failed, falling back to API key for ${method} ${path}\n`);
       },
       stagingToken: config.oauth?.stagingToken,
+      ...(scaMethod !== undefined ? { scaMethod } : {}),
     });
   },
 });

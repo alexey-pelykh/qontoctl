@@ -147,7 +147,7 @@ export QONTOCTL_CLIENT_ID="sandbox-client-id"
 export QONTOCTL_CLIENT_SECRET="sandbox-client-secret"
 ```
 
-When `oauth.staging-token` is configured (or the `QONTOCTL_STAGING_TOKEN` env var is set), sandbox URLs are used automatically.
+When `oauth.staging-token` is configured (or the `QONTOCTL_STAGING_TOKEN` env var is set), sandbox URLs are used automatically. SCA writes against sandbox additionally need an `X-Qonto-2fa-Preference: mock` header — QontoCtl auto-applies this when a staging token is set. See [`sandbox-testing.md`](./sandbox-testing.md) for SCA-method overrides and the `qontoctl sca-session mock-decision` workflow.
 
 The sandbox uses separate OAuth endpoints:
 

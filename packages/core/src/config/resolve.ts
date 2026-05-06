@@ -1,11 +1,19 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import type { ConfigResult, ResolveOptions } from "./types.js";
+import type { ConfigResult, QontoctlConfig, ResolveOptions } from "./types.js";
 import { loadConfigFile } from "./loader.js";
 import { validateConfig } from "./validate.js";
 import { applyEnvOverlay } from "./env.js";
 import { API_BASE_URL, SANDBOX_BASE_URL } from "../constants.js";
+
+/**
+ * Sandbox-only SCA method that triggers a mock SCA challenge instead of
+ * requiring a paired-device enrollment. Defaulted automatically when a
+ * staging token is configured and no method is otherwise set, so
+ * sandbox-targeted code paths get an exercisable SCA flow out of the box.
+ */
+const SANDBOX_DEFAULT_SCA_METHOD = "mock";
 
 export class ConfigError extends Error {
   constructor(message: string) {
@@ -97,6 +105,37 @@ function resolveEndpoint(config: { endpoint?: string; oauth?: { stagingToken?: s
     return SANDBOX_BASE_URL;
   }
   return API_BASE_URL;
+}
+
+/**
+ * Resolves the effective SCA method (`X-Qonto-2fa-Preference` header value).
+ *
+ * Precedence (highest first):
+ *   1. `override` — caller-provided value (e.g., the `--sca-method` CLI flag).
+ *   2. `config.sca.method` — file or env-overlaid value.
+ *   3. Sandbox auto-default `"mock"` — applied only when a staging token is
+ *      present (i.e. `config.oauth.stagingToken` is set), so sandbox writes
+ *      can complete without a paired-device enrollment. **Production paths
+ *      never auto-default**: if no staging token is configured and no
+ *      override/config method is provided, the result is `undefined` and the
+ *      header is omitted (Qonto then applies its own default).
+ *
+ * The shape (`paired-device`, `passkey`, `sms-otp`, `mock`) is passed through
+ * verbatim — Qonto's API governs which values are valid for the active
+ * environment. Mis-use returns `428 sca_not_enrolled`/configuration errors;
+ * it does not corrupt state.
+ */
+export function resolveScaMethod(config: QontoctlConfig, override?: string): string | undefined {
+  if (override !== undefined) {
+    return override;
+  }
+  if (config.sca?.method !== undefined) {
+    return config.sca.method;
+  }
+  if (config.oauth?.stagingToken !== undefined) {
+    return SANDBOX_DEFAULT_SCA_METHOD;
+  }
+  return undefined;
 }
 
 function describeSearchLocations(profile: string | undefined, loadedPath: string | undefined): string {
