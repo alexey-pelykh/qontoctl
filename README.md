@@ -230,6 +230,9 @@ Add to `~/.codeium/windsurf/mcp_config.json`:
 | `supplier_invoice_bulk_create`  | Create supplier invoices by uploading files                       |
 | **Requests**                    |                                                                   |
 | `request_list`                  | List all requests in the organization                             |
+| **SCA Sessions**                |                                                                   |
+| `sca_session_show`              | Show the status of an SCA session (`waiting` / `allow` / `deny`)  |
+| `sca_session_mock_decision`     | Simulate an SCA decision in the Qonto sandbox (sandbox-only)      |
 | **Attachments**                 |                                                                   |
 | `attachment_upload`             | Upload an attachment file (PDF, JPEG, PNG)                        |
 | `attachment_show`               | Show details of a specific attachment                             |
@@ -246,6 +249,71 @@ Once configured, you can ask your AI assistant things like:
 - "Show all team members in my organization"
 - "List bank statements for January 2026"
 - "Create a summary of this week's debits"
+
+### SCA Continuation
+
+Some Qonto write operations — creating a transfer, modifying a card, approving a request — require **Strong Customer Authentication (SCA)**: the user has to approve the request in the Qonto mobile app before it executes. QontoCtl wraps every SCA-gated MCP write tool with a continuation flow so the LLM client never has to reimplement polling.
+
+#### How a wrapped write tool behaves
+
+When an SCA-gated tool (e.g. `transfer_create`, `card_create`, `beneficiary_trust`, `request_approve`) hits a 428 SCA challenge, the wrapper polls the SCA session inline. If the user approves within the polling window, the tool returns the operation's success result transparently — the LLM never sees the SCA round-trip. If polling times out (or polling is disabled), the tool returns a structured **SCA-pending response** carrying the session token and instructions to continue.
+
+Every wrapped tool exposes two optional input fields for this flow:
+
+- `wait` — maximum seconds to poll inline before falling back to the pending response.
+- `sca_session_token` — bind a previously approved SCA challenge to a retry.
+
+#### The `wait` knob
+
+| Value            | Behavior                                                                             |
+| ---------------- | ------------------------------------------------------------------------------------ |
+| `30` _(default)_ | Poll for up to 30 seconds, then fall back to the structured pending response.        |
+| `1`–`120`        | Poll for the specified number of seconds (capped at 120).                            |
+| `0` or `false`   | Skip polling entirely. Return the SCA-pending response immediately on the first 428. |
+
+The `120` upper bound is the hard ceiling enforced via Zod at the input boundary. The practical ceiling is your MCP host's request timeout — Claude Desktop hardcodes ≈ 60 s and Cursor's effective limit is ≈ 30 s, so values above those will surface as host-side timeouts before the wrapper resolves. Use a small `wait` (e.g. `5`-`10`) when the LLM expects the user to be present and willing to approve immediately. Use `wait: false` (or `wait: 0`) for **pure two-step flows** where the LLM and the user converse out-of-band between the SCA challenge and the retry.
+
+#### Two-step fallback (out-of-band continuation)
+
+When polling does not resolve, the SCA-pending response carries:
+
+- A user-facing message: `"SCA required. The user must approve this operation on their Qonto mobile app."`
+- A `Session token: <token>` line (token validity: 15 minutes from issuance).
+- Step-by-step instructions to continue.
+
+The LLM (or the user) can then:
+
+1. **Poll session status** with the `sca_session_show` tool, passing the captured token. It returns `waiting`, `allow`, or `deny`.
+2. **Retry the original tool** once the status is `allow`, passing the _same parameters_ plus `sca_session_token: "<token>"`. The wrapper invokes the operation exactly once with the token bound — no second poll happens.
+
+> **PSD2 dynamic linking.** The SCA session token is bound to the _original_ request parameters (amount, payee). Reusing a token against a different operation is rejected by Qonto. Reissue an SCA challenge by calling the original tool again whenever the parameters need to change.
+
+#### Caller-supplied retry (`sca_session_token`)
+
+When `sca_session_token` is set on a wrapped write tool, the wrapper:
+
+- Invokes the operation exactly once.
+- Skips polling entirely.
+- Forwards the token via the `X-Qonto-Sca-Session-Token` header.
+
+This is the path used by step (2) of the two-step fallback. It is also useful when the LLM client implements its own polling cadence and only needs the wrapper to retry with an already-captured approval.
+
+#### Sandbox testing
+
+Sandbox accounts cannot enroll a real paired device, so SCA challenges in sandbox use a `mock` flow. After receiving a pending response, simulate the user's decision with the `sca_session_mock_decision` tool (sandbox-only — refuses to run when no staging token is configured). See [`docs/sandbox-testing.md`](docs/sandbox-testing.md) for the full sandbox setup.
+
+#### Migration note
+
+Earlier QontoCtl builds (pre-`@qontoctl/mcp` SCA continuation) returned a free-form text response on 428 with no continuation hooks. Callers parsing that response should adopt the structured flow:
+
+| Before                                                                                | After                                                                                                                                                          |
+| ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Free-form text mentioned the SCA endpoint but offered no MCP-exposed way to continue. | The SCA-pending response is still text content but its shape is stable: `Session token: <token>` is the canonical line; `sca_session_show` is the polling API. |
+| Polling required driving the Qonto HTTP API directly.                                 | Use the `sca_session_show` MCP tool.                                                                                                                           |
+| Re-running the operation orphaned the prior approval.                                 | Retry the original tool with the captured `sca_session_token` parameter — the prior approval is bound to that retry.                                           |
+| No way to opt-in to inline polling — every 428 was a dead end.                        | Pass `wait: <seconds>` (1-120) to poll inline; tools default to 30s. Pass `wait: false` for the explicit two-step flow.                                        |
+
+The pending response's textual format is stable, so callers that need to extract the token programmatically can match against the `Session token:` line — but using `sca_session_show` directly avoids relying on the response prose.
 
 ## CLI Usage
 
