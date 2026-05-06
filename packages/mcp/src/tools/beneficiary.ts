@@ -151,7 +151,8 @@ export function registerBeneficiaryTools(server: McpServer, getClient: () => Pro
   server.registerTool(
     "beneficiary_trust",
     {
-      description: "Trust one or more SEPA beneficiaries",
+      description:
+        "Trust one or more SEPA beneficiaries (requires Embed-partner-only `beneficiary.trust` OAuth scope; standard third-party apps will receive 403)",
       inputSchema: {
         ids: z.array(z.string()).min(1).describe("Beneficiary IDs to trust"),
       },
@@ -174,7 +175,8 @@ export function registerBeneficiaryTools(server: McpServer, getClient: () => Pro
   server.registerTool(
     "beneficiary_untrust",
     {
-      description: "Untrust one or more SEPA beneficiaries",
+      description:
+        "Untrust one or more SEPA beneficiaries (requires Embed-partner-only `beneficiary.trust` OAuth scope; standard third-party apps will receive 403)",
       inputSchema: {
         ids: z.array(z.string()).min(1).describe("Beneficiary IDs to untrust"),
       },
