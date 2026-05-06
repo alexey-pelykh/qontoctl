@@ -8,6 +8,7 @@ import {
   QontoApiError,
   QontoOAuthScopeError,
   QontoRateLimitError,
+  QontoScaNotEnrolledError,
   QontoScaRequiredError,
   HttpClient,
 } from "@qontoctl/core";
@@ -189,6 +190,46 @@ describe("withClient", () => {
 
       expect(result.content).toHaveLength(1);
       expect((result.content[0] as { type: string }).type).toBe("text");
+    });
+  });
+
+  describe("QontoScaNotEnrolledError", () => {
+    it("returns a distinct shape from QontoScaRequiredError (isError: true with enrollment guidance)", async () => {
+      const result = await withClient(succeedingFactory, async () => {
+        throw new QontoScaNotEnrolledError([
+          { code: "sca_not_enrolled", detail: "You must enable SCA to perform this action" },
+        ]);
+      });
+
+      expect(result.isError).toBe(true);
+      const text = (result.content[0] as { type: "text"; text: string }).text;
+      expect(text).toContain("HTTP 428");
+      expect(text).toContain("sca_not_enrolled: You must enable SCA to perform this action");
+      expect(text).toContain("Strong Customer Authentication (SCA) is not enabled");
+      expect(text).toContain("configuration error");
+      expect(text).toContain("Enroll a paired device or passkey");
+      expect(text).toContain("https://docs.qonto.com/api-reference/business-api/authentication/sca/sca-flows");
+    });
+
+    it("does NOT return the structured pending shape used for QontoScaRequiredError", async () => {
+      const result = await withClient(succeedingFactory, async () => {
+        throw new QontoScaNotEnrolledError([{ code: "sca_not_enrolled", detail: "..." }]);
+      });
+
+      const text = (result.content[0] as { type: "text"; text: string }).text;
+      expect(text).not.toContain("Session token");
+      expect(text).not.toContain("Poll GET /v2/sca/sessions/");
+      expect(text).not.toContain("approve this operation on their Qonto mobile app");
+    });
+
+    it("is matched before generic QontoApiError handler", async () => {
+      const result = await withClient(succeedingFactory, async () => {
+        throw new QontoScaNotEnrolledError([{ code: "sca_not_enrolled", detail: "..." }]);
+      });
+
+      const text = (result.content[0] as { type: "text"; text: string }).text;
+      // Generic QontoApiError handler would NOT include enrollment guidance.
+      expect(text).toContain("not enabled on this Qonto account");
     });
   });
 

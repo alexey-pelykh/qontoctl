@@ -81,6 +81,28 @@ export class QontoScaRequiredError extends Error {
 }
 
 /**
+ * Error thrown when the Qonto API returns 428 because the account has not
+ * enrolled in SCA.
+ *
+ * Distinct from {@link QontoScaRequiredError}: this is a configuration error,
+ * not a recoverable challenge. No SCA session token is issued, polling cannot
+ * resolve it, and retries with the same auth will return the same 428. The
+ * caller must enroll SCA on the Qonto account before retrying.
+ *
+ * Extends {@link QontoApiError} so existing `instanceof QontoApiError` checks
+ * still match while consumers can narrow to this subclass for targeted
+ * handling. Deliberately does NOT extend {@link QontoScaRequiredError}, so
+ * SCA-handling helpers (e.g., `executeWithSca`) propagate it instead of
+ * attempting to poll a non-existent SCA session.
+ */
+export class QontoScaNotEnrolledError extends QontoApiError {
+  constructor(errors: readonly QontoApiErrorEntry[]) {
+    super(428, errors);
+    this.name = "QontoScaNotEnrolledError";
+  }
+}
+
+/**
  * Authorization value: either a static string or a function that resolves
  * the authorization header dynamically (e.g., for OAuth auto-refresh).
  */
@@ -440,8 +462,7 @@ export class HttpClient {
 
       if (response.status === 428) {
         const errorBody = await this.safeReadJson(response);
-        const scaToken = this.extractScaSessionToken(errorBody);
-        throw new QontoScaRequiredError(scaToken);
+        throw this.build428Error(errorBody);
       }
 
       if ((response.status === 401 || response.status === 403) && this.fallbackAuthorization !== undefined) {
@@ -492,8 +513,7 @@ export class HttpClient {
 
         if (fallbackResponse.status === 428) {
           const errorBody = await this.safeReadJson(fallbackResponse);
-          const scaToken = this.extractScaSessionToken(errorBody);
-          throw new QontoScaRequiredError(scaToken);
+          throw this.build428Error(errorBody);
         }
 
         if (!fallbackResponse.ok) {
@@ -578,16 +598,42 @@ export class HttpClient {
     return Number.isFinite(seconds) && seconds > 0 ? seconds : undefined;
   }
 
-  private extractScaSessionToken(body: unknown): string {
-    if (
-      typeof body === "object" &&
-      body !== null &&
-      "sca_session_token" in body &&
-      typeof (body as { sca_session_token: unknown }).sca_session_token === "string"
-    ) {
-      return (body as { sca_session_token: string }).sca_session_token;
+  /**
+   * Discriminate between the two 428 response shapes the Qonto API returns:
+   *
+   * - `sca_required` — body contains `sca_session_token` (recoverable: poll +
+   *   retry). Yields {@link QontoScaRequiredError}.
+   * - `sca_not_enrolled` — body contains top-level `code: "sca_not_enrolled"`
+   *   (flat shape) or a JSON:API `errors[]` entry with that code. No session
+   *   token is issued; this is a configuration error and the caller must
+   *   enroll SCA on the Qonto account before retrying. Yields
+   *   {@link QontoScaNotEnrolledError}.
+   *
+   * Unknown 428 shapes fall back to {@link QontoScaRequiredError} with token
+   * `"unknown"`, preserving prior behaviour for shapes the API may add later.
+   */
+  private build428Error(body: unknown): QontoScaRequiredError | QontoScaNotEnrolledError {
+    if (typeof body === "object" && body !== null) {
+      const obj = body as Record<string, unknown>;
+
+      if (typeof obj["sca_session_token"] === "string") {
+        return new QontoScaRequiredError(obj["sca_session_token"]);
+      }
+
+      if (obj["code"] === "sca_not_enrolled") {
+        const detail = typeof obj["message"] === "string" ? obj["message"] : "SCA not enrolled";
+        return new QontoScaNotEnrolledError([{ code: "sca_not_enrolled", detail }]);
+      }
+
+      if (Array.isArray(obj["errors"])) {
+        const errors = this.extractErrors(body);
+        if (errors.some((e) => e.code === "sca_not_enrolled")) {
+          return new QontoScaNotEnrolledError(errors);
+        }
+      }
     }
-    return "unknown";
+
+    return new QontoScaRequiredError("unknown");
   }
 
   private isAuthError(errors: readonly QontoApiErrorEntry[]): boolean {

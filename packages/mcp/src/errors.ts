@@ -8,6 +8,7 @@ import {
   QontoApiError,
   QontoOAuthScopeError,
   QontoRateLimitError,
+  QontoScaNotEnrolledError,
   QontoScaRequiredError,
 } from "@qontoctl/core";
 
@@ -91,6 +92,22 @@ function formatScaRequiredResponse(error: QontoScaRequiredError): CallToolResult
   };
 }
 
+function formatScaNotEnrolledError(error: QontoScaNotEnrolledError): CallToolResult {
+  const details = error.errors.map((e) => `  - ${e.code}: ${e.detail}`).join("\n");
+  return textError(
+    [
+      `Qonto API error (HTTP 428):`,
+      details,
+      "",
+      "Strong Customer Authentication (SCA) is not enabled on this Qonto account.",
+      "This is a configuration error: retrying will produce the same response.",
+      "",
+      "Enroll a paired device or passkey in the Qonto mobile app, then retry.",
+      "See: https://docs.qonto.com/api-reference/business-api/authentication/sca/sca-flows",
+    ].join("\n"),
+  );
+}
+
 /**
  * Wraps a tool handler with consistent error handling.
  *
@@ -108,6 +125,7 @@ export async function withClient(
     if (error instanceof ConfigError) return formatConfigError(error);
     if (error instanceof AuthError) return formatAuthError(error);
     if (error instanceof QontoScaRequiredError) return formatScaRequiredResponse(error);
+    if (error instanceof QontoScaNotEnrolledError) return formatScaNotEnrolledError(error);
     if (error instanceof QontoOAuthScopeError) return formatOAuthScopeError(error);
     if (error instanceof QontoApiError) return formatApiError(error);
     if (error instanceof QontoRateLimitError) return formatRateLimitError(error);

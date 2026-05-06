@@ -7,6 +7,7 @@ import {
   QontoApiError,
   QontoOAuthScopeError,
   QontoRateLimitError,
+  QontoScaNotEnrolledError,
   QontoScaRequiredError,
 } from "./http-client.js";
 import { binaryResponse } from "./testing/binary-response.js";
@@ -1105,6 +1106,93 @@ describe("HttpClient", () => {
       expect((error as QontoScaRequiredError).scaSessionToken).toBe("unknown");
     });
 
+    it("throws QontoScaNotEnrolledError on 428 with flat sca_not_enrolled body", async () => {
+      // Real Qonto shape (from docs/security/sca-token-binding.md):
+      // 428 { code: "sca_not_enrolled", message: "...", trace_id: "..." }
+      fetchSpy.mockReturnValue(
+        jsonResponse(
+          {
+            code: "sca_not_enrolled",
+            message: "You must enable SCA to perform this action",
+            trace_id: "trace-abc",
+          },
+          { status: 428 },
+        ),
+      );
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+      });
+
+      const error = await client.post("/v2/transfers", { amount: 100 }).catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(QontoScaNotEnrolledError);
+      expect(error).toBeInstanceOf(QontoApiError);
+      expect(error).not.toBeInstanceOf(QontoScaRequiredError);
+      const enrolledError = error as QontoScaNotEnrolledError;
+      expect(enrolledError.status).toBe(428);
+      expect(enrolledError.errors).toEqual([
+        { code: "sca_not_enrolled", detail: "You must enable SCA to perform this action" },
+      ]);
+    });
+
+    it("throws QontoScaNotEnrolledError on 428 with JSON:API errors[] sca_not_enrolled entry", async () => {
+      // Defensive: Qonto could ever return the JSON:API errors[] shape.
+      fetchSpy.mockReturnValue(
+        jsonResponse(
+          {
+            errors: [
+              {
+                code: "sca_not_enrolled",
+                detail: "You must enable SCA to perform this action",
+              },
+            ],
+          },
+          { status: 428 },
+        ),
+      );
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+      });
+
+      const error = await client.post("/v2/transfers", { amount: 100 }).catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(QontoScaNotEnrolledError);
+      expect((error as QontoScaNotEnrolledError).errors[0]?.code).toBe("sca_not_enrolled");
+    });
+
+    it("falls back to default message when sca_not_enrolled body has no message field", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ code: "sca_not_enrolled" }, { status: 428 }));
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+      });
+
+      const error = await client.post("/v2/transfers", { amount: 100 }).catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(QontoScaNotEnrolledError);
+      expect((error as QontoScaNotEnrolledError).errors[0]?.detail).toBe("SCA not enrolled");
+    });
+
+    it("prefers sca_session_token over code when both are present", async () => {
+      // Defensive: if a future Qonto response carries both fields, prefer the
+      // recoverable interpretation rather than the configuration-error one.
+      fetchSpy.mockReturnValue(
+        jsonResponse({ sca_session_token: "tok-mixed", code: "sca_not_enrolled" }, { status: 428 }),
+      );
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+      });
+
+      const error = await client.post("/v2/transfers", { amount: 100 }).catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(QontoScaRequiredError);
+      expect(error).not.toBeInstanceOf(QontoScaNotEnrolledError);
+      expect((error as QontoScaRequiredError).scaSessionToken).toBe("tok-mixed");
+    });
+
     it("throws QontoScaRequiredError with 'unknown' when body is not JSON", async () => {
       fetchSpy.mockReturnValue(
         Promise.resolve(
@@ -1469,6 +1557,43 @@ describe("HttpClient", () => {
     it("is an instance of Error", () => {
       const error = new QontoScaRequiredError("tok-abc");
       expect(error).toBeInstanceOf(Error);
+    });
+  });
+
+  describe("QontoScaNotEnrolledError", () => {
+    it("has correct name property", () => {
+      const error = new QontoScaNotEnrolledError([{ code: "sca_not_enrolled", detail: "..." }]);
+      expect(error.name).toBe("QontoScaNotEnrolledError");
+    });
+
+    it("has status 428", () => {
+      const error = new QontoScaNotEnrolledError([{ code: "sca_not_enrolled", detail: "..." }]);
+      expect(error.status).toBe(428);
+    });
+
+    it("is an instance of QontoApiError", () => {
+      const error = new QontoScaNotEnrolledError([{ code: "sca_not_enrolled", detail: "..." }]);
+      expect(error).toBeInstanceOf(QontoApiError);
+    });
+
+    it("is NOT an instance of QontoScaRequiredError", () => {
+      // Critical for executeWithSca's catch behaviour: it must not poll.
+      const error = new QontoScaNotEnrolledError([{ code: "sca_not_enrolled", detail: "..." }]);
+      expect(error).not.toBeInstanceOf(QontoScaRequiredError);
+    });
+
+    it("is an instance of Error", () => {
+      const error = new QontoScaNotEnrolledError([{ code: "sca_not_enrolled", detail: "..." }]);
+      expect(error).toBeInstanceOf(Error);
+    });
+
+    it("preserves error entries", () => {
+      const error = new QontoScaNotEnrolledError([
+        { code: "sca_not_enrolled", detail: "You must enable SCA to perform this action" },
+      ]);
+      expect(error.errors).toEqual([
+        { code: "sca_not_enrolled", detail: "You must enable SCA to perform this action" },
+      ]);
     });
   });
 

@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { HttpClient, QontoScaRequiredError } from "../http-client.js";
+import { HttpClient, QontoScaNotEnrolledError, QontoScaRequiredError } from "../http-client.js";
 import { jsonResponse } from "../testing/json-response.js";
 import { executeWithSca } from "./sca-handler.js";
 
@@ -45,6 +45,29 @@ describe("executeWithSca", () => {
     }).catch((e: unknown) => e);
 
     expect(caught).toBe(error);
+  });
+
+  it("propagates QontoScaNotEnrolledError without polling", async () => {
+    // Configuration error: caller must enroll SCA on the Qonto account.
+    // executeWithSca must NOT attempt to poll a non-existent SCA session.
+    const error = new QontoScaNotEnrolledError([
+      { code: "sca_not_enrolled", detail: "You must enable SCA to perform this action" },
+    ]);
+    const onScaRequired = vi.fn();
+
+    const caught = await executeWithSca(
+      client,
+      async () => {
+        throw error;
+      },
+      { onScaRequired, poll: { sleep: noopSleep } },
+    ).catch((e: unknown) => e);
+
+    expect(caught).toBe(error);
+    expect(caught).toBeInstanceOf(QontoScaNotEnrolledError);
+    expect(onScaRequired).not.toHaveBeenCalled();
+    // No polling should have occurred (no fetch calls for SCA session).
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it("handles SCA flow: catches 428, polls, retries", async () => {

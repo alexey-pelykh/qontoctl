@@ -7,6 +7,7 @@ import {
   QontoApiError,
   QontoOAuthScopeError,
   QontoRateLimitError,
+  QontoScaNotEnrolledError,
   QontoScaRequiredError,
   ScaTimeoutError,
   ScaDeniedError,
@@ -60,6 +61,24 @@ export function handleCliError(error: unknown, debug: boolean): void {
         "",
         "Your OAuth token is missing a required scope for this operation.",
         'Run "qontoctl auth setup" to select the needed scopes, then "qontoctl auth login" to re-authenticate.',
+      ].join("\n") + "\n",
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  if (error instanceof QontoScaNotEnrolledError) {
+    const details = error.errors.map((e) => `  - ${e.code}: ${e.detail}`).join("\n");
+    process.stderr.write(
+      [
+        `Qonto API error (HTTP 428):`,
+        details,
+        "",
+        "Strong Customer Authentication (SCA) is not enabled on this Qonto account.",
+        "This is a configuration error: retrying will produce the same response.",
+        "",
+        "Enroll a paired device or passkey in the Qonto mobile app, then retry.",
+        "See: https://docs.qonto.com/api-reference/business-api/authentication/sca/sca-flows",
       ].join("\n") + "\n",
     );
     process.exitCode = 1;

@@ -6,6 +6,7 @@ export {
   QontoApiError,
   QontoOAuthScopeError,
   QontoRateLimitError,
+  QontoScaNotEnrolledError,
   QontoScaRequiredError,
   type Authorization,
   type FallbackWarningHandler,

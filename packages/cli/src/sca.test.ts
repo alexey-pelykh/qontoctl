@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { HttpClient, QontoScaRequiredError, ScaTimeoutError } from "@qontoctl/core";
+import { HttpClient, QontoScaNotEnrolledError, QontoScaRequiredError, ScaTimeoutError } from "@qontoctl/core";
 import { jsonResponse } from "@qontoctl/core/testing";
 import { executeWithCliSca } from "./sca.js";
 
@@ -206,6 +206,29 @@ describe("executeWithCliSca", () => {
 
     expect(seenKeys).toHaveLength(2);
     expect(seenKeys[0]).toBe(seenKeys[1]);
+  });
+
+  it("propagates QontoScaNotEnrolledError without starting the spinner", async () => {
+    // Configuration error: not a recoverable challenge. The CLI must not show
+    // a spinner that suggests waiting for approval.
+    const mockSpin = createMockSpinner();
+    const error = new QontoScaNotEnrolledError([
+      { code: "sca_not_enrolled", detail: "You must enable SCA to perform this action" },
+    ]);
+
+    const caught = await executeWithCliSca(
+      client,
+      async () => {
+        throw error;
+      },
+      { poll: { sleep: noopSleep }, createSpinner: () => mockSpin },
+    ).catch((e: unknown) => e);
+
+    expect(caught).toBe(error);
+    expect(mockSpin.start).not.toHaveBeenCalled();
+    expect(mockSpin.message).not.toHaveBeenCalled();
+    expect(mockSpin.stop).not.toHaveBeenCalled();
+    expect(mockSpin.error).not.toHaveBeenCalled();
   });
 
   it("forwards a supplied idempotency key to the operation", async () => {
