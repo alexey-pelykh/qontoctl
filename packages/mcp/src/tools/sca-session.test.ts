@@ -99,7 +99,7 @@ describe("SCA session MCP tools", () => {
       });
 
       it("posts the decision and returns a confirmation payload", async () => {
-        fetchSpy.mockReturnValue(jsonResponse({}, { status: 201 }));
+        fetchSpy.mockReturnValue(jsonResponse({}, { status: 200 }));
 
         const result = await mcpClient.callTool({
           name: "sca_session_mock_decision",
@@ -113,8 +113,8 @@ describe("SCA session MCP tools", () => {
         expect(parsed).toEqual({ token: "tok-mock", decision: "allow", mocked: true });
       });
 
-      it("calls POST /v2/sca/sessions/mock/<token>/decision with the decision body", async () => {
-        fetchSpy.mockReturnValue(jsonResponse({}, { status: 201 }));
+      it("calls POST /v2/mocked_sca_sessions/<token>/<decision> with no body", async () => {
+        fetchSpy.mockReturnValue(jsonResponse({}, { status: 200 }));
 
         await mcpClient.callTool({
           name: "sca_session_mock_decision",
@@ -122,10 +122,9 @@ describe("SCA session MCP tools", () => {
         });
 
         const [url, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
-        expect(url.pathname).toBe("/v2/sca/sessions/mock/tok-mock/decision");
+        expect(url.pathname).toBe("/v2/mocked_sca_sessions/tok-mock/deny");
         expect(init.method).toBe("POST");
-        const body = JSON.parse(init.body as string) as Record<string, unknown>;
-        expect(body).toEqual({ decision: "deny" });
+        expect(init.body).toBeUndefined();
       });
 
       it("formats Qonto API errors via the shared error wrapper", async () => {

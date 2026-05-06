@@ -77,35 +77,54 @@ describe("SCA service", () => {
   });
 
   describe("mockScaDecision", () => {
-    it("sends POST to the correct mock endpoint with allow decision", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({}, { status: 201 }));
+    it("sends POST to the /allow path with no body for an allow decision", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({}, { status: 200 }));
 
       await mockScaDecision(client, "tok-mock", "allow");
 
       const [url, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
-      expect(url.pathname).toBe("/v2/sca/sessions/mock/tok-mock/decision");
+      expect(url.pathname).toBe("/v2/mocked_sca_sessions/tok-mock/allow");
       expect(init.method).toBe("POST");
-      const body = JSON.parse(init.body as string) as Record<string, unknown>;
-      expect(body).toEqual({ decision: "allow" });
+      expect(init.body).toBeUndefined();
     });
 
-    it("sends deny decision", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({}, { status: 201 }));
+    it("sends POST to the /deny path with no body for a deny decision", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({}, { status: 200 }));
 
       await mockScaDecision(client, "tok-mock", "deny");
 
-      const [, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
-      const body = JSON.parse(init.body as string) as Record<string, unknown>;
-      expect(body).toEqual({ decision: "deny" });
+      const [url, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      expect(url.pathname).toBe("/v2/mocked_sca_sessions/tok-mock/deny");
+      expect(init.method).toBe("POST");
+      expect(init.body).toBeUndefined();
     });
 
-    it("encodes the token in the URL", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({}, { status: 201 }));
+    it("does not set Content-Type when no body is sent", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({}, { status: 200 }));
+
+      await mockScaDecision(client, "tok-mock", "allow");
+
+      const [, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      const headers = init.headers as Record<string, string>;
+      expect(headers["Content-Type"]).toBeUndefined();
+    });
+
+    it("encodes the token in the URL but preserves the literal /allow suffix", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({}, { status: 200 }));
 
       await mockScaDecision(client, "tok/special", "allow");
 
       const [url] = fetchSpy.mock.calls[0] as [URL];
-      expect(url.pathname).toBe("/v2/sca/sessions/mock/tok%2Fspecial/decision");
+      expect(url.pathname).toBe("/v2/mocked_sca_sessions/tok%2Fspecial/allow");
+    });
+
+    it("encodes the token in the URL but preserves the literal /deny suffix", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({}, { status: 200 }));
+
+      await mockScaDecision(client, "tok/special", "deny");
+
+      const [url] = fetchSpy.mock.calls[0] as [URL];
+      expect(url.pathname).toBe("/v2/mocked_sca_sessions/tok%2Fspecial/deny");
     });
   });
 
