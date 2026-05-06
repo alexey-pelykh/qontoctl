@@ -4,6 +4,37 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+The next release is a coordinated bump across all four packages — `@qontoctl/core`, `@qontoctl/cli`, `@qontoctl/mcp`, and `qontoctl` (umbrella). **`@qontoctl/mcp` introduces a BREAKING change in the SCA response shape** for the eight write tools (see § Changed); **`qontoctl` (umbrella) inherits MAJOR**. See [`docs/release-runbook.md`](docs/release-runbook.md) for the full semver decision framework and worked example.
+
+### Added
+
+- **`@qontoctl/cli`**: `sca-session show <token>` subcommand to inspect SCA session status (#431).
+- **`@qontoctl/cli`**: `sca-session mock-decision <token> <allow|deny>` subcommand for sandbox-only SCA decision injection (#431).
+- **`@qontoctl/mcp`**: `sca_session_show` MCP tool to inspect SCA session status (#432).
+- **`@qontoctl/mcp`**: `sca_session_mock_decision` MCP tool for sandbox-only SCA decision injection (gated to sandbox mode) (#432).
+- **`@qontoctl/mcp`**: `executeWithMcpSca` wrapper module enabling bounded SCA polling (`wait` knob) and two-step `sca_session_token` continuation across MCP write tools (#433).
+- **`@qontoctl/core`** + **`@qontoctl/cli`** + **`@qontoctl/mcp`**: `scaMethod` / `X-Qonto-2fa-Preference` exposure through `createClient`, the hidden `--sca-method` CLI flag, and MCP server config. Auto-defaults to `mock` when a sandbox staging token is present and no method is otherwise set; production never auto-defaults. The MCP server resolves the method from env/config only — it is intentionally not exposed as a tool input (#447).
+- **Docs**: PSD2 Article 5 SCA token request-binding verification recorded in `docs/security/sca-token-binding.md` (#438).
+- **Docs**: Release runbook (`docs/release-runbook.md`) covering semver decision framework, npm publish flow, and Homebrew tap update (#435).
+
+### Changed
+
+- **`@qontoctl/mcp`** **(BREAKING)**: SCA-required (HTTP 428) responses across the eight MCP write-tool families (`transfer_*`, `intl_transfer_*`, `internal_transfer_*`, `bulk_transfer_*`, `recurring_transfer_*`, `card_*`, `beneficiary_*`, `request_*` — every operation that triggers SCA) no longer return the legacy dead-end text response. Tools now accept optional `wait` (number 0–120, or `false`) and `sca_session_token` input parameters and return a structured SCA-pending response on poll-timeout that references the new `sca_session_show` and `sca_session_mock_decision` tools. Callers parsing the previous text response must adapt to the new shape (#428).
+
+### Fixed
+
+- **`@qontoctl/core`**: SCA-retry idempotency-key drift in `executeWithSca` — both the original 428 attempt and the SCA-approved retry now carry the same `X-Qonto-Idempotency-Key` header. Without this fix, retries without an explicit `--idempotency-key` could create duplicate operations (#429).
+- **`@qontoctl/core`**: `mockScaDecision` URL corrected and request body removed to match the Qonto sandbox API (#446).
+- **`@qontoctl/core`**: `build428Error` now throws a typed error on unknown 428 response shape, surfacing clearer diagnostics instead of silently falling through (#445).
+- **`@qontoctl/core`**: 428 responses with `code: "sca_not_enrolled"` are now distinguished from `code: "sca_required"` and surface a typed `ScaNotEnrolledError`, allowing callers to react differently (#448).
+- **`@qontoctl/core`**: Beneficiary `trust`/`untrust` operations now use `PATCH` (was incorrectly using `POST`) (#444).
+
+### Security
+
+- **`@qontoctl/core`**: SCA session token redacted from error messages and debug logs. `QontoScaRequiredError`, `ScaTimeoutError`, and `ScaDeniedError` no longer embed the token in their `.message` strings (token remains accessible via the dedicated `.scaSessionToken` field). The `sca_session_token` request-body field and `X-Qonto-Sca-Session-Token` header are added to `redactSensitiveFields` (#430).
+
+## [1.0.0] — 2026-03-26
+
 ### Added
 
 - OAuth 2.0 authentication flow with PKCE, token management, and automatic refresh
