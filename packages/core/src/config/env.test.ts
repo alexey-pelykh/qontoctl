@@ -279,4 +279,53 @@ describe("applyEnvOverlay", () => {
     const result = applyEnvOverlay(config, { env: {} });
     expect(result.oauth?.stagingToken).toBe("file_token");
   });
+
+  it("overlays QONTOCTL_SCA_METHOD env var into sca section", () => {
+    const config = {};
+    const result = applyEnvOverlay(config, {
+      env: { QONTOCTL_SCA_METHOD: "passkey" },
+    });
+    expect(result.sca?.method).toBe("passkey");
+  });
+
+  it("creates sca section when SCA_METHOD env var is set but no sca in config", () => {
+    const config = {};
+    const result = applyEnvOverlay(config, {
+      env: { QONTOCTL_SCA_METHOD: "mock" },
+    });
+    expect(result.sca).toBeDefined();
+    expect(result.sca?.method).toBe("mock");
+  });
+
+  it("SCA_METHOD env var overrides file sca.method", () => {
+    const config = { sca: { method: "passkey" } };
+    const result = applyEnvOverlay(config, {
+      env: { QONTOCTL_SCA_METHOD: "sms-otp" },
+    });
+    expect(result.sca?.method).toBe("sms-otp");
+  });
+
+  it("overlays profile-scoped SCA_METHOD env var", () => {
+    const config = {};
+    const result = applyEnvOverlay(config, {
+      profile: "staging",
+      env: { QONTOCTL_STAGING_SCA_METHOD: "mock" },
+    });
+    expect(result.sca?.method).toBe("mock");
+  });
+
+  it("returns config unchanged when no SCA_METHOD env var is set", () => {
+    const config = { sca: { method: "passkey" } };
+    const result = applyEnvOverlay(config, { env: {} });
+    expect(result.sca?.method).toBe("passkey");
+  });
+
+  it("ignores bare SCA_METHOD when profile is specified", () => {
+    const config = {};
+    const result = applyEnvOverlay(config, {
+      profile: "staging",
+      env: { QONTOCTL_SCA_METHOD: "mock" },
+    });
+    expect(result.sca).toBeUndefined();
+  });
 });

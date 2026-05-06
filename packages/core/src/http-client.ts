@@ -133,7 +133,14 @@ export interface HttpClientOptions {
   /** Maximum number of retries on 429 responses. Defaults to 5. */
   readonly maxRetries?: number | undefined;
 
-  /** SCA method preference for write requests. Sent as `X-Qonto-2fa-Preference` header. */
+  /**
+   * SCA method preference for write requests. Sent verbatim as the
+   * `X-Qonto-2fa-Preference` header (omitted when undefined). Production
+   * accepts `paired-device`, `passkey`, `sms-otp`; sandbox additionally
+   * accepts `mock`. The default-resolution policy (sandbox auto-default,
+   * env, config) lives in `resolveScaMethod`; this field is a raw transport
+   * option.
+   */
   readonly scaMethod?: string | undefined;
 
   /** Staging token sent as `X-Qonto-Staging-Token` to route requests to the sandbox environment. */

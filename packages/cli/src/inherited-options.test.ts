@@ -6,7 +6,7 @@ import { Command, Option } from "commander";
 import { addInheritableOptions, resolveGlobalOptions } from "./inherited-options.js";
 
 describe("addInheritableOptions", () => {
-  it("adds --profile, --verbose, and --debug to a command", () => {
+  it("adds --profile, --verbose, --debug, and --sca-method to a command", () => {
     const cmd = new Command("test");
     addInheritableOptions(cmd);
 
@@ -14,6 +14,7 @@ describe("addInheritableOptions", () => {
     expect(optionNames).toContain("--profile");
     expect(optionNames).toContain("--verbose");
     expect(optionNames).toContain("--debug");
+    expect(optionNames).toContain("--sca-method");
   });
 
   it("adds -p as shorthand for --profile", () => {
@@ -22,6 +23,14 @@ describe("addInheritableOptions", () => {
 
     const profileOption = cmd.options.find((o) => o.long === "--profile");
     expect(profileOption?.short).toBe("-p");
+  });
+
+  it("hides --sca-method from help", () => {
+    const cmd = new Command("test");
+    addInheritableOptions(cmd);
+
+    const scaOption = cmd.options.find((o) => o.long === "--sca-method");
+    expect(scaOption?.hidden).toBe(true);
   });
 });
 

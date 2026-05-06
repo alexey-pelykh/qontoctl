@@ -13,7 +13,7 @@ export function isValidProfileName(name: string): boolean {
   return !/[/\\]/.test(name) && !name.includes("..");
 }
 
-const KNOWN_TOP_LEVEL_KEYS = new Set(["api-key", "oauth", "endpoint"]);
+const KNOWN_TOP_LEVEL_KEYS = new Set(["api-key", "oauth", "endpoint", "sca"]);
 const KNOWN_API_KEY_KEYS = new Set(["organization-slug", "secret-key"]);
 const KNOWN_OAUTH_KEYS = new Set([
   "client-id",
@@ -25,6 +25,7 @@ const KNOWN_OAUTH_KEYS = new Set([
   "scopes",
   "staging-token",
 ]);
+const KNOWN_SCA_KEYS = new Set(["method"]);
 
 export interface ValidationResult {
   config: QontoctlConfig;
@@ -176,6 +177,34 @@ export function validateConfig(raw: unknown): ValidationResult {
         } catch {
           errors.push('"endpoint" must be a valid URL');
         }
+      }
+    }
+  }
+
+  if ("sca" in doc) {
+    const scaSection = doc["sca"];
+
+    if (scaSection === null || scaSection === undefined) {
+      // sca section present but empty — not an error
+    } else if (typeof scaSection !== "object" || Array.isArray(scaSection)) {
+      errors.push('"sca" must be a mapping');
+    } else {
+      const sca = scaSection as Record<string, unknown>;
+
+      for (const key of Object.keys(sca)) {
+        if (!KNOWN_SCA_KEYS.has(key)) {
+          warnings.push(`Unknown key in "sca": "${key}"`);
+        }
+      }
+
+      const method = sca["method"];
+
+      if (method !== undefined && typeof method !== "string") {
+        errors.push('"sca.method" must be a string');
+      }
+
+      if (typeof method === "string") {
+        config.sca = { method };
       }
     }
   }

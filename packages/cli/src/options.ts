@@ -19,6 +19,12 @@ export interface GlobalOptions {
   readonly output: OutputFormat;
   readonly verbose?: true | undefined;
   readonly debug?: true | undefined;
+  /**
+   * SCA method preference (`X-Qonto-2fa-Preference` header). Hidden flag for
+   * advanced/testing use; in production, leave unset and let Qonto apply its
+   * default. See `docs/sandbox-testing.md`.
+   */
+  readonly scaMethod?: string | undefined;
 }
 
 /**

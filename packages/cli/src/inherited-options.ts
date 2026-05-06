@@ -12,7 +12,8 @@ export function addInheritableOptions(cmd: Command): Command {
   return cmd
     .addOption(new Option("-p, --profile <name>", "configuration profile to use"))
     .addOption(new Option("--verbose", "enable verbose output"))
-    .addOption(new Option("--debug", "enable debug output (implies --verbose)"));
+    .addOption(new Option("--debug", "enable debug output (implies --verbose)"))
+    .addOption(new Option("--sca-method <value>", "SCA method preference (advanced; for testing)").hideHelp());
 }
 
 /**

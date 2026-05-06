@@ -19,6 +19,7 @@ export {
 
 export {
   resolveConfig,
+  resolveScaMethod,
   ConfigError,
   isValidProfileName,
   loadConfigFile,
@@ -36,6 +37,7 @@ export type {
   QontoctlConfig,
   ConfigResult,
   ResolveOptions,
+  ScaConfig,
   LoadResult,
   ValidationResult,
   TokenUpdate,

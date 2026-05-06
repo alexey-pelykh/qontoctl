@@ -306,6 +306,17 @@ describe("createProgram", () => {
       const program = parseGlobalOptions(["-o", "yaml"]);
       expect(program.opts()["output"]).toBe("yaml");
     });
+
+    it("parses --sca-method option", () => {
+      const program = parseGlobalOptions(["--sca-method", "passkey"]);
+      expect(program.opts()["scaMethod"]).toBe("passkey");
+    });
+
+    it("does not include --sca-method in help output (hidden)", () => {
+      const program = createProgram();
+      const helpText = program.helpInformation();
+      expect(helpText).not.toContain("--sca-method");
+    });
   });
 
   describe("pagination options", () => {
