@@ -455,10 +455,14 @@ describe("transfer MCP tools", () => {
             postCount++;
             observedIdempotencyKeys.push(headers?.["X-Qonto-Idempotency-Key"] ?? null);
             if (postCount === 1) {
-              // First attempt: 428 SCA required.
+              // First attempt: 428 SCA required. Real Qonto API returns top-level fields,
+              // not an `errors[]` array — see docs/security/sca-token-binding.md.
               return new Response(
                 JSON.stringify({
-                  errors: [{ code: "sca_required", detail: "SCA required", sca_session_token: SCA_TOKEN }],
+                  action_type: "transfer.single.create",
+                  code: "sca_required",
+                  message: "SCA required",
+                  sca_session_token: SCA_TOKEN,
                 }),
                 {
                   status: 428,
