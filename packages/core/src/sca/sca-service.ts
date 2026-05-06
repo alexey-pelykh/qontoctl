@@ -24,11 +24,13 @@ export async function getScaSession(client: HttpClient, token: string): Promise<
 
 /**
  * Simulate a user SCA decision in sandbox mode.
+ *
+ * Posts to `POST /v2/mocked_sca_sessions/<token>/allow` or
+ * `/v2/mocked_sca_sessions/<token>/deny` (separate paths per decision)
+ * with no request body. Sandbox-only — production has no equivalent.
  */
 export async function mockScaDecision(client: HttpClient, token: string, decision: "allow" | "deny"): Promise<void> {
-  await client.requestVoid("POST", `/v2/sca/sessions/mock/${encodeURIComponent(token)}/decision`, {
-    body: { decision },
-  });
+  await client.requestVoid("POST", `/v2/mocked_sca_sessions/${encodeURIComponent(token)}/${decision}`);
 }
 
 const DEFAULT_POLL_INTERVAL_MS = 2000;
