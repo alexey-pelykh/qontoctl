@@ -76,7 +76,7 @@ describe("beneficiary trust command", () => {
     expect(parsed.ids).toEqual(["ben-1", "ben-2"]);
   });
 
-  it("sends POST with ids to the correct endpoint", async () => {
+  it("sends PATCH with ids to the correct endpoint", async () => {
     fetchSpy.mockImplementation(() => jsonResponse({}));
 
     const { createProgram } = await import("../../program.js");
@@ -87,7 +87,7 @@ describe("beneficiary trust command", () => {
 
     const [url, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
     expect(url.pathname).toBe("/v2/sepa/beneficiaries/trust");
-    expect(opts.method).toBe("POST");
+    expect(opts.method).toBe("PATCH");
     const body = JSON.parse(opts.body as string) as { ids: string[] };
     expect(body.ids).toEqual(["ben-1"]);
   });

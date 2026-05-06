@@ -301,12 +301,12 @@ describe("trustBeneficiaries", () => {
     vi.restoreAllMocks();
   });
 
-  it("sends POST to /trust with ids", async () => {
+  it("sends PATCH to /trust with ids", async () => {
     fetchSpy.mockReturnValue(jsonResponse({}));
     await trustBeneficiaries(client, ["ben-1", "ben-2"]);
     const [url, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
     expect(url.pathname).toBe("/v2/sepa/beneficiaries/trust");
-    expect(opts.method).toBe("POST");
+    expect(opts.method).toBe("PATCH");
     const body = JSON.parse(opts.body as string) as Record<string, unknown>;
     expect(body).toEqual({ ids: ["ben-1", "ben-2"] });
   });
@@ -329,12 +329,12 @@ describe("untrustBeneficiaries", () => {
     vi.restoreAllMocks();
   });
 
-  it("sends POST to /untrust with ids", async () => {
+  it("sends PATCH to /untrust with ids", async () => {
     fetchSpy.mockReturnValue(jsonResponse({}));
     await untrustBeneficiaries(client, ["ben-1"]);
     const [url, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
     expect(url.pathname).toBe("/v2/sepa/beneficiaries/untrust");
-    expect(opts.method).toBe("POST");
+    expect(opts.method).toBe("PATCH");
     const body = JSON.parse(opts.body as string) as Record<string, unknown>;
     expect(body).toEqual({ ids: ["ben-1"] });
   });

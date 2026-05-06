@@ -10,7 +10,9 @@ import type { GlobalOptions, WriteOptions } from "../../options.js";
 import { executeWithCliSca } from "../../sca.js";
 
 export function registerBeneficiaryTrustCommand(parent: Command): void {
-  const trust = parent.command("trust <id...>").description("Trust one or more beneficiaries");
+  const trust = parent
+    .command("trust <id...>")
+    .description("Trust one or more beneficiaries (requires Embed-partner-only `beneficiary.trust` OAuth scope)");
   addInheritableOptions(trust);
   addWriteOptions(trust);
   trust.action(async (ids: string[], _opts: unknown, cmd: Command) => {

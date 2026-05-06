@@ -94,22 +94,30 @@ export async function updateBeneficiary(
 
 /**
  * Trust one or more SEPA beneficiaries.
+ *
+ * Note: this endpoint requires the `beneficiary.trust` OAuth scope, which is
+ * Embed-partner-only on Qonto. Standard third-party OAuth apps and API-key
+ * tenants do not have it and will receive 403 from the API.
  */
 export async function trustBeneficiaries(
   client: HttpClient,
   ids: string[],
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<void> {
-  await client.post("/v2/sepa/beneficiaries/trust", { ids }, options);
+  await client.patch("/v2/sepa/beneficiaries/trust", { ids }, options);
 }
 
 /**
  * Untrust one or more SEPA beneficiaries.
+ *
+ * Note: this endpoint requires the `beneficiary.trust` OAuth scope, which is
+ * Embed-partner-only on Qonto. Standard third-party OAuth apps and API-key
+ * tenants do not have it and will receive 403 from the API.
  */
 export async function untrustBeneficiaries(
   client: HttpClient,
   ids: string[],
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<void> {
-  await client.post("/v2/sepa/beneficiaries/untrust", { ids }, options);
+  await client.patch("/v2/sepa/beneficiaries/untrust", { ids }, options);
 }
