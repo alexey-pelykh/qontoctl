@@ -15,6 +15,7 @@ import {
   bulkVerifyPayee,
 } from "@qontoctl/core";
 import { withClient } from "../errors.js";
+import { coreOptionsFromContext, executeWithMcpSca, scaContinuationSchema, scaOptionsFromArgs } from "../sca.js";
 
 export function registerTransferTools(server: McpServer, getClient: () => Promise<HttpClient>): void {
   server.registerTool(
@@ -83,7 +84,7 @@ export function registerTransferTools(server: McpServer, getClient: () => Promis
     "transfer_create",
     {
       description:
-        "Create a SEPA transfer. Provide either beneficiary_id (existing beneficiary) or beneficiary (inline beneficiary object with name and iban), but not both.",
+        "Create a SEPA transfer. Provide either beneficiary_id (existing beneficiary) or beneficiary (inline beneficiary object with name and iban), but not both. SCA: this operation may require Strong Customer Authentication; the tool polls inline by default (wait=30s) and falls back to a structured pending response so the caller can continue via sca_session_show + sca_session_token.",
       inputSchema: {
         beneficiary_id: z
           .string()
@@ -113,6 +114,7 @@ export function registerTransferTools(server: McpServer, getClient: () => Promis
           .string()
           .optional()
           .describe("VoP proof token from verify-payee (auto-resolved when omitted)"),
+        ...scaContinuationSchema,
       },
     },
     async (args) =>
@@ -170,19 +172,24 @@ export function registerTransferTools(server: McpServer, getClient: () => Promis
           ...(args.attachment_ids !== undefined ? { attachment_ids: args.attachment_ids } : {}),
         };
 
-        const transfer = await createTransfer(client, params);
-
-        const content: { type: "text"; text: string }[] = [
-          { type: "text" as const, text: JSON.stringify(transfer, null, 2) },
-        ];
-        if (vopResult !== undefined && vopResult.match_result !== "MATCH_RESULT_MATCH") {
-          content.push({
-            type: "text" as const,
-            text: `VoP verification result: ${vopResult.match_result}`,
-          });
-        }
-
-        return { content };
+        return executeWithMcpSca(
+          client,
+          (context) =>
+            createTransfer(client, params, coreOptionsFromContext(context)),
+          (transfer) => {
+            const content: { type: "text"; text: string }[] = [
+              { type: "text" as const, text: JSON.stringify(transfer, null, 2) },
+            ];
+            if (vopResult !== undefined && vopResult.match_result !== "MATCH_RESULT_MATCH") {
+              content.push({
+                type: "text" as const,
+                text: `VoP verification result: ${vopResult.match_result}`,
+              });
+            }
+            return { content };
+          },
+          scaOptionsFromArgs(args),
+        );
       }),
   );
 

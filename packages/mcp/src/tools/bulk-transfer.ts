@@ -5,12 +5,14 @@ import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { type HttpClient, createBulkTransfer, getBulkTransfer, listBulkTransfers } from "@qontoctl/core";
 import { withClient } from "../errors.js";
+import { coreOptionsFromContext, executeWithMcpSca, scaContinuationSchema, scaOptionsFromArgs } from "../sca.js";
 
 export function registerBulkTransferTools(server: McpServer, getClient: () => Promise<HttpClient>): void {
   server.registerTool(
     "bulk_transfer_create",
     {
-      description: "Create a bulk transfer",
+      description:
+        "Create a bulk transfer. SCA: this operation may require Strong Customer Authentication; the tool polls inline by default (wait=30s) and falls back to a structured pending response so the caller can continue via sca_session_show + sca_session_token.",
       inputSchema: {
         transfers: z
           .array(
@@ -23,15 +25,25 @@ export function registerBulkTransferTools(server: McpServer, getClient: () => Pr
           )
           .min(1)
           .describe("Array of transfers to create"),
+        ...scaContinuationSchema,
       },
     },
     async (args) =>
-      withClient(getClient, async (client) => {
-        const bulkTransfer = await createBulkTransfer(client, { transfers: args.transfers });
-        return {
-          content: [{ type: "text" as const, text: JSON.stringify(bulkTransfer, null, 2) }],
-        };
-      }),
+      withClient(getClient, async (client) =>
+        executeWithMcpSca(
+          client,
+          (context) =>
+            createBulkTransfer(
+              client,
+              { transfers: args.transfers },
+              coreOptionsFromContext(context),
+            ),
+          (bulkTransfer) => ({
+            content: [{ type: "text" as const, text: JSON.stringify(bulkTransfer, null, 2) }],
+          }),
+          scaOptionsFromArgs(args),
+        ),
+      ),
   );
 
   server.registerTool(

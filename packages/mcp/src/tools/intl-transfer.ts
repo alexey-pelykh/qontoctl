@@ -6,6 +6,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CreateIntlTransferParams, HttpClient } from "@qontoctl/core";
 import { getIntlTransferRequirements, createIntlTransfer } from "@qontoctl/core";
 import { withClient } from "../errors.js";
+import { coreOptionsFromContext, executeWithMcpSca, scaContinuationSchema, scaOptionsFromArgs } from "../sca.js";
 
 export function registerIntlTransferTools(server: McpServer, getClient: () => Promise<HttpClient>): void {
   server.registerTool(
@@ -34,11 +35,13 @@ export function registerIntlTransferTools(server: McpServer, getClient: () => Pr
   server.registerTool(
     "intl_transfer_create",
     {
-      description: "Create an international transfer",
+      description:
+        "Create an international transfer. SCA: this operation may require Strong Customer Authentication; the tool polls inline by default (wait=30s) and falls back to a structured pending response so the caller can continue via sca_session_show + sca_session_token.",
       inputSchema: {
         beneficiary_id: z.string().describe("International beneficiary ID (UUID)"),
         quote_id: z.string().describe("Quote ID (UUID)"),
         fields: z.record(z.string(), z.unknown()).optional().describe("Additional transfer fields as key-value pairs"),
+        ...scaContinuationSchema,
       },
     },
     async (args) =>
@@ -49,16 +52,20 @@ export function registerIntlTransferTools(server: McpServer, getClient: () => Pr
           ...(args.fields !== undefined ? args.fields : {}),
         };
 
-        const transfer = await createIntlTransfer(client, params);
-
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify(transfer, null, 2),
-            },
-          ],
-        };
+        return executeWithMcpSca(
+          client,
+          (context) =>
+            createIntlTransfer(client, params, coreOptionsFromContext(context)),
+          (transfer) => ({
+            content: [
+              {
+                type: "text" as const,
+                text: JSON.stringify(transfer, null, 2),
+              },
+            ],
+          }),
+          scaOptionsFromArgs(args),
+        );
       }),
   );
 }

@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { randomUUID } from "node:crypto";
+import { z } from "zod";
 import {
   executeWithSca,
   QontoScaRequiredError,
@@ -17,6 +18,64 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 const DEFAULT_WAIT_SECONDS = 30;
 const DEFAULT_POLL_INTERVAL_MS = 3000;
 const SCA_TOKEN_VALIDITY_MINUTES = 15;
+const MAX_WAIT_SECONDS = 120;
+
+/**
+ * Zod schema fragment shared by every MCP write tool that participates
+ * in SCA continuation. Spread into a tool's `inputSchema` alongside the
+ * tool-specific fields.
+ *
+ * - `sca_session_token`: caller supplies a previously issued SCA session
+ *   token to bind a prior approval to this retry. When set, no polling
+ *   happens and the operation is invoked exactly once.
+ * - `wait`: maximum seconds to poll inline for SCA approval (0-120).
+ *   `false` (or omitted with `0`) disables polling so the tool returns
+ *   a structured pending response immediately on a 428. Default 30.
+ */
+export const scaContinuationSchema = {
+  sca_session_token: z
+    .string()
+    .optional()
+    .describe(
+      "SCA session token from a prior call to bind a previously approved SCA challenge to this retry. When set, no polling occurs and the operation runs exactly once with the token attached.",
+    ),
+  wait: z
+    .union([z.number().int().min(0).max(MAX_WAIT_SECONDS), z.literal(false)])
+    .optional()
+    .describe(
+      `Maximum seconds (0-${String(MAX_WAIT_SECONDS)}) to poll inline for SCA approval before returning a structured pending response. Use false or 0 for a pure two-step flow (return immediately on SCA required). Default 30.`,
+    ),
+};
+
+/**
+ * Translate the Zod-validated tool args into `McpScaOptions` for
+ * `executeWithMcpSca`. Drops `undefined` keys per the project's
+ * `exactOptionalPropertyTypes` discipline.
+ */
+export function scaOptionsFromArgs(args: {
+  readonly sca_session_token?: string | undefined;
+  readonly wait?: number | false | undefined;
+}): McpScaOptions {
+  return {
+    ...(args.sca_session_token !== undefined ? { scaSessionToken: args.sca_session_token } : {}),
+    ...(args.wait !== undefined ? { wait: args.wait } : {}),
+  };
+}
+
+/**
+ * Convert an `ExecuteWithScaContext` into the `{ idempotencyKey, scaSessionToken? }`
+ * shape accepted by core service write functions, dropping the SCA token when
+ * absent so it does not satisfy `exactOptionalPropertyTypes` checks. Used by
+ * every wired tool to forward the wrapper's context to its underlying core call.
+ */
+export function coreOptionsFromContext(
+  context: ExecuteWithScaContext,
+): { readonly idempotencyKey: string; readonly scaSessionToken?: string } {
+  return {
+    idempotencyKey: context.idempotencyKey,
+    ...(context.scaSessionToken !== undefined ? { scaSessionToken: context.scaSessionToken } : {}),
+  };
+}
 
 export interface McpScaOptions {
   /**
@@ -141,7 +200,19 @@ async function invokeOnceAndFormat<T>(
   }
 }
 
-function formatScaPendingResponse(token: string, wait: number | false): CallToolResult {
+/**
+ * Build the structured "SCA pending" MCP response.
+ *
+ * The response carries the SCA session token, the polling situation
+ * (whether an inline poll occurred and for how long), and instructions
+ * for the user/LLM to continue out-of-band via the `sca_session_show`
+ * tool and the per-tool `sca_session_token` continuation parameter.
+ *
+ * Exported so non-wrapper code paths (`withClient` fallback in
+ * `errors.ts`) can return the same continuation-aware text shape
+ * without importing the dead-end formatter.
+ */
+export function formatScaPendingResponse(token: string, wait: number | false): CallToolResult {
   const polledLine =
     wait === false || wait === 0
       ? "No inline poll was requested; the SCA session is pending the user's decision."

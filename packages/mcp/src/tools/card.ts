@@ -28,6 +28,7 @@ import {
   listCardAppearances,
 } from "@qontoctl/core";
 import { withClient } from "../errors.js";
+import { coreOptionsFromContext, executeWithMcpSca, scaContinuationSchema, scaOptionsFromArgs } from "../sca.js";
 
 export function registerCardTools(server: McpServer, getClient: () => Promise<HttpClient>): void {
   server.registerTool(
@@ -119,7 +120,8 @@ export function registerCardTools(server: McpServer, getClient: () => Promise<Ht
   server.registerTool(
     "card_create",
     {
-      description: "Create a new card",
+      description:
+        "Create a new card. SCA: this operation may require Strong Customer Authentication; the tool polls inline by default (wait=30s) and falls back to a structured pending response so the caller can continue via sca_session_show + sca_session_token.",
       inputSchema: {
         holder_id: z.string().describe("Cardholder membership ID"),
         initiator_id: z.string().describe("Order initiator membership ID"),
@@ -147,6 +149,7 @@ export function registerCardTools(server: McpServer, getClient: () => Promise<Ht
         categories: z.array(z.string()).optional().describe("Allowed merchant categories"),
         card_design: z.string().optional().describe("Card design identifier"),
         type_of_print: z.enum(["print", "embossed"]).optional().describe("Print type (Plus cards only)"),
+        ...scaContinuationSchema,
       },
     },
     async (args) =>
@@ -184,23 +187,28 @@ export function registerCardTools(server: McpServer, getClient: () => Promise<Ht
           ...(args.type_of_print !== undefined ? { type_of_print: args.type_of_print } : {}),
         };
 
-        const card = await createCard(client, params);
-
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify(card, null, 2),
-            },
-          ],
-        };
+        return executeWithMcpSca(
+          client,
+          (context) =>
+            createCard(client, params, coreOptionsFromContext(context)),
+          (card) => ({
+            content: [
+              {
+                type: "text" as const,
+                text: JSON.stringify(card, null, 2),
+              },
+            ],
+          }),
+          scaOptionsFromArgs(args),
+        );
       }),
   );
 
   server.registerTool(
     "card_bulk_create",
     {
-      description: "Bulk create cards (up to 50)",
+      description:
+        "Bulk create cards (up to 50). SCA: this operation may require Strong Customer Authentication; the tool polls inline by default (wait=30s) and falls back to a structured pending response so the caller can continue via sca_session_show + sca_session_token.",
       inputSchema: {
         cards: z
           .array(
@@ -222,11 +230,12 @@ export function registerCardTools(server: McpServer, getClient: () => Promise<Ht
           .min(1)
           .max(50)
           .describe("Array of card definitions"),
+        ...scaContinuationSchema,
       },
     },
-    async ({ cards }) =>
+    async (args) =>
       withClient(getClient, async (client) => {
-        const params: CreateCardParams[] = cards.map((c) => ({
+        const params: CreateCardParams[] = args.cards.map((c) => ({
           holder_id: c.holder_id,
           initiator_id: c.initiator_id,
           organization_id: c.organization_id,
@@ -241,138 +250,148 @@ export function registerCardTools(server: McpServer, getClient: () => Promise<Ht
           ...(c.pre_expires_at !== undefined ? { pre_expires_at: c.pre_expires_at } : {}),
         }));
 
-        const result = await bulkCreateCards(client, params);
-
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify(result, null, 2),
-            },
-          ],
-        };
+        return executeWithMcpSca(
+          client,
+          (context) =>
+            bulkCreateCards(client, params, coreOptionsFromContext(context)),
+          (result) => ({
+            content: [
+              {
+                type: "text" as const,
+                text: JSON.stringify(result, null, 2),
+              },
+            ],
+          }),
+          scaOptionsFromArgs(args),
+        );
       }),
   );
 
   server.registerTool(
     "card_lock",
     {
-      description: "Lock a card",
+      description:
+        "Lock a card. SCA: this operation may require Strong Customer Authentication; the tool polls inline by default (wait=30s) and falls back to a structured pending response so the caller can continue via sca_session_show + sca_session_token.",
       inputSchema: {
         id: z.string().describe("Card ID (UUID)"),
+        ...scaContinuationSchema,
       },
     },
-    async ({ id }) =>
-      withClient(getClient, async (client) => {
-        const card = await lockCard(client, id);
-
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify(card, null, 2),
-            },
-          ],
-        };
-      }),
+    async (args) =>
+      withClient(getClient, async (client) =>
+        executeWithMcpSca(
+          client,
+          (context) =>
+            lockCard(client, args.id, coreOptionsFromContext(context)),
+          (card) => ({
+            content: [{ type: "text" as const, text: JSON.stringify(card, null, 2) }],
+          }),
+          scaOptionsFromArgs(args),
+        ),
+      ),
   );
 
   server.registerTool(
     "card_unlock",
     {
-      description: "Unlock a card",
+      description:
+        "Unlock a card. SCA: this operation may require Strong Customer Authentication; the tool polls inline by default (wait=30s) and falls back to a structured pending response so the caller can continue via sca_session_show + sca_session_token.",
       inputSchema: {
         id: z.string().describe("Card ID (UUID)"),
+        ...scaContinuationSchema,
       },
     },
-    async ({ id }) =>
-      withClient(getClient, async (client) => {
-        const card = await unlockCard(client, id);
-
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify(card, null, 2),
-            },
-          ],
-        };
-      }),
+    async (args) =>
+      withClient(getClient, async (client) =>
+        executeWithMcpSca(
+          client,
+          (context) =>
+            unlockCard(client, args.id, coreOptionsFromContext(context)),
+          (card) => ({
+            content: [{ type: "text" as const, text: JSON.stringify(card, null, 2) }],
+          }),
+          scaOptionsFromArgs(args),
+        ),
+      ),
   );
 
   server.registerTool(
     "card_report_lost",
     {
-      description: "Report a physical card as lost (irreversible)",
+      description:
+        "Report a physical card as lost (irreversible). SCA: this operation may require Strong Customer Authentication; the tool polls inline by default (wait=30s) and falls back to a structured pending response so the caller can continue via sca_session_show + sca_session_token.",
       inputSchema: {
         id: z.string().describe("Card ID (UUID)"),
+        ...scaContinuationSchema,
       },
     },
-    async ({ id }) =>
-      withClient(getClient, async (client) => {
-        const card = await reportCardLost(client, id);
-
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify(card, null, 2),
-            },
-          ],
-        };
-      }),
+    async (args) =>
+      withClient(getClient, async (client) =>
+        executeWithMcpSca(
+          client,
+          (context) =>
+            reportCardLost(client, args.id, coreOptionsFromContext(context)),
+          (card) => ({
+            content: [{ type: "text" as const, text: JSON.stringify(card, null, 2) }],
+          }),
+          scaOptionsFromArgs(args),
+        ),
+      ),
   );
 
   server.registerTool(
     "card_report_stolen",
     {
-      description: "Report a physical card as stolen (irreversible)",
+      description:
+        "Report a physical card as stolen (irreversible). SCA: this operation may require Strong Customer Authentication; the tool polls inline by default (wait=30s) and falls back to a structured pending response so the caller can continue via sca_session_show + sca_session_token.",
       inputSchema: {
         id: z.string().describe("Card ID (UUID)"),
+        ...scaContinuationSchema,
       },
     },
-    async ({ id }) =>
-      withClient(getClient, async (client) => {
-        const card = await reportCardStolen(client, id);
-
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify(card, null, 2),
-            },
-          ],
-        };
-      }),
+    async (args) =>
+      withClient(getClient, async (client) =>
+        executeWithMcpSca(
+          client,
+          (context) =>
+            reportCardStolen(client, args.id, coreOptionsFromContext(context)),
+          (card) => ({
+            content: [{ type: "text" as const, text: JSON.stringify(card, null, 2) }],
+          }),
+          scaOptionsFromArgs(args),
+        ),
+      ),
   );
 
   server.registerTool(
     "card_discard",
     {
-      description: "Discard a card (irreversible)",
+      description:
+        "Discard a card (irreversible). SCA: this operation may require Strong Customer Authentication; the tool polls inline by default (wait=30s) and falls back to a structured pending response so the caller can continue via sca_session_show + sca_session_token.",
       inputSchema: {
         id: z.string().describe("Card ID (UUID)"),
+        ...scaContinuationSchema,
       },
     },
-    async ({ id }) =>
-      withClient(getClient, async (client) => {
-        const card = await discardCard(client, id);
-
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify(card, null, 2),
-            },
-          ],
-        };
-      }),
+    async (args) =>
+      withClient(getClient, async (client) =>
+        executeWithMcpSca(
+          client,
+          (context) =>
+            discardCard(client, args.id, coreOptionsFromContext(context)),
+          (card) => ({
+            content: [{ type: "text" as const, text: JSON.stringify(card, null, 2) }],
+          }),
+          scaOptionsFromArgs(args),
+        ),
+      ),
   );
 
   server.registerTool(
     "card_update_limits",
     {
-      description: "Update a card's spending limits",
+      description:
+        "Update a card's spending limits. SCA: this operation may require Strong Customer Authentication; the tool polls inline by default (wait=30s) and falls back to a structured pending response so the caller can continue via sca_session_show + sca_session_token.",
       inputSchema: {
         id: z.string().describe("Card ID (UUID)"),
         atm_monthly_limit: z.number().int().optional().describe("Monthly ATM withdrawal limit (EUR)"),
@@ -384,109 +403,106 @@ export function registerCardTools(server: McpServer, getClient: () => Promise<Ht
         payment_transaction_limit_option: z.boolean().optional().describe("Enable per-transaction limit"),
         payment_transaction_limit: z.number().int().optional().describe("Per-transaction limit (EUR)"),
         payment_lifespan_limit: z.number().int().optional().describe("Total spending cap (flash cards, EUR)"),
+        ...scaContinuationSchema,
       },
     },
-    async ({ id, ...fields }) =>
+    async (args) =>
       withClient(getClient, async (client) => {
         const params: UpdateCardLimitsParams = {
-          ...(fields.atm_monthly_limit !== undefined ? { atm_monthly_limit: fields.atm_monthly_limit } : {}),
-          ...(fields.atm_daily_limit_option !== undefined
-            ? { atm_daily_limit_option: fields.atm_daily_limit_option }
+          ...(args.atm_monthly_limit !== undefined ? { atm_monthly_limit: args.atm_monthly_limit } : {}),
+          ...(args.atm_daily_limit_option !== undefined ? { atm_daily_limit_option: args.atm_daily_limit_option } : {}),
+          ...(args.atm_daily_limit !== undefined ? { atm_daily_limit: args.atm_daily_limit } : {}),
+          ...(args.payment_monthly_limit !== undefined ? { payment_monthly_limit: args.payment_monthly_limit } : {}),
+          ...(args.payment_daily_limit_option !== undefined
+            ? { payment_daily_limit_option: args.payment_daily_limit_option }
             : {}),
-          ...(fields.atm_daily_limit !== undefined ? { atm_daily_limit: fields.atm_daily_limit } : {}),
-          ...(fields.payment_monthly_limit !== undefined
-            ? { payment_monthly_limit: fields.payment_monthly_limit }
+          ...(args.payment_daily_limit !== undefined ? { payment_daily_limit: args.payment_daily_limit } : {}),
+          ...(args.payment_transaction_limit_option !== undefined
+            ? { payment_transaction_limit_option: args.payment_transaction_limit_option }
             : {}),
-          ...(fields.payment_daily_limit_option !== undefined
-            ? { payment_daily_limit_option: fields.payment_daily_limit_option }
+          ...(args.payment_transaction_limit !== undefined
+            ? { payment_transaction_limit: args.payment_transaction_limit }
             : {}),
-          ...(fields.payment_daily_limit !== undefined ? { payment_daily_limit: fields.payment_daily_limit } : {}),
-          ...(fields.payment_transaction_limit_option !== undefined
-            ? { payment_transaction_limit_option: fields.payment_transaction_limit_option }
-            : {}),
-          ...(fields.payment_transaction_limit !== undefined
-            ? { payment_transaction_limit: fields.payment_transaction_limit }
-            : {}),
-          ...(fields.payment_lifespan_limit !== undefined
-            ? { payment_lifespan_limit: fields.payment_lifespan_limit }
-            : {}),
+          ...(args.payment_lifespan_limit !== undefined ? { payment_lifespan_limit: args.payment_lifespan_limit } : {}),
         };
 
-        const card = await updateCardLimits(client, id, params);
-
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify(card, null, 2),
-            },
-          ],
-        };
+        return executeWithMcpSca(
+          client,
+          (context) =>
+            updateCardLimits(client, args.id, params, coreOptionsFromContext(context)),
+          (card) => ({
+            content: [{ type: "text" as const, text: JSON.stringify(card, null, 2) }],
+          }),
+          scaOptionsFromArgs(args),
+        );
       }),
   );
 
   server.registerTool(
     "card_update_nickname",
     {
-      description: "Update a card's nickname",
+      description:
+        "Update a card's nickname. SCA: this operation may require Strong Customer Authentication; the tool polls inline by default (wait=30s) and falls back to a structured pending response so the caller can continue via sca_session_show + sca_session_token.",
       inputSchema: {
         id: z.string().describe("Card ID (UUID)"),
         nickname: z.string().min(1).max(40).describe("New nickname (1-40 characters)"),
+        ...scaContinuationSchema,
       },
     },
-    async ({ id, nickname }) =>
-      withClient(getClient, async (client) => {
-        const card = await updateCardNickname(client, id, nickname);
-
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify(card, null, 2),
-            },
-          ],
-        };
-      }),
+    async (args) =>
+      withClient(getClient, async (client) =>
+        executeWithMcpSca(
+          client,
+          (context) =>
+            updateCardNickname(client, args.id, args.nickname, coreOptionsFromContext(context)),
+          (card) => ({
+            content: [{ type: "text" as const, text: JSON.stringify(card, null, 2) }],
+          }),
+          scaOptionsFromArgs(args),
+        ),
+      ),
   );
 
   server.registerTool(
     "card_update_options",
     {
-      description: "Update a card's options (ATM, NFC, online, foreign)",
+      description:
+        "Update a card's options (ATM, NFC, online, foreign). SCA: this operation may require Strong Customer Authentication; the tool polls inline by default (wait=30s) and falls back to a structured pending response so the caller can continue via sca_session_show + sca_session_token.",
       inputSchema: {
         id: z.string().describe("Card ID (UUID)"),
         atm_option: z.boolean().describe("Enable ATM withdrawals"),
         nfc_option: z.boolean().describe("Enable contactless payments"),
         online_option: z.boolean().describe("Enable online payments"),
         foreign_option: z.boolean().describe("Enable international payments"),
+        ...scaContinuationSchema,
       },
     },
-    async ({ id, ...fields }) =>
+    async (args) =>
       withClient(getClient, async (client) => {
         const params: UpdateCardOptionsParams = {
-          atm_option: fields.atm_option,
-          nfc_option: fields.nfc_option,
-          online_option: fields.online_option,
-          foreign_option: fields.foreign_option,
+          atm_option: args.atm_option,
+          nfc_option: args.nfc_option,
+          online_option: args.online_option,
+          foreign_option: args.foreign_option,
         };
 
-        const card = await updateCardOptions(client, id, params);
-
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify(card, null, 2),
-            },
-          ],
-        };
+        return executeWithMcpSca(
+          client,
+          (context) =>
+            updateCardOptions(client, args.id, params, coreOptionsFromContext(context)),
+          (card) => ({
+            content: [{ type: "text" as const, text: JSON.stringify(card, null, 2) }],
+          }),
+          scaOptionsFromArgs(args),
+        );
       }),
   );
 
   server.registerTool(
     "card_update_restrictions",
     {
-      description: "Update a card's restrictions (active days, merchant categories)",
+      description:
+        "Update a card's restrictions (active days, merchant categories). SCA: this operation may require Strong Customer Authentication; the tool polls inline by default (wait=30s) and falls back to a structured pending response so the caller can continue via sca_session_show + sca_session_token.",
       inputSchema: {
         id: z.string().describe("Card ID (UUID)"),
         active_days: z
@@ -511,25 +527,25 @@ export function registerCardTools(server: McpServer, getClient: () => Promise<Ht
           )
           .optional()
           .describe("Allowed merchant categories (empty array disables)"),
+        ...scaContinuationSchema,
       },
     },
-    async ({ id, ...fields }) =>
+    async (args) =>
       withClient(getClient, async (client) => {
         const params: UpdateCardRestrictionsParams = {
-          ...(fields.active_days !== undefined ? { active_days: fields.active_days } : {}),
-          ...(fields.categories !== undefined ? { categories: fields.categories } : {}),
+          ...(args.active_days !== undefined ? { active_days: args.active_days } : {}),
+          ...(args.categories !== undefined ? { categories: args.categories } : {}),
         };
 
-        const card = await updateCardRestrictions(client, id, params);
-
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify(card, null, 2),
-            },
-          ],
-        };
+        return executeWithMcpSca(
+          client,
+          (context) =>
+            updateCardRestrictions(client, args.id, params, coreOptionsFromContext(context)),
+          (card) => ({
+            content: [{ type: "text" as const, text: JSON.stringify(card, null, 2) }],
+          }),
+          scaOptionsFromArgs(args),
+        );
       }),
   );
 
