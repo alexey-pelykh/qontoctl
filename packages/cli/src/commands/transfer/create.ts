@@ -98,6 +98,15 @@ export function registerTransferCreateCommand(parent: Command): void {
     let vopProofToken: string;
     let beneficiaryField: { beneficiary_id: string } | { beneficiary: InlineBeneficiary };
 
+    // WI-K (#437): the CLI does NOT exhibit the MCP retry-path edge case for
+    // `vop_proof_token` × `sca_session_token`. The CLI uses a single inline
+    // SCA polling flow (`executeWithCliSca`): the auto-resolved
+    // `vopProofToken` is captured in this closure variable BEFORE the SCA
+    // challenge and reused verbatim on the post-SCA retry, so PSD2 dynamic
+    // linking holds and `verifyPayee` is never re-run mid-flow. The MCP
+    // analogue (`packages/mcp/src/tools/transfer.ts`) handles a caller-driven
+    // two-step retry where the auto-resolution must be skipped to preserve
+    // the binding — see the WI-K block there.
     if (opts.beneficiaryName !== undefined && opts.beneficiaryIban !== undefined) {
       if (opts.beneficiary !== undefined) {
         throw new Error(
