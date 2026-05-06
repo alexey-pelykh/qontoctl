@@ -189,8 +189,7 @@ export function registerCardTools(server: McpServer, getClient: () => Promise<Ht
 
         return executeWithMcpSca(
           client,
-          (context) =>
-            createCard(client, params, coreOptionsFromContext(context)),
+          (context) => createCard(client, params, coreOptionsFromContext(context)),
           (card) => ({
             content: [
               {
@@ -252,8 +251,7 @@ export function registerCardTools(server: McpServer, getClient: () => Promise<Ht
 
         return executeWithMcpSca(
           client,
-          (context) =>
-            bulkCreateCards(client, params, coreOptionsFromContext(context)),
+          (context) => bulkCreateCards(client, params, coreOptionsFromContext(context)),
           (result) => ({
             content: [
               {
@@ -281,8 +279,7 @@ export function registerCardTools(server: McpServer, getClient: () => Promise<Ht
       withClient(getClient, async (client) =>
         executeWithMcpSca(
           client,
-          (context) =>
-            lockCard(client, args.id, coreOptionsFromContext(context)),
+          (context) => lockCard(client, args.id, coreOptionsFromContext(context)),
           (card) => ({
             content: [{ type: "text" as const, text: JSON.stringify(card, null, 2) }],
           }),
@@ -305,8 +302,7 @@ export function registerCardTools(server: McpServer, getClient: () => Promise<Ht
       withClient(getClient, async (client) =>
         executeWithMcpSca(
           client,
-          (context) =>
-            unlockCard(client, args.id, coreOptionsFromContext(context)),
+          (context) => unlockCard(client, args.id, coreOptionsFromContext(context)),
           (card) => ({
             content: [{ type: "text" as const, text: JSON.stringify(card, null, 2) }],
           }),
@@ -329,8 +325,7 @@ export function registerCardTools(server: McpServer, getClient: () => Promise<Ht
       withClient(getClient, async (client) =>
         executeWithMcpSca(
           client,
-          (context) =>
-            reportCardLost(client, args.id, coreOptionsFromContext(context)),
+          (context) => reportCardLost(client, args.id, coreOptionsFromContext(context)),
           (card) => ({
             content: [{ type: "text" as const, text: JSON.stringify(card, null, 2) }],
           }),
@@ -353,8 +348,7 @@ export function registerCardTools(server: McpServer, getClient: () => Promise<Ht
       withClient(getClient, async (client) =>
         executeWithMcpSca(
           client,
-          (context) =>
-            reportCardStolen(client, args.id, coreOptionsFromContext(context)),
+          (context) => reportCardStolen(client, args.id, coreOptionsFromContext(context)),
           (card) => ({
             content: [{ type: "text" as const, text: JSON.stringify(card, null, 2) }],
           }),
@@ -377,8 +371,7 @@ export function registerCardTools(server: McpServer, getClient: () => Promise<Ht
       withClient(getClient, async (client) =>
         executeWithMcpSca(
           client,
-          (context) =>
-            discardCard(client, args.id, coreOptionsFromContext(context)),
+          (context) => discardCard(client, args.id, coreOptionsFromContext(context)),
           (card) => ({
             content: [{ type: "text" as const, text: JSON.stringify(card, null, 2) }],
           }),
@@ -428,8 +421,7 @@ export function registerCardTools(server: McpServer, getClient: () => Promise<Ht
 
         return executeWithMcpSca(
           client,
-          (context) =>
-            updateCardLimits(client, args.id, params, coreOptionsFromContext(context)),
+          (context) => updateCardLimits(client, args.id, params, coreOptionsFromContext(context)),
           (card) => ({
             content: [{ type: "text" as const, text: JSON.stringify(card, null, 2) }],
           }),
@@ -453,8 +445,7 @@ export function registerCardTools(server: McpServer, getClient: () => Promise<Ht
       withClient(getClient, async (client) =>
         executeWithMcpSca(
           client,
-          (context) =>
-            updateCardNickname(client, args.id, args.nickname, coreOptionsFromContext(context)),
+          (context) => updateCardNickname(client, args.id, args.nickname, coreOptionsFromContext(context)),
           (card) => ({
             content: [{ type: "text" as const, text: JSON.stringify(card, null, 2) }],
           }),
@@ -488,8 +479,7 @@ export function registerCardTools(server: McpServer, getClient: () => Promise<Ht
 
         return executeWithMcpSca(
           client,
-          (context) =>
-            updateCardOptions(client, args.id, params, coreOptionsFromContext(context)),
+          (context) => updateCardOptions(client, args.id, params, coreOptionsFromContext(context)),
           (card) => ({
             content: [{ type: "text" as const, text: JSON.stringify(card, null, 2) }],
           }),
@@ -539,8 +529,7 @@ export function registerCardTools(server: McpServer, getClient: () => Promise<Ht
 
         return executeWithMcpSca(
           client,
-          (context) =>
-            updateCardRestrictions(client, args.id, params, coreOptionsFromContext(context)),
+          (context) => updateCardRestrictions(client, args.id, params, coreOptionsFromContext(context)),
           (card) => ({
             content: [{ type: "text" as const, text: JSON.stringify(card, null, 2) }],
           }),

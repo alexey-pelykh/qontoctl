@@ -32,12 +32,7 @@ export function registerBulkTransferTools(server: McpServer, getClient: () => Pr
       withClient(getClient, async (client) =>
         executeWithMcpSca(
           client,
-          (context) =>
-            createBulkTransfer(
-              client,
-              { transfers: args.transfers },
-              coreOptionsFromContext(context),
-            ),
+          (context) => createBulkTransfer(client, { transfers: args.transfers }, coreOptionsFromContext(context)),
           (bulkTransfer) => ({
             content: [{ type: "text" as const, text: JSON.stringify(bulkTransfer, null, 2) }],
           }),
