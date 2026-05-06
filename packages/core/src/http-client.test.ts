@@ -1093,7 +1093,12 @@ describe("HttpClient", () => {
       expect(allLogged).not.toContain(SECRET_TOKEN);
     });
 
-    it("throws QontoScaRequiredError with 'unknown' when no token in body", async () => {
+    it("throws generic QontoApiError when 428 body has neither sca_session_token nor sca_not_enrolled", async () => {
+      // Defensive: a 428 shape we have not seen before (no token, no
+      // sca_not_enrolled code) must NOT fabricate a fake session token.
+      // Surface a typed QontoApiError so callers do not retry with
+      // X-Qonto-Sca-Session-Token: "unknown" (which Qonto rejects with a
+      // confusing follow-up error).
       fetchSpy.mockReturnValue(jsonResponse({}, { status: 428 }));
       const client = new TestableHttpClient({
         baseUrl: "https://thirdparty.qonto.com",
@@ -1102,8 +1107,39 @@ describe("HttpClient", () => {
 
       const error = await client.post("/v2/transfers", { amount: 100 }).catch((e: unknown) => e);
 
-      expect(error).toBeInstanceOf(QontoScaRequiredError);
-      expect((error as QontoScaRequiredError).scaSessionToken).toBe("unknown");
+      expect(error).toBeInstanceOf(QontoApiError);
+      expect(error).not.toBeInstanceOf(QontoScaRequiredError);
+      expect(error).not.toBeInstanceOf(QontoScaNotEnrolledError);
+      expect((error as QontoApiError).status).toBe(428);
+      expect((error as QontoApiError).errors).toEqual([{ code: "unknown", detail: "Unknown error" }]);
+    });
+
+    it("preserves JSON:API errors[] code/detail on unknown 428 shape", async () => {
+      // When the 428 body carries a JSON:API errors[] envelope without a
+      // recognized SCA code, the original code/detail must be propagated to
+      // the caller (not collapsed into a sentinel "unknown" token).
+      fetchSpy.mockReturnValue(
+        jsonResponse(
+          {
+            errors: [{ code: "future_sca_variant", detail: "A new 428 shape we don't yet recognize" }],
+          },
+          { status: 428 },
+        ),
+      );
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+      });
+
+      const error = await client.post("/v2/transfers", { amount: 100 }).catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(QontoApiError);
+      expect(error).not.toBeInstanceOf(QontoScaRequiredError);
+      expect(error).not.toBeInstanceOf(QontoScaNotEnrolledError);
+      expect((error as QontoApiError).status).toBe(428);
+      expect((error as QontoApiError).errors).toEqual([
+        { code: "future_sca_variant", detail: "A new 428 shape we don't yet recognize" },
+      ]);
     });
 
     it("throws QontoScaNotEnrolledError on 428 with flat sca_not_enrolled body", async () => {
@@ -1193,7 +1229,10 @@ describe("HttpClient", () => {
       expect((error as QontoScaRequiredError).scaSessionToken).toBe("tok-mixed");
     });
 
-    it("throws QontoScaRequiredError with 'unknown' when body is not JSON", async () => {
+    it("throws generic QontoApiError when 428 body is not JSON", async () => {
+      // Non-JSON 428 (e.g., plaintext from an upstream proxy) must surface as
+      // a typed QontoApiError, not a fabricated QontoScaRequiredError("unknown")
+      // that callers would re-send to Qonto on retry.
       fetchSpy.mockReturnValue(
         Promise.resolve(
           new Response("Precondition Required", {
@@ -1209,8 +1248,11 @@ describe("HttpClient", () => {
 
       const error = await client.post("/v2/transfers", { amount: 100 }).catch((e: unknown) => e);
 
-      expect(error).toBeInstanceOf(QontoScaRequiredError);
-      expect((error as QontoScaRequiredError).scaSessionToken).toBe("unknown");
+      expect(error).toBeInstanceOf(QontoApiError);
+      expect(error).not.toBeInstanceOf(QontoScaRequiredError);
+      expect(error).not.toBeInstanceOf(QontoScaNotEnrolledError);
+      expect((error as QontoApiError).status).toBe(428);
+      expect((error as QontoApiError).errors).toEqual([{ code: "unknown", detail: "Unknown error" }]);
     });
 
     it("sends X-Qonto-2fa-Preference header on write requests when scaMethod is set", async () => {

@@ -616,10 +616,13 @@ export class HttpClient {
    *   enroll SCA on the Qonto account before retrying. Yields
    *   {@link QontoScaNotEnrolledError}.
    *
-   * Unknown 428 shapes fall back to {@link QontoScaRequiredError} with token
-   * `"unknown"`, preserving prior behaviour for shapes the API may add later.
+   * Unknown 428 shapes fall back to a generic {@link QontoApiError} carrying
+   * the JSON:API `errors[]` code/detail when present, otherwise a sentinel
+   * `[{ code: "unknown", detail: "Unknown error" }]` entry. This avoids
+   * fabricating a `"unknown"` SCA session token that callers would send back
+   * to Qonto on retry, which Qonto rejects with a confusing follow-up error.
    */
-  private build428Error(body: unknown): QontoScaRequiredError | QontoScaNotEnrolledError {
+  private build428Error(body: unknown): QontoScaRequiredError | QontoScaNotEnrolledError | QontoApiError {
     if (typeof body === "object" && body !== null) {
       const obj = body as Record<string, unknown>;
 
@@ -640,7 +643,7 @@ export class HttpClient {
       }
     }
 
-    return new QontoScaRequiredError("unknown");
+    return new QontoApiError(428, this.extractErrors(body));
   }
 
   private isAuthError(errors: readonly QontoApiErrorEntry[]): boolean {
