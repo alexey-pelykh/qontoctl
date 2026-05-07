@@ -89,7 +89,14 @@ const textMock = vi.mocked(text);
 const multiselectMock = vi.mocked(multiselect);
 const cancelMock = vi.mocked(clackCancel);
 
-import { registerAuthCommands } from "./auth.js";
+import {
+  registerAuthCommands,
+  KNOWN_SCOPES,
+  RECOMMENDED_SCOPES,
+  RESTRICTED_SCOPES,
+  SCOPE_DESCRIPTIONS,
+  SCOPE_CATEGORIES,
+} from "./auth.js";
 
 describe("registerAuthCommands", () => {
   let stdoutSpy: ReturnType<typeof vi.spyOn>;
@@ -196,9 +203,9 @@ describe("registerAuthCommands", () => {
       );
     });
 
-    it("defaults only offline_access selected when no existing scopes", async () => {
+    it("defaults to RECOMMENDED_SCOPES when no existing scopes", async () => {
       textMock.mockResolvedValueOnce("id").mockResolvedValueOnce("secret");
-      multiselectMock.mockResolvedValueOnce(["offline_access"]);
+      multiselectMock.mockResolvedValueOnce([...RECOMMENDED_SCOPES]);
 
       const program = new Command();
       program.option("-o, --output <format>", "", "table");
@@ -207,7 +214,81 @@ describe("registerAuthCommands", () => {
       await program.parseAsync(["auth", "setup"], { from: "user" });
 
       const multiselectCall = multiselectMock.mock.calls[0]?.[0] as { initialValues?: string[] } | undefined;
-      expect(multiselectCall?.initialValues).toEqual(["offline_access"]);
+      expect(multiselectCall?.initialValues).toEqual([...RECOMMENDED_SCOPES]);
+    });
+
+    it("offers KNOWN_SCOPES (full catalog) as multiselect options", async () => {
+      textMock.mockResolvedValueOnce("id").mockResolvedValueOnce("secret");
+      multiselectMock.mockResolvedValueOnce([...RECOMMENDED_SCOPES]);
+
+      const program = new Command();
+      program.option("-o, --output <format>", "", "table");
+      registerAuthCommands(program);
+
+      await program.parseAsync(["auth", "setup"], { from: "user" });
+
+      const multiselectCall = multiselectMock.mock.calls[0]?.[0] as
+        | { options?: { value: string; label: string; hint?: string }[] }
+        | undefined;
+      const optionValues = multiselectCall?.options?.map((o) => o.value) ?? [];
+      expect(optionValues).toEqual([...KNOWN_SCOPES]);
+    });
+
+    it("groups scope options by category via label prefix", async () => {
+      textMock.mockResolvedValueOnce("id").mockResolvedValueOnce("secret");
+      multiselectMock.mockResolvedValueOnce([...RECOMMENDED_SCOPES]);
+
+      const program = new Command();
+      program.option("-o, --output <format>", "", "table");
+      registerAuthCommands(program);
+
+      await program.parseAsync(["auth", "setup"], { from: "user" });
+
+      const multiselectCall = multiselectMock.mock.calls[0]?.[0] as
+        | { options?: { value: string; label: string; hint?: string }[] }
+        | undefined;
+      const cardOption = multiselectCall?.options?.find((o) => o.value === "card.read");
+      expect(cardOption?.label).toBe("Cards · card.read");
+      const bankingOption = multiselectCall?.options?.find((o) => o.value === "payment.write");
+      expect(bankingOption?.label).toBe("Banking · payment.write");
+      const webhookOption = multiselectCall?.options?.find((o) => o.value === "webhook");
+      expect(webhookOption?.label).toBe("Webhooks · webhook");
+    });
+
+    it("hides RESTRICTED_SCOPES from picker by default", async () => {
+      textMock.mockResolvedValueOnce("id").mockResolvedValueOnce("secret");
+      multiselectMock.mockResolvedValueOnce([...RECOMMENDED_SCOPES]);
+
+      const program = new Command();
+      program.option("-o, --output <format>", "", "table");
+      registerAuthCommands(program);
+
+      await program.parseAsync(["auth", "setup"], { from: "user" });
+
+      const multiselectCall = multiselectMock.mock.calls[0]?.[0] as
+        | { options?: { value: string; label: string; hint?: string }[] }
+        | undefined;
+      const optionValues = multiselectCall?.options?.map((o) => o.value) ?? [];
+      expect(optionValues).not.toContain("beneficiary.trust");
+    });
+
+    it("includes RESTRICTED_SCOPES in picker when --trusted-partner is set", async () => {
+      textMock.mockResolvedValueOnce("id").mockResolvedValueOnce("secret");
+      multiselectMock.mockResolvedValueOnce([...RECOMMENDED_SCOPES, "beneficiary.trust"]);
+
+      const program = new Command();
+      program.option("-o, --output <format>", "", "table");
+      registerAuthCommands(program);
+
+      await program.parseAsync(["auth", "setup", "--trusted-partner"], { from: "user" });
+
+      const multiselectCall = multiselectMock.mock.calls[0]?.[0] as
+        | { options?: { value: string; label: string; hint?: string }[] }
+        | undefined;
+      const optionValues = multiselectCall?.options?.map((o) => o.value) ?? [];
+      expect(optionValues).toContain("beneficiary.trust");
+      const restrictedOption = multiselectCall?.options?.find((o) => o.value === "beneficiary.trust");
+      expect(restrictedOption?.label).toBe("Restricted (partner-only) · beneficiary.trust");
     });
 
     it("ensures offline_access is always included in saved scopes", async () => {
@@ -1104,7 +1185,7 @@ describe("registerAuthCommands", () => {
       expect(authUrl.searchParams.get("scope")).toBe("offline_access organization.read");
     });
 
-    it("prompts for scopes when none stored and saves them", async () => {
+    it("errors with run-setup hint when no stored scopes are configured", async () => {
       resolveConfigMock.mockResolvedValue({
         config: {
           oauth: { clientId: "test-client-id", clientSecret: "test-client-secret" },
@@ -1112,66 +1193,20 @@ describe("registerAuthCommands", () => {
         endpoint: "https://thirdparty.qonto.com",
         warnings: [],
       });
-      multiselectMock.mockResolvedValueOnce(["offline_access", "organization.read"]);
 
       const program = new Command();
       program.option("-o, --output <format>", "", "table");
+      program.exitOverride();
       registerAuthCommands(program);
 
-      const parsePromise = program.parseAsync(["auth", "login"], { from: "user" });
-      await new Promise<void>((resolve) => setTimeout(resolve, 0));
-      simulateCallback("auth-code", MOCK_STATE_HEX);
-      await parsePromise;
-
-      expect(multiselectMock).toHaveBeenCalledWith(
-        expect.objectContaining({ message: "Select OAuth scopes (press Enter when done)" }),
+      await expect(program.parseAsync(["auth", "login"], { from: "user" })).rejects.toThrow(
+        /No OAuth scopes configured.*qontoctl auth setup/,
       );
-      expect(saveOAuthScopesMock).toHaveBeenCalledWith(["offline_access", "organization.read"], undefined);
-    });
-
-    it("ensures offline_access when interactively selected scopes omit it", async () => {
-      resolveConfigMock.mockResolvedValue({
-        config: {
-          oauth: { clientId: "test-client-id", clientSecret: "test-client-secret" },
-        },
-        endpoint: "https://thirdparty.qonto.com",
-        warnings: [],
-      });
-      multiselectMock.mockResolvedValueOnce(["organization.read"]);
-
-      const program = new Command();
-      program.option("-o, --output <format>", "", "table");
-      registerAuthCommands(program);
-
-      const parsePromise = program.parseAsync(["auth", "login"], { from: "user" });
-      await new Promise<void>((resolve) => setTimeout(resolve, 0));
-      simulateCallback("auth-code", MOCK_STATE_HEX);
-      await parsePromise;
-
-      expect(saveOAuthScopesMock).toHaveBeenCalledWith(["offline_access", "organization.read"], undefined);
-    });
-
-    it("exits cleanly when scope selection is cancelled during login", async () => {
-      resolveConfigMock.mockResolvedValue({
-        config: {
-          oauth: { clientId: "test-client-id", clientSecret: "test-client-secret" },
-        },
-        endpoint: "https://thirdparty.qonto.com",
-        warnings: [],
-      });
-      multiselectMock.mockResolvedValueOnce(CANCEL_SYMBOL);
-
-      const program = new Command();
-      program.option("-o, --output <format>", "", "table");
-      registerAuthCommands(program);
-
-      await program.parseAsync(["auth", "login"], { from: "user" });
-
-      expect(cancelMock).toHaveBeenCalledWith("Login cancelled.");
+      expect(multiselectMock).not.toHaveBeenCalled();
       expect(exchangeCodeMock).not.toHaveBeenCalled();
     });
 
-    it("prompts for scopes when stored scopes array is empty", async () => {
+    it("errors when stored scopes array is empty", async () => {
       resolveConfigMock.mockResolvedValue({
         config: {
           oauth: {
@@ -1183,7 +1218,31 @@ describe("registerAuthCommands", () => {
         endpoint: "https://thirdparty.qonto.com",
         warnings: [],
       });
-      multiselectMock.mockResolvedValueOnce(["offline_access"]);
+
+      const program = new Command();
+      program.option("-o, --output <format>", "", "table");
+      program.exitOverride();
+      registerAuthCommands(program);
+
+      await expect(program.parseAsync(["auth", "login"], { from: "user" })).rejects.toThrow(
+        /No OAuth scopes configured.*qontoctl auth setup/,
+      );
+      expect(multiselectMock).not.toHaveBeenCalled();
+      expect(exchangeCodeMock).not.toHaveBeenCalled();
+    });
+
+    it("warns when stored scopes are missing from RECOMMENDED_SCOPES", async () => {
+      resolveConfigMock.mockResolvedValue({
+        config: {
+          oauth: {
+            clientId: "test-client-id",
+            clientSecret: "test-client-secret",
+            scopes: ["offline_access", "organization.read"],
+          },
+        },
+        endpoint: "https://thirdparty.qonto.com",
+        warnings: [],
+      });
 
       const program = new Command();
       program.option("-o, --output <format>", "", "table");
@@ -1194,9 +1253,155 @@ describe("registerAuthCommands", () => {
       simulateCallback("auth-code", MOCK_STATE_HEX);
       await parsePromise;
 
-      expect(multiselectMock).toHaveBeenCalledWith(
-        expect.objectContaining({ message: "Select OAuth scopes (press Enter when done)" }),
-      );
+      const stderrOutput = stderrSpy.mock.calls.map((c) => c[0]).join("");
+      expect(stderrOutput).toContain("recommended scope(s) are not in your stored scope set");
+      expect(stderrOutput).toContain("payment.write");
+      expect(stderrOutput).toContain("Re-run 'qontoctl auth setup'");
     });
+
+    it("stops spinner when OAuth callback returns an error (does not hang on stdin)", async () => {
+      const program = new Command();
+      program.option("-o, --output <format>", "", "table");
+      program.exitOverride();
+      registerAuthCommands(program);
+
+      const parsePromise = program.parseAsync(["auth", "login"], { from: "user" });
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      simulateCallbackError("invalid_scope", "scope X is not allowed");
+
+      await expect(parsePromise).rejects.toThrow();
+      // The spinner MUST be stopped on error so stdin returns from raw mode and
+      // the process can exit. Failure to stop leaves the CLI hanging visually.
+      expect(mockSpinner.stop).toHaveBeenCalledWith(expect.stringContaining("scope X is not allowed"));
+      expect(mockHttpServerClose).toHaveBeenCalled();
+    });
+
+    it("stops spinner when state mismatch occurs", async () => {
+      const program = new Command();
+      program.option("-o, --output <format>", "", "table");
+      program.exitOverride();
+      registerAuthCommands(program);
+
+      const parsePromise = program.parseAsync(["auth", "login"], { from: "user" });
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      simulateCallback("auth-code", "wrong-state-value");
+
+      await expect(parsePromise).rejects.toThrow("OAuth state mismatch");
+      // State mismatch is detected after the spinner is stopped for "Authorization received",
+      // then a new spinner cycle starts for token exchange. The error is thrown synchronously
+      // before that, so spinner should NOT be in active state when error propagates.
+      expect(mockHttpServerClose).toHaveBeenCalled();
+    });
+
+    it("stops spinner when token exchange fails", async () => {
+      exchangeCodeMock.mockRejectedValue(new Error("token endpoint returned 401"));
+
+      const program = new Command();
+      program.option("-o, --output <format>", "", "table");
+      program.exitOverride();
+      registerAuthCommands(program);
+
+      const parsePromise = program.parseAsync(["auth", "login"], { from: "user" });
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      simulateCallback("auth-code", MOCK_STATE_HEX);
+
+      await expect(parsePromise).rejects.toThrow("token endpoint returned 401");
+      // Token exchange spinner must be stopped on failure.
+      expect(mockSpinner.stop).toHaveBeenCalledWith(expect.stringContaining("token endpoint returned 401"));
+      expect(mockHttpServerClose).toHaveBeenCalled();
+    });
+
+    it("does not warn when stored scopes include all RECOMMENDED_SCOPES", async () => {
+      resolveConfigMock.mockResolvedValue({
+        config: {
+          oauth: {
+            clientId: "test-client-id",
+            clientSecret: "test-client-secret",
+            scopes: [...RECOMMENDED_SCOPES],
+          },
+        },
+        endpoint: "https://thirdparty.qonto.com",
+        warnings: [],
+      });
+
+      const program = new Command();
+      program.option("-o, --output <format>", "", "table");
+      registerAuthCommands(program);
+
+      const parsePromise = program.parseAsync(["auth", "login"], { from: "user" });
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      simulateCallback("auth-code", MOCK_STATE_HEX);
+      await parsePromise;
+
+      const stderrOutput = stderrSpy.mock.calls.map((c) => c[0]).join("");
+      expect(stderrOutput).not.toContain("recommended scope(s) are not in your stored scope set");
+    });
+  });
+});
+
+describe("scope catalog", () => {
+  it("KNOWN_SCOPES is derived from SCOPE_CATEGORIES", () => {
+    const fromCategories = SCOPE_CATEGORIES.flatMap((c) => c.scopes);
+    expect([...KNOWN_SCOPES]).toEqual(fromCategories);
+  });
+
+  it("every KNOWN_SCOPES entry has a SCOPE_DESCRIPTIONS entry", () => {
+    for (const scope of KNOWN_SCOPES) {
+      expect(SCOPE_DESCRIPTIONS[scope], `missing description for scope: ${scope}`).toBeDefined();
+      expect(SCOPE_DESCRIPTIONS[scope]?.length ?? 0).toBeGreaterThan(0);
+    }
+  });
+
+  it("every SCOPE_DESCRIPTIONS entry corresponds to a KNOWN_SCOPES or RESTRICTED_SCOPES entry", () => {
+    const recognised = new Set([...KNOWN_SCOPES, ...RESTRICTED_SCOPES]);
+    for (const scope of Object.keys(SCOPE_DESCRIPTIONS)) {
+      expect(recognised.has(scope), `orphan description for scope: ${scope}`).toBe(true);
+    }
+  });
+
+  it("RESTRICTED_SCOPES is disjoint from KNOWN_SCOPES (catalog never offers restricted scopes)", () => {
+    for (const scope of RESTRICTED_SCOPES) {
+      expect(KNOWN_SCOPES, `restricted scope leaked into catalog: ${scope}`).not.toContain(scope);
+    }
+  });
+
+  it("every RESTRICTED_SCOPES entry has a SCOPE_DESCRIPTIONS entry", () => {
+    for (const scope of RESTRICTED_SCOPES) {
+      expect(SCOPE_DESCRIPTIONS[scope], `missing description for restricted scope: ${scope}`).toBeDefined();
+    }
+  });
+
+  it("RECOMMENDED_SCOPES is a subset of KNOWN_SCOPES", () => {
+    for (const scope of RECOMMENDED_SCOPES) {
+      expect(KNOWN_SCOPES, `RECOMMENDED scope not in KNOWN_SCOPES: ${scope}`).toContain(scope);
+    }
+  });
+
+  it("RECOMMENDED_SCOPES includes offline_access (required for refresh tokens)", () => {
+    expect(RECOMMENDED_SCOPES).toContain("offline_access");
+  });
+
+  it("KNOWN_SCOPES has no duplicates", () => {
+    const unique = new Set(KNOWN_SCOPES);
+    expect(unique.size).toBe(KNOWN_SCOPES.length);
+  });
+
+  it("RECOMMENDED_SCOPES has no duplicates", () => {
+    const unique = new Set(RECOMMENDED_SCOPES);
+    expect(unique.size).toBe(RECOMMENDED_SCOPES.length);
+  });
+
+  it("excludes the partner-restricted beneficiary.trust scope from the catalog", () => {
+    expect(KNOWN_SCOPES).not.toContain("beneficiary.trust");
+  });
+
+  it("SCOPE_CATEGORIES has no duplicate scope assignments", () => {
+    const seen = new Set<string>();
+    for (const category of SCOPE_CATEGORIES) {
+      for (const scope of category.scopes) {
+        expect(seen, `scope appears in multiple categories: ${scope}`).not.toContain(scope);
+        seen.add(scope);
+      }
+    }
   });
 });

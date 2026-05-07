@@ -23,29 +23,155 @@ QontoCtl supports OAuth 2.0 authentication for write operations, SCA (Strong Cus
 
 ## Step 2: Select Scopes
 
-Select which scopes to grant your OAuth app. For full QontoCtl functionality, select all scopes below. For tighter security, select only the scopes you need — commands requiring missing scopes will fail gracefully.
+Select which scopes to grant your OAuth app. The `qontoctl auth setup` wizard pre-checks the **recommended** set (the most commonly needed scopes) and lets you opt in to additional scopes for specialized commands. For tighter security, deselect any scope you do not need — commands requiring missing scopes will fail gracefully.
 
-| Scope                     | Enables                                                                            |
-| ------------------------- | ---------------------------------------------------------------------------------- |
-| `offline_access`          | Refresh tokens for long-lived sessions without re-login                            |
-| `organization.read`       | Organization details, bank accounts, transactions, statements, labels, memberships |
-| `attachment.read`         | Attachment retrieval                                                               |
-| `attachment.write`        | Attachment upload                                                                  |
-| `bank_account.write`      | Bank account management                                                            |
-| `client.read`             | Client listing and details                                                         |
-| `client.write`            | Client create, update, and delete                                                  |
-| `client_invoice.write`    | Invoice create, update, finalize, and lifecycle management                         |
-| `client_invoices.read`    | Invoice listing and details                                                        |
-| `einvoicing.read`         | E-invoicing document retrieval                                                     |
-| `internal_transfer.write` | Internal transfers between accounts                                                |
-| `membership.read`         | Membership details                                                                 |
-| `membership.write`        | Member invitations and management                                                  |
-| `payment.write`           | SEPA transfers and beneficiary management                                          |
-| `supplier_invoice.read`   | Supplier invoice listing and details                                               |
-| `supplier_invoice.write`  | Supplier invoice creation                                                          |
-| `webhook`                 | Webhook subscription management                                                    |
+The full catalog is grouped by feature area. Scopes marked **(recommended)** are pre-selected during setup.
 
-> **Tip**: The `qontoctl auth setup` command prints this scope list interactively for easy reference.
+### Core
+
+| Scope               | Recommended | Enables                                                                            |
+| ------------------- | :---------: | ---------------------------------------------------------------------------------- |
+| `offline_access`    |     ✅      | Refresh tokens for long-lived sessions without re-login (required for refresh)     |
+| `organization.read` |     ✅      | Organization details, bank accounts, transactions, statements, labels, memberships |
+
+### Documents
+
+| Scope              | Recommended | Enables              |
+| ------------------ | :---------: | -------------------- |
+| `attachment.read`  |     ✅      | Attachment retrieval |
+| `attachment.write` |     ✅      | Attachment upload    |
+
+### Banking
+
+| Scope                     | Recommended | Enables                                   |
+| ------------------------- | :---------: | ----------------------------------------- |
+| `bank_account.write`      |     ✅      | Bank account management                   |
+| `internal_transfer.write` |     ✅      | Internal transfers between accounts       |
+| `payment.write`           |     ✅      | SEPA transfers and beneficiary management |
+
+### Cards
+
+| Scope        | Recommended | Enables                     |
+| ------------ | :---------: | --------------------------- |
+| `card.read`  |             | Card listing and details    |
+| `card.write` |             | Card creation and lifecycle |
+
+### Clients & Invoicing
+
+| Scope                  | Recommended | Enables                                                                    |
+| ---------------------- | :---------: | -------------------------------------------------------------------------- |
+| `client.read`          |     ✅      | Client listing and details                                                 |
+| `client.write`         |     ✅      | Client create, update, and delete                                          |
+| `client_invoice.write` |     ✅      | Client invoice, quote, and credit note write (create/update/finalize/send) |
+| `client_invoices.read` |     ✅      | Client invoice, quote, and credit note listing and details                 |
+| `einvoicing.read`      |     ✅      | E-invoicing document retrieval                                             |
+
+> **Note**: Qonto's invoice scope naming is asymmetric — write uses the singular form (`client_invoice.write`) while read uses the plural form (`client_invoices.read`). The singular `client_invoice.read` and the plural `client_invoices.write` are NOT recognized scopes (verified via OAuth provider rejection).
+
+### Memberships & Teams
+
+| Scope              | Recommended | Enables                           |
+| ------------------ | :---------: | --------------------------------- |
+| `membership.read`  |     ✅      | Membership details                |
+| `membership.write` |     ✅      | Member invitations and management |
+| `team.read`        |             | Team listing and details          |
+| `team.write`       |             | Team creation and management      |
+
+### Suppliers
+
+| Scope                    | Recommended | Enables                              |
+| ------------------------ | :---------: | ------------------------------------ |
+| `supplier_invoice.read`  |     ✅      | Supplier invoice listing and details |
+| `supplier_invoice.write` |     ✅      | Supplier invoice creation            |
+
+### Products
+
+| Scope           | Recommended | Enables                                                        |
+| --------------- | :---------: | -------------------------------------------------------------- |
+| `product.read`  |             | Product catalog listing and details (no qontoctl command yet)  |
+| `product.write` |             | Product catalog create/update/delete (no qontoctl command yet) |
+
+> **Note**: Product scopes are listed in Qonto's official catalog but qontoctl does not yet expose product commands. Authorize them only if you plan to use qontoctl alongside other tooling that does.
+
+### Terminals (POS)
+
+| Scope            | Recommended | Enables                                                             |
+| ---------------- | :---------: | ------------------------------------------------------------------- |
+| `terminal.read`  |             | Qonto Terminal listing and webhook events (no qontoctl command yet) |
+| `terminal.write` |             | Qonto Terminal payment creation (no qontoctl command yet)           |
+
+> **Note**: Terminal scopes are verified via per-endpoint docs but absent from Qonto's official catalog page (incomplete). No qontoctl command yet — forward-looking.
+
+### SEPA Direct Debit
+
+| Scope                     | Recommended | Enables                                               |
+| ------------------------- | :---------: | ----------------------------------------------------- |
+| `sepa_direct_debit.read`  |             | SEPA direct debit retrieval (no qontoctl command yet) |
+| `sepa_direct_debit.write` |             | SEPA direct debit creation (no qontoctl command yet)  |
+
+> **Note**: Discovered in OpenAPI security schemes; absent from Qonto's official catalog page. Forward-looking inclusion.
+
+### Insurance
+
+| Scope                      | Recommended | Enables                      |
+| -------------------------- | :---------: | ---------------------------- |
+| `insurance_contract.read`  |             | Insurance contract retrieval |
+| `insurance_contract.write` |             | Insurance contract creation  |
+
+### International
+
+| Scope                          | Recommended | Enables                                 |
+| ------------------------------ | :---------: | --------------------------------------- |
+| `international_transfer.write` |             | International (SWIFT) transfer creation |
+
+### Payment Links
+
+| Scope                | Recommended | Enables                          |
+| -------------------- | :---------: | -------------------------------- |
+| `payment_link.read`  |             | Payment link listing and details |
+| `payment_link.write` |             | Payment link creation            |
+
+### Requests (Approvals)
+
+| Scope                     | Recommended | Enables                             |
+| ------------------------- | :---------: | ----------------------------------- |
+| `request_review.write`    |             | Approve or decline pending requests |
+| `request_cards.write`     |             | Create flash card requests          |
+| `request_transfers.write` |             | Create multi-transfer requests      |
+
+> **Note**: `request_review.read` appears in some OpenAPI security schemes but Qonto's OAuth provider rejects it for typical clients (verified 2026-05); only `request_review.write` is grantable.
+
+### Webhooks
+
+| Scope     | Recommended | Enables                         |
+| --------- | :---------: | ------------------------------- |
+| `webhook` |     ✅      | Webhook subscription management |
+
+> **Tip**: The `qontoctl auth setup` command renders the same catalog interactively, grouped by category, with the recommended set pre-checked.
+
+### Restricted scopes (partner-gated)
+
+Some Qonto OAuth scopes are gated to specific partner agreements (e.g., Embed integrations). Qonto's authorization server returns `The OAuth 2.0 Client is not allowed to request scope 'X'` if a typical OAuth app attempts to include them, so QontoCtl **hides** them from the `auth setup` picker by default. Partners with the appropriate agreement can include them with the `--trusted-partner` flag:
+
+```sh
+qontoctl auth setup --trusted-partner    # restricted scopes appear in the picker
+```
+
+You can also add them manually under `oauth.scopes` in your config file. `auth login` reuses whatever is stored in `oauth.scopes`, so once you've selected restricted scopes via setup (or added them manually), they're authorized automatically — no flag needed at login time.
+
+| Scope               | Used by                         | Notes              |
+| ------------------- | ------------------------------- | ------------------ |
+| `beneficiary.trust` | `beneficiary trust` / `untrust` | Embed-partner only |
+
+### Migrating after a QontoCtl upgrade
+
+When a new version of QontoCtl adds scopes to the recommended set, your stored OAuth token is unaware of them — the access token grants only what was authorized at login time. To pick up newly added recommended scopes:
+
+1. Run `qontoctl auth login` — it prints a notice listing the recommended scopes missing from your stored set.
+2. Run `qontoctl auth setup` to re-select scopes (the previously selected ones plus the new additions are pre-checked).
+3. Run `qontoctl auth login` again to reauthorize with the updated scope set.
+
+Optional scopes (those not in the recommended set) are not warned about — opt in only if you need the corresponding commands.
 
 ## Step 3: Configure QontoCtl
 

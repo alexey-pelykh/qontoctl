@@ -34,7 +34,86 @@ import { addInheritableOptions, resolveGlobalOptions } from "../inherited-option
 import type { GlobalOptions } from "../options.js";
 
 const DEFAULT_REDIRECT_PORT = 18920;
-const DEFAULT_SCOPES = [
+
+/**
+ * Catalog of OAuth scopes QontoCtl knows about, grouped by feature area.
+ *
+ * Order within a category determines display order in the interactive picker.
+ * Categories are displayed in the order listed here.
+ *
+ * Excludes `RESTRICTED_SCOPES` (partner-only scopes Qonto rejects for typical
+ * OAuth clients) — those are documented separately and can be added manually
+ * to `.qontoctl.yaml` by partners.
+ */
+export const SCOPE_CATEGORIES: ReadonlyArray<{ readonly name: string; readonly scopes: readonly string[] }> = [
+  { name: "Core", scopes: ["offline_access", "organization.read"] },
+  { name: "Documents", scopes: ["attachment.read", "attachment.write"] },
+  { name: "Banking", scopes: ["bank_account.write", "internal_transfer.write", "payment.write"] },
+  { name: "Cards", scopes: ["card.read", "card.write"] },
+  {
+    name: "Clients & Invoicing",
+    scopes: ["client.read", "client.write", "client_invoice.write", "client_invoices.read", "einvoicing.read"],
+  },
+  { name: "Memberships & Teams", scopes: ["membership.read", "membership.write", "team.read", "team.write"] },
+  { name: "Suppliers", scopes: ["supplier_invoice.read", "supplier_invoice.write"] },
+  // `product.read` / `product.write` are listed in Qonto's official scope catalog but
+  // qontoctl does not yet expose product commands (no CLI/MCP wiring). Included here
+  // forward-looking so users with downstream tooling can authorize them; remove if
+  // products are explicitly out of scope for qontoctl.
+  { name: "Products", scopes: ["product.read", "product.write"] },
+  // `terminal.read` / `terminal.write` cover Qonto Terminal (POS) endpoints
+  // (GET /v2/terminals, POST /v2/terminals/payments). Verified via per-endpoint
+  // docs; absent from the official scope catalog page (which is incomplete).
+  // No qontoctl command yet — included forward-looking, same rationale as products.
+  { name: "Terminals (POS)", scopes: ["terminal.read", "terminal.write"] },
+  { name: "Insurance", scopes: ["insurance_contract.read", "insurance_contract.write"] },
+  { name: "International", scopes: ["international_transfer.write"] },
+  { name: "Payment Links", scopes: ["payment_link.read", "payment_link.write"] },
+  // SEPA Direct Debit scopes — verified via OpenAPI security schemes; not in
+  // Qonto's official scope catalog page (page is incomplete). No qontoctl
+  // command yet — included forward-looking.
+  { name: "SEPA Direct Debit", scopes: ["sepa_direct_debit.read", "sepa_direct_debit.write"] },
+  // Note: `request_review.read` appears in some OpenAPI security schemes but Qonto's
+  // OAuth provider rejects it (verified 2026-05). Excluded from the catalog. Only
+  // `request_review.write` is grantable for typical clients.
+  { name: "Requests (Approvals)", scopes: ["request_review.write", "request_cards.write", "request_transfers.write"] },
+  { name: "Webhooks", scopes: ["webhook"] },
+];
+
+/**
+ * Scopes Qonto recognizes but restricts to specific partner agreements
+ * (e.g., Embed integrations). The default OAuth client created via
+ * developers.qonto.com cannot request these — Qonto's authorization
+ * server returns "The OAuth 2.0 Client is not allowed to request scope 'X'"
+ * if a non-partner client attempts to include them in the auth request.
+ *
+ * Documented here for completeness but intentionally excluded from
+ * `KNOWN_SCOPES` and the `auth setup` picker. Partners with the appropriate
+ * agreement can add these manually to `oauth.scopes` in their config file.
+ */
+export const RESTRICTED_SCOPES: readonly string[] = [
+  // Embed-partner-only — see packages/core/src/beneficiaries/service.ts
+  "beneficiary.trust",
+];
+
+/**
+ * Full catalog of OAuth scopes QontoCtl offers in the `auth setup` picker —
+ * derived from `SCOPE_CATEGORIES`. Excludes `RESTRICTED_SCOPES`.
+ *
+ * NOT the default selection: see `RECOMMENDED_SCOPES`.
+ */
+export const KNOWN_SCOPES: readonly string[] = SCOPE_CATEGORIES.flatMap((category) => category.scopes);
+
+/**
+ * Default selection for fresh OAuth setup — a curated subset of `KNOWN_SCOPES`
+ * covering the commands most users need.
+ *
+ * Sensitive or specialized scopes (e.g., cards, teams, requests, payment links,
+ * insurance, international transfers, beneficiary trust) are intentionally
+ * excluded to keep the consent screen scoped. Users can opt in to any
+ * `KNOWN_SCOPES` entry interactively.
+ */
+export const RECOMMENDED_SCOPES: readonly string[] = [
   "offline_access",
   "organization.read",
   "attachment.read",
@@ -54,25 +133,95 @@ const DEFAULT_SCOPES = [
   "webhook",
 ];
 
-const SCOPE_DESCRIPTIONS: Record<string, string> = {
+export const SCOPE_DESCRIPTIONS: Record<string, string> = {
   offline_access: "Refresh tokens for long-lived sessions (required)",
   "organization.read": "Organization, accounts, transactions, statements, labels, memberships",
   "attachment.read": "Attachment retrieval",
   "attachment.write": "Attachment upload",
   "bank_account.write": "Bank account management",
+  "internal_transfer.write": "Internal transfers between accounts",
+  "payment.write": "SEPA transfers and beneficiary management",
+  "card.read": "Card listing and details",
+  "card.write": "Card creation and lifecycle",
   "client.read": "Client listing and details",
   "client.write": "Client create, update, and delete",
-  "client_invoice.write": "Invoice create, update, finalize, and lifecycle",
-  "client_invoices.read": "Invoice listing and details",
+  "client_invoice.write": "Client invoice, quote, and credit note write (create/update/finalize/lifecycle/send)",
+  "client_invoices.read":
+    "Client invoice, quote, and credit note listing and details (plural — singular client_invoice.read does not exist)",
   "einvoicing.read": "E-invoicing document retrieval",
-  "internal_transfer.write": "Internal transfers between accounts",
   "membership.read": "Membership details",
   "membership.write": "Member invitations and management",
-  "payment.write": "SEPA transfers and beneficiary management",
+  "team.read": "Team listing and details",
+  "team.write": "Team creation and management",
   "supplier_invoice.read": "Supplier invoice listing and details",
   "supplier_invoice.write": "Supplier invoice creation",
+  "insurance_contract.read": "Insurance contract retrieval",
+  "insurance_contract.write": "Insurance contract creation",
+  "product.read": "Product catalog listing and details (no qontoctl command yet — forward-looking)",
+  "product.write": "Product catalog create/update/delete (no qontoctl command yet — forward-looking)",
+  "terminal.read": "Qonto Terminal (POS) listing and webhook events (no qontoctl command yet — forward-looking)",
+  "terminal.write": "Qonto Terminal (POS) payment creation (no qontoctl command yet — forward-looking)",
+  "international_transfer.write": "International (SWIFT) transfer creation",
+  "payment_link.read": "Payment link listing and details",
+  "payment_link.write": "Payment link creation",
+  "request_review.write": "Approve/decline pending requests",
+  "request_cards.write": "Create flash card requests",
+  "request_transfers.write": "Create multi-transfer requests",
+  "sepa_direct_debit.read": "SEPA direct debit retrieval (no qontoctl command yet — forward-looking)",
+  "sepa_direct_debit.write": "SEPA direct debit creation (no qontoctl command yet — forward-looking)",
   webhook: "Webhook subscription management",
+  "beneficiary.trust": "Trust/untrust SEPA beneficiaries (Embed-partner-only)",
 };
+
+/**
+ * Build multiselect options for the scope picker.
+ *
+ * Options are grouped by category via a `"Category · scope"` label prefix
+ * (clack/prompts has no native option grouping). Hint text comes from
+ * `SCOPE_DESCRIPTIONS`.
+ *
+ * When `includeRestricted` is true, `RESTRICTED_SCOPES` are appended under a
+ * "Restricted (partner-only)" pseudo-category. Use this flag (`--trusted-partner`
+ * on `auth setup` / `auth login`) for OAuth clients that have partner agreements
+ * with Qonto enabling otherwise-rejected scopes.
+ */
+export function buildScopeOptions(includeRestricted = false): { value: string; label: string; hint?: string }[] {
+  const base = SCOPE_CATEGORIES.flatMap(({ name, scopes }) =>
+    scopes.map((scope) => {
+      const hint = SCOPE_DESCRIPTIONS[scope];
+      return { value: scope, label: `${name} · ${scope}`, ...(hint !== undefined ? { hint } : {}) };
+    }),
+  );
+  if (!includeRestricted) return base;
+  const restricted = RESTRICTED_SCOPES.map((scope) => {
+    const hint = SCOPE_DESCRIPTIONS[scope];
+    return {
+      value: scope,
+      label: `Restricted (partner-only) · ${scope}`,
+      ...(hint !== undefined ? { hint } : {}),
+    };
+  });
+  return [...base, ...restricted];
+}
+
+/**
+ * Print a one-time advisory if the stored scope set is missing entries from
+ * `RECOMMENDED_SCOPES`. This catches the upgrade path where a new qontoctl
+ * version adds a scope to the recommended set but the user's stored token
+ * pre-dates it.
+ *
+ * Non-blocking: writes to stderr and proceeds. Users who deliberately chose a
+ * smaller set can ignore the message.
+ */
+function warnIfMissingRecommendedScopes(storedScopes: readonly string[]): void {
+  const missing = RECOMMENDED_SCOPES.filter((scope) => !storedScopes.includes(scope));
+  if (missing.length === 0) return;
+  process.stderr.write(`Note: ${String(missing.length)} recommended scope(s) are not in your stored scope set:\n`);
+  for (const scope of missing) {
+    process.stderr.write(`  - ${scope}\n`);
+  }
+  process.stderr.write(`Re-run 'qontoctl auth setup' to add them, or ignore if intentional.\n\n`);
+}
 
 interface OAuthEndpoints {
   authUrl: string;
@@ -184,13 +333,17 @@ export function registerAuthCommands(program: Command): void {
   const setup = auth
     .command("setup")
     .description("Configure OAuth client credentials interactively")
+    .option(
+      "--trusted-partner",
+      "include partner-restricted scopes (e.g., beneficiary.trust) in the picker; only useful if your OAuth app has the corresponding partner agreement with Qonto",
+    )
     .addHelpText(
       "after",
       "\nSee the OAuth setup guide: https://github.com/alexey-pelykh/qontoctl/blob/main/docs/oauth-setup.md",
     );
   addInheritableOptions(setup);
   setup.action(async (_options: unknown, cmd: Command) => {
-    const opts = resolveGlobalOptions<GlobalOptions>(cmd);
+    const opts = resolveGlobalOptions<GlobalOptions & { trustedPartner?: boolean }>(cmd);
 
     intro("OAuth Setup");
 
@@ -260,11 +413,8 @@ export function registerAuthCommands(program: Command): void {
 
     const selectedScopes = await multiselect({
       message: "Select OAuth scopes (press Enter when done)",
-      options: DEFAULT_SCOPES.map((scope) => {
-        const hint = SCOPE_DESCRIPTIONS[scope];
-        return { value: scope, label: scope, ...(hint !== undefined ? { hint } : {}) };
-      }),
-      initialValues: existingOAuth?.scopes ?? ["offline_access"],
+      options: buildScopeOptions(opts.trustedPartner === true),
+      initialValues: existingOAuth?.scopes ?? [...RECOMMENDED_SCOPES],
       required: true,
     });
     if (isCancel(selectedScopes)) {
@@ -300,28 +450,15 @@ export function registerAuthCommands(program: Command): void {
     const { oauth } = await resolveOAuthConfig(opts.profile);
     const { authUrl, tokenUrl } = resolveOAuthEndpoints(oauth.stagingToken);
 
-    // Resolve scopes: use stored, or prompt interactively
-    let scopes: string[];
-    if (oauth.scopes !== undefined && oauth.scopes.length > 0) {
-      scopes = oauth.scopes;
-    } else {
-      const selectedScopes = await multiselect({
-        message: "Select OAuth scopes (press Enter when done)",
-        options: DEFAULT_SCOPES.map((scope) => {
-          const hint = SCOPE_DESCRIPTIONS[scope];
-          return { value: scope, label: scope, ...(hint !== undefined ? { hint } : {}) };
-        }),
-        initialValues: ["offline_access"],
-        required: true,
-      });
-      if (isCancel(selectedScopes)) {
-        cancel("Login cancelled.");
-        return;
-      }
-
-      scopes = selectedScopes.includes("offline_access") ? selectedScopes : ["offline_access", ...selectedScopes];
-      await saveOAuthScopes(scopes, opts.profile !== undefined ? { profile: opts.profile } : undefined);
+    // Scopes must be configured beforehand (via `auth setup`). `auth login` is
+    // focused on the OAuth flow itself — it should not double as a setup wizard.
+    if (oauth.scopes === undefined || oauth.scopes.length === 0) {
+      throw new Error(
+        "No OAuth scopes configured. Run 'qontoctl auth setup' to select scopes, then 'qontoctl auth login' to authenticate.",
+      );
     }
+    warnIfMissingRecommendedScopes(oauth.scopes);
+    let scopes: string[] = [...oauth.scopes];
 
     // Ensure offline_access is always included
     if (!scopes.includes("offline_access")) {
@@ -336,6 +473,12 @@ export function registerAuthCommands(program: Command): void {
     // Start callback server
     const { server, result } = await startCallbackServer(port);
 
+    // Spinner is declared outside the try so the catch/finally can stop it.
+    // Without this, an error during the OAuth flow leaves the spinner running,
+    // which keeps stdin in raw mode and prevents the process from exiting.
+    const s = spinner();
+    let spinnerActive = false;
+
     try {
       // Build authorization URL
       const authorizationUrl = new URL(authUrl);
@@ -348,14 +491,15 @@ export function registerAuthCommands(program: Command): void {
       authorizationUrl.searchParams.set("code_challenge_method", "S256");
 
       // Open browser and wait for authorization
-      const s = spinner();
       s.start("Opening browser for authorization...");
+      spinnerActive = true;
       openBrowser(authorizationUrl.toString());
       s.message(`Waiting for authorization on http://localhost:${port}/callback...`);
 
       // Wait for callback
       const callback = await result;
       s.stop("Authorization received.");
+      spinnerActive = false;
 
       // Verify state
       if (callback.state !== state) {
@@ -364,6 +508,7 @@ export function registerAuthCommands(program: Command): void {
 
       // Exchange code for tokens
       s.start("Exchanging authorization code for tokens...");
+      spinnerActive = true;
       const tokens = await exchangeCode(
         tokenUrl,
         oauth.clientId,
@@ -388,6 +533,13 @@ export function registerAuthCommands(program: Command): void {
       );
 
       s.stop("Login successful! Tokens saved.");
+      spinnerActive = false;
+    } catch (err) {
+      if (spinnerActive) {
+        s.stop(err instanceof Error ? `Login failed: ${err.message}` : "Login failed");
+        spinnerActive = false;
+      }
+      throw err;
     } finally {
       server.close();
     }
