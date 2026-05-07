@@ -56,6 +56,18 @@ export interface ConfigResult {
   /** Resolved API endpoint URL. */
   endpoint: string;
   warnings: string[];
+  /**
+   * `true` when `config.oauth.accessToken` came from `QONTOCTL_ACCESS_TOKEN`
+   * (or its profile-scoped variant) — i.e. the env-supplied bearer overrode
+   * any file value.
+   *
+   * When `true`, the OAuth authorization factory must treat the token as
+   * **read-only / discard-after-use**: the token is used as a bearer for
+   * the current invocation only; no proactive refresh is attempted, and no
+   * refreshed tokens are persisted to disk. Mirrors `AWS_SESSION_TOKEN`
+   * semantics. See issue #495 for design rationale and industry precedent.
+   */
+  oauthAccessTokenFromEnv: boolean;
 }
 
 /**

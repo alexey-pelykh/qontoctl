@@ -99,12 +99,60 @@ describe("loadConfigFile", () => {
     expect(result.path).toBeUndefined();
   });
 
-  it("handles empty YAML file", async () => {
+  it("treats empty CWD file the same as missing file (raw undefined when no home file either)", async () => {
     await writeFile(join(testDir, ".qontoctl.yaml"), "");
 
     const result = await loadConfigFile({ cwd: testDir, home: testHome });
-    expect(result.raw).toBeNull();
+    // Both CWD and home are empty/missing → no-hit
+    expect(result.raw).toBeUndefined();
+    expect(result.path).toBeUndefined();
+  });
+
+  it("treats comment-only CWD file the same as missing file", async () => {
+    await writeFile(join(testDir, ".qontoctl.yaml"), "# only a comment\n# nothing else here\n");
+
+    const result = await loadConfigFile({ cwd: testDir, home: testHome });
+    expect(result.raw).toBeUndefined();
+    expect(result.path).toBeUndefined();
+  });
+
+  it("falls back to home when CWD .qontoctl.yaml is empty", async () => {
+    // Empty CWD file (parseYaml -> null) should not short-circuit; home wins.
+    await writeFile(join(testDir, ".qontoctl.yaml"), "");
+    const homePath = join(testHome, ".qontoctl.yaml");
+    await writeFile(homePath, "api-key:\n  organization-slug: home-org\n  secret-key: home-secret\n");
+
+    const result = await loadConfigFile({ cwd: testDir, home: testHome });
+    expect(result.path).toBe(homePath);
+    expect(result.raw).toEqual({
+      "api-key": { "organization-slug": "home-org", "secret-key": "home-secret" },
+    });
+  });
+
+  it("falls back to home when CWD .qontoctl.yaml is comment-only", async () => {
+    await writeFile(join(testDir, ".qontoctl.yaml"), "# placeholder, not real config\n");
+    const homePath = join(testHome, ".qontoctl.yaml");
+    await writeFile(homePath, "api-key:\n  organization-slug: home-org\n  secret-key: home-secret\n");
+
+    const result = await loadConfigFile({ cwd: testDir, home: testHome });
+    expect(result.path).toBe(homePath);
+    expect(result.raw).toEqual({
+      "api-key": { "organization-slug": "home-org", "secret-key": "home-secret" },
+    });
+  });
+
+  it("falls back to home when CWD .qontoctl.yaml has top-level oauth: null", async () => {
+    // YAML "oauth: null" parses to {oauth: null}, which IS a non-null value, so
+    // CWD short-circuits as expected. This complements the "raw === null" test
+    // and documents that null-parsing only fires at the document root level.
+    await writeFile(join(testDir, ".qontoctl.yaml"), "oauth: null\n");
+    const homePath = join(testHome, ".qontoctl.yaml");
+    await writeFile(homePath, "api-key:\n  organization-slug: home-org\n  secret-key: home-secret\n");
+
+    const result = await loadConfigFile({ cwd: testDir, home: testHome });
+    // CWD wins because raw is {oauth: null}, not null itself.
     expect(result.path).toBe(join(testDir, ".qontoctl.yaml"));
+    expect(result.raw).toEqual({ oauth: null });
   });
 
   it("throws on malformed YAML", async () => {

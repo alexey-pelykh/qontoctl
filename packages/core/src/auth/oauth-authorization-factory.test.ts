@@ -160,4 +160,184 @@ describe("createOAuthAuthorization", () => {
     expect(result).toBe("Bearer token-no-expiry");
     expect(refreshAccessToken).not.toHaveBeenCalled();
   });
+
+  describe("readOnly mode (env-supplied access token)", () => {
+    it("skips refresh and disk write when readOnly is true even if token is near expiry and refresh-token exists", async () => {
+      const oauth: OAuthCredentials = {
+        clientId: "cid",
+        clientSecret: "csecret",
+        accessToken: "env-supplied-token",
+        refreshToken: "rt-from-file",
+        accessTokenExpiresAt: "2026-01-15T12:00:30.000Z", // 30s from now — would normally trigger refresh
+      };
+
+      const authorize = createOAuthAuthorization({
+        oauth,
+        tokenUrl: "https://token.example.com",
+        profile: "work",
+        readOnly: true,
+      });
+      const result = await authorize();
+
+      expect(result).toBe("Bearer env-supplied-token");
+      expect(refreshAccessToken).not.toHaveBeenCalled();
+      expect(saveOAuthTokens).not.toHaveBeenCalled();
+      // Token mutation must not occur when readOnly
+      expect(oauth.accessToken).toBe("env-supplied-token");
+      expect(oauth.refreshToken).toBe("rt-from-file");
+    });
+
+    it("works for one invocation when only env-supplied access token is present (no refresh-token, no expiry)", async () => {
+      // Simulates: QONTOCTL_ACCESS_TOKEN set in env, no file → only access-token available
+      const oauth: OAuthCredentials = {
+        clientId: "cid",
+        clientSecret: "csecret",
+        accessToken: "env-only-token",
+        // no refreshToken, no accessTokenExpiresAt
+      };
+
+      const authorize = createOAuthAuthorization({
+        oauth,
+        tokenUrl: "https://token.example.com",
+        readOnly: true,
+      });
+      const result = await authorize();
+
+      expect(result).toBe("Bearer env-only-token");
+      expect(refreshAccessToken).not.toHaveBeenCalled();
+      expect(saveOAuthTokens).not.toHaveBeenCalled();
+    });
+
+    it("returns the env-supplied bearer even when the paired file expiry is in the past (let the API surface 401)", async () => {
+      // Env-supplied access-token with file's stale expiry. Factory must NOT
+      // attempt refresh: the API surfaces a clear 401, and the user re-issues.
+      const oauth: OAuthCredentials = {
+        clientId: "cid",
+        clientSecret: "csecret",
+        accessToken: "env-supplied-token",
+        refreshToken: "rt-from-file",
+        accessTokenExpiresAt: "2026-01-15T10:00:00.000Z", // 2 hours in the past
+      };
+
+      const authorize = createOAuthAuthorization({
+        oauth,
+        tokenUrl: "https://token.example.com",
+        readOnly: true,
+      });
+      const result = await authorize();
+
+      expect(result).toBe("Bearer env-supplied-token");
+      expect(refreshAccessToken).not.toHaveBeenCalled();
+      expect(saveOAuthTokens).not.toHaveBeenCalled();
+    });
+
+    it("default (readOnly omitted) preserves existing refresh-and-save behavior", async () => {
+      // Regression guard: omitting readOnly must NOT silently flip to read-only.
+      const oauth: OAuthCredentials = {
+        clientId: "cid",
+        clientSecret: "csecret",
+        accessToken: "old-token",
+        refreshToken: "rt",
+        accessTokenExpiresAt: "2026-01-15T12:00:10.000Z",
+      };
+
+      vi.mocked(refreshAccessToken).mockResolvedValue({
+        accessToken: "new-token",
+        refreshToken: "new-rt",
+        expiresIn: 3600,
+        tokenType: "Bearer",
+      });
+      vi.mocked(saveOAuthTokens).mockResolvedValue();
+
+      const authorize = createOAuthAuthorization({
+        oauth,
+        tokenUrl: "https://token.example.com",
+        // readOnly omitted → defaults to false
+      });
+      const result = await authorize();
+
+      expect(result).toBe("Bearer new-token");
+      expect(refreshAccessToken).toHaveBeenCalled();
+      expect(saveOAuthTokens).toHaveBeenCalled();
+    });
+
+    it("explicit readOnly: false also preserves refresh-and-save behavior", async () => {
+      const oauth: OAuthCredentials = {
+        clientId: "cid",
+        clientSecret: "csecret",
+        accessToken: "old-token",
+        refreshToken: "rt",
+        accessTokenExpiresAt: "2026-01-15T12:00:10.000Z",
+      };
+
+      vi.mocked(refreshAccessToken).mockResolvedValue({
+        accessToken: "new-token",
+        refreshToken: "new-rt",
+        expiresIn: 3600,
+        tokenType: "Bearer",
+      });
+      vi.mocked(saveOAuthTokens).mockResolvedValue();
+
+      const authorize = createOAuthAuthorization({
+        oauth,
+        tokenUrl: "https://token.example.com",
+        readOnly: false,
+      });
+      await authorize();
+
+      expect(refreshAccessToken).toHaveBeenCalled();
+      expect(saveOAuthTokens).toHaveBeenCalled();
+    });
+
+    it("regression: refresh roundtrip from a complete file does NOT degrade fields when readOnly is false", async () => {
+      // Sanity check that the asymmetry symptom is gone — env-overlay no
+      // longer shadows refresh results because it never reads refresh-token
+      // from env. This factory test exercises just the factory side: a
+      // file-based config completes a refresh roundtrip with all fields
+      // updated as expected.
+      const oauth: OAuthCredentials = {
+        clientId: "cid",
+        clientSecret: "csecret",
+        accessToken: "old-at",
+        refreshToken: "old-rt",
+        accessTokenExpiresAt: "2026-01-15T12:00:10.000Z",
+        scopes: ["organizations.read", "transactions.read"],
+        stagingToken: "staging-tok",
+      };
+
+      vi.mocked(refreshAccessToken).mockResolvedValue({
+        accessToken: "new-at",
+        refreshToken: "new-rt",
+        expiresIn: 3600,
+        tokenType: "Bearer",
+      });
+      vi.mocked(saveOAuthTokens).mockResolvedValue();
+
+      const authorize = createOAuthAuthorization({
+        oauth,
+        tokenUrl: "https://token.example.com",
+        profile: "work",
+      });
+      await authorize();
+
+      // Refresh roundtrip succeeded and updated both tokens + expiry
+      expect(oauth.accessToken).toBe("new-at");
+      expect(oauth.refreshToken).toBe("new-rt");
+      expect(oauth.accessTokenExpiresAt).toBe("2026-01-15T13:00:00.000Z");
+      // Static fields untouched
+      expect(oauth.clientId).toBe("cid");
+      expect(oauth.clientSecret).toBe("csecret");
+      expect(oauth.stagingToken).toBe("staging-tok");
+      expect(oauth.scopes).toEqual(["organizations.read", "transactions.read"]);
+      // Save was called with the full updated token set
+      expect(saveOAuthTokens).toHaveBeenCalledWith(
+        {
+          accessToken: "new-at",
+          refreshToken: "new-rt",
+          accessTokenExpiresAt: "2026-01-15T13:00:00.000Z",
+        },
+        { profile: "work" },
+      );
+    });
+  });
 });

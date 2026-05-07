@@ -15,5 +15,6 @@ export type { LoadResult } from "./loader.js";
 export { isValidProfileName, validateConfig } from "./validate.js";
 export type { ValidationResult } from "./validate.js";
 export { applyEnvOverlay } from "./env.js";
+export type { EnvOverlayConfig, EnvOverlayResult, StaticOAuthFields } from "./env.js";
 export { saveOAuthTokens, saveOAuthClientCredentials, clearOAuthTokens, saveOAuthScopes } from "./writer.js";
 export type { TokenUpdate } from "./writer.js";

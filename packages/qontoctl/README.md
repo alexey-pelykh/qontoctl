@@ -396,20 +396,25 @@ When both API key and OAuth credentials are configured, OAuth is used when an ac
 
 ### Environment Variables
 
-Environment variables override file values. Without `--profile`:
+Environment variables override file values. They carry **inputs** (static configuration) the tool reads but never writes back; runtime-mutable state (refresh tokens, token expiry, granted scopes) lives in the file only. See the note on `QONTOCTL_ACCESS_TOKEN` below.
 
-| Variable                     | Description                            |
-| ---------------------------- | -------------------------------------- |
-| `QONTOCTL_ORGANIZATION_SLUG` | Organization slug                      |
-| `QONTOCTL_SECRET_KEY`        | API secret key                         |
-| `QONTOCTL_CLIENT_ID`         | OAuth client ID                        |
-| `QONTOCTL_CLIENT_SECRET`     | OAuth client secret                    |
-| `QONTOCTL_ACCESS_TOKEN`      | OAuth access token                     |
-| `QONTOCTL_REFRESH_TOKEN`     | OAuth refresh token                    |
-| `QONTOCTL_ENDPOINT`          | Custom API endpoint                    |
-| `QONTOCTL_STAGING_TOKEN`     | Staging token (activates sandbox URLs) |
+Without `--profile`:
+
+| Variable                     | Description                                |
+| ---------------------------- | ------------------------------------------ |
+| `QONTOCTL_ORGANIZATION_SLUG` | Organization slug                          |
+| `QONTOCTL_SECRET_KEY`        | API secret key                             |
+| `QONTOCTL_CLIENT_ID`         | OAuth client ID                            |
+| `QONTOCTL_CLIENT_SECRET`     | OAuth client secret                        |
+| `QONTOCTL_ACCESS_TOKEN`      | OAuth access token (read-only — see below) |
+| `QONTOCTL_ENDPOINT`          | Custom API endpoint                        |
+| `QONTOCTL_STAGING_TOKEN`     | Staging token (activates sandbox URLs)     |
 
 With `--profile <name>`, prefix becomes `QONTOCTL_{NAME}_` (uppercased, hyphens replaced with underscores). For example, `--profile acme` reads `QONTOCTL_ACME_ORGANIZATION_SLUG`.
+
+> **`QONTOCTL_ACCESS_TOKEN` semantics**: when set, the env-supplied bearer is used for the current invocation only. Proactive token refresh is not attempted, and refreshed tokens are not persisted to disk (mirrors `AWS_SESSION_TOKEN`). If the token has expired the API surfaces a `401`; re-issue the token externally.
+>
+> **`QONTOCTL_REFRESH_TOKEN` is intentionally not supported.** Refresh tokens are runtime-mutable state — every refresh produces a new value the tool must write back somewhere — and env vars carry inputs, not state. Use file-based credentials (`~/.qontoctl.yaml` or a profile) for OAuth flows that need refresh, or stick with API-key env vars in CI.
 
 ## Debug Mode
 
