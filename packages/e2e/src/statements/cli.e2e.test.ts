@@ -6,7 +6,7 @@ import { existsSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { cliCwd, cliEnv, hasCredentials } from "../sandbox.js";
+import { cliCwd, cliEnv, hasApiKeyCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
@@ -19,7 +19,7 @@ function listStatements(): Record<string, unknown>[] {
   return JSON.parse(output) as Record<string, unknown>[];
 }
 
-describe.skipIf(!hasCredentials())("statement CLI commands (e2e)", () => {
+describe.skipIf(!hasApiKeyCredentials())("statement CLI commands (e2e)", () => {
   // -- statement list --
 
   describe("statement list", () => {

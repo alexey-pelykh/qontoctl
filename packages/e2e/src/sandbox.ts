@@ -89,20 +89,47 @@ function tryReadConfigFile(path: string): ConfigCredentials | undefined {
 }
 
 /**
- * Check whether Qonto API credentials are available — either via
- * environment variables or via `.qontoctl.yaml` in the working directory.
+ * Check whether Qonto **api-key** credentials (organization slug +
+ * secret key) are available — via `QONTOCTL_ORGANIZATION_SLUG` +
+ * `QONTOCTL_SECRET_KEY` env vars or via `api-key.organization-slug`
+ * + `api-key.secret-key` in `.qontoctl.yaml`.
  *
- * Used by `describe.skipIf(!hasCredentials())` guards in E2E tests so
- * that API-dependent suites are skipped when no credentials are present.
+ * Used by `describe.skipIf(!hasApiKeyCredentials())` guards on suites
+ * whose exercised endpoints work with api-key auth per the
+ * [Qonto auth table](https://docs.qonto.com/get-started/business-api/authentication/introduction).
+ * Such suites run in CI (which is api-key-only) and locally.
  */
-export function hasCredentials(): boolean {
-  if (process.env["QONTOCTL_ORGANIZATION_SLUG"] !== undefined && process.env["QONTOCTL_SECRET_KEY"] !== undefined) {
+export function hasApiKeyCredentials(): boolean {
+  // Use truthy check rather than `!== undefined`: in GitHub Actions, an
+  // unconfigured `${{ secrets.X }}` materializes as an empty-string env var,
+  // which would falsely indicate creds are present.
+  if (process.env["QONTOCTL_ORGANIZATION_SLUG"] && process.env["QONTOCTL_SECRET_KEY"]) {
     return true;
   }
-  if (process.env["QONTOCTL_CLIENT_ID"] !== undefined && process.env["QONTOCTL_CLIENT_SECRET"] !== undefined) {
+  const fileCreds = readConfigFileCredentials();
+  return fileCreds !== undefined && Boolean(fileCreds.organizationSlug) && Boolean(fileCreds.secretKey);
+}
+
+/**
+ * Check whether Qonto **OAuth** credentials (client id + client secret)
+ * are available — via `QONTOCTL_CLIENT_ID` + `QONTOCTL_CLIENT_SECRET`
+ * env vars or via `oauth.client-id` + `oauth.client-secret` in
+ * `.qontoctl.yaml`.
+ *
+ * Used by `describe.skipIf(!hasOAuthCredentials())` guards on suites
+ * whose endpoints require OAuth per the
+ * [Qonto auth table](https://docs.qonto.com/get-started/business-api/authentication/introduction)
+ * (international transfers, cards, teams, webhooks, e-invoicing,
+ * payment links, insurance, recurring transfers, bulk transfers,
+ * quotes, SCA flows, …). These suites only run locally where OAuth
+ * is configured; CI is api-key-only and skips them naturally.
+ */
+export function hasOAuthCredentials(): boolean {
+  if (process.env["QONTOCTL_CLIENT_ID"] && process.env["QONTOCTL_CLIENT_SECRET"]) {
     return true;
   }
-  return readConfigFileCredentials() !== undefined;
+  const fileCreds = readConfigFileCredentials();
+  return fileCreds !== undefined && Boolean(fileCreds.clientId) && Boolean(fileCreds.clientSecret);
 }
 
 /**
@@ -112,19 +139,20 @@ export function hasCredentials(): boolean {
  *
  * Used by `describe.skipIf(!hasStagingToken())` guards in E2E tests for
  * sandbox-only behavior (e.g., `mockScaDecision` is only available in the
- * Qonto sandbox environment).
+ * Qonto sandbox environment). Pair with `!hasOAuthCredentials()` since
+ * the sandbox is OAuth-only.
  */
 export function hasStagingToken(): boolean {
-  if (process.env["QONTOCTL_STAGING_TOKEN"] !== undefined) {
+  if (process.env["QONTOCTL_STAGING_TOKEN"]) {
     return true;
   }
-  return readConfigFileCredentials()?.stagingToken !== undefined;
+  return Boolean(readConfigFileCredentials()?.stagingToken);
 }
 
 /**
  * Retrieve credentials from environment variables or `.qontoctl.yaml`.
  * Throws if no credentials are available (callers should be guarded by
- * `hasCredentials()`).
+ * `hasApiKeyCredentials()` or `hasOAuthCredentials()` as appropriate).
  */
 export function getCredentials(): ConfigCredentials {
   const envSlug = process.env["QONTOCTL_ORGANIZATION_SLUG"];

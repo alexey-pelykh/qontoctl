@@ -4,7 +4,7 @@
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { cliCwd, cliEnv, hasCredentials } from "../sandbox.js";
+import { cliCwd, cliEnv, hasApiKeyCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
@@ -17,7 +17,7 @@ function cli(...args: string[]): string {
   });
 }
 
-describe.skipIf(!hasCredentials())("internal-transfer CLI commands (e2e)", () => {
+describe.skipIf(!hasApiKeyCredentials())("internal-transfer CLI commands (e2e)", () => {
   describe("internal-transfer create", () => {
     it("rejects create with missing required options", () => {
       try {

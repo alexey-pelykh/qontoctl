@@ -6,7 +6,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { TransactionListResponseSchema, TransactionSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { cliCwd, cliEnv, hasCredentials } from "../sandbox.js";
+import { cliCwd, cliEnv, hasApiKeyCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
@@ -30,7 +30,7 @@ interface TransactionListResponse {
   };
 }
 
-describe.skipIf(!hasCredentials())("transaction MCP tools (e2e)", () => {
+describe.skipIf(!hasApiKeyCredentials())("transaction MCP tools (e2e)", () => {
   let client: Client;
   let transport: StdioClientTransport;
 

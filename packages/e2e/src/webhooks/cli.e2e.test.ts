@@ -5,7 +5,7 @@ import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { WebhookSubscriptionSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
-import { cliCwd, cliEnv, hasCredentials } from "../sandbox.js";
+import { cliCwd, cliEnv, hasOAuthCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
@@ -29,7 +29,7 @@ interface WebhookItem {
   readonly types: string[];
 }
 
-describe.skipIf(!hasCredentials())("webhook CLI commands (e2e)", () => {
+describe.skipIf(!hasOAuthCredentials())("webhook CLI commands (e2e)", () => {
   describe("webhook list", () => {
     it("lists webhooks with default output", () => {
       const output = cli("webhook", "list");

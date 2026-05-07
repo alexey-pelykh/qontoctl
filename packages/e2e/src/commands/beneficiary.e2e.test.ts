@@ -5,7 +5,7 @@ import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { BeneficiarySchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
-import { cliCwd, cliEnv, hasCredentials } from "../sandbox.js";
+import { cliCwd, cliEnv, hasApiKeyCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
@@ -22,7 +22,7 @@ function cli(...args: string[]): string {
   });
 }
 
-describe.skipIf(!hasCredentials())("beneficiary commands (e2e)", () => {
+describe.skipIf(!hasApiKeyCredentials())("beneficiary commands (e2e)", () => {
   describe("beneficiary list", () => {
     it("lists beneficiaries with id, name, iban, status, trusted", () => {
       const output = cli("beneficiary", "list");

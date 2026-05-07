@@ -7,7 +7,7 @@ import { resolve } from "node:path";
 import { promisify } from "node:util";
 import { TransferSchema } from "@qontoctl/core";
 import { beforeAll, describe, expect, it } from "vitest";
-import { cliCwd, cliEnv, hasCredentials, hasStagingToken } from "../sandbox.js";
+import { cliCwd, cliEnv, hasOAuthCredentials, hasStagingToken } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 const execFileAsync = promisify(execFile);
@@ -53,7 +53,7 @@ function cliJson<T>(...args: string[]): T {
   return JSON.parse(cliSync("--output", "json", ...args)) as T;
 }
 
-describe.skipIf(!hasCredentials() || !hasStagingToken())("SCA continuation CLI (e2e, sandbox)", () => {
+describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("SCA continuation CLI (e2e, sandbox)", () => {
   let beneficiaryId: string;
   let bankAccountId: string;
   let vopProofToken: string;

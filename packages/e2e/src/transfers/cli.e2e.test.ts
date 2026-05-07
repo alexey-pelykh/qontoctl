@@ -5,7 +5,7 @@ import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { TransferSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
-import { cliCwd, cliEnv, hasCredentials } from "../sandbox.js";
+import { cliCwd, cliEnv, hasApiKeyCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
@@ -39,7 +39,7 @@ function firstTransfer(transfers: readonly TransferItem[]): TransferItem | undef
   return transfers[0];
 }
 
-describe.skipIf(!hasCredentials())("transfer CLI commands (e2e)", () => {
+describe.skipIf(!hasApiKeyCredentials())("transfer CLI commands (e2e)", () => {
   describe("transfer list", () => {
     it("lists transfers with default output", () => {
       const output = cli("transfer", "list", "--no-paginate");

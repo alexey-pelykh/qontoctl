@@ -5,7 +5,7 @@ import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { IntlBeneficiarySchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
-import { cliCwd, cliEnv, hasCredentials } from "../sandbox.js";
+import { cliCwd, cliEnv, hasOAuthCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
@@ -30,7 +30,7 @@ interface IntlBeneficiaryItem {
   readonly country: string;
 }
 
-describe.skipIf(!hasCredentials())("intl-beneficiary CLI commands (e2e)", () => {
+describe.skipIf(!hasOAuthCredentials())("intl-beneficiary CLI commands (e2e)", () => {
   describe("intl-beneficiary list", () => {
     it("lists international beneficiaries with default output", () => {
       const output = cli("intl-beneficiary", "list");

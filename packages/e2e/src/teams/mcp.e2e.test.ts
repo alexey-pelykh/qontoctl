@@ -6,7 +6,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { TeamListResponseSchema, TeamSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { cliCwd, cliEnv, hasCredentials } from "../sandbox.js";
+import { cliCwd, cliEnv, hasOAuthCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
@@ -32,7 +32,7 @@ interface TeamListResponse {
   };
 }
 
-describe.skipIf(!hasCredentials())("team MCP tools (e2e)", () => {
+describe.skipIf(!hasOAuthCredentials())("team MCP tools (e2e)", () => {
   let client: Client;
   let transport: StdioClientTransport;
 

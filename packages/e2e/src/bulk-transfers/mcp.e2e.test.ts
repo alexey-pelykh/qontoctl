@@ -7,7 +7,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { BulkTransferListResponseSchema, BulkTransferSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { cliCwd, cliEnv, hasCredentials, hasStagingToken } from "../sandbox.js";
+import { cliCwd, cliEnv, hasOAuthCredentials, hasStagingToken } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
@@ -40,7 +40,7 @@ interface BulkTransferListResponse {
   };
 }
 
-describe.skipIf(!hasCredentials())("bulk-transfer MCP tools (e2e)", () => {
+describe.skipIf(!hasOAuthCredentials())("bulk-transfer MCP tools (e2e)", () => {
   let client: Client;
   let transport: StdioClientTransport;
   let stderrBuffer: string;

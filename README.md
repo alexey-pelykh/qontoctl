@@ -424,8 +424,8 @@ The pending response's textual format is stable, so callers that need to extract
 
 QontoCtl supports two authentication methods:
 
-- **API Key** — read-only access using your organization slug and secret key
-- **OAuth 2.0** — full access including write operations and SCA; see the [OAuth App Setup Guide](docs/oauth-setup.md)
+- **API Key** — production-only access using your organization slug and secret key. Supports the endpoints listed as "API key ✔" in the [Qonto auth table](https://docs.qonto.com/get-started/business-api/authentication/introduction) (most reads plus many writes — internal transfers, clients, attachments, …). Cannot be used against the Qonto sandbox.
+- **OAuth 2.0** — full access including OAuth-only endpoints (cards, teams, webhooks, e-invoicing, payment links, insurance, international transfers, recurring transfers, SCA flows) and the Qonto sandbox via staging-token; see the [OAuth App Setup Guide](docs/oauth-setup.md).
 
 ### Profile Format
 

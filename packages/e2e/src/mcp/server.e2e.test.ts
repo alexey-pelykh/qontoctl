@@ -7,7 +7,7 @@ import { join, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import { cliCwd, cliEnv, hasCredentials } from "../sandbox.js";
+import { cliCwd, cliEnv, hasApiKeyCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
@@ -193,7 +193,7 @@ describe("MCP server via stdio (e2e)", () => {
     });
   });
 
-  describe.skipIf(!hasCredentials())("tool call with valid credentials", () => {
+  describe.skipIf(!hasApiKeyCredentials())("tool call with valid credentials", () => {
     it("org_show returns organization data in MCP content format", async () => {
       const result = await client.callTool({ name: "org_show", arguments: {} });
 

@@ -5,7 +5,7 @@ import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { TransactionSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
-import { cliCwd, cliEnv, hasCredentials } from "../sandbox.js";
+import { cliCwd, cliEnv, hasApiKeyCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
@@ -45,7 +45,7 @@ function firstTransaction(transactions: readonly TransactionItem[]): Transaction
   return transactions[0];
 }
 
-describe.skipIf(!hasCredentials())("transaction CLI commands (e2e)", () => {
+describe.skipIf(!hasApiKeyCredentials())("transaction CLI commands (e2e)", () => {
   describe("transaction list", () => {
     it("lists transactions with default output", () => {
       const output = cli("transaction", "list", "--no-paginate");

@@ -5,7 +5,7 @@ import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { EInvoicingSettingsSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
-import { cliCwd, cliEnv, hasCredentials } from "../sandbox.js";
+import { cliCwd, cliEnv, hasOAuthCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
@@ -17,7 +17,7 @@ function cli(args: string[]): string {
   });
 }
 
-describe.skipIf(!hasCredentials())("e-invoicing CLI (e2e)", () => {
+describe.skipIf(!hasOAuthCredentials())("e-invoicing CLI (e2e)", () => {
   it("einvoicing settings displays settings in table format", () => {
     const output = cli(["einvoicing", "settings"]);
     expect(output).toContain("sending_status");

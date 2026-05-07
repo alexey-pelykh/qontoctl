@@ -5,7 +5,7 @@ import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { AttachmentSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
-import { cliCwd, cliEnv, hasCredentials } from "../sandbox.js";
+import { cliCwd, cliEnv, hasApiKeyCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
@@ -51,7 +51,7 @@ function findTransactionWithAttachments(): TransactionItem | undefined {
   return transactions[0];
 }
 
-describe.skipIf(!hasCredentials())("attachment CLI commands (e2e)", () => {
+describe.skipIf(!hasApiKeyCredentials())("attachment CLI commands (e2e)", () => {
   describe("transaction attachment list", () => {
     it("lists attachments for a transaction and validates through schema", () => {
       const txn = findTransactionWithAttachments();
