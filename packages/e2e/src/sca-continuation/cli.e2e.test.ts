@@ -15,10 +15,12 @@ const execFileAsync = promisify(execFile);
 /**
  * Pattern matching the SCA session polling URL the core HTTP client logs at
  * verbose level. Tokens are base64url, so they survive `encodeURIComponent`
- * unchanged and contain only `[A-Za-z0-9_-]`. See
- * `packages/core/src/sca/sca-service.ts#getScaSession` for the URL shape.
+ * unchanged and contain only `[A-Za-z0-9_-]`. Matches both the production
+ * endpoint (`/v2/sca/sessions/{token}`) and the sandbox-only mocked endpoint
+ * (`/v2/mocked_sca_sessions/{token}`) — see
+ * `packages/core/src/sca/sca-service.ts#getScaSession` for the routing logic.
  */
-const SCA_POLL_URL_RE = /\/v2\/sca\/sessions\/([A-Za-z0-9_-]+)(?=\s|$)/;
+const SCA_POLL_URL_RE = /\/v2\/(?:sca\/sessions|mocked_sca_sessions)\/([A-Za-z0-9_-]+)(?=\s|$|\/)/;
 
 interface BeneficiaryItem {
   readonly id: string;

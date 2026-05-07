@@ -71,11 +71,18 @@ export const VopResultSchema = z
 export const VopResultResponseSchema = VopResultSchema;
 
 // https://docs.qonto.com/api-reference/business-api/payments-transfers/sepa-transfers/verify-payee/bulk-verify-payee
+//
+// Note: `beneficiary_name` and `iban` are documented as required (see
+// `.tmp/qonto-bulk-verify-payee.md` § BulkSingleRequestResult), but the
+// production API does not echo them back per entry — only `id`, `response`,
+// and/or `error` are returned. We accept them as optional to tolerate the
+// docs/runtime mismatch; correlate per-entry results by `id` (which matches
+// the request `id` we send in `bulkVerifyPayee`).
 export const BulkVopResultEntrySchema = z
   .object({
     id: z.string(),
-    beneficiary_name: z.string(),
-    iban: z.string(),
+    beneficiary_name: z.string().optional(),
+    iban: z.string().optional(),
     response: z
       .object({
         match_result: VopMatchResultSchema,
@@ -94,7 +101,7 @@ export const BulkVopResultEntrySchema = z
 // https://docs.qonto.com/api-reference/business-api/payments-transfers/sepa-transfers/verify-payee/bulk-verify-payee
 export const BulkVopResultResponseSchema = z
   .object({
-    responses: z.array(BulkVopResultEntrySchema),
+    requests: z.array(BulkVopResultEntrySchema),
     proof_token: ProofTokenSchema,
   })
   .strip() satisfies z.ZodType<BulkVopResult>;

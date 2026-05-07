@@ -23,7 +23,7 @@ describe("createBulkTransfer", () => {
     vi.restoreAllMocks();
   });
 
-  it("posts to the correct endpoint and returns bulk transfer", async () => {
+  it("posts to the correct endpoint with flat body and returns bulk transfer", async () => {
     const bulkTransfer = {
       id: "bt-new",
       initiator_id: "user-1",
@@ -38,9 +38,11 @@ describe("createBulkTransfer", () => {
     fetchSpy.mockReturnValue(jsonResponse({ bulk_transfer: bulkTransfer }));
 
     const result = await createBulkTransfer(client, {
-      transfers: [
-        { beneficiary_id: "ben-1", amount: 100, currency: "EUR", reference: "Invoice 1" },
-        { beneficiary_id: "ben-2", amount: 200, currency: "EUR" },
+      bank_account_id: "acct-1",
+      vop_proof_token: "tok_abc",
+      bulk_transfers: [
+        { client_transfer_id: "ct-1", beneficiary_id: "ben-1", amount: "100.00", reference: "Invoice 1" },
+        { client_transfer_id: "ct-2", beneficiary_id: "ben-2", amount: "200.00", reference: "Invoice 2" },
       ],
     });
     expect(result).toEqual(bulkTransfer);
@@ -51,12 +53,64 @@ describe("createBulkTransfer", () => {
 
     const body = JSON.parse(init.body as string) as Record<string, unknown>;
     expect(body).toEqual({
-      bulk_transfer: {
-        transfers: [
-          { beneficiary_id: "ben-1", amount: 100, currency: "EUR", reference: "Invoice 1" },
-          { beneficiary_id: "ben-2", amount: 200, currency: "EUR" },
-        ],
-      },
+      bank_account_id: "acct-1",
+      vop_proof_token: "tok_abc",
+      bulk_transfers: [
+        { client_transfer_id: "ct-1", beneficiary_id: "ben-1", amount: "100.00", reference: "Invoice 1" },
+        { client_transfer_id: "ct-2", beneficiary_id: "ben-2", amount: "200.00", reference: "Invoice 2" },
+      ],
+    });
+  });
+
+  it("supports inline beneficiary, scheduled_date, note, and attachment_ids per item", async () => {
+    fetchSpy.mockReturnValue(
+      jsonResponse({
+        bulk_transfer: {
+          id: "bt-inline",
+          initiator_id: "user-1",
+          created_at: "2026-01-15T10:00:00Z",
+          updated_at: "2026-01-15T10:00:00Z",
+          total_count: 1,
+          completed_count: 0,
+          pending_count: 1,
+          failed_count: 0,
+          results: [],
+        },
+      }),
+    );
+
+    await createBulkTransfer(client, {
+      bank_account_id: "acct-1",
+      vop_proof_token: "tok_inline",
+      bulk_transfers: [
+        {
+          client_transfer_id: "ct-1",
+          amount: "1.50",
+          reference: "Inline pay",
+          beneficiary: { name: "Alice", iban: "DE91100000000123456789", bic: "DEUTDEDDXXX" },
+          scheduled_date: "2026-06-01",
+          note: "monthly",
+          attachment_ids: ["att-1"],
+        },
+      ],
+    });
+
+    const [, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+    const body = JSON.parse(init.body as string) as Record<string, unknown>;
+    expect(body).toEqual({
+      bank_account_id: "acct-1",
+      vop_proof_token: "tok_inline",
+      bulk_transfers: [
+        {
+          client_transfer_id: "ct-1",
+          amount: "1.50",
+          reference: "Inline pay",
+          beneficiary: { name: "Alice", iban: "DE91100000000123456789", bic: "DEUTDEDDXXX" },
+          scheduled_date: "2026-06-01",
+          note: "monthly",
+          attachment_ids: ["att-1"],
+        },
+      ],
     });
   });
 
@@ -79,13 +133,49 @@ describe("createBulkTransfer", () => {
 
     await createBulkTransfer(
       client,
-      { transfers: [{ beneficiary_id: "ben-1", amount: 50, currency: "EUR" }] },
+      {
+        bank_account_id: "acct-1",
+        vop_proof_token: "tok_abc",
+        bulk_transfers: [{ client_transfer_id: "ct-1", beneficiary_id: "ben-1", amount: "50.00", reference: "x" }],
+      },
       { idempotencyKey: "idem-123" },
     );
 
     const [, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
     const headers = init.headers as Record<string, string>;
     expect(headers["X-Qonto-Idempotency-Key"]).toBe("idem-123");
+  });
+
+  it("sends sca session token header when provided", async () => {
+    fetchSpy.mockReturnValue(
+      jsonResponse({
+        bulk_transfer: {
+          id: "bt-sca",
+          initiator_id: "user-1",
+          created_at: "2026-01-15T10:00:00Z",
+          updated_at: "2026-01-15T10:00:00Z",
+          total_count: 1,
+          completed_count: 0,
+          pending_count: 1,
+          failed_count: 0,
+          results: [],
+        },
+      }),
+    );
+
+    await createBulkTransfer(
+      client,
+      {
+        bank_account_id: "acct-1",
+        vop_proof_token: "tok_abc",
+        bulk_transfers: [{ client_transfer_id: "ct-1", beneficiary_id: "ben-1", amount: "1.00", reference: "x" }],
+      },
+      { idempotencyKey: "idem-1", scaSessionToken: "sca-tok" },
+    );
+
+    const [, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+    const headers = init.headers as Record<string, string>;
+    expect(headers["X-Qonto-Sca-Session-Token"]).toBe("sca-tok");
   });
 });
 

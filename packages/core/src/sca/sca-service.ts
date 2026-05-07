@@ -10,8 +10,26 @@ import { ScaSessionStatusSchema } from "./schemas.js";
 
 /**
  * Retrieve the current status of an SCA session.
+ *
+ * In sandbox (when the `HttpClient` carries a staging token), SCA sessions are
+ * created as **mocked** sessions and are only queryable at
+ * `GET /v2/mocked_sca_sessions/{token}` — the production polling endpoint
+ * (`GET /v2/sca/sessions/{token}`) returns 404 for mocked-session tokens.
+ *
+ * The two endpoints also use different response shapes:
+ * - production: `{ sca_session: { status: "waiting" | "allow" | "deny" } }`
+ * - mocked: `{ result: "waiting" | "allow" | "deny", canceled_at: string | null }`
+ *
+ * This function picks the right endpoint based on `client.isSandbox` and
+ * normalizes both shapes into the {@link ScaSession} value.
  */
 export async function getScaSession(client: HttpClient, token: string): Promise<ScaSession> {
+  if (client.isSandbox) {
+    const endpointPath = `/v2/mocked_sca_sessions/${encodeURIComponent(token)}`;
+    const response = await client.get(endpointPath);
+    const parsed = parseResponse(z.object({ result: ScaSessionStatusSchema }), response, endpointPath);
+    return { token, status: parsed.result };
+  }
   const endpointPath = `/v2/sca/sessions/${encodeURIComponent(token)}`;
   const response = await client.get(endpointPath);
   const parsed = parseResponse(

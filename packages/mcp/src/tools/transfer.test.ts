@@ -647,7 +647,7 @@ describe("transfer MCP tools", () => {
     it("returns per-entry results and shared proof token", async () => {
       fetchSpy.mockReturnValue(
         jsonResponse({
-          responses: [
+          requests: [
             {
               id: "0",
               beneficiary_name: "Acme Corp",
@@ -678,19 +678,19 @@ describe("transfer MCP tools", () => {
       const content = result.content as { type: string; text: string }[];
       expect(content).toHaveLength(1);
       const parsed = JSON.parse((content[0] as { type: string; text: string }).text) as {
-        responses: { id: string; response: { match_result: string; matched_name: string | null } }[];
+        requests: { id: string; response: { match_result: string; matched_name: string | null } }[];
         proof_token: { token: string };
       };
-      expect(parsed.responses).toHaveLength(2);
-      expect(parsed.responses[0]?.response.match_result).toBe("MATCH_RESULT_MATCH");
-      expect(parsed.responses[1]?.response.match_result).toBe("MATCH_RESULT_NO_MATCH");
+      expect(parsed.requests).toHaveLength(2);
+      expect(parsed.requests[0]?.response.match_result).toBe("MATCH_RESULT_MATCH");
+      expect(parsed.requests[1]?.response.match_result).toBe("MATCH_RESULT_NO_MATCH");
       expect(parsed.proof_token).toEqual({ token: "bulk-token-456" });
     });
 
     it("maps input entries to use beneficiary_name", async () => {
       fetchSpy.mockReturnValue(
         jsonResponse({
-          responses: [
+          requests: [
             {
               id: "0",
               beneficiary_name: "Acme Corp",
