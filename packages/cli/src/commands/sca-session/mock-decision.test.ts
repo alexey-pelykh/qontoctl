@@ -38,6 +38,7 @@ function buildSandboxConfig() {
     },
     endpoint: "https://thirdparty-sandbox.staging.qonto.co",
     warnings: [],
+    oauthAccessTokenFromEnv: false,
   };
 }
 
@@ -48,6 +49,7 @@ function buildProductionConfig() {
     },
     endpoint: "https://thirdparty.qonto.com",
     warnings: [],
+    oauthAccessTokenFromEnv: false,
   };
 }
 
@@ -132,6 +134,7 @@ describe("sca-session mock-decision command", () => {
       },
       endpoint: "https://thirdparty.qonto.com",
       warnings: [],
+      oauthAccessTokenFromEnv: false,
     });
 
     const program = new Command();

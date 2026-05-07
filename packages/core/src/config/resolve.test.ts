@@ -317,6 +317,146 @@ describe("resolveConfig", () => {
     });
     expect(result.config.sca?.method).toBe("sms-otp");
   });
+
+  describe("oauthAccessTokenFromEnv flag (issue #495)", () => {
+    it("is false when no env access-token is set", async () => {
+      await writeFile(
+        join(testDir, ".qontoctl.yaml"),
+        "oauth:\n  client-id: cid\n  client-secret: csecret\n  access-token: file-at\n  refresh-token: file-rt\n",
+      );
+
+      const result = await resolveConfig({ cwd: testDir, home: testHome, env: {} });
+      expect(result.oauthAccessTokenFromEnv).toBe(false);
+      expect(result.config.oauth?.accessToken).toBe("file-at");
+    });
+
+    it("is true when QONTOCTL_ACCESS_TOKEN is set in env", async () => {
+      const result = await resolveConfig({
+        cwd: testDir,
+        home: testHome,
+        env: {
+          QONTOCTL_CLIENT_ID: "cid",
+          QONTOCTL_CLIENT_SECRET: "csecret",
+          QONTOCTL_ACCESS_TOKEN: "env-at",
+        },
+      });
+      expect(result.oauthAccessTokenFromEnv).toBe(true);
+      expect(result.config.oauth?.accessToken).toBe("env-at");
+    });
+
+    it("is true and overrides file access-token when env has QONTOCTL_ACCESS_TOKEN", async () => {
+      await writeFile(
+        join(testDir, ".qontoctl.yaml"),
+        "oauth:\n  client-id: cid\n  client-secret: csecret\n  access-token: file-at\n  refresh-token: file-rt\n",
+      );
+
+      const result = await resolveConfig({
+        cwd: testDir,
+        home: testHome,
+        env: { QONTOCTL_ACCESS_TOKEN: "env-at" },
+      });
+      expect(result.oauthAccessTokenFromEnv).toBe(true);
+      expect(result.config.oauth?.accessToken).toBe("env-at");
+      // File's refresh-token is preserved (env never overrode it; file is
+      // the source of truth for runtime-mutable fields)
+      expect(result.config.oauth?.refreshToken).toBe("file-rt");
+    });
+  });
+
+  describe("runtime-mutable OAuth fields preserved through env-overlay (issue #495)", () => {
+    it("preserves refreshToken from file even when env supplies static OAuth fields", async () => {
+      await writeFile(
+        join(testDir, ".qontoctl.yaml"),
+        "oauth:\n" +
+          "  client-id: file-cid\n" +
+          "  client-secret: file-csecret\n" +
+          "  access-token: file-at\n" +
+          "  refresh-token: file-rt\n" +
+          "  access-token-expires-at: '2026-12-31T23:59:59Z'\n" +
+          "  scopes:\n    - organizations.read\n    - transactions.read\n",
+      );
+
+      const result = await resolveConfig({
+        cwd: testDir,
+        home: testHome,
+        env: {
+          QONTOCTL_CLIENT_ID: "env-cid",
+          QONTOCTL_CLIENT_SECRET: "env-csecret",
+        },
+      });
+
+      // Static fields overlaid from env
+      expect(result.config.oauth?.clientId).toBe("env-cid");
+      expect(result.config.oauth?.clientSecret).toBe("env-csecret");
+      // Runtime-mutable fields preserved from file
+      expect(result.config.oauth?.refreshToken).toBe("file-rt");
+      expect(result.config.oauth?.accessTokenExpiresAt).toBe("2026-12-31T23:59:59Z");
+      expect(result.config.oauth?.scopes).toEqual(["organizations.read", "transactions.read"]);
+    });
+
+    it("ignores QONTOCTL_REFRESH_TOKEN env var entirely (issue #495)", async () => {
+      await writeFile(
+        join(testDir, ".qontoctl.yaml"),
+        "oauth:\n  client-id: cid\n  client-secret: csecret\n  refresh-token: file-rt\n",
+      );
+
+      const result = await resolveConfig({
+        cwd: testDir,
+        home: testHome,
+        env: { QONTOCTL_REFRESH_TOKEN: "env-rt-should-be-ignored" },
+      });
+
+      // env QONTOCTL_REFRESH_TOKEN is dropped entirely; file's refresh-token wins
+      expect(result.config.oauth?.refreshToken).toBe("file-rt");
+    });
+
+    it("does not surface a refreshToken when only QONTOCTL_REFRESH_TOKEN is set in env (no file)", async () => {
+      const result = await resolveConfig({
+        cwd: testDir,
+        home: testHome,
+        env: {
+          QONTOCTL_CLIENT_ID: "cid",
+          QONTOCTL_CLIENT_SECRET: "csecret",
+          QONTOCTL_REFRESH_TOKEN: "env-rt-should-be-ignored",
+        },
+      });
+      // Static OAuth identity is overlaid from env...
+      expect(result.config.oauth?.clientId).toBe("cid");
+      expect(result.config.oauth?.clientSecret).toBe("csecret");
+      // ...but refresh-token from env is dropped; resolved oauth has no refreshToken
+      expect(result.config.oauth?.refreshToken).toBeUndefined();
+    });
+  });
+
+  describe("loader hygiene: empty/comment-only CWD falls back to home (issue #495)", () => {
+    it("falls back to home when CWD .qontoctl.yaml is empty", async () => {
+      await writeFile(join(testDir, ".qontoctl.yaml"), "");
+      await writeFile(
+        join(testHome, ".qontoctl.yaml"),
+        "api-key:\n  organization-slug: home-org\n  secret-key: home-secret\n",
+      );
+
+      const result = await resolveConfig({ cwd: testDir, home: testHome, env: {} });
+      expect(result.config.apiKey).toEqual({
+        organizationSlug: "home-org",
+        secretKey: "home-secret",
+      });
+    });
+
+    it("falls back to home when CWD .qontoctl.yaml is comment-only", async () => {
+      await writeFile(join(testDir, ".qontoctl.yaml"), "# only a comment\n");
+      await writeFile(
+        join(testHome, ".qontoctl.yaml"),
+        "api-key:\n  organization-slug: home-org\n  secret-key: home-secret\n",
+      );
+
+      const result = await resolveConfig({ cwd: testDir, home: testHome, env: {} });
+      expect(result.config.apiKey).toEqual({
+        organizationSlug: "home-org",
+        secretKey: "home-secret",
+      });
+    });
+  });
 });
 
 describe("resolveScaMethod", () => {

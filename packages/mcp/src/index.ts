@@ -16,7 +16,7 @@ import { runStdioServer } from "./stdio.js";
 
 await runStdioServer({
   getClient: async () => {
-    const { config, endpoint } = await resolveConfig();
+    const { config, endpoint, oauthAccessTokenFromEnv } = await resolveConfig();
 
     let authorization: Authorization;
     let fallbackAuthorization: Authorization | undefined;
@@ -25,6 +25,7 @@ await runStdioServer({
       authorization = createOAuthAuthorization({
         oauth: config.oauth,
         tokenUrl: config.oauth.stagingToken !== undefined ? OAUTH_TOKEN_SANDBOX_URL : OAUTH_TOKEN_URL,
+        readOnly: oauthAccessTokenFromEnv,
       });
 
       // When OAuth is primary, fall back to API key if available

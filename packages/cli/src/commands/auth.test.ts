@@ -133,6 +133,7 @@ describe("registerAuthCommands", () => {
         config: {},
         endpoint: "https://thirdparty.qonto.com",
         warnings: [],
+        oauthAccessTokenFromEnv: false,
       });
       saveOAuthClientCredentialsMock.mockResolvedValue(undefined);
       saveOAuthScopesMock.mockResolvedValue(undefined);
@@ -184,6 +185,7 @@ describe("registerAuthCommands", () => {
         },
         endpoint: "https://thirdparty.qonto.com",
         warnings: [],
+        oauthAccessTokenFromEnv: false,
       });
       textMock.mockResolvedValueOnce("existing-id").mockResolvedValueOnce("existing-secret");
       multiselectMock.mockResolvedValueOnce(["offline_access", "organization.read"]);
@@ -393,6 +395,7 @@ describe("registerAuthCommands", () => {
         },
         endpoint: "https://thirdparty.qonto.com",
         warnings: [],
+        oauthAccessTokenFromEnv: false,
       });
 
       const program = new Command();
@@ -419,6 +422,7 @@ describe("registerAuthCommands", () => {
         },
         endpoint: "https://thirdparty.qonto.com",
         warnings: [],
+        oauthAccessTokenFromEnv: false,
       });
 
       const program = new Command();
@@ -446,6 +450,7 @@ describe("registerAuthCommands", () => {
         },
         endpoint: "https://thirdparty.qonto.com",
         warnings: [],
+        oauthAccessTokenFromEnv: false,
       });
 
       const program = new Command();
@@ -470,6 +475,7 @@ describe("registerAuthCommands", () => {
         },
         endpoint: "https://thirdparty.qonto.com",
         warnings: [],
+        oauthAccessTokenFromEnv: false,
       });
 
       const program = new Command();
@@ -495,6 +501,7 @@ describe("registerAuthCommands", () => {
         },
         endpoint: "https://thirdparty.qonto.com",
         warnings: [],
+        oauthAccessTokenFromEnv: false,
       });
 
       const program = new Command();
@@ -522,6 +529,7 @@ describe("registerAuthCommands", () => {
         },
         endpoint: "https://thirdparty.qonto.com",
         warnings: [],
+        oauthAccessTokenFromEnv: false,
       });
 
       const program = new Command();
@@ -547,6 +555,7 @@ describe("registerAuthCommands", () => {
         },
         endpoint: "https://thirdparty.qonto.com",
         warnings: [],
+        oauthAccessTokenFromEnv: false,
       });
 
       const program = new Command();
@@ -564,6 +573,7 @@ describe("registerAuthCommands", () => {
         config: {},
         endpoint: "https://thirdparty.qonto.com",
         warnings: [],
+        oauthAccessTokenFromEnv: false,
       });
 
       const program = new Command();
@@ -589,6 +599,7 @@ describe("registerAuthCommands", () => {
         },
         endpoint: "https://thirdparty.qonto.com",
         warnings: [],
+        oauthAccessTokenFromEnv: false,
       });
       refreshAccessTokenMock.mockResolvedValue({
         accessToken: "new-access",
@@ -627,6 +638,7 @@ describe("registerAuthCommands", () => {
         },
         endpoint: "https://thirdparty.qonto.com",
         warnings: [],
+        oauthAccessTokenFromEnv: false,
       });
       refreshAccessTokenMock.mockResolvedValue({
         accessToken: "new-access",
@@ -659,6 +671,7 @@ describe("registerAuthCommands", () => {
         },
         endpoint: "https://thirdparty.qonto.com",
         warnings: [],
+        oauthAccessTokenFromEnv: false,
       });
 
       const program = new Command();
@@ -684,6 +697,7 @@ describe("registerAuthCommands", () => {
         },
         endpoint: "https://thirdparty-sandbox.staging.qonto.co",
         warnings: [],
+        oauthAccessTokenFromEnv: false,
       });
       refreshAccessTokenMock.mockResolvedValue({
         accessToken: "new-access",
@@ -721,6 +735,7 @@ describe("registerAuthCommands", () => {
         },
         endpoint: "https://thirdparty.qonto.com",
         warnings: [],
+        oauthAccessTokenFromEnv: false,
       });
       revokeTokenMock.mockResolvedValue(undefined);
       clearOAuthTokensMock.mockResolvedValue(undefined);
@@ -748,6 +763,7 @@ describe("registerAuthCommands", () => {
         },
         endpoint: "https://thirdparty.qonto.com",
         warnings: [],
+        oauthAccessTokenFromEnv: false,
       });
       revokeTokenMock.mockRejectedValue(new Error("revoke failed"));
       clearOAuthTokensMock.mockResolvedValue(undefined);
@@ -774,6 +790,7 @@ describe("registerAuthCommands", () => {
         },
         endpoint: "https://thirdparty.qonto.com",
         warnings: [],
+        oauthAccessTokenFromEnv: false,
       });
       revokeTokenMock.mockRejectedValue(new Error("revoke failed"));
       clearOAuthTokensMock.mockResolvedValue(undefined);
@@ -799,6 +816,7 @@ describe("registerAuthCommands", () => {
         },
         endpoint: "https://thirdparty.qonto.com",
         warnings: [],
+        oauthAccessTokenFromEnv: false,
       });
       clearOAuthTokensMock.mockResolvedValue(undefined);
 
@@ -824,6 +842,7 @@ describe("registerAuthCommands", () => {
       },
       endpoint: "https://thirdparty.qonto.com",
       warnings: [] as string[],
+      oauthAccessTokenFromEnv: false,
     };
 
     const defaultTokenResponse = {
@@ -1032,6 +1051,7 @@ describe("registerAuthCommands", () => {
         },
         endpoint: "https://thirdparty-sandbox.staging.qonto.co",
         warnings: [],
+        oauthAccessTokenFromEnv: false,
       });
 
       const program = new Command();
@@ -1098,6 +1118,7 @@ describe("registerAuthCommands", () => {
         config: {},
         endpoint: "https://thirdparty.qonto.com",
         warnings: [],
+        oauthAccessTokenFromEnv: false,
       });
 
       const program = new Command();
@@ -1138,6 +1159,7 @@ describe("registerAuthCommands", () => {
         },
         endpoint: "https://thirdparty.qonto.com",
         warnings: [],
+        oauthAccessTokenFromEnv: false,
       });
 
       const program = new Command();
@@ -1167,6 +1189,7 @@ describe("registerAuthCommands", () => {
         },
         endpoint: "https://thirdparty.qonto.com",
         warnings: [],
+        oauthAccessTokenFromEnv: false,
       });
 
       const program = new Command();
@@ -1192,6 +1215,7 @@ describe("registerAuthCommands", () => {
         },
         endpoint: "https://thirdparty.qonto.com",
         warnings: [],
+        oauthAccessTokenFromEnv: false,
       });
 
       const program = new Command();
@@ -1217,6 +1241,7 @@ describe("registerAuthCommands", () => {
         },
         endpoint: "https://thirdparty.qonto.com",
         warnings: [],
+        oauthAccessTokenFromEnv: false,
       });
 
       const program = new Command();
@@ -1242,6 +1267,7 @@ describe("registerAuthCommands", () => {
         },
         endpoint: "https://thirdparty.qonto.com",
         warnings: [],
+        oauthAccessTokenFromEnv: false,
       });
 
       const program = new Command();
@@ -1322,6 +1348,7 @@ describe("registerAuthCommands", () => {
         },
         endpoint: "https://thirdparty.qonto.com",
         warnings: [],
+        oauthAccessTokenFromEnv: false,
       });
 
       const program = new Command();

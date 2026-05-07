@@ -36,6 +36,7 @@ describe("createClient", () => {
       },
       endpoint: "https://thirdparty.qonto.com",
       warnings: [],
+      oauthAccessTokenFromEnv: false,
     });
   });
 
@@ -70,6 +71,7 @@ describe("createClient", () => {
       },
       endpoint: "https://thirdparty.qonto.com",
       warnings: ["Unknown key: foo"],
+      oauthAccessTokenFromEnv: false,
     });
 
     const options: GlobalOptions = { output: "table" };
@@ -82,6 +84,7 @@ describe("createClient", () => {
       config: {},
       endpoint: "https://thirdparty.qonto.com",
       warnings: [],
+      oauthAccessTokenFromEnv: false,
     });
 
     const options: GlobalOptions = { output: "table" };
@@ -156,6 +159,7 @@ describe("createClient", () => {
       },
       endpoint: "https://thirdparty.qonto.com",
       warnings: [],
+      oauthAccessTokenFromEnv: false,
     });
 
     const options: GlobalOptions = { output: "table" };
@@ -184,6 +188,7 @@ describe("createClient", () => {
       },
       endpoint: "https://thirdparty.qonto.com",
       warnings: [],
+      oauthAccessTokenFromEnv: false,
     });
 
     const options: GlobalOptions = { output: "table", profile: "work" };
@@ -214,6 +219,7 @@ describe("createClient", () => {
       },
       endpoint: "https://thirdparty.qonto.com",
       warnings: [],
+      oauthAccessTokenFromEnv: false,
     });
 
     const options: GlobalOptions = { output: "table" };
@@ -238,6 +244,7 @@ describe("createClient", () => {
       },
       endpoint: "https://thirdparty.qonto.com",
       warnings: [],
+      oauthAccessTokenFromEnv: false,
     });
 
     const options: GlobalOptions = { output: "table" };
@@ -273,6 +280,7 @@ describe("createClient", () => {
       },
       endpoint: "https://thirdparty.qonto.com",
       warnings: [],
+      oauthAccessTokenFromEnv: false,
     });
 
     const options: GlobalOptions = { output: "table" };
@@ -312,6 +320,7 @@ describe("createClient", () => {
         },
         endpoint: "https://thirdparty.qonto.com",
         warnings: [],
+        oauthAccessTokenFromEnv: false,
       });
 
       const options: GlobalOptions = { output: "table" };
@@ -329,6 +338,7 @@ describe("createClient", () => {
         },
         endpoint: "https://thirdparty.qonto.com",
         warnings: [],
+        oauthAccessTokenFromEnv: false,
       });
 
       const options: GlobalOptions = { output: "table", scaMethod: "paired-device" };
@@ -351,6 +361,7 @@ describe("createClient", () => {
         },
         endpoint: "https://thirdparty-sandbox.staging.qonto.co",
         warnings: [],
+        oauthAccessTokenFromEnv: false,
       });
 
       const options: GlobalOptions = { output: "table" };
@@ -374,6 +385,7 @@ describe("createClient", () => {
         },
         endpoint: "https://thirdparty-sandbox.staging.qonto.co",
         warnings: [],
+        oauthAccessTokenFromEnv: false,
       });
 
       const options: GlobalOptions = { output: "table" };
@@ -396,6 +408,7 @@ describe("createClient", () => {
         },
         endpoint: "https://thirdparty-sandbox.staging.qonto.co",
         warnings: [],
+        oauthAccessTokenFromEnv: false,
       });
 
       const options: GlobalOptions = { output: "table", scaMethod: "paired-device" };
@@ -417,6 +430,7 @@ describe("createClient", () => {
         },
         endpoint: "https://thirdparty.qonto.com",
         warnings: [],
+        oauthAccessTokenFromEnv: false,
       });
 
       const options: GlobalOptions = { output: "table" };

@@ -37,10 +37,13 @@ export async function loadConfigFile(options?: {
 
   const cwd = options?.cwd ?? process.cwd();
 
-  // Try CWD first
+  // Try CWD first. An empty file or a file with only comments parses to
+  // `null` — treat that the same as a missing file (no-hit) so we fall
+  // through to the home directory rather than short-circuiting on a
+  // semantically empty CWD config.
   const cwdPath = join(cwd, CONFIG_FILENAME);
   const cwdResult = await loadFromPath(cwdPath);
-  if (cwdResult.raw !== undefined) {
+  if (cwdResult.raw !== undefined && cwdResult.raw !== null) {
     return cwdResult;
   }
 

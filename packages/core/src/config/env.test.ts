@@ -9,15 +9,16 @@ describe("applyEnvOverlay", () => {
     const config = {
       apiKey: { organizationSlug: "file-org", secretKey: "file-secret" },
     };
-    const result = applyEnvOverlay(config, { env: {} });
+    const { config: result, accessTokenFromEnv } = applyEnvOverlay(config, { env: {} });
     expect(result).toEqual(config);
+    expect(accessTokenFromEnv).toBe(false);
   });
 
   it("overlays bare env vars without profile", () => {
     const config = {
       apiKey: { organizationSlug: "file-org", secretKey: "file-secret" },
     };
-    const result = applyEnvOverlay(config, {
+    const { config: result } = applyEnvOverlay(config, {
       env: {
         QONTOCTL_ORGANIZATION_SLUG: "env-org",
         QONTOCTL_SECRET_KEY: "env-secret",
@@ -33,7 +34,7 @@ describe("applyEnvOverlay", () => {
     const config = {
       apiKey: { organizationSlug: "file-org", secretKey: "file-secret" },
     };
-    const result = applyEnvOverlay(config, {
+    const { config: result } = applyEnvOverlay(config, {
       env: { QONTOCTL_ORGANIZATION_SLUG: "env-org" },
     });
     expect(result.apiKey).toEqual({
@@ -44,7 +45,7 @@ describe("applyEnvOverlay", () => {
 
   it("overlays named profile env vars", () => {
     const config = {};
-    const result = applyEnvOverlay(config, {
+    const { config: result } = applyEnvOverlay(config, {
       profile: "staging",
       env: {
         QONTOCTL_STAGING_ORGANIZATION_SLUG: "staging-org",
@@ -59,7 +60,7 @@ describe("applyEnvOverlay", () => {
 
   it("normalizes hyphenated profile names to underscores", () => {
     const config = {};
-    const result = applyEnvOverlay(config, {
+    const { config: result } = applyEnvOverlay(config, {
       profile: "my-profile",
       env: {
         QONTOCTL_MY_PROFILE_ORGANIZATION_SLUG: "org",
@@ -73,7 +74,7 @@ describe("applyEnvOverlay", () => {
   });
 
   it("creates apiKey from env vars when config has none", () => {
-    const result = applyEnvOverlay(
+    const { config: result } = applyEnvOverlay(
       {},
       {
         env: {
@@ -89,7 +90,7 @@ describe("applyEnvOverlay", () => {
   });
 
   it("defaults secretKey to empty string when only ORGANIZATION_SLUG env var is set and no existing apiKey", () => {
-    const result = applyEnvOverlay(
+    const { config: result } = applyEnvOverlay(
       {},
       {
         env: { QONTOCTL_ORGANIZATION_SLUG: "env-org" },
@@ -102,7 +103,7 @@ describe("applyEnvOverlay", () => {
   });
 
   it("defaults organizationSlug to empty string when only SECRET_KEY env var is set and no existing apiKey", () => {
-    const result = applyEnvOverlay(
+    const { config: result } = applyEnvOverlay(
       {},
       {
         env: { QONTOCTL_SECRET_KEY: "env-secret" },
@@ -118,7 +119,7 @@ describe("applyEnvOverlay", () => {
     const config = {
       apiKey: { organizationSlug: "file-org", secretKey: "file-secret" },
     };
-    const result = applyEnvOverlay(config, {
+    const { config: result } = applyEnvOverlay(config, {
       env: { QONTOCTL_SECRET_KEY: "env-secret" },
     });
     expect(result.apiKey).toEqual({
@@ -129,7 +130,7 @@ describe("applyEnvOverlay", () => {
 
   it("ignores bare env vars when profile is specified", () => {
     const config = {};
-    const result = applyEnvOverlay(config, {
+    const { config: result } = applyEnvOverlay(config, {
       profile: "staging",
       env: {
         QONTOCTL_ORGANIZATION_SLUG: "bare-org",
@@ -153,7 +154,7 @@ describe("applyEnvOverlay", () => {
 
   it("overlays QONTOCTL_ENDPOINT env var", () => {
     const config = {};
-    const result = applyEnvOverlay(config, {
+    const { config: result } = applyEnvOverlay(config, {
       env: { QONTOCTL_ENDPOINT: "https://custom.example.com" },
     });
     expect(result.endpoint).toBe("https://custom.example.com");
@@ -161,7 +162,7 @@ describe("applyEnvOverlay", () => {
 
   it("overlays profile-scoped endpoint env var", () => {
     const config = {};
-    const result = applyEnvOverlay(config, {
+    const { config: result } = applyEnvOverlay(config, {
       profile: "staging",
       env: { QONTOCTL_STAGING_ENDPOINT: "https://staging.example.com" },
     });
@@ -170,7 +171,7 @@ describe("applyEnvOverlay", () => {
 
   it("endpoint env var overrides file endpoint", () => {
     const config = { endpoint: "https://file.example.com" };
-    const result = applyEnvOverlay(config, {
+    const { config: result } = applyEnvOverlay(config, {
       env: { QONTOCTL_ENDPOINT: "https://env.example.com" },
     });
     expect(result.endpoint).toBe("https://env.example.com");
@@ -178,7 +179,7 @@ describe("applyEnvOverlay", () => {
 
   it("overlays QONTOCTL_STAGING_TOKEN env var into oauth section", () => {
     const config = {};
-    const result = applyEnvOverlay(config, {
+    const { config: result } = applyEnvOverlay(config, {
       env: { QONTOCTL_STAGING_TOKEN: "tok_abc123" },
     });
     expect(result.oauth?.stagingToken).toBe("tok_abc123");
@@ -186,7 +187,7 @@ describe("applyEnvOverlay", () => {
 
   it("creates oauth section when staging token env var is set but no oauth in config", () => {
     const config = {};
-    const result = applyEnvOverlay(config, {
+    const { config: result } = applyEnvOverlay(config, {
       env: { QONTOCTL_STAGING_TOKEN: "tok_abc123" },
     });
     expect(result.oauth).toBeDefined();
@@ -197,7 +198,7 @@ describe("applyEnvOverlay", () => {
 
   it("overlays profile-scoped staging token env var into oauth section", () => {
     const config = {};
-    const result = applyEnvOverlay(config, {
+    const { config: result } = applyEnvOverlay(config, {
       profile: "staging",
       env: { QONTOCTL_STAGING_STAGING_TOKEN: "tok_staging" },
     });
@@ -208,81 +209,106 @@ describe("applyEnvOverlay", () => {
     const config = {
       oauth: { clientId: "cid", clientSecret: "csecret", stagingToken: "file_token" },
     };
-    const result = applyEnvOverlay(config, {
+    const { config: result } = applyEnvOverlay(config, {
       env: { QONTOCTL_STAGING_TOKEN: "env_token" },
     });
     expect(result.oauth?.stagingToken).toBe("env_token");
   });
 
-  it("preserves existing oauth fields when staging token env var is set", () => {
+  it("preserves existing static oauth fields when staging token env var is set", () => {
     const config = {
       oauth: {
         clientId: "cid",
         clientSecret: "csecret",
         accessToken: "at",
-        refreshToken: "rt",
-        accessTokenExpiresAt: "2026-01-01T00:00:00Z",
-        scopes: ["offline_access"],
       },
     };
-    const result = applyEnvOverlay(config, {
+    const { config: result } = applyEnvOverlay(config, {
       env: { QONTOCTL_STAGING_TOKEN: "tok_abc123" },
     });
     expect(result.oauth?.clientId).toBe("cid");
     expect(result.oauth?.clientSecret).toBe("csecret");
     expect(result.oauth?.accessToken).toBe("at");
-    expect(result.oauth?.refreshToken).toBe("rt");
-    expect(result.oauth?.accessTokenExpiresAt).toBe("2026-01-01T00:00:00Z");
-    expect(result.oauth?.scopes).toEqual(["offline_access"]);
     expect(result.oauth?.stagingToken).toBe("tok_abc123");
   });
 
   it("overlays QONTOCTL_ACCESS_TOKEN env var", () => {
     const config = {};
-    const result = applyEnvOverlay(config, {
+    const { config: result, accessTokenFromEnv } = applyEnvOverlay(config, {
       env: { QONTOCTL_ACCESS_TOKEN: "at_env123" },
     });
     expect(result.oauth?.accessToken).toBe("at_env123");
-  });
-
-  it("overlays QONTOCTL_REFRESH_TOKEN env var", () => {
-    const config = {};
-    const result = applyEnvOverlay(config, {
-      env: { QONTOCTL_REFRESH_TOKEN: "rt_env456" },
-    });
-    expect(result.oauth?.refreshToken).toBe("rt_env456");
+    expect(accessTokenFromEnv).toBe(true);
   });
 
   it("access token env var overrides file access token", () => {
     const config = {
       oauth: { clientId: "cid", clientSecret: "csecret", accessToken: "file_at" },
     };
-    const result = applyEnvOverlay(config, {
+    const { config: result, accessTokenFromEnv } = applyEnvOverlay(config, {
       env: { QONTOCTL_ACCESS_TOKEN: "env_at" },
     });
     expect(result.oauth?.accessToken).toBe("env_at");
+    expect(accessTokenFromEnv).toBe(true);
   });
 
   it("overlays profile-scoped access token", () => {
     const config = {};
-    const result = applyEnvOverlay(config, {
+    const { config: result, accessTokenFromEnv } = applyEnvOverlay(config, {
       profile: "staging",
       env: { QONTOCTL_STAGING_ACCESS_TOKEN: "at_staging" },
     });
     expect(result.oauth?.accessToken).toBe("at_staging");
+    expect(accessTokenFromEnv).toBe(true);
+  });
+
+  it("ignores QONTOCTL_REFRESH_TOKEN env var (refresh-tokens are runtime-mutable, never env-overridable)", () => {
+    const config = {};
+    const { config: result, accessTokenFromEnv } = applyEnvOverlay(config, {
+      env: { QONTOCTL_REFRESH_TOKEN: "rt_env456" },
+    });
+    // env-overlay does not create an oauth section from a stray refresh token
+    expect(result.oauth).toBeUndefined();
+    expect(accessTokenFromEnv).toBe(false);
+  });
+
+  it("ignores profile-scoped QONTOCTL_{PROFILE}_REFRESH_TOKEN env var", () => {
+    const config = {};
+    const { config: result } = applyEnvOverlay(config, {
+      profile: "staging",
+      env: { QONTOCTL_STAGING_REFRESH_TOKEN: "rt_env789" },
+    });
+    expect(result.oauth).toBeUndefined();
+  });
+
+  it("does not let QONTOCTL_REFRESH_TOKEN shadow a file refresh token", () => {
+    const config = {
+      oauth: {
+        clientId: "cid",
+        clientSecret: "csecret",
+      },
+    };
+    const { config: result } = applyEnvOverlay(config, {
+      env: { QONTOCTL_REFRESH_TOKEN: "env_rt_should_be_ignored" },
+    });
+    // Env did not set refresh-token; the static-fields-only output also
+    // does not carry refresh-token (it is a runtime-mutable field handled
+    // separately by the resolver from file state).
+    expect(result.oauth).toBeDefined();
+    expect("refreshToken" in (result.oauth ?? {})).toBe(false);
   });
 
   it("returns config unchanged when no staging token env var is set", () => {
     const config = {
       oauth: { clientId: "cid", clientSecret: "csecret", stagingToken: "file_token" },
     };
-    const result = applyEnvOverlay(config, { env: {} });
+    const { config: result } = applyEnvOverlay(config, { env: {} });
     expect(result.oauth?.stagingToken).toBe("file_token");
   });
 
   it("overlays QONTOCTL_SCA_METHOD env var into sca section", () => {
     const config = {};
-    const result = applyEnvOverlay(config, {
+    const { config: result } = applyEnvOverlay(config, {
       env: { QONTOCTL_SCA_METHOD: "passkey" },
     });
     expect(result.sca?.method).toBe("passkey");
@@ -290,7 +316,7 @@ describe("applyEnvOverlay", () => {
 
   it("creates sca section when SCA_METHOD env var is set but no sca in config", () => {
     const config = {};
-    const result = applyEnvOverlay(config, {
+    const { config: result } = applyEnvOverlay(config, {
       env: { QONTOCTL_SCA_METHOD: "mock" },
     });
     expect(result.sca).toBeDefined();
@@ -299,7 +325,7 @@ describe("applyEnvOverlay", () => {
 
   it("SCA_METHOD env var overrides file sca.method", () => {
     const config = { sca: { method: "passkey" } };
-    const result = applyEnvOverlay(config, {
+    const { config: result } = applyEnvOverlay(config, {
       env: { QONTOCTL_SCA_METHOD: "sms-otp" },
     });
     expect(result.sca?.method).toBe("sms-otp");
@@ -307,7 +333,7 @@ describe("applyEnvOverlay", () => {
 
   it("overlays profile-scoped SCA_METHOD env var", () => {
     const config = {};
-    const result = applyEnvOverlay(config, {
+    const { config: result } = applyEnvOverlay(config, {
       profile: "staging",
       env: { QONTOCTL_STAGING_SCA_METHOD: "mock" },
     });
@@ -316,16 +342,30 @@ describe("applyEnvOverlay", () => {
 
   it("returns config unchanged when no SCA_METHOD env var is set", () => {
     const config = { sca: { method: "passkey" } };
-    const result = applyEnvOverlay(config, { env: {} });
+    const { config: result } = applyEnvOverlay(config, { env: {} });
     expect(result.sca?.method).toBe("passkey");
   });
 
   it("ignores bare SCA_METHOD when profile is specified", () => {
     const config = {};
-    const result = applyEnvOverlay(config, {
+    const { config: result } = applyEnvOverlay(config, {
       profile: "staging",
       env: { QONTOCTL_SCA_METHOD: "mock" },
     });
     expect(result.sca).toBeUndefined();
+  });
+
+  it("accessTokenFromEnv is false when env supplies only static (non-token) fields", () => {
+    const { accessTokenFromEnv } = applyEnvOverlay(
+      {},
+      {
+        env: {
+          QONTOCTL_CLIENT_ID: "cid",
+          QONTOCTL_CLIENT_SECRET: "csecret",
+          QONTOCTL_STAGING_TOKEN: "tok",
+        },
+      },
+    );
+    expect(accessTokenFromEnv).toBe(false);
   });
 });

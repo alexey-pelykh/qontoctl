@@ -88,8 +88,14 @@ To enable the `e2e` CI job, configure these repository secrets:
 | `QONTOCTL_SECRET_KEY`        | api-key secret   |
 
 Old OAuth-related secrets (`QONTOCTL_STAGING_TOKEN`, `QONTOCTL_CLIENT_ID`,
-`QONTOCTL_CLIENT_SECRET`, `QONTOCTL_ACCESS_TOKEN`, `QONTOCTL_REFRESH_TOKEN`) are
-no longer used by the CI workflow and can be removed from repository settings.
+`QONTOCTL_CLIENT_SECRET`, `QONTOCTL_ACCESS_TOKEN`) are no longer used by the
+CI workflow and can be removed from repository settings.
+
+> **Note on `QONTOCTL_REFRESH_TOKEN`**: this env var is **no longer read by
+> qontoctl** (see issue #495). Refresh tokens are runtime-mutable state and
+> were never compatible with env-overlay semantics — refresh would shadow
+> rotated values on subsequent reads. If your CI relied on it, switch to
+> api-key auth (above) or OAuth via file-based credentials.
 
 ## Running locally
 

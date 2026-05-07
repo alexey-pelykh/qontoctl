@@ -41,6 +41,9 @@ export type {
   LoadResult,
   ValidationResult,
   TokenUpdate,
+  EnvOverlayConfig,
+  EnvOverlayResult,
+  StaticOAuthFields,
 } from "./config/index.js";
 
 export {

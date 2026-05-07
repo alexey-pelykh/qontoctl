@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import type { QontoctlConfig } from "./types.js";
+import type { ApiKeyCredentials, OAuthCredentials, ScaConfig } from "./types.js";
 
 const ENV_PREFIX = "QONTOCTL";
 const ORG_SLUG_SUFFIX = "ORGANIZATION_SLUG";
@@ -10,33 +10,92 @@ const ENDPOINT_SUFFIX = "ENDPOINT";
 const CLIENT_ID_SUFFIX = "CLIENT_ID";
 const CLIENT_SECRET_SUFFIX = "CLIENT_SECRET";
 const ACCESS_TOKEN_SUFFIX = "ACCESS_TOKEN";
-const REFRESH_TOKEN_SUFFIX = "REFRESH_TOKEN";
 const STAGING_TOKEN_SUFFIX = "STAGING_TOKEN";
 const SCA_METHOD_SUFFIX = "SCA_METHOD";
 
 /**
- * Overlays environment variables onto a config.
+ * Subset of {@link OAuthCredentials} that env vars are permitted to set.
  *
- * - Without profile: reads `QONTOCTL_ORGANIZATION_SLUG`, `QONTOCTL_SECRET_KEY`,
- *   `QONTOCTL_ENDPOINT`, `QONTOCTL_CLIENT_ID`, `QONTOCTL_CLIENT_SECRET`,
- *   `QONTOCTL_ACCESS_TOKEN`, `QONTOCTL_REFRESH_TOKEN`, `QONTOCTL_STAGING_TOKEN`,
- *   and `QONTOCTL_SCA_METHOD`
- * - With profile: reads `QONTOCTL_{PROFILE}_ORGANIZATION_SLUG`,
- *   `QONTOCTL_{PROFILE}_SECRET_KEY`, `QONTOCTL_{PROFILE}_ENDPOINT`,
- *   `QONTOCTL_{PROFILE}_CLIENT_ID`, `QONTOCTL_{PROFILE}_CLIENT_SECRET`,
- *   `QONTOCTL_{PROFILE}_ACCESS_TOKEN`, `QONTOCTL_{PROFILE}_REFRESH_TOKEN`,
- *   `QONTOCTL_{PROFILE}_STAGING_TOKEN`, and `QONTOCTL_{PROFILE}_SCA_METHOD`
- *   (profile name uppercased, hyphens→underscores)
+ * **Runtime-mutable fields are deliberately EXCLUDED**:
+ *
+ * - `refreshToken` — rotated on every refresh; env-overlay would shadow rotation
+ *   results on subsequent reads, defeating persistence. No major CLI accepts a
+ *   refresh-token via env (`gh`, `aws`, `gcloud`, `kubectl`, `op`, `npm`,
+ *   `docker`, `heroku`, `vercel` — zero precedent).
+ * - `accessTokenExpiresAt` — derived from the token-endpoint response; not
+ *   user-controlled.
+ * - `scopes` — derived from the server response; not user-controlled.
+ *
+ * `accessToken` IS included with **read-only / discard-after-use** semantics:
+ * the token is used as a bearer for the current invocation, never refreshed
+ * and never written back to disk. Mirrors `AWS_SESSION_TOKEN` and
+ * `OP_SESSION_*` precedent for time-bounded env tokens.
+ */
+export type StaticOAuthFields = Pick<OAuthCredentials, "clientId" | "clientSecret" | "accessToken" | "stagingToken">;
+
+/**
+ * Static-fields-only view of a config — the shape that {@link applyEnvOverlay}
+ * operates on.
+ *
+ * **Type contract**: re-introducing a runtime-mutable field via env requires
+ * widening {@link StaticOAuthFields} (or this type), which is a deliberate
+ * change reviewed at compile time — not a drive-by additive runtime regression.
+ */
+export interface EnvOverlayConfig {
+  apiKey?: ApiKeyCredentials;
+  oauth?: StaticOAuthFields;
+  endpoint?: string;
+  sca?: ScaConfig;
+}
+
+/**
+ * Result of {@link applyEnvOverlay}.
+ *
+ * The `accessTokenFromEnv` flag carries the read-only / discard-after-use
+ * signal downstream: when `true`, the OAuth authorization factory must skip
+ * proactive refresh and must not persist refreshed tokens to disk, so the
+ * env-supplied token is honored as a single-invocation bearer.
+ */
+export interface EnvOverlayResult {
+  config: EnvOverlayConfig;
+  /**
+   * `true` when `QONTOCTL_ACCESS_TOKEN` (or its profile-scoped variant) was
+   * present in the env passed to {@link applyEnvOverlay}.
+   */
+  accessTokenFromEnv: boolean;
+}
+
+/**
+ * Overlays environment variables onto a static-only view of the config.
+ *
+ * Reads STATIC fields only — fields that are configuration inputs the tool
+ * reads but never writes back during normal operation:
+ *
+ * - `QONTOCTL_ORGANIZATION_SLUG`, `QONTOCTL_SECRET_KEY` (api-key)
+ * - `QONTOCTL_CLIENT_ID`, `QONTOCTL_CLIENT_SECRET` (oauth identity)
+ * - `QONTOCTL_ACCESS_TOKEN` (oauth bearer; **read-only / discard-after-use**)
+ * - `QONTOCTL_STAGING_TOKEN` (sandbox routing)
+ * - `QONTOCTL_ENDPOINT` (override)
+ * - `QONTOCTL_SCA_METHOD` (preference)
+ *
+ * Runtime-mutable fields (`refreshToken`, `accessTokenExpiresAt`, `scopes`)
+ * are **never** read from env. They belong to file state the tool both reads
+ * and writes; env vars carry inputs, not state. See council Verdict #2 in
+ * issue #495 for the design rationale and industry precedent.
+ *
+ * - Without profile: reads `QONTOCTL_<SUFFIX>`
+ * - With profile: reads `QONTOCTL_<PROFILE>_<SUFFIX>` (profile uppercased,
+ *   hyphens→underscores)
  *
  * Env vars take precedence over file values.
  */
 export function applyEnvOverlay(
-  config: QontoctlConfig,
+  config: EnvOverlayConfig,
   options?: {
     profile?: string | undefined;
     env?: Record<string, string | undefined> | undefined;
   },
-): QontoctlConfig {
+): EnvOverlayResult {
   const env = options?.env ?? (process.env as Record<string, string | undefined>);
   const prefix = buildPrefix(options?.profile);
 
@@ -46,11 +105,10 @@ export function applyEnvOverlay(
   const clientId = env[`${prefix}_${CLIENT_ID_SUFFIX}`];
   const clientSecret = env[`${prefix}_${CLIENT_SECRET_SUFFIX}`];
   const accessToken = env[`${prefix}_${ACCESS_TOKEN_SUFFIX}`];
-  const refreshToken = env[`${prefix}_${REFRESH_TOKEN_SUFFIX}`];
   const stagingToken = env[`${prefix}_${STAGING_TOKEN_SUFFIX}`];
   const scaMethod = env[`${prefix}_${SCA_METHOD_SUFFIX}`];
 
-  let result = config;
+  let result: EnvOverlayConfig = config;
 
   if (orgSlug !== undefined || secretKey !== undefined) {
     const existing = result.apiKey;
@@ -63,21 +121,15 @@ export function applyEnvOverlay(
     };
   }
 
-  if (clientId !== undefined || clientSecret !== undefined || accessToken !== undefined || refreshToken !== undefined) {
+  if (clientId !== undefined || clientSecret !== undefined || accessToken !== undefined) {
     const existing = result.oauth;
     const mergedAccessToken = accessToken ?? existing?.accessToken;
-    const mergedRefreshToken = refreshToken ?? existing?.refreshToken;
     result = {
       ...result,
       oauth: {
         clientId: clientId ?? existing?.clientId ?? "",
         clientSecret: clientSecret ?? existing?.clientSecret ?? "",
         ...(mergedAccessToken !== undefined ? { accessToken: mergedAccessToken } : {}),
-        ...(mergedRefreshToken !== undefined ? { refreshToken: mergedRefreshToken } : {}),
-        ...(existing?.accessTokenExpiresAt !== undefined
-          ? { accessTokenExpiresAt: existing.accessTokenExpiresAt }
-          : {}),
-        ...(existing?.scopes !== undefined ? { scopes: existing.scopes } : {}),
         ...(existing?.stagingToken !== undefined ? { stagingToken: existing.stagingToken } : {}),
       },
     };
@@ -95,11 +147,6 @@ export function applyEnvOverlay(
         clientId: existingOAuth?.clientId ?? "",
         clientSecret: existingOAuth?.clientSecret ?? "",
         ...(existingOAuth?.accessToken !== undefined ? { accessToken: existingOAuth.accessToken } : {}),
-        ...(existingOAuth?.refreshToken !== undefined ? { refreshToken: existingOAuth.refreshToken } : {}),
-        ...(existingOAuth?.accessTokenExpiresAt !== undefined
-          ? { accessTokenExpiresAt: existingOAuth.accessTokenExpiresAt }
-          : {}),
-        ...(existingOAuth?.scopes !== undefined ? { scopes: existingOAuth.scopes } : {}),
         stagingToken,
       },
     };
@@ -109,7 +156,7 @@ export function applyEnvOverlay(
     result = { ...result, sca: { ...result.sca, method: scaMethod } };
   }
 
-  return result;
+  return { config: result, accessTokenFromEnv: accessToken !== undefined };
 }
 
 function buildPrefix(profile: string | undefined): string {
