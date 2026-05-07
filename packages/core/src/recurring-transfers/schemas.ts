@@ -8,6 +8,14 @@ import type { RecurringTransfer } from "./types.js";
 
 /**
  * Schema for a recurring transfer returned by the Qonto API.
+ *
+ * `status` and `note` are observed to be omitted from the sandbox response on
+ * `POST /v2/sepa/recurring_transfers` (the recurring transfer is created
+ * successfully but the payload lacks them); both are treated as optional.
+ *
+ * `next_execution_date` is observed to be `null` after a successful cancel
+ * (`POST /v2/sepa/recurring_transfers/{id}/cancel`) — the recurring transfer
+ * has no further executions scheduled.
  */
 export const RecurringTransferSchema = z
   .object({
@@ -19,12 +27,12 @@ export const RecurringTransferSchema = z
     amount_currency: z.string(),
     beneficiary_id: z.string(),
     reference: z.string(),
-    note: z.string(),
+    note: z.string().optional(),
     first_execution_date: z.string(),
     last_execution_date: z.string().nullable(),
-    next_execution_date: z.string(),
+    next_execution_date: z.string().nullable(),
     frequency: z.enum(["weekly", "monthly", "quarterly", "half_yearly", "yearly"]),
-    status: z.string(),
+    status: z.string().optional(),
     created_at: z.string(),
     updated_at: z.string(),
   })
