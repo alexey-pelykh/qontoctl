@@ -599,7 +599,7 @@ describe("bulkVerifyPayee", () => {
 
   it("posts entries to bulk_verify_payee endpoint and returns results", async () => {
     const bulkResponse = {
-      responses: [
+      requests: [
         {
           id: "0",
           beneficiary_name: "John Doe",
@@ -657,7 +657,7 @@ describe("bulkVerifyPayee", () => {
       { iban: "DE89370400440532013000", beneficiary_name: "Jane Smith" },
     ]);
     expect(result).toEqual({
-      responses: [
+      requests: [
         {
           id: "0",
           beneficiary_name: "John Doe",

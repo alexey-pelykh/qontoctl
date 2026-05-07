@@ -210,7 +210,7 @@ export async function bulkVerifyPayee(
       const token = extractVopProofToken(error);
       if (token !== undefined) {
         return {
-          responses: entries.map((entry, index) => ({
+          requests: entries.map((entry, index) => ({
             id: String(index),
             beneficiary_name: entry.beneficiary_name,
             iban: entry.iban,

@@ -15,10 +15,12 @@ const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 /**
  * Pattern matching the SCA session polling URL the core HTTP client logs at
  * verbose level. Tokens are base64url, so they survive `encodeURIComponent`
- * unchanged and contain only `[A-Za-z0-9_-]`. See
+ * unchanged and contain only `[A-Za-z0-9_-]`. Matches both production
+ * (`/v2/sca/sessions/{token}`) and sandbox-only mocked
+ * (`/v2/mocked_sca_sessions/{token}`) endpoints — see
  * `packages/core/src/sca/sca-service.ts#getScaSession`.
  */
-const SCA_POLL_URL_RE = /\/v2\/sca\/sessions\/([A-Za-z0-9_-]+)(?=\s|$)/;
+const SCA_POLL_URL_RE = /\/v2\/(?:sca\/sessions|mocked_sca_sessions)\/([A-Za-z0-9_-]+)(?=\s|$|\/)/;
 
 /**
  * Pattern matching the literal `Session token: <token>` line in the

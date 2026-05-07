@@ -18,6 +18,10 @@ export async function getBulkTransfer(client: HttpClient, id: string): Promise<B
 
 /**
  * Create a bulk transfer.
+ *
+ * The request body is flat — no top-level wrapper. Per the Qonto API spec
+ * (POST /v2/sepa/bulk_transfers), the body carries `bank_account_id`,
+ * `bulk_transfers`, and `vop_proof_token` as siblings.
  */
 export async function createBulkTransfer(
   client: HttpClient,
@@ -25,7 +29,7 @@ export async function createBulkTransfer(
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<BulkTransfer> {
   const endpointPath = "/v2/sepa/bulk_transfers";
-  const response = await client.post(endpointPath, { bulk_transfer: params }, options);
+  const response = await client.post(endpointPath, params, options);
   return parseResponse(BulkTransferResponseSchema, response, endpointPath).bulk_transfer;
 }
 

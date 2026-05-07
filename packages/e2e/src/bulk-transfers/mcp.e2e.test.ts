@@ -2,15 +2,27 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { resolve } from "node:path";
+import type { Readable } from "node:stream";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { BulkTransferListResponseSchema, BulkTransferSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { cliCwd, cliEnv, hasCredentials } from "../sandbox.js";
+import { cliCwd, cliEnv, hasCredentials, hasStagingToken } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
-interface BulkTransferItem {
+/**
+ * Pattern matching the SCA session polling URL the core HTTP client logs at
+ * verbose level. Matches both production (`/v2/sca/sessions/{token}`) and
+ * sandbox-only mocked (`/v2/mocked_sca_sessions/{token}`) endpoints — the core
+ * picks per `client.isSandbox`.
+ */
+const SCA_POLL_URL_RE = /\/v2\/(?:sca\/sessions|mocked_sca_sessions)\/([A-Za-z0-9_-]+)(?=\s|$|\/)/;
+
+// Local response-shape interface. Named distinctly from the core export
+// `BulkTransferRecord` (request-side per-item) — this describes the BulkTransfer
+// job record returned by the API.
+interface BulkTransferRecord {
   readonly id: string;
   readonly initiator_id: string;
   readonly total_count: number;
@@ -20,7 +32,7 @@ interface BulkTransferItem {
 }
 
 interface BulkTransferListResponse {
-  readonly bulk_transfers: BulkTransferItem[];
+  readonly bulk_transfers: BulkTransferRecord[];
   readonly meta: {
     readonly current_page: number;
     readonly total_pages: number;
@@ -31,14 +43,24 @@ interface BulkTransferListResponse {
 describe.skipIf(!hasCredentials())("bulk-transfer MCP tools (e2e)", () => {
   let client: Client;
   let transport: StdioClientTransport;
+  let stderrBuffer: string;
 
   beforeAll(async () => {
     transport = new StdioClientTransport({
       command: "node",
-      args: [CLI_PATH, "mcp"],
+      // `--verbose` enables wire logging so the SCA polling URL appears on
+      // stderr — the create test extracts the SCA token from there.
+      args: [CLI_PATH, "--verbose", "mcp"],
       env: cliEnv(),
       cwd: cliCwd(),
       stderr: "pipe",
+    });
+
+    stderrBuffer = "";
+    const stderrStream = transport.stderr as Readable | null;
+    stderrStream?.setEncoding("utf-8");
+    stderrStream?.on("data", (chunk: string) => {
+      stderrBuffer += chunk;
     });
 
     client = new Client({
@@ -53,8 +75,31 @@ describe.skipIf(!hasCredentials())("bulk-transfer MCP tools (e2e)", () => {
     await client.close();
   });
 
-  describe("bulk_transfer_create", () => {
-    it("creates a bulk transfer", async () => {
+  // SCA orchestration is required for bulk_transfer_create against sandbox
+  // (same pattern as sca-continuation/mcp.e2e.test.ts). Skip when no staging
+  // token (sandbox routing) is present.
+  describe.skipIf(!hasStagingToken())("bulk_transfer_create (sandbox SCA)", () => {
+    /**
+     * Wait for the SCA session polling URL to appear in the MCP server's
+     * stderr, then extract and return the SCA session token.
+     */
+    async function captureScaTokenFromStderr(timeoutMs: number): Promise<string> {
+      const deadline = Date.now() + timeoutMs;
+      const stderrAtStart = stderrBuffer.length;
+      for (;;) {
+        const fresh = stderrBuffer.slice(stderrAtStart);
+        const match = fresh.match(SCA_POLL_URL_RE);
+        if (match !== null && match[1] !== undefined) {
+          return match[1];
+        }
+        if (Date.now() >= deadline) {
+          throw new Error(`Timed out (${String(timeoutMs)}ms) waiting for SCA polling URL in MCP server stderr`);
+        }
+        await new Promise((r) => setTimeout(r, 100));
+      }
+    }
+
+    it("creates a bulk transfer with inline SCA mock-decision approval", async () => {
       const beneficiaryResult = await client.callTool({
         name: "beneficiary_list",
         arguments: { per_page: 1 },
@@ -64,22 +109,44 @@ describe.skipIf(!hasCredentials())("bulk-transfer MCP tools (e2e)", () => {
         beneficiaries: { id: string }[];
       };
       if (beneficiaryParsed.beneficiaries.length === 0) return;
-
       const beneficiaryId = (beneficiaryParsed.beneficiaries[0] as { id: string }).id;
 
-      const result = await client.callTool({
+      const accountResult = await client.callTool({ name: "account_list", arguments: {} });
+      const accountText = accountResult.content[0] as { type: string; text: string };
+      const accountParsed = JSON.parse(accountText.text) as { id: string }[];
+      if (accountParsed.length === 0) return;
+      const bankAccountId = (accountParsed[0] as { id: string }).id;
+
+      // Kick off the tool call (blocks while CLI polls SCA session).
+      const callPromise = client.callTool({
         name: "bulk_transfer_create",
         arguments: {
-          transfers: [{ beneficiary_id: beneficiaryId, amount: 1.0, currency: "EUR", reference: "e2e-mcp-bulk" }],
+          bank_account_id: bankAccountId,
+          bulk_transfers: [{ beneficiary_id: beneficiaryId, amount: "1.00", reference: "e2e-mcp-bulk" }],
+          wait: 10,
         },
       });
+
+      // Concurrently capture the token mid-poll and approve at ~t=2s.
+      const approvalPromise = (async () => {
+        const token = await captureScaTokenFromStderr(8_000);
+        await new Promise((r) => setTimeout(r, 2_000));
+        await client.callTool({
+          name: "sca_session_mock_decision",
+          arguments: { token, decision: "allow" },
+        });
+      })();
+
+      const [result] = await Promise.all([callPromise, approvalPromise]);
 
       expect(result.isError).not.toBe(true);
 
       const textContent = result.content[0] as { type: string; text: string };
       expect(textContent.type).toBe("text");
+      // Must be a successful bulk transfer (JSON), NOT an SCA-pending text response.
+      expect(textContent.text).not.toMatch(/^SCA required/);
 
-      const bt = JSON.parse(textContent.text) as BulkTransferItem;
+      const bt = JSON.parse(textContent.text) as BulkTransferRecord;
       BulkTransferSchema.parse(bt);
       expect(bt).toHaveProperty("id");
       expect(bt).toHaveProperty("total_count");
@@ -157,7 +224,7 @@ describe.skipIf(!hasCredentials())("bulk-transfer MCP tools (e2e)", () => {
       };
       expect(textContent.type).toBe("text");
 
-      const bt = JSON.parse(textContent.text) as BulkTransferItem;
+      const bt = JSON.parse(textContent.text) as BulkTransferRecord;
       BulkTransferSchema.parse(bt);
       expect(bt.id).toBe(first.id);
       expect(bt).toHaveProperty("total_count");

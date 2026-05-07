@@ -31,8 +31,8 @@ describe("SCA service", () => {
     vi.restoreAllMocks();
   });
 
-  describe("getScaSession", () => {
-    it("sends GET to the correct endpoint", async () => {
+  describe("getScaSession (production)", () => {
+    it("sends GET to the production /v2/sca/sessions/{token} endpoint", async () => {
       fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "waiting" } }));
 
       await getScaSession(client, "tok-123");
@@ -71,6 +71,52 @@ describe("SCA service", () => {
       fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "deny" } }));
 
       const session = await getScaSession(client, "tok-abc");
+
+      expect(session.status).toBe("deny");
+    });
+  });
+
+  describe("getScaSession (sandbox)", () => {
+    let sandboxClient: TestableHttpClient;
+
+    beforeEach(() => {
+      sandboxClient = new TestableHttpClient({
+        baseUrl: "https://thirdparty-sandbox.staging.qonto.co",
+        authorization: "slug:secret",
+        stagingToken: "staging-tok-xyz",
+      });
+    });
+
+    it("routes to /v2/mocked_sca_sessions/{token} when stagingToken is set", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ result: "waiting", canceled_at: null }));
+
+      await getScaSession(sandboxClient, "tok-sandbox-1");
+
+      const [url, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      expect(url.pathname).toBe("/v2/mocked_sca_sessions/tok-sandbox-1");
+      expect(init.method).toBe("GET");
+    });
+
+    it("parses the mocked response shape (`result`, not `sca_session.status`)", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ result: "allow", canceled_at: null }));
+
+      const session = await getScaSession(sandboxClient, "tok-sandbox-2");
+
+      expect(session).toEqual({ token: "tok-sandbox-2", status: "allow" });
+    });
+
+    it("returns waiting status from the mocked endpoint", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ result: "waiting", canceled_at: null }));
+
+      const session = await getScaSession(sandboxClient, "tok-sandbox-3");
+
+      expect(session.status).toBe("waiting");
+    });
+
+    it("returns deny status from the mocked endpoint", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ result: "deny", canceled_at: "2026-05-07T10:00:00Z" }));
+
+      const session = await getScaSession(sandboxClient, "tok-sandbox-4");
 
       expect(session.status).toBe("deny");
     });

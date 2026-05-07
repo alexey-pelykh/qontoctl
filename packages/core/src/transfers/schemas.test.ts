@@ -251,14 +251,15 @@ describe("BulkVopResultEntrySchema", () => {
     expect(result.iban).toBe("FR7630001007941234567890185");
   });
 
-  it("rejects entry without beneficiary_name", () => {
-    expect(() =>
-      BulkVopResultEntrySchema.parse({
-        id: "0",
-        iban: "FR7630001007941234567890185",
-        response: { match_result: "MATCH_RESULT_MATCH", matched_name: null },
-      }),
-    ).toThrow();
+  it("accepts entry without beneficiary_name and iban (production API omits them per entry; correlate by id)", () => {
+    const result = BulkVopResultEntrySchema.parse({
+      id: "0",
+      response: { match_result: "MATCH_RESULT_MATCH", matched_name: null },
+    });
+    expect(result.id).toBe("0");
+    expect(result.beneficiary_name).toBeUndefined();
+    expect(result.iban).toBeUndefined();
+    expect(result.response?.match_result).toBe("MATCH_RESULT_MATCH");
   });
 
   it("accepts an error entry", () => {
@@ -287,7 +288,7 @@ describe("BulkVopResultEntrySchema", () => {
 describe("BulkVopResultResponseSchema", () => {
   it("validates bulk verification response", () => {
     const response = {
-      responses: [
+      requests: [
         {
           id: "0",
           beneficiary_name: "John Doe",
@@ -304,21 +305,21 @@ describe("BulkVopResultResponseSchema", () => {
       proof_token: { token: "tok_batch" },
     };
     const result = BulkVopResultResponseSchema.parse(response);
-    expect(result.responses).toHaveLength(2);
+    expect(result.requests).toHaveLength(2);
     expect(result.proof_token.token).toBe("tok_batch");
   });
 
-  it("accepts empty responses array", () => {
+  it("accepts empty requests array", () => {
     const result = BulkVopResultResponseSchema.parse({
-      responses: [],
+      requests: [],
       proof_token: { token: "tok_empty" },
     });
-    expect(result.responses).toHaveLength(0);
+    expect(result.requests).toHaveLength(0);
   });
 
   it("accepts mixed success and error entries", () => {
     const response = {
-      responses: [
+      requests: [
         {
           id: "0",
           beneficiary_name: "John Doe",
@@ -335,15 +336,15 @@ describe("BulkVopResultResponseSchema", () => {
       proof_token: { token: "tok_mixed" },
     };
     const result = BulkVopResultResponseSchema.parse(response);
-    expect(result.responses).toHaveLength(2);
-    expect(result.responses[0]?.response?.match_result).toBe("MATCH_RESULT_MATCH");
-    expect(result.responses[1]?.error?.code).toBe("BANK_ERROR");
+    expect(result.requests).toHaveLength(2);
+    expect(result.requests[0]?.response?.match_result).toBe("MATCH_RESULT_MATCH");
+    expect(result.requests[1]?.error?.code).toBe("BANK_ERROR");
   });
 
   it("rejects missing proof_token", () => {
     expect(() =>
       BulkVopResultResponseSchema.parse({
-        responses: [
+        requests: [
           {
             id: "0",
             beneficiary_name: "John Doe",
@@ -355,10 +356,10 @@ describe("BulkVopResultResponseSchema", () => {
     ).toThrow();
   });
 
-  it("rejects missing responses", () => {
+  it("rejects missing requests", () => {
     expect(() =>
       BulkVopResultResponseSchema.parse({
-        proof_token: { token: "tok_no_responses" },
+        proof_token: { token: "tok_no_requests" },
       }),
     ).toThrow();
   });

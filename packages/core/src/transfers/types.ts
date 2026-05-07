@@ -99,11 +99,15 @@ export interface VopResult {
 /**
  * A single entry in a bulk VoP response, containing either a successful
  * response or an error for the given request ID.
+ *
+ * `beneficiary_name` and `iban` are documented as required but the production
+ * API omits them per entry — kept optional for runtime tolerance. Correlate
+ * by `id`, which mirrors the request `id`.
  */
 export interface BulkVopResultEntry {
   readonly id: string;
-  readonly beneficiary_name: string;
-  readonly iban: string;
+  readonly beneficiary_name?: string | undefined;
+  readonly iban?: string | undefined;
   readonly response?:
     | {
         readonly match_result: VopMatchResult;
@@ -121,9 +125,11 @@ export interface BulkVopResultEntry {
 /**
  * Bulk Verification of Payee (VoP) result returned by the Qonto API.
  *
- * Contains per-entry responses/errors and a single batch-level proof token.
+ * Contains per-request results (each with either `response` or `error`) and a
+ * single batch-level proof token. The top-level field is `requests` — the
+ * server echoes the same field name used in the request body.
  */
 export interface BulkVopResult {
-  readonly responses: readonly BulkVopResultEntry[];
+  readonly requests: readonly BulkVopResultEntry[];
   readonly proof_token: { readonly token: string };
 }

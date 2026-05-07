@@ -20,20 +20,48 @@ export interface BulkTransferResult {
 }
 
 /**
+ * An inline beneficiary for a single bulk-transfer item without a pre-existing
+ * beneficiary record. Mirrors the single-transfer `InlineBeneficiary` shape but
+ * is duplicated here to keep the bulk-transfers module self-contained.
+ */
+export interface BulkTransferInlineBeneficiary {
+  readonly name: string;
+  readonly iban: string;
+  readonly bic?: string | undefined;
+  readonly email?: string | undefined;
+  readonly activity_tag?: string | undefined;
+}
+
+/**
  * A single transfer item within a bulk transfer creation request.
+ *
+ * Per the Qonto API, exactly one of `beneficiary_id` (existing beneficiary) or
+ * `beneficiary` (inline) must be provided. `client_transfer_id` is required and
+ * client-generated to correlate response results with input items. `amount` is
+ * a decimal string (pattern `^\d+(\.\d{1,2})?$`).
  */
 export interface BulkTransferItem {
-  readonly beneficiary_id: string;
-  readonly amount: number;
-  readonly currency: string;
-  readonly reference?: string | undefined;
+  readonly client_transfer_id: string;
+  readonly amount: string;
+  readonly reference: string;
+  readonly beneficiary_id?: string | undefined;
+  readonly beneficiary?: BulkTransferInlineBeneficiary | undefined;
+  readonly scheduled_date?: string | undefined;
+  readonly note?: string | undefined;
+  readonly attachment_ids?: readonly string[] | undefined;
 }
 
 /**
  * Parameters for creating a bulk transfer.
+ *
+ * Sent as the request body to `POST /v2/sepa/bulk_transfers`. The body shape is
+ * flat (no top-level wrapper). `vop_proof_token` must come from a single
+ * `bulk_verify_payee` call covering the exact set of IBANs in `bulk_transfers`.
  */
 export interface CreateBulkTransferParams {
-  readonly transfers: readonly BulkTransferItem[];
+  readonly bank_account_id: string;
+  readonly bulk_transfers: readonly BulkTransferItem[];
+  readonly vop_proof_token: string;
 }
 
 /**

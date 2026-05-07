@@ -13,6 +13,7 @@ export {
 
 export type {
   BulkTransfer,
+  BulkTransferInlineBeneficiary,
   BulkTransferItem,
   BulkTransferResult,
   BulkTransferResultError,

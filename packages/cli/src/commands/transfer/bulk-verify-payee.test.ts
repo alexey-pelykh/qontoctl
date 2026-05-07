@@ -40,10 +40,23 @@ const bulkVerifyPayeeMock = vi.mocked(bulkVerifyPayee);
 const { readFile } = await import("node:fs/promises");
 const readFileMock = vi.mocked(readFile);
 
+// Per `bulkVerifyPayee` (core/transfers/service.ts), each request is assigned
+// `id = String(index)` — use the same convention here so the mock mirrors
+// production wire shape.
 const sampleResults = {
-  responses: [
-    { id: "req-1", response: { match_result: "MATCH_RESULT_MATCH" as const, matched_name: "John Doe" } },
-    { id: "req-2", response: { match_result: "MATCH_RESULT_NO_MATCH" as const, matched_name: "Jane Smith" } },
+  requests: [
+    {
+      id: "0",
+      iban: "FR1",
+      beneficiary_name: "John Doe",
+      response: { match_result: "MATCH_RESULT_MATCH" as const, matched_name: "John Doe" },
+    },
+    {
+      id: "1",
+      iban: "DE1",
+      beneficiary_name: "Jane Smith",
+      response: { match_result: "MATCH_RESULT_NO_MATCH" as const, matched_name: "Jane Smith" },
+    },
   ],
   proof_token: { token: "tok_bulk_123" },
 };
@@ -91,8 +104,8 @@ describe("transfer bulk-verify-payee command", () => {
     expect(stdoutSpy).toHaveBeenCalled();
     const output = stdoutSpy.mock.calls[0]?.[0] as string;
     const parsed = JSON.parse(output) as typeof sampleResults;
-    expect(parsed.responses).toHaveLength(2);
-    expect(parsed.responses[0]?.response?.match_result).toBe("MATCH_RESULT_MATCH");
+    expect(parsed.requests).toHaveLength(2);
+    expect(parsed.requests[0]?.response?.match_result).toBe("MATCH_RESULT_MATCH");
   });
 
   it("reads CSV without header row", async () => {

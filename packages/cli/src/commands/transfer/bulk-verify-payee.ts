@@ -83,7 +83,7 @@ export function registerTransferBulkVerifyPayeeCommand(parent: Command): void {
     );
 
     const data =
-      opts.output === "json" || opts.output === "yaml" ? results : results.responses.map((r) => toTableRow(r));
+      opts.output === "json" || opts.output === "yaml" ? results : results.requests.map((r) => toTableRow(r));
     process.stdout.write(formatOutput(data, opts.output) + "\n");
 
     if (opts.output !== "json" && opts.output !== "yaml") {
