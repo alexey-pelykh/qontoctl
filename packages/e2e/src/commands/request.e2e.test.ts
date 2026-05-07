@@ -5,7 +5,7 @@ import { type ExecFileSyncOptionsWithStringEncoding, execFileSync } from "node:c
 import { resolve } from "node:path";
 import { RequestSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
-import { cliCwd, cliEnv, hasCredentials } from "../sandbox.js";
+import { cliCwd, cliEnv, hasApiKeyCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
@@ -29,7 +29,7 @@ function cli(...args: string[]): string | null {
   }
 }
 
-describe.skipIf(!hasCredentials())("request commands (e2e)", () => {
+describe.skipIf(!hasApiKeyCredentials())("request commands (e2e)", () => {
   describe("request list", () => {
     it("lists requests or returns gracefully on 403", () => {
       const output = cli("request", "list");

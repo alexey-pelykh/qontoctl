@@ -5,11 +5,11 @@ import { resolve } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { cliCwd, cliEnv, hasCredentials } from "../sandbox.js";
+import { cliCwd, cliEnv, hasApiKeyCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
-describe.skipIf(!hasCredentials())("internal-transfer MCP tools (e2e)", () => {
+describe.skipIf(!hasApiKeyCredentials())("internal-transfer MCP tools (e2e)", () => {
   let client: Client;
   let transport: StdioClientTransport;
 

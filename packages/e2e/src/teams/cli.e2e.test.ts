@@ -5,7 +5,7 @@ import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { TeamSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
-import { cliCwd, cliEnv, hasCredentials } from "../sandbox.js";
+import { cliCwd, cliEnv, hasOAuthCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
@@ -28,7 +28,7 @@ interface TeamItem {
   readonly name: string;
 }
 
-describe.skipIf(!hasCredentials())("team CLI commands (e2e)", () => {
+describe.skipIf(!hasOAuthCredentials())("team CLI commands (e2e)", () => {
   describe("team list", () => {
     it("lists teams with default output", () => {
       const output = cli("team", "list");

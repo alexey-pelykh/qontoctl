@@ -5,7 +5,7 @@ import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { LabelSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
-import { cliCwd, cliEnv, hasCredentials } from "../sandbox.js";
+import { cliCwd, cliEnv, hasApiKeyCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
@@ -22,7 +22,7 @@ function cli(...args: string[]): string {
   });
 }
 
-describe.skipIf(!hasCredentials())("label commands (e2e)", () => {
+describe.skipIf(!hasApiKeyCredentials())("label commands (e2e)", () => {
   describe("label list", () => {
     it("lists labels with id, name, parent_id", () => {
       const output = cli("label", "list");

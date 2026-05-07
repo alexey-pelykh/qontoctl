@@ -5,7 +5,7 @@ import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { IntlEligibilitySchema, IntlCurrencySchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
-import { cliCwd, cliEnv, hasCredentials } from "../sandbox.js";
+import { cliCwd, cliEnv, hasOAuthCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
@@ -28,7 +28,7 @@ interface IntlCurrencyItem {
   readonly name: string;
 }
 
-describe.skipIf(!hasCredentials())("international CLI commands (e2e)", () => {
+describe.skipIf(!hasOAuthCredentials())("international CLI commands (e2e)", () => {
   describe("intl eligibility", () => {
     it("returns eligibility status with default output", () => {
       const output = cli("intl", "eligibility");

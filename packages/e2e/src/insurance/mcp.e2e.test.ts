@@ -6,7 +6,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { InsuranceContractSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { cliCwd, cliEnv, hasCredentials } from "../sandbox.js";
+import { cliCwd, cliEnv, hasOAuthCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
@@ -18,7 +18,7 @@ function firstText(result: Awaited<ReturnType<Client["callTool"]>>): string {
   return entry.text;
 }
 
-describe.skipIf(!hasCredentials())("insurance MCP tools (e2e)", () => {
+describe.skipIf(!hasOAuthCredentials())("insurance MCP tools (e2e)", () => {
   let client: Client;
   let transport: StdioClientTransport;
 

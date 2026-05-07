@@ -8,7 +8,7 @@ import { join, resolve } from "node:path";
 import { promisify } from "node:util";
 import { BulkTransferSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
-import { cliCwd, cliEnv, hasCredentials, hasStagingToken } from "../sandbox.js";
+import { cliCwd, cliEnv, hasOAuthCredentials, hasStagingToken } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 const execFileAsync = promisify(execFile);
@@ -49,7 +49,7 @@ interface BulkTransferRecord {
   readonly updated_at: string;
 }
 
-describe.skipIf(!hasCredentials())("bulk-transfer CLI commands (e2e)", () => {
+describe.skipIf(!hasOAuthCredentials())("bulk-transfer CLI commands (e2e)", () => {
   describe("bulk-transfer list", () => {
     it("lists bulk transfers with default output", () => {
       const output = cli("bulk-transfer", "list", "--no-paginate");

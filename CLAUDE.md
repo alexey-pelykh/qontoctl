@@ -94,15 +94,23 @@ ESLint enforces this via `eslint-plugin-header`.
 
 **When to run:** E2E tests MUST be run locally and pass before submitting a PR or preparing a release. Also run after implementing or modifying code that touches Qonto API interactions, CLI commands, MCP tools, or any behavior covered by E2E tests.
 
-**Credentials:** The repo contains `.qontoctl.yaml` (gitignored) with API key credentials. The config resolver picks this up from CWD automatically — no env var overrides needed.
+**Credentials:** The repo contains `.qontoctl.yaml` (gitignored) with both api-key and OAuth credentials. The config resolver picks this up from CWD automatically — no env var overrides needed.
 
-**Sandbox note:** The Qonto sandbox environment (`thirdparty-sandbox.staging.qonto.co`) is only for OAuth-based integrations. API key authentication uses the production endpoint (`thirdparty.qonto.com`) directly — there is no separate sandbox for API key auth. E2E tests run against production.
+**Test taxonomy:** Each suite is gated on the credential type its endpoints require, per the [Qonto auth table](https://docs.qonto.com/get-started/business-api/authentication/introduction). Three categories:
+
+- **API-key-compatible** (`describe.skipIf(!hasApiKeyCredentials())`) — runs in CI and locally when api-key is configured.
+- **OAuth-required** (`describe.skipIf(!hasOAuthCredentials())`) — local-only; CI has no OAuth credentials so these skip naturally.
+- **OAuth + sandbox** (`describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())`) — local-only, currently only `sca-continuation/`.
+
+Gates are capability-based, not environment-based: tests run when their required credentials are present, full stop. See [`docs/e2e-testing.md`](docs/e2e-testing.md) for the full per-suite categorization and operational guidance.
+
+**Sandbox note:** The Qonto sandbox environment (`thirdparty-sandbox.staging.qonto.co`) is only for OAuth-based integrations. API key authentication uses the production endpoint (`thirdparty.qonto.com`) directly — there is no separate sandbox for API key auth. The CI E2E job runs against production with api-key only.
 
 **Staging token:** The `oauth.staging-token` config field (or `QONTOCTL_STAGING_TOKEN` env var) injects an `X-Qonto-Staging-Token` header into all API requests, routing them to the Qonto sandbox environment. The staging token lives inside the `oauth` section because the sandbox is OAuth-only. When a staging token is present, sandbox URLs are used automatically. The staging token is also sent with OAuth token exchange, refresh, and revocation requests.
 
 **SCA method:** The `sca.method` config field (or `QONTOCTL_SCA_METHOD` env var, or hidden `--sca-method <value>` CLI flag) sets the `X-Qonto-2fa-Preference` header on write requests. Production accepts `paired-device`, `passkey`, `sms-otp`; sandbox additionally accepts `mock`. When a staging token is present and no method is otherwise set, QontoCtl auto-defaults to `"mock"` so sandbox writes work without a paired-device enrollment. **Production never auto-defaults.** The MCP server resolves the method from env/config only — it is intentionally NOT exposed as a tool input, so an LLM client cannot pick the SCA method on a write. See `docs/sandbox-testing.md`.
 
-**E2E sandbox in CI:** When `QONTOCTL_STAGING_TOKEN`, `QONTOCTL_CLIENT_ID`, `QONTOCTL_CLIENT_SECRET`, `QONTOCTL_ACCESS_TOKEN`, and `QONTOCTL_REFRESH_TOKEN` secrets are configured in the repository, the `e2e-sandbox` CI job runs E2E tests against the sandbox environment after the main CI job passes. This job is not part of the CI gate and does not block merging.
+**E2E in CI:** When `QONTOCTL_ORGANIZATION_SLUG` and `QONTOCTL_SECRET_KEY` repository secrets are configured, the `e2e` CI job runs the api-key-compatible E2E suites against production after the main CI job passes. OAuth and sandbox suites skip automatically (their gates require credentials CI doesn't have). The `e2e` job is not part of the CI gate and does not block merging.
 
 **Running:**
 

@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { BankAccountSchema, OrganizationSchema } from "@qontoctl/core";
 import { beforeAll, describe, expect, it } from "vitest";
-import { cliCwd, cliEnv, hasCredentials } from "../sandbox.js";
+import { cliCwd, cliEnv, hasApiKeyCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
@@ -19,7 +19,7 @@ function cli(args: string[]): string {
   });
 }
 
-describe.skipIf(!hasCredentials())("organization & accounts CLI (e2e)", () => {
+describe.skipIf(!hasApiKeyCredentials())("organization & accounts CLI (e2e)", () => {
   let knownAccountId: string;
 
   beforeAll(() => {

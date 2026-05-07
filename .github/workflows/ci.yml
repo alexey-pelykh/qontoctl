@@ -100,8 +100,8 @@ jobs:
         id: publish-github-pages
         uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
 
-  e2e-sandbox:
-    name: E2E (Sandbox)
+  e2e:
+    name: E2E
     timeout-minutes: 15
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
@@ -113,11 +113,8 @@ jobs:
       - run: pnpm build
       - run: pnpm test:e2e
         env:
-          QONTOCTL_STAGING_TOKEN: ${{ secrets.QONTOCTL_STAGING_TOKEN }}
-          QONTOCTL_CLIENT_ID: ${{ secrets.QONTOCTL_CLIENT_ID }}
-          QONTOCTL_CLIENT_SECRET: ${{ secrets.QONTOCTL_CLIENT_SECRET }}
-          QONTOCTL_ACCESS_TOKEN: ${{ secrets.QONTOCTL_ACCESS_TOKEN }}
-          QONTOCTL_REFRESH_TOKEN: ${{ secrets.QONTOCTL_REFRESH_TOKEN }}
+          QONTOCTL_ORGANIZATION_SLUG: ${{ secrets.QONTOCTL_ORGANIZATION_SLUG }}
+          QONTOCTL_SECRET_KEY: ${{ secrets.QONTOCTL_SECRET_KEY }}
 
   ci-gate:
     name: CI

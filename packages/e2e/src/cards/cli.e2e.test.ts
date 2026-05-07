@@ -5,7 +5,7 @@ import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { CardSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
-import { cliCwd, cliEnv, hasCredentials } from "../sandbox.js";
+import { cliCwd, cliEnv, hasOAuthCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
@@ -32,7 +32,7 @@ interface CardItem {
   readonly holder_id: string;
 }
 
-describe.skipIf(!hasCredentials())("card CLI commands (e2e)", () => {
+describe.skipIf(!hasOAuthCredentials())("card CLI commands (e2e)", () => {
   describe("card list", () => {
     it("lists cards with default output", () => {
       const output = cli("card", "list");

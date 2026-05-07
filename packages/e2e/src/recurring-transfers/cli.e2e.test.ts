@@ -5,7 +5,7 @@ import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { RecurringTransferSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
-import { cliCwd, cliEnv, hasCredentials } from "../sandbox.js";
+import { cliCwd, cliEnv, hasOAuthCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
@@ -35,7 +35,7 @@ interface RecurringTransferItem {
   readonly status: string;
 }
 
-describe.skipIf(!hasCredentials())("recurring-transfer CLI commands (e2e)", () => {
+describe.skipIf(!hasOAuthCredentials())("recurring-transfer CLI commands (e2e)", () => {
   describe("recurring-transfer list", () => {
     it("lists recurring transfers with default output", () => {
       const output = cli("recurring-transfer", "list", "--no-paginate");

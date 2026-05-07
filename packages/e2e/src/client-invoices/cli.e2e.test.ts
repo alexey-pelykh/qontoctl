@@ -5,7 +5,7 @@ import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { ClientInvoiceSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
-import { cliCwd, cliEnv, hasCredentials } from "../sandbox.js";
+import { cliCwd, cliEnv, hasApiKeyCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
@@ -18,7 +18,7 @@ function cli(...args: string[]): string {
   });
 }
 
-describe.skipIf(!hasCredentials())("client-invoice commands (e2e)", () => {
+describe.skipIf(!hasApiKeyCredentials())("client-invoice commands (e2e)", () => {
   describe("client-invoice list", () => {
     it("lists client invoices", () => {
       const output = cli("client-invoice", "list");

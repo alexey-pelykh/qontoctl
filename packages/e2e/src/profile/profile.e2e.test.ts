@@ -6,7 +6,7 @@ import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { getCredentials, hasCredentials } from "../sandbox.js";
+import { getCredentials, hasApiKeyCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
@@ -219,10 +219,10 @@ describe("profile commands (e2e)", () => {
 });
 
 // ---------------------------------------------------------------------------
-// profile test — requires sandbox API access
+// profile test — requires api-key credentials
 // ---------------------------------------------------------------------------
 
-describe.skipIf(!hasCredentials())("profile test (e2e)", () => {
+describe.skipIf(!hasApiKeyCredentials())("profile test (e2e)", () => {
   let tempDir: string;
 
   beforeAll(() => {
