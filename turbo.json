@@ -15,9 +15,7 @@
     "test:e2e": {
       "dependsOn": ["build"],
       "cache": false,
-      "env": [
-        "QONTOCTL_*"
-      ]
+      "env": ["QONTOCTL_*"]
     },
     "typecheck": {
       "dependsOn": ["^build"]
