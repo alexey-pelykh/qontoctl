@@ -114,12 +114,42 @@ describe("recurring-transfer MCP tools", () => {
   });
 
   describe("recurring_transfer_create", () => {
-    it("creates a recurring transfer", async () => {
-      fetchSpy.mockReturnValue(
-        jsonResponse({
-          recurring_transfer: makeRecurringTransfer(),
-        }),
-      );
+    const beneficiaryBody = {
+      beneficiary: {
+        id: "ben-1",
+        name: "Acme Corp",
+        iban: "FR7630001007941234567890185",
+        bic: "BNPAFRPP",
+        email: null,
+        activity_tag: null,
+        status: "validated",
+        trusted: true,
+        created_at: "2026-01-01T00:00:00.000Z",
+        updated_at: "2026-01-01T00:00:00.000Z",
+      },
+    };
+
+    function mockForAutoResolve(matchResult: string) {
+      fetchSpy.mockImplementation((input: URL, init: RequestInit) => {
+        if (input.pathname === "/v2/sepa/beneficiaries/ben-1" && init.method === "GET") {
+          return jsonResponse(beneficiaryBody);
+        }
+        if (input.pathname === "/v2/sepa/verify_payee" && init.method === "POST") {
+          return jsonResponse({
+            match_result: matchResult,
+            matched_name: null,
+            proof_token: { token: "auto-token-123" },
+          });
+        }
+        if (input.pathname === "/v2/sepa/recurring_transfers" && init.method === "POST") {
+          return jsonResponse({ recurring_transfer: makeRecurringTransfer() });
+        }
+        return jsonResponse({});
+      });
+    }
+
+    it("creates a recurring transfer and serializes amount as a string", async () => {
+      mockForAutoResolve("MATCH_RESULT_MATCH");
 
       const result = await mcpClient.callTool({
         name: "recurring_transfer_create",
@@ -138,6 +168,200 @@ describe("recurring-transfer MCP tools", () => {
       expect(content).toHaveLength(1);
       const parsed = JSON.parse((content[0] as { type: string; text: string }).text) as { id: string };
       expect(parsed.id).toBe("rt-1");
+
+      const calls = fetchSpy.mock.calls as [URL, RequestInit][];
+      const createCall = calls.find(
+        (c) => c[0].pathname === "/v2/sepa/recurring_transfers" && c[1].method === "POST",
+      ) as [URL, RequestInit] | undefined;
+      expect(createCall).toBeDefined();
+      const body = JSON.parse((createCall as [URL, RequestInit])[1].body as string) as {
+        recurring_transfer: { amount: unknown };
+      };
+      expect(typeof body.recurring_transfer.amount).toBe("string");
+      expect(body.recurring_transfer.amount).toBe("100.00");
+    });
+
+    it("accepts amount as a decimal string and passes it through unchanged", async () => {
+      mockForAutoResolve("MATCH_RESULT_MATCH");
+
+      await mcpClient.callTool({
+        name: "recurring_transfer_create",
+        arguments: {
+          beneficiary_id: "ben-1",
+          bank_account_id: "acc-1",
+          amount: "42.50",
+          currency: "EUR",
+          reference: "Monthly rent",
+          first_execution_date: "2026-01-01",
+          frequency: "monthly",
+        },
+      });
+
+      const calls = fetchSpy.mock.calls as [URL, RequestInit][];
+      const createCall = calls.find(
+        (c) => c[0].pathname === "/v2/sepa/recurring_transfers" && c[1].method === "POST",
+      ) as [URL, RequestInit] | undefined;
+      expect(createCall).toBeDefined();
+      const body = JSON.parse((createCall as [URL, RequestInit])[1].body as string) as {
+        recurring_transfer: { amount: unknown };
+      };
+      expect(body.recurring_transfer.amount).toBe("42.50");
+    });
+
+    it("uses provided vop_proof_token directly without auto-resolve", async () => {
+      fetchSpy.mockImplementation((input: URL, init: RequestInit) => {
+        if (input.pathname === "/v2/sepa/recurring_transfers" && init.method === "POST") {
+          return jsonResponse({ recurring_transfer: makeRecurringTransfer() });
+        }
+        return jsonResponse({});
+      });
+
+      const result = await mcpClient.callTool({
+        name: "recurring_transfer_create",
+        arguments: {
+          beneficiary_id: "ben-1",
+          bank_account_id: "acc-1",
+          amount: 100,
+          currency: "EUR",
+          reference: "Monthly rent",
+          first_execution_date: "2026-01-01",
+          frequency: "monthly",
+          vop_proof_token: "explicit-token",
+        },
+      });
+
+      const content = result.content as { type: string; text: string }[];
+      expect(content).toHaveLength(1);
+
+      // Should NOT have called beneficiary or verify_payee endpoints.
+      const calls = fetchSpy.mock.calls as [URL, RequestInit][];
+      const benCall = calls.find((c) => c[0].pathname.includes("/beneficiaries/"));
+      const vopCall = calls.find((c) => c[0].pathname.includes("/verify_payee"));
+      expect(benCall).toBeUndefined();
+      expect(vopCall).toBeUndefined();
+
+      // Should have sent the explicit token at the top level (sibling to envelope).
+      const createCall = calls.find(
+        (c) => c[0].pathname === "/v2/sepa/recurring_transfers" && c[1].method === "POST",
+      ) as [URL, RequestInit] | undefined;
+      expect(createCall).toBeDefined();
+      const body = JSON.parse((createCall as [URL, RequestInit])[1].body as string) as {
+        vop_proof_token: string;
+        recurring_transfer: Record<string, unknown>;
+      };
+      expect(body.vop_proof_token).toBe("explicit-token");
+      expect(body.recurring_transfer).not.toHaveProperty("vop_proof_token");
+    });
+
+    it("auto-resolves vop_proof_token via getBeneficiary + verifyPayee on match", async () => {
+      mockForAutoResolve("MATCH_RESULT_MATCH");
+
+      const result = await mcpClient.callTool({
+        name: "recurring_transfer_create",
+        arguments: {
+          beneficiary_id: "ben-1",
+          bank_account_id: "acc-1",
+          amount: 100,
+          currency: "EUR",
+          reference: "Monthly rent",
+          first_execution_date: "2026-01-01",
+          frequency: "monthly",
+        },
+      });
+
+      // Should return only the recurring transfer (no VoP status block on match).
+      const content = result.content as { type: string; text: string }[];
+      expect(content).toHaveLength(1);
+      const parsed = JSON.parse((content[0] as { type: string; text: string }).text) as { id: string };
+      expect(parsed.id).toBe("rt-1");
+
+      // Should have called beneficiary, verify_payee, then recurring_transfers.
+      const calls = fetchSpy.mock.calls as [URL, RequestInit][];
+      const benCall = calls.find((c) => c[0].pathname === "/v2/sepa/beneficiaries/ben-1");
+      const vopCall = calls.find((c) => c[0].pathname === "/v2/sepa/verify_payee");
+      const createCall = calls.find((c) => c[0].pathname === "/v2/sepa/recurring_transfers");
+      expect(benCall).toBeDefined();
+      expect(vopCall).toBeDefined();
+      expect(createCall).toBeDefined();
+
+      // Should have used the auto-resolved token.
+      const body = JSON.parse((createCall as [URL, RequestInit])[1].body as string) as {
+        vop_proof_token: string;
+      };
+      expect(body.vop_proof_token).toBe("auto-token-123");
+    });
+
+    it("includes VoP status in response on no_match", async () => {
+      mockForAutoResolve("MATCH_RESULT_NO_MATCH");
+
+      const result = await mcpClient.callTool({
+        name: "recurring_transfer_create",
+        arguments: {
+          beneficiary_id: "ben-1",
+          bank_account_id: "acc-1",
+          amount: 100,
+          currency: "EUR",
+          reference: "Monthly rent",
+          first_execution_date: "2026-01-01",
+          frequency: "monthly",
+        },
+      });
+
+      const content = result.content as { type: string; text: string }[];
+      expect(content).toHaveLength(2);
+      expect((content[1] as { type: string; text: string }).text).toBe(
+        "VoP verification result: MATCH_RESULT_NO_MATCH",
+      );
+    });
+
+    it("includes VoP status in response on close_match", async () => {
+      mockForAutoResolve("MATCH_RESULT_CLOSE_MATCH");
+
+      const result = await mcpClient.callTool({
+        name: "recurring_transfer_create",
+        arguments: {
+          beneficiary_id: "ben-1",
+          bank_account_id: "acc-1",
+          amount: 100,
+          currency: "EUR",
+          reference: "Monthly rent",
+          first_execution_date: "2026-01-01",
+          frequency: "monthly",
+        },
+      });
+
+      const content = result.content as { type: string; text: string }[];
+      expect(content).toHaveLength(2);
+      expect((content[1] as { type: string; text: string }).text).toBe(
+        "VoP verification result: MATCH_RESULT_CLOSE_MATCH",
+      );
+    });
+
+    it("rejects sca_session_token retry without an explicit vop_proof_token", async () => {
+      const result = await mcpClient.callTool({
+        name: "recurring_transfer_create",
+        arguments: {
+          beneficiary_id: "ben-1",
+          bank_account_id: "acc-1",
+          amount: 100,
+          currency: "EUR",
+          reference: "Monthly rent",
+          first_execution_date: "2026-01-01",
+          frequency: "monthly",
+          sca_session_token: "sca-tok",
+        },
+      });
+
+      expect(result.isError).toBe(true);
+      const content = result.content as { type: string; text: string }[];
+      expect((content[0] as { type: string; text: string }).text).toMatch(
+        /vop_proof_token is required when retrying with sca_session_token/,
+      );
+
+      // Auto-resolution must NOT have been attempted on retry path.
+      const calls = fetchSpy.mock.calls as [URL, RequestInit][];
+      expect(calls.find((c) => c[0].pathname.includes("/beneficiaries/"))).toBeUndefined();
+      expect(calls.find((c) => c[0].pathname.includes("/verify_payee"))).toBeUndefined();
     });
   });
 

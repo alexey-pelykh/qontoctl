@@ -53,12 +53,13 @@ describe("createRecurringTransfer", () => {
     const result = await createRecurringTransfer(client, {
       beneficiary_id: "ben-1",
       bank_account_id: "acc-1",
-      amount: 100,
+      amount: "100.00",
       currency: "EUR",
       reference: "Monthly rent",
       note: "Rent payment",
       first_execution_date: "2026-01-01",
       frequency: "monthly",
+      vop_proof_token: "tok_test",
     });
     expect(result).toEqual(sampleRecurringTransfer);
 
@@ -68,10 +69,11 @@ describe("createRecurringTransfer", () => {
 
     const body = JSON.parse(init.body as string) as Record<string, unknown>;
     expect(body).toEqual({
+      vop_proof_token: "tok_test",
       recurring_transfer: {
         beneficiary_id: "ben-1",
         bank_account_id: "acc-1",
-        amount: 100,
+        amount: "100.00",
         currency: "EUR",
         reference: "Monthly rent",
         note: "Rent payment",
@@ -79,6 +81,50 @@ describe("createRecurringTransfer", () => {
         frequency: "monthly",
       },
     });
+  });
+
+  it("places vop_proof_token at the top level (sibling to recurring_transfer envelope)", async () => {
+    fetchSpy.mockReturnValue(jsonResponse({ recurring_transfer: sampleRecurringTransfer }));
+
+    await createRecurringTransfer(client, {
+      beneficiary_id: "ben-1",
+      bank_account_id: "acc-1",
+      amount: "100.00",
+      currency: "EUR",
+      reference: "Monthly rent",
+      first_execution_date: "2026-01-01",
+      frequency: "monthly",
+      vop_proof_token: "tok_explicit",
+    });
+
+    const [, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+    const body = JSON.parse(init.body as string) as {
+      vop_proof_token: unknown;
+      recurring_transfer: Record<string, unknown>;
+    };
+    expect(body.vop_proof_token).toBe("tok_explicit");
+    // vop_proof_token must NOT leak into the envelope.
+    expect(body.recurring_transfer).not.toHaveProperty("vop_proof_token");
+  });
+
+  it("serializes amount as a string in the request body", async () => {
+    fetchSpy.mockReturnValue(jsonResponse({ recurring_transfer: sampleRecurringTransfer }));
+
+    await createRecurringTransfer(client, {
+      beneficiary_id: "ben-1",
+      bank_account_id: "acc-1",
+      amount: "42.50",
+      currency: "EUR",
+      reference: "Monthly rent",
+      first_execution_date: "2026-01-01",
+      frequency: "monthly",
+      vop_proof_token: "tok_test",
+    });
+
+    const [, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+    const body = JSON.parse(init.body as string) as { recurring_transfer: { amount: unknown } };
+    expect(typeof body.recurring_transfer.amount).toBe("string");
+    expect(body.recurring_transfer.amount).toBe("42.50");
   });
 
   it("sends idempotency key header when provided", async () => {
@@ -89,11 +135,12 @@ describe("createRecurringTransfer", () => {
       {
         beneficiary_id: "ben-1",
         bank_account_id: "acc-1",
-        amount: 100,
+        amount: "100.00",
         currency: "EUR",
         reference: "Monthly rent",
         first_execution_date: "2026-01-01",
         frequency: "monthly",
+        vop_proof_token: "tok_test",
       },
       { idempotencyKey: "idem-456" },
     );

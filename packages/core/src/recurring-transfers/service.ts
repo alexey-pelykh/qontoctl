@@ -9,6 +9,10 @@ import type { CreateRecurringTransferParams, RecurringTransfer } from "./types.j
 
 /**
  * Create a recurring transfer.
+ *
+ * `vop_proof_token` is sent at the top level of the request body alongside
+ * the `recurring_transfer` envelope, mirroring the single-transfer shape
+ * (`POST /v2/sepa/transfers` accepts `{ vop_proof_token, transfer: {...} }`).
  */
 export async function createRecurringTransfer(
   client: HttpClient,
@@ -16,19 +20,28 @@ export async function createRecurringTransfer(
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<RecurringTransfer> {
   const endpointPath = "/v2/sepa/recurring_transfers";
-  const response = await client.post(endpointPath, { recurring_transfer: params }, options);
+  const { vop_proof_token, ...recurringTransferFields } = params;
+  const response = await client.post(
+    endpointPath,
+    { vop_proof_token, recurring_transfer: recurringTransferFields },
+    options,
+  );
   return parseResponse(RecurringTransferResponseSchema, response, endpointPath).recurring_transfer;
 }
 
 /**
  * Cancel a recurring transfer.
+ *
+ * The Qonto API returns `204 No Content` on success, so this uses
+ * `requestVoid` rather than `client.post` (which would attempt to parse the
+ * empty body as JSON and throw "Unexpected end of JSON input").
  */
 export async function cancelRecurringTransfer(
   client: HttpClient,
   id: string,
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<void> {
-  await client.post("/v2/sepa/recurring_transfers/" + encodeURIComponent(id) + "/cancel", undefined, options);
+  await client.requestVoid("POST", `/v2/sepa/recurring_transfers/${encodeURIComponent(id)}/cancel`, options);
 }
 
 /**

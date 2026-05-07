@@ -17,7 +17,7 @@ function toTableRow(rt: RecurringTransfer): Record<string, string | number | nul
     amount_currency: rt.amount_currency,
     frequency: rt.frequency,
     next_execution_date: rt.next_execution_date,
-    status: rt.status,
+    status: rt.status ?? null,
   };
 }
 
