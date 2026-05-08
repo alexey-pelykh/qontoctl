@@ -6,7 +6,8 @@ import { mkdir, writeFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
-import { loadConfigFile } from "./loader.js";
+import { loadConfigFile, resolveConfigFilePath } from "./loader.js";
+import { ConfigError } from "./resolve.js";
 
 describe("loadConfigFile", () => {
   let baseDir: string;
@@ -25,47 +26,42 @@ describe("loadConfigFile", () => {
     await rm(baseDir, { recursive: true, force: true });
   });
 
-  it("returns undefined when no config file exists", async () => {
-    const result = await loadConfigFile({ cwd: testDir, home: testHome });
+  it("returns undefined when home default does not exist and no other source is provided", async () => {
+    const result = await loadConfigFile({ home: testHome });
     expect(result.raw).toBeUndefined();
     expect(result.path).toBeUndefined();
   });
 
-  it("loads .qontoctl.yaml from CWD", async () => {
-    const configPath = join(testDir, ".qontoctl.yaml");
-    await writeFile(configPath, "api-key:\n  organization-slug: cwd-org\n  secret-key: cwd-secret\n");
+  it("loads explicit path when provided", async () => {
+    const explicitPath = join(testDir, "custom.yaml");
+    await writeFile(explicitPath, "api-key:\n  organization-slug: explicit-org\n  secret-key: x\n");
 
-    const result = await loadConfigFile({ cwd: testDir, home: testHome });
-    expect(result.path).toBe(configPath);
+    const result = await loadConfigFile({ path: explicitPath, home: testHome });
+    expect(result.path).toBe(explicitPath);
     expect(result.raw).toEqual({
-      "api-key": { "organization-slug": "cwd-org", "secret-key": "cwd-secret" },
+      "api-key": { "organization-slug": "explicit-org", "secret-key": "x" },
     });
   });
 
-  it("falls back to ~/.qontoctl.yaml when CWD has no config", async () => {
+  it("loads ~/.qontoctl.yaml as the home default", async () => {
     const homePath = join(testHome, ".qontoctl.yaml");
     await writeFile(homePath, "api-key:\n  organization-slug: home-org\n  secret-key: home-secret\n");
 
-    const result = await loadConfigFile({ cwd: testDir, home: testHome });
+    const result = await loadConfigFile({ home: testHome });
     expect(result.path).toBe(homePath);
     expect(result.raw).toEqual({
       "api-key": { "organization-slug": "home-org", "secret-key": "home-secret" },
     });
   });
 
-  it("prefers CWD config over home config", async () => {
-    await writeFile(
-      join(testDir, ".qontoctl.yaml"),
-      "api-key:\n  organization-slug: cwd-org\n  secret-key: cwd-secret\n",
-    );
-    await writeFile(
-      join(testHome, ".qontoctl.yaml"),
-      "api-key:\n  organization-slug: home-org\n  secret-key: home-secret\n",
-    );
+  it("loads from QONTOCTL_CONFIG_FILE env var when set", async () => {
+    const envPath = join(testDir, "env-config.yaml");
+    await writeFile(envPath, "api-key:\n  organization-slug: env-org\n  secret-key: x\n");
 
-    const result = await loadConfigFile({ cwd: testDir, home: testHome });
+    const result = await loadConfigFile({ env: { QONTOCTL_CONFIG_FILE: envPath }, home: testHome });
+    expect(result.path).toBe(envPath);
     expect(result.raw).toEqual({
-      "api-key": { "organization-slug": "cwd-org", "secret-key": "cwd-secret" },
+      "api-key": { "organization-slug": "env-org", "secret-key": "x" },
     });
   });
 
@@ -77,7 +73,6 @@ describe("loadConfigFile", () => {
 
     const result = await loadConfigFile({
       profile: "staging",
-      cwd: testDir,
       home: testHome,
     });
     expect(result.path).toBe(profilePath);
@@ -92,72 +87,109 @@ describe("loadConfigFile", () => {
   it("returns undefined when named profile file does not exist", async () => {
     const result = await loadConfigFile({
       profile: "nonexistent",
-      cwd: testDir,
       home: testHome,
     });
     expect(result.raw).toBeUndefined();
     expect(result.path).toBeUndefined();
   });
 
-  it("treats empty CWD file the same as missing file (raw undefined when no home file either)", async () => {
-    await writeFile(join(testDir, ".qontoctl.yaml"), "");
-
-    const result = await loadConfigFile({ cwd: testDir, home: testHome });
-    // Both CWD and home are empty/missing → no-hit
+  it("does NOT inspect process.cwd at any stage", async () => {
+    // The loader must not fall through to process.cwd when the home default
+    // is empty. With only `home` (pointing at an empty dir) supplied, the
+    // result must be no-hit — even when running from the qontoctl repo root
+    // where a real `.qontoctl.yaml` sits in process.cwd. If the loader ever
+    // regresses to walking up from cwd, this assertion fails locally (where
+    // a real cwd config exists). In CI without a cwd config it passes
+    // vacuously; the resolve.test.ts companion is the stronger guard there.
+    const result = await loadConfigFile({ home: testHome });
     expect(result.raw).toBeUndefined();
     expect(result.path).toBeUndefined();
   });
 
-  it("treats comment-only CWD file the same as missing file", async () => {
-    await writeFile(join(testDir, ".qontoctl.yaml"), "# only a comment\n# nothing else here\n");
+  it("throws ConfigError PARSE on malformed YAML", async () => {
+    const badPath = join(testHome, ".qontoctl.yaml");
+    await writeFile(badPath, ":\n  :\n  invalid: [unclosed");
 
-    const result = await loadConfigFile({ cwd: testDir, home: testHome });
+    await expect(loadConfigFile({ home: testHome })).rejects.toMatchObject({
+      name: "ConfigError",
+      code: "PARSE",
+    });
+  });
+
+  it("ConfigError PARSE includes the path in the message", async () => {
+    const badPath = join(testHome, ".qontoctl.yaml");
+    await writeFile(badPath, ":\n  :\n  invalid: [unclosed");
+
+    await expect(loadConfigFile({ home: testHome })).rejects.toThrow(badPath);
+  });
+
+  it("explicit path: nonexistent file returns no-hit (no error)", async () => {
+    const result = await loadConfigFile({ path: join(testDir, "missing.yaml"), home: testHome });
     expect(result.raw).toBeUndefined();
     expect(result.path).toBeUndefined();
   });
 
-  it("falls back to home when CWD .qontoctl.yaml is empty", async () => {
-    // Empty CWD file (parseYaml -> null) should not short-circuit; home wins.
-    await writeFile(join(testDir, ".qontoctl.yaml"), "");
-    const homePath = join(testHome, ".qontoctl.yaml");
-    await writeFile(homePath, "api-key:\n  organization-slug: home-org\n  secret-key: home-secret\n");
+  it("ConfigError thrown by loader survives the wrapping (instance-of check)", async () => {
+    const badPath = join(testHome, ".qontoctl.yaml");
+    // Unclosed flow sequence — yaml parser rejects this with a syntax error.
+    await writeFile(badPath, "api-key:\n  foo: [unclosed\n");
 
-    const result = await loadConfigFile({ cwd: testDir, home: testHome });
-    expect(result.path).toBe(homePath);
-    expect(result.raw).toEqual({
-      "api-key": { "organization-slug": "home-org", "secret-key": "home-secret" },
-    });
+    await expect(loadConfigFile({ home: testHome })).rejects.toBeInstanceOf(ConfigError);
+  });
+});
+
+describe("resolveConfigFilePath", () => {
+  // Use platform-native path separators so the assertions hold on
+  // Windows (`\`) and POSIX (`/`) alike — `node:path/join` returns
+  // platform-specific separators.
+  const HOME = join("home", "u");
+
+  it("returns explicit path", () => {
+    expect(resolveConfigFilePath({ path: "/abs/path.yaml" })).toBe("/abs/path.yaml");
   });
 
-  it("falls back to home when CWD .qontoctl.yaml is comment-only", async () => {
-    await writeFile(join(testDir, ".qontoctl.yaml"), "# placeholder, not real config\n");
-    const homePath = join(testHome, ".qontoctl.yaml");
-    await writeFile(homePath, "api-key:\n  organization-slug: home-org\n  secret-key: home-secret\n");
-
-    const result = await loadConfigFile({ cwd: testDir, home: testHome });
-    expect(result.path).toBe(homePath);
-    expect(result.raw).toEqual({
-      "api-key": { "organization-slug": "home-org", "secret-key": "home-secret" },
-    });
+  it("returns env var value when no explicit path", () => {
+    expect(
+      resolveConfigFilePath({
+        env: { QONTOCTL_CONFIG_FILE: "/from-env.yaml" },
+        home: HOME,
+      }),
+    ).toBe("/from-env.yaml");
   });
 
-  it("falls back to home when CWD .qontoctl.yaml has top-level oauth: null", async () => {
-    // YAML "oauth: null" parses to {oauth: null}, which IS a non-null value, so
-    // CWD short-circuits as expected. This complements the "raw === null" test
-    // and documents that null-parsing only fires at the document root level.
-    await writeFile(join(testDir, ".qontoctl.yaml"), "oauth: null\n");
-    const homePath = join(testHome, ".qontoctl.yaml");
-    await writeFile(homePath, "api-key:\n  organization-slug: home-org\n  secret-key: home-secret\n");
-
-    const result = await loadConfigFile({ cwd: testDir, home: testHome });
-    // CWD wins because raw is {oauth: null}, not null itself.
-    expect(result.path).toBe(join(testDir, ".qontoctl.yaml"));
-    expect(result.raw).toEqual({ oauth: null });
+  it("ignores empty-string env var (treats as unset)", () => {
+    expect(
+      resolveConfigFilePath({
+        env: { QONTOCTL_CONFIG_FILE: "" },
+        home: HOME,
+      }),
+    ).toBe(join(HOME, ".qontoctl.yaml"));
   });
 
-  it("throws on malformed YAML", async () => {
-    await writeFile(join(testDir, ".qontoctl.yaml"), ":\n  :\n  invalid: [unclosed");
+  it("returns profile-derived path when profile is set", () => {
+    expect(resolveConfigFilePath({ profile: "prod", home: HOME })).toBe(join(HOME, ".qontoctl", "prod.yaml"));
+  });
 
-    await expect(loadConfigFile({ cwd: testDir, home: testHome })).rejects.toThrow(/Failed to read config file/);
+  it("falls through to home default", () => {
+    expect(resolveConfigFilePath({ home: HOME })).toBe(join(HOME, ".qontoctl.yaml"));
+  });
+
+  it("explicit path beats env-var beats profile", () => {
+    expect(
+      resolveConfigFilePath({
+        path: "/from-arg.yaml",
+        env: { QONTOCTL_CONFIG_FILE: "/from-env.yaml" },
+        profile: "prod",
+        home: HOME,
+      }),
+    ).toBe("/from-arg.yaml");
+
+    expect(
+      resolveConfigFilePath({
+        env: { QONTOCTL_CONFIG_FILE: "/from-env.yaml" },
+        profile: "prod",
+        home: HOME,
+      }),
+    ).toBe("/from-env.yaml");
   });
 });

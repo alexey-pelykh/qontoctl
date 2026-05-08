@@ -1,0 +1,9 @@
+# Example direnv configuration for QontoCtl repo-local development.
+#
+# Copy to `.envrc` (gitignored), then run `direnv allow` to activate.
+# This points the CLI/MCP at the repo's `.qontoctl.yaml` without relying
+# on CWD discovery (which the config resolver no longer performs — see #479).
+#
+# direnv: https://direnv.net/
+
+export QONTOCTL_CONFIG_FILE="$PWD/.qontoctl.yaml"

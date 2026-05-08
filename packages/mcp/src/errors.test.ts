@@ -39,7 +39,7 @@ describe("withClient", () => {
 
   describe("ConfigError", () => {
     it("formats configuration error with setup guidance", async () => {
-      const factory = () => Promise.reject(new ConfigError("No credentials found"));
+      const factory = () => Promise.reject(new ConfigError("No credentials found", "NO_CREDS"));
       const result = await withClient(factory, async () => ({
         content: [{ type: "text" as const, text: "unreachable" }],
       }));

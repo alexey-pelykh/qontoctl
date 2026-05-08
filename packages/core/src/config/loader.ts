@@ -6,62 +6,100 @@ import { join } from "node:path";
 import { homedir } from "node:os";
 import { parse as parseYaml } from "yaml";
 import { CONFIG_DIR } from "../constants.js";
+import { ConfigError } from "./resolve.js";
 
 const CONFIG_FILENAME = ".qontoctl.yaml";
+const CONFIG_FILE_ENV = "QONTOCTL_CONFIG_FILE";
 
 export interface LoadResult {
   /** Parsed YAML content, or `undefined` if no file was found. */
   raw: unknown;
-  /** Path of the file that was loaded, or `undefined` if none found. */
+  /** Absolute path of the file that was loaded, or `undefined` if none found. */
   path: string | undefined;
+}
+
+export interface LoadOptions {
+  /**
+   * Explicit path to load. Highest-priority resolution input; bypasses env
+   * and profile/home defaults entirely.
+   */
+  path?: string | undefined;
+  /** Named profile — derives `~/.qontoctl/{profile}.yaml`. */
+  profile?: string | undefined;
+  /** Override home directory for resolution (useful for testing). */
+  home?: string | undefined;
+  /** Override environment variables (useful for testing). */
+  env?: Record<string, string | undefined> | undefined;
 }
 
 /**
  * Resolves and loads the appropriate config file.
  *
- * - With `profile`: loads `~/.qontoctl/{profile}.yaml`
- * - Without `profile`: tries CWD `.qontoctl.yaml`, then `~/.qontoctl.yaml`
+ * Precedence (highest first):
+ *   1. `path` option — explicit path
+ *   2. `QONTOCTL_CONFIG_FILE` env var
+ *   3. `~/.qontoctl/{profile}.yaml` (when `profile` is set)
+ *   4. `~/.qontoctl.yaml` (home default)
+ *
+ * No CWD inspection. Local-config workflows must use `path`, the env var,
+ * or a direnv shim that exports the env var.
  */
-export async function loadConfigFile(options?: {
-  profile?: string | undefined;
-  cwd?: string | undefined;
-  home?: string | undefined;
-}): Promise<LoadResult> {
+export async function loadConfigFile(options?: LoadOptions): Promise<LoadResult> {
+  const path = resolveConfigFilePath(options);
+  return loadFromPath(path);
+}
+
+/**
+ * Resolves the absolute path that {@link loadConfigFile} would load from.
+ *
+ * Same precedence as {@link loadConfigFile}, but performs no I/O. Useful
+ * for writers that must round-trip the loader's path (preventing load/write
+ * divergence) and for first-time-write callers that need to know the
+ * destination before any file exists.
+ */
+export function resolveConfigFilePath(options?: LoadOptions): string {
+  if (options?.path !== undefined) {
+    return options.path;
+  }
+
+  const env = options?.env ?? (process.env as Record<string, string | undefined>);
+  const envPath = env[CONFIG_FILE_ENV];
+  if (envPath !== undefined && envPath !== "") {
+    return envPath;
+  }
+
   const home = options?.home ?? homedir();
-  const profile = options?.profile;
-
-  if (profile !== undefined) {
-    const path = join(home, CONFIG_DIR, `${profile}.yaml`);
-    return loadFromPath(path);
+  if (options?.profile !== undefined) {
+    return join(home, CONFIG_DIR, `${options.profile}.yaml`);
   }
 
-  const cwd = options?.cwd ?? process.cwd();
-
-  // Try CWD first. An empty file or a file with only comments parses to
-  // `null` — treat that the same as a missing file (no-hit) so we fall
-  // through to the home directory rather than short-circuiting on a
-  // semantically empty CWD config.
-  const cwdPath = join(cwd, CONFIG_FILENAME);
-  const cwdResult = await loadFromPath(cwdPath);
-  if (cwdResult.raw !== undefined && cwdResult.raw !== null) {
-    return cwdResult;
-  }
-
-  // Fall back to home directory
-  const homePath = join(home, CONFIG_FILENAME);
-  return loadFromPath(homePath);
+  return join(home, CONFIG_FILENAME);
 }
 
 async function loadFromPath(path: string): Promise<LoadResult> {
   try {
     const content = await readFile(path, "utf-8");
-    const raw: unknown = parseYaml(content);
+    let raw: unknown;
+    try {
+      raw = parseYaml(content);
+    } catch (parseError: unknown) {
+      const detail = parseError instanceof Error ? parseError.message : String(parseError);
+      throw new ConfigError(`Failed to parse YAML at "${path}": ${detail}`, "PARSE");
+    }
     return { raw, path };
   } catch (error: unknown) {
-    if (isNodeError(error) && error.code === "ENOENT") {
-      return { raw: undefined, path: undefined };
+    if (error instanceof ConfigError) {
+      throw error;
     }
-    throw new Error(`Failed to read config file "${path}": ${String(error)}`);
+    if (isNodeError(error)) {
+      if (error.code === "ENOENT") {
+        return { raw: undefined, path: undefined };
+      }
+      if (error.code === "EACCES" || error.code === "EPERM") {
+        throw new ConfigError(`Permission denied reading config file "${path}".`, "PERMISSION");
+      }
+    }
+    throw new ConfigError(`Failed to read config file "${path}": ${String(error)}`, "PARSE");
   }
 }
 

@@ -2,10 +2,11 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import type { ConfigResult, OAuthCredentials, QontoctlConfig, ResolveOptions } from "./types.js";
-import { loadConfigFile } from "./loader.js";
-import { validateConfig } from "./validate.js";
+import { loadConfigFile, resolveConfigFilePath } from "./loader.js";
+import { isValidProfileName, validateConfig } from "./validate.js";
 import { applyEnvOverlay, type EnvOverlayConfig } from "./env.js";
 import { API_BASE_URL, SANDBOX_BASE_URL } from "../constants.js";
+import { stat } from "node:fs/promises";
 
 /**
  * Sandbox-only SCA method that triggers a mock SCA challenge instead of
@@ -15,90 +16,151 @@ import { API_BASE_URL, SANDBOX_BASE_URL } from "../constants.js";
  */
 const SANDBOX_DEFAULT_SCA_METHOD = "mock";
 
+/**
+ * Discriminator for {@link ConfigError}, allowing callers (CLI/MCP error
+ * handlers) to switch on cause without parsing message strings.
+ *
+ * - `NO_CREDS` — no credentials found in any source (file, env, profile).
+ * - `PARSE` — YAML parse failure.
+ * - `VALIDATION` — schema validation failure or invalid profile name.
+ * - `PERMISSION` — file system permission denied (EACCES/EPERM) on read or write.
+ * - `CONFLICT` — concurrent write contention (lock could not be acquired
+ *   within the configured retry window).
+ */
+export type ConfigErrorCode = "NO_CREDS" | "PARSE" | "VALIDATION" | "PERMISSION" | "CONFLICT";
+
 export class ConfigError extends Error {
-  constructor(message: string) {
+  readonly code: ConfigErrorCode;
+
+  constructor(message: string, code: ConfigErrorCode) {
     super(message);
     this.name = "ConfigError";
+    this.code = code;
   }
 }
 
 /**
+ * File mode bits to check when warning about insecure permissions on a
+ * config file containing OAuth client-secret or access-token. We warn when
+ * group or world has any read access — the file should be 0o600 (or stricter)
+ * for OAuth credentials.
+ */
+const INSECURE_PERMS_MASK = 0o077;
+
+/**
  * Resolves the full configuration by:
- * 1. Loading the appropriate YAML config file (profile-aware)
- * 2. Validating the schema (producing warnings for unknown keys)
- * 3. Overlaying environment variables (static fields only)
- * 4. Re-attaching runtime-mutable file fields (refreshToken,
+ * 1. Validating the profile name (if any).
+ * 2. Loading the appropriate YAML config file (explicit path > env > profile > home).
+ * 3. Validating the schema (producing warnings for unknown keys).
+ * 4. Overlaying environment variables (static fields only).
+ * 5. Re-attaching runtime-mutable file fields (refreshToken,
  *    accessTokenExpiresAt, scopes) that env-overlay deliberately does not
  *    cover — see {@link applyEnvOverlay}.
- * 5. Verifying that credentials are present
- * 6. Resolving the API endpoint
+ * 6. Verifying that credentials are present.
+ * 7. Resolving the API endpoint.
+ * 8. Emitting a stderr warning if the loaded file has insecure permissions
+ *    on OAuth-bearing content.
  *
  * Endpoint precedence:
  *   QONTOCTL_ENDPOINT > staging-token presence > profile endpoint > default
  *
- * @throws {ConfigError} on validation errors or missing credentials
+ * @throws {ConfigError} on validation errors or missing credentials. Always
+ *   includes a {@link ConfigErrorCode} discriminator.
  */
 export async function resolveConfig(options?: ResolveOptions): Promise<ConfigResult> {
   const profile = options?.profile;
 
-  // 1. Load config file
+  // 1. Validate profile name (if any) before any I/O.
+  if (profile !== undefined && !isValidProfileName(profile)) {
+    throw new ConfigError(
+      `Invalid profile name "${profile}". Profile names must not contain path separators, parent-directory references, glob characters, or shadow reserved env-var suffixes.`,
+      "VALIDATION",
+    );
+  }
+
+  // 2. Load config file via deterministic precedence.
   const { raw, path } = await loadConfigFile({
+    path: options?.path,
     profile,
-    cwd: options?.cwd,
     home: options?.home,
+    env: options?.env,
   });
 
-  // 2. Validate
+  // 3. Validate schema.
   const { config: fileConfig, warnings, errors } = validateConfig(raw);
 
   if (errors.length > 0) {
     const location = path !== undefined ? ` (${path})` : "";
-    throw new ConfigError(`Invalid configuration${location}:\n  - ${errors.join("\n  - ")}`);
+    throw new ConfigError(`Invalid configuration${location}:\n  - ${errors.join("\n  - ")}`, "VALIDATION");
   }
 
-  // 3. Overlay env vars (static fields only — env never carries
-  //    refreshToken/accessTokenExpiresAt/scopes)
+  // 4. Overlay env vars (static fields only — env never carries
+  //    refreshToken/accessTokenExpiresAt/scopes).
   const fileStatic = pickStaticFields(fileConfig);
   const { config: overlaidStatic, accessTokenFromEnv } = applyEnvOverlay(fileStatic, {
     profile,
     env: options?.env,
   });
 
-  // 4. Re-attach runtime-mutable file fields (refreshToken,
+  // 5. Re-attach runtime-mutable file fields (refreshToken,
   //    accessTokenExpiresAt, scopes) — env never overrides these, but the
   //    file copy must be preserved through the env-overlay pipeline.
   const config = mergeRuntimeFields(overlaidStatic, fileConfig);
 
-  // 5. Verify credentials are present (at least one auth method)
+  // 6. Verify credentials are present (at least one auth method).
   if (config.apiKey === undefined && config.oauth === undefined) {
-    const searchedLocations = describeSearchLocations(profile, path);
-    throw new ConfigError(`No credentials found. ${searchedLocations}`);
+    const searchedLocations = describeSearchLocations(profile, path, options?.path, options?.env);
+    throw new ConfigError(`No credentials found. ${searchedLocations}`, "NO_CREDS");
   }
 
   if (config.apiKey !== undefined) {
     if (config.apiKey.organizationSlug === "") {
-      throw new ConfigError('Missing required field "organization-slug" in api-key credentials');
+      throw new ConfigError('Missing required field "organization-slug" in api-key credentials', "VALIDATION");
     }
 
     if (config.apiKey.secretKey === "") {
-      throw new ConfigError('Missing required field "secret-key" in api-key credentials');
+      throw new ConfigError('Missing required field "secret-key" in api-key credentials', "VALIDATION");
     }
   }
 
   if (config.oauth !== undefined) {
     if (config.oauth.clientId === "") {
-      throw new ConfigError('Missing required field "client-id" in oauth credentials');
+      throw new ConfigError('Missing required field "client-id" in oauth credentials', "VALIDATION");
     }
 
     if (config.oauth.clientSecret === "") {
-      throw new ConfigError('Missing required field "client-secret" in oauth credentials');
+      throw new ConfigError('Missing required field "client-secret" in oauth credentials', "VALIDATION");
     }
   }
 
-  // 6. Resolve endpoint
+  // 7. Resolve endpoint.
   const endpoint = resolveEndpoint(config);
 
-  return { config, endpoint, warnings, oauthAccessTokenFromEnv: accessTokenFromEnv };
+  // 8. Permission warning for OAuth-bearing files (best-effort, non-fatal).
+  if (path !== undefined && config.oauth !== undefined) {
+    await maybeWarnInsecurePermissions(path, warnings);
+  }
+
+  return { config, endpoint, warnings, path, oauthAccessTokenFromEnv: accessTokenFromEnv };
+}
+
+/**
+ * Resolves the absolute path that {@link resolveConfig} would load from,
+ * without performing any I/O on file content. Useful for callers that need
+ * to know the destination of a write before calling a writer entrypoint
+ * (e.g., `auth login` choosing where to persist new tokens when no file
+ * yet exists).
+ *
+ * Precedence mirrors {@link resolveConfig}:
+ *   path > QONTOCTL_CONFIG_FILE > profile-derived > home default
+ */
+export function resolveConfigPath(options?: ResolveOptions): string {
+  return resolveConfigFilePath({
+    path: options?.path,
+    profile: options?.profile,
+    home: options?.home,
+    env: options?.env,
+  });
 }
 
 /**
@@ -208,12 +270,48 @@ export function resolveScaMethod(config: QontoctlConfig, override?: string): str
   return undefined;
 }
 
-function describeSearchLocations(profile: string | undefined, loadedPath: string | undefined): string {
+/**
+ * Best-effort permission check on the loaded config file. Emits a stderr
+ * warning (and appends to the warnings array) when an OAuth-bearing file is
+ * group- or world-readable. Skipped silently on stat failure — permission
+ * hygiene is advisory, not a gate.
+ */
+async function maybeWarnInsecurePermissions(path: string, warnings: string[]): Promise<void> {
+  try {
+    const info = await stat(path);
+    // `mode` is 0o100755-style; mask off file-type bits.
+    const perms = info.mode & 0o777;
+    if ((perms & INSECURE_PERMS_MASK) !== 0) {
+      const message = `Config file ${path} contains OAuth credentials but has permissions ${perms.toString(8).padStart(3, "0")} (group/world readable). Tighten with: chmod 600 ${path}`;
+      warnings.push(message);
+      // Best-effort stderr emit; not all callers print warnings, so surface
+      // immediately for the security-relevant case.
+      process.stderr.write(`warning: ${message}\n`);
+    }
+  } catch {
+    // stat failed (e.g., race on file deletion); silently skip — permission
+    // checks are not a load gate.
+  }
+}
+
+function describeSearchLocations(
+  profile: string | undefined,
+  loadedPath: string | undefined,
+  explicitPath: string | undefined,
+  env: Record<string, string | undefined> | undefined,
+): string {
+  if (explicitPath !== undefined) {
+    return `Explicit path "${explicitPath}" was loaded but contains no credentials.`;
+  }
   if (profile !== undefined) {
     return `Checked ~/.qontoctl/${profile}.yaml and QONTOCTL_${profile.toUpperCase().replaceAll("-", "_")}_* env vars.`;
   }
-  if (loadedPath !== undefined) {
-    return `Found config at ${loadedPath} but it contains no api-key credentials. Also checked QONTOCTL_* env vars.`;
+  const envFile = (env ?? (process.env as Record<string, string | undefined>))["QONTOCTL_CONFIG_FILE"];
+  if (envFile !== undefined) {
+    return `Checked QONTOCTL_CONFIG_FILE="${envFile}" and QONTOCTL_* env vars.`;
   }
-  return "Checked .qontoctl.yaml (CWD), ~/.qontoctl.yaml (home), and QONTOCTL_* env vars.";
+  if (loadedPath !== undefined) {
+    return `Found config at ${loadedPath} but it contains no credentials. Also checked QONTOCTL_* env vars.`;
+  }
+  return "Checked ~/.qontoctl.yaml (home), QONTOCTL_CONFIG_FILE env var, and QONTOCTL_* env vars. Use --config <path>, set QONTOCTL_CONFIG_FILE, or pass --profile <name>.";
 }

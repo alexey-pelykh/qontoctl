@@ -177,32 +177,62 @@ describe("applyEnvOverlay", () => {
     expect(result.endpoint).toBe("https://env.example.com");
   });
 
-  it("overlays QONTOCTL_STAGING_TOKEN env var into oauth section", () => {
-    const config = {};
+  it("overlays QONTOCTL_STAGING_TOKEN env var when file supplies client creds", () => {
+    // Post-#479: a staging token without resolvable client creds is
+    // dropped (the resolver surfaces NO_CREDS). With file-supplied client
+    // creds, the env staging token attaches as expected.
+    const config = {
+      oauth: { clientId: "cid", clientSecret: "csecret" },
+    };
     const { config: result } = applyEnvOverlay(config, {
       env: { QONTOCTL_STAGING_TOKEN: "tok_abc123" },
     });
     expect(result.oauth?.stagingToken).toBe("tok_abc123");
   });
 
-  it("creates oauth section when staging token env var is set but no oauth in config", () => {
+  it("does NOT create an oauth section when only staging-token env var is set (issue #479)", () => {
+    // A staging token alone is meaningless — the sandbox endpoint is
+    // OAuth-only. Attaching it to a synthesized oauth block with empty
+    // client creds would produce an unusable record and surface a
+    // misleading "missing client-id" downstream. Drop instead.
     const config = {};
     const { config: result } = applyEnvOverlay(config, {
       env: { QONTOCTL_STAGING_TOKEN: "tok_abc123" },
     });
-    expect(result.oauth).toBeDefined();
-    expect(result.oauth?.clientId).toBe("");
-    expect(result.oauth?.clientSecret).toBe("");
-    expect(result.oauth?.stagingToken).toBe("tok_abc123");
+    expect(result.oauth).toBeUndefined();
   });
 
-  it("overlays profile-scoped staging token env var into oauth section", () => {
+  it("staging-token env var attaches when file supplies client creds", () => {
+    const config = {
+      oauth: { clientId: "cid", clientSecret: "csecret" },
+    };
+    const { config: result } = applyEnvOverlay(config, {
+      env: { QONTOCTL_STAGING_TOKEN: "tok_abc123" },
+    });
+    expect(result.oauth?.stagingToken).toBe("tok_abc123");
+    expect(result.oauth?.clientId).toBe("cid");
+  });
+
+  it("staging-token env var attaches when env supplies client creds in same overlay", () => {
+    const config = {};
+    const { config: result } = applyEnvOverlay(config, {
+      env: {
+        QONTOCTL_CLIENT_ID: "cid",
+        QONTOCTL_CLIENT_SECRET: "csecret",
+        QONTOCTL_STAGING_TOKEN: "tok_abc123",
+      },
+    });
+    expect(result.oauth?.stagingToken).toBe("tok_abc123");
+    expect(result.oauth?.clientId).toBe("cid");
+  });
+
+  it("does NOT attach profile-scoped staging-token without client creds (issue #479)", () => {
     const config = {};
     const { config: result } = applyEnvOverlay(config, {
       profile: "staging",
       env: { QONTOCTL_STAGING_STAGING_TOKEN: "tok_staging" },
     });
-    expect(result.oauth?.stagingToken).toBe("tok_staging");
+    expect(result.oauth).toBeUndefined();
   });
 
   it("staging token env var overrides file staging token in oauth", () => {
@@ -232,16 +262,22 @@ describe("applyEnvOverlay", () => {
     expect(result.oauth?.stagingToken).toBe("tok_abc123");
   });
 
-  it("overlays QONTOCTL_ACCESS_TOKEN env var", () => {
+  it("does NOT synthesize oauth when only QONTOCTL_ACCESS_TOKEN is set (issue #479)", () => {
+    // Pre-#479: synthesized oauth { clientId: '', clientSecret: '',
+    // accessToken } which then surfaced "Missing required field
+    // 'client-id'" downstream — misleading: the user only wanted an
+    // access-token override. Post-#479: leave oauth undefined; downstream
+    // NO_CREDS surfaces accurately. The flag is still raised so a caller
+    // that DOES have file oauth identity can honor read-only semantics.
     const config = {};
     const { config: result, accessTokenFromEnv } = applyEnvOverlay(config, {
       env: { QONTOCTL_ACCESS_TOKEN: "at_env123" },
     });
-    expect(result.oauth?.accessToken).toBe("at_env123");
+    expect(result.oauth).toBeUndefined();
     expect(accessTokenFromEnv).toBe(true);
   });
 
-  it("access token env var overrides file access token", () => {
+  it("access-token env var overrides file access token when file supplies client creds", () => {
     const config = {
       oauth: { clientId: "cid", clientSecret: "csecret", accessToken: "file_at" },
     };
@@ -249,16 +285,31 @@ describe("applyEnvOverlay", () => {
       env: { QONTOCTL_ACCESS_TOKEN: "env_at" },
     });
     expect(result.oauth?.accessToken).toBe("env_at");
+    expect(result.oauth?.clientId).toBe("cid");
     expect(accessTokenFromEnv).toBe(true);
   });
 
-  it("overlays profile-scoped access token", () => {
+  it("access-token env var combines with env client creds in same overlay", () => {
+    const config = {};
+    const { config: result, accessTokenFromEnv } = applyEnvOverlay(config, {
+      env: {
+        QONTOCTL_CLIENT_ID: "cid",
+        QONTOCTL_CLIENT_SECRET: "csecret",
+        QONTOCTL_ACCESS_TOKEN: "env_at",
+      },
+    });
+    expect(result.oauth?.accessToken).toBe("env_at");
+    expect(result.oauth?.clientId).toBe("cid");
+    expect(accessTokenFromEnv).toBe(true);
+  });
+
+  it("does NOT synthesize oauth from profile-scoped access-token alone (issue #479)", () => {
     const config = {};
     const { config: result, accessTokenFromEnv } = applyEnvOverlay(config, {
       profile: "staging",
       env: { QONTOCTL_STAGING_ACCESS_TOKEN: "at_staging" },
     });
-    expect(result.oauth?.accessToken).toBe("at_staging");
+    expect(result.oauth).toBeUndefined();
     expect(accessTokenFromEnv).toBe(true);
   });
 

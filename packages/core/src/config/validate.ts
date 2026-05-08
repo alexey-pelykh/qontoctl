@@ -4,13 +4,52 @@
 import type { QontoctlConfig } from "./types.js";
 
 /**
- * Check whether a profile name is safe to use as a filename.
+ * Profile names that would shadow no-profile env-var suffixes.
  *
- * Rejects names containing path separators (`/`, `\`) or parent-directory
- * references (`..`) to prevent path-traversal attacks.
+ * Env vars are derived by `QONTOCTL_<PROFILE_UPPERCASE>_<SUFFIX>`. A profile
+ * named `endpoint` would generate `QONTOCTL_ENDPOINT_*` patterns that collide
+ * with the no-profile `QONTOCTL_ENDPOINT` variable, producing an ambiguous
+ * resolution rule. Profiles matching any reserved suffix (case-insensitive,
+ * after `-` → `_` normalization) are rejected at resolution time.
+ *
+ * `REFRESH_TOKEN` is included even though `QONTOCTL_REFRESH_TOKEN` is not
+ * read at runtime (per #495) — it remains a reserved suffix to prevent
+ * future re-introduction from accidentally re-shadowing.
+ */
+const RESERVED_PROFILE_SUFFIXES = new Set([
+  "ORGANIZATION_SLUG",
+  "SECRET_KEY",
+  "ENDPOINT",
+  "CLIENT_ID",
+  "CLIENT_SECRET",
+  "ACCESS_TOKEN",
+  "REFRESH_TOKEN",
+  "SCOPES",
+  "STAGING_TOKEN",
+  "SCA_METHOD",
+  "CONFIG_FILE",
+]);
+
+/**
+ * Check whether a profile name is safe to use as a filename and as an
+ * env-var suffix.
+ *
+ * Rejects:
+ *   - Path separators (`/`, `\`) and parent-directory references (`..`) —
+ *     prevents path-traversal attacks via `--profile ../foo`.
+ *   - Glob characters (`*`, `?`, `[`, `]`) — these would silently pass
+ *     through to filesystem APIs and surprise users expecting glob expansion.
+ *   - Empty strings.
+ *   - Reserved env-var suffixes — see {@link RESERVED_PROFILE_SUFFIXES}.
  */
 export function isValidProfileName(name: string): boolean {
-  return !/[/\\]/.test(name) && !name.includes("..");
+  if (name === "") return false;
+  if (/[/\\]/.test(name)) return false;
+  if (name.includes("..")) return false;
+  if (/[*?[\]]/.test(name)) return false;
+  const normalized = name.toUpperCase().replaceAll("-", "_");
+  if (RESERVED_PROFILE_SUFFIXES.has(normalized)) return false;
+  return true;
 }
 
 const KNOWN_TOP_LEVEL_KEYS = new Set(["api-key", "oauth", "endpoint", "sca"]);

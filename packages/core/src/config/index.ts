@@ -9,12 +9,13 @@ export type {
   ResolveOptions,
   ScaConfig,
 } from "./types.js";
-export { resolveConfig, resolveScaMethod, ConfigError } from "./resolve.js";
-export { loadConfigFile } from "./loader.js";
-export type { LoadResult } from "./loader.js";
+export { resolveConfig, resolveConfigPath, resolveScaMethod, ConfigError } from "./resolve.js";
+export type { ConfigErrorCode } from "./resolve.js";
+export { loadConfigFile, resolveConfigFilePath } from "./loader.js";
+export type { LoadOptions, LoadResult } from "./loader.js";
 export { isValidProfileName, validateConfig } from "./validate.js";
 export type { ValidationResult } from "./validate.js";
 export { applyEnvOverlay } from "./env.js";
 export type { EnvOverlayConfig, EnvOverlayResult, StaticOAuthFields } from "./env.js";
 export { saveOAuthTokens, saveOAuthClientCredentials, clearOAuthTokens, saveOAuthScopes } from "./writer.js";
-export type { TokenUpdate } from "./writer.js";
+export type { TokenUpdate, WriteOptions } from "./writer.js";

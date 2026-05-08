@@ -23,7 +23,7 @@ import type { GlobalOptions } from "./options.js";
  * Auth precedence: OAuth (with auto-refresh) > API key.
  */
 export async function createClient(options: GlobalOptions): Promise<HttpClient> {
-  const { config, endpoint, warnings, oauthAccessTokenFromEnv } = await resolveConfig({
+  const { config, endpoint, warnings, path, oauthAccessTokenFromEnv } = await resolveConfig({
     profile: options.profile,
   });
 
@@ -38,7 +38,8 @@ export async function createClient(options: GlobalOptions): Promise<HttpClient> 
     authorization = createOAuthAuthorization({
       oauth: config.oauth,
       tokenUrl: config.oauth.stagingToken !== undefined ? OAUTH_TOKEN_SANDBOX_URL : OAUTH_TOKEN_URL,
-      profile: options.profile,
+      ...(path !== undefined ? { path } : {}),
+      ...(options.profile !== undefined ? { profile: options.profile } : {}),
       readOnly: oauthAccessTokenFromEnv,
     });
 

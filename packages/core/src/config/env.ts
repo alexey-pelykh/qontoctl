@@ -123,16 +123,40 @@ export function applyEnvOverlay(
 
   if (clientId !== undefined || clientSecret !== undefined || accessToken !== undefined) {
     const existing = result.oauth;
+    const mergedClientId = clientId ?? existing?.clientId;
+    const mergedClientSecret = clientSecret ?? existing?.clientSecret;
     const mergedAccessToken = accessToken ?? existing?.accessToken;
-    result = {
-      ...result,
-      oauth: {
-        clientId: clientId ?? existing?.clientId ?? "",
-        clientSecret: clientSecret ?? existing?.clientSecret ?? "",
-        ...(mergedAccessToken !== undefined ? { accessToken: mergedAccessToken } : {}),
-        ...(existing?.stagingToken !== undefined ? { stagingToken: existing.stagingToken } : {}),
-      },
-    };
+
+    // Only synthesize/merge an oauth block when client credentials can be
+    // fully resolved from some combination of env + file. Without
+    // client-id + client-secret, an oauth block is unusable: the bearer
+    // cannot be refreshed, and downstream resolution would throw a
+    // misleading "missing client-id" error pointing at credentials the
+    // user never asked to set. The pre-#479 behavior synthesized an oauth
+    // object with empty-string client-id when env supplied only an
+    // access-token override — surfacing the wrong error class to the user
+    // who simply wanted to override the bearer for one invocation.
+    //
+    // When client credentials cannot be resolved (e.g., env-only
+    // QONTOCTL_ACCESS_TOKEN with no file `oauth` section), leave
+    // `result.oauth` as-is. The downstream NO_CREDS error then
+    // accurately reflects what the resolver actually saw.
+    if (
+      mergedClientId !== undefined &&
+      mergedClientId !== "" &&
+      mergedClientSecret !== undefined &&
+      mergedClientSecret !== ""
+    ) {
+      result = {
+        ...result,
+        oauth: {
+          clientId: mergedClientId,
+          clientSecret: mergedClientSecret,
+          ...(mergedAccessToken !== undefined ? { accessToken: mergedAccessToken } : {}),
+          ...(existing?.stagingToken !== undefined ? { stagingToken: existing.stagingToken } : {}),
+        },
+      };
+    }
   }
 
   if (endpoint !== undefined) {
@@ -141,15 +165,21 @@ export function applyEnvOverlay(
 
   if (stagingToken !== undefined) {
     const existingOAuth = result.oauth;
-    result = {
-      ...result,
-      oauth: {
-        clientId: existingOAuth?.clientId ?? "",
-        clientSecret: existingOAuth?.clientSecret ?? "",
-        ...(existingOAuth?.accessToken !== undefined ? { accessToken: existingOAuth.accessToken } : {}),
-        stagingToken,
-      },
-    };
+    // Mirror the partial-overlay-on-loaded-file rule: a staging token is
+    // only meaningful in the context of full OAuth credentials. Without
+    // resolvable client-id + client-secret, attaching a staging token
+    // would synthesize an unusable oauth block — surface NO_CREDS
+    // downstream instead. When client creds ARE available (file or env),
+    // attach the staging token onto the existing/synthesized oauth.
+    if (existingOAuth !== undefined && existingOAuth.clientId !== "" && existingOAuth.clientSecret !== "") {
+      result = {
+        ...result,
+        oauth: {
+          ...existingOAuth,
+          stagingToken,
+        },
+      };
+    }
   }
 
   if (scaMethod !== undefined) {
