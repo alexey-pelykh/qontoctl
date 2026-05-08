@@ -1,8 +1,13 @@
 ## Project-specific
 .qontoctl.yaml
+.qontoctl.yaml.lock
+.qontoctl.yaml.tmp.*
 *.local.*
 build/
 .tmp/
+
+# direnv local override (template at .envrc.example)
+.envrc
 
 # MCP Registry publisher tokens
 .mcpregistry_*

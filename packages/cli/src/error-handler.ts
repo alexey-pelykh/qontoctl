@@ -21,21 +21,7 @@ import {
  */
 export function handleCliError(error: unknown, debug: boolean): void {
   if (error instanceof ConfigError) {
-    process.stderr.write(
-      [
-        `Configuration error: ${error.message}`,
-        "",
-        "To configure credentials, create ~/.qontoctl.yaml:",
-        "",
-        "  api-key:",
-        "    organization-slug: <your-org-slug>",
-        "    secret-key: <your-secret-key>",
-        "",
-        "Or set environment variables:",
-        "  QONTOCTL_ORGANIZATION_SLUG=<your-org-slug>",
-        "  QONTOCTL_SECRET_KEY=<your-secret-key>",
-      ].join("\n") + "\n",
-    );
+    process.stderr.write(formatConfigError(error) + "\n");
     process.exitCode = 1;
     return;
   }
@@ -45,7 +31,7 @@ export function handleCliError(error: unknown, debug: boolean): void {
       [
         `Authentication error: ${error.message}`,
         "",
-        "Verify your API key credentials in ~/.qontoctl.yaml or environment variables.",
+        "Verify your API key credentials in ~/.qontoctl.yaml, via QONTOCTL_CONFIG_FILE, or via environment variables.",
       ].join("\n") + "\n",
     );
     process.exitCode = 1;
@@ -134,4 +120,58 @@ export function handleCliError(error: unknown, debug: boolean): void {
     process.stderr.write(`Error: ${message}\n`);
   }
   process.exitCode = 1;
+}
+
+/**
+ * Formats a {@link ConfigError} for stderr, dispatching on the error's
+ * discriminator code so each cause gets actionable guidance instead of a
+ * generic "create ~/.qontoctl.yaml" hint that doesn't apply to most cases.
+ */
+function formatConfigError(error: ConfigError): string {
+  switch (error.code) {
+    case "NO_CREDS":
+      return [
+        `Configuration error: ${error.message}`,
+        "",
+        "Set credentials via one of:",
+        "  • A config file at ~/.qontoctl.yaml (or pass --profile <name>)",
+        "  • The QONTOCTL_CONFIG_FILE env var pointing at an absolute path",
+        "  • Env vars QONTOCTL_ORGANIZATION_SLUG + QONTOCTL_SECRET_KEY (api-key)",
+        "  • Env vars QONTOCTL_CLIENT_ID + QONTOCTL_CLIENT_SECRET (oauth)",
+        "",
+        "For repo-local config, a direnv .envrc with",
+        '  export QONTOCTL_CONFIG_FILE="$PWD/.qontoctl.yaml"',
+        "lets you keep a project-scoped credentials file without --config on every invocation.",
+      ].join("\n");
+    case "PARSE":
+      return [
+        `Configuration error: ${error.message}`,
+        "",
+        "The YAML file could not be parsed. Check indentation, quoting, and special characters.",
+      ].join("\n");
+    case "VALIDATION":
+      return [
+        `Configuration error: ${error.message}`,
+        "",
+        "Fix the offending field and retry. Run with --debug for the original location.",
+      ].join("\n");
+    case "PERMISSION":
+      return [
+        `Configuration error: ${error.message}`,
+        "",
+        "Check file ownership and permissions. OAuth-bearing files should be 0600 (chmod 600 <path>).",
+      ].join("\n");
+    case "CONFLICT":
+      return [
+        `Configuration error: ${error.message}`,
+        "",
+        "Another qontoctl process is writing to the same config file.",
+        "Wait for it to finish, or kill it if it's stuck (a stale lock is reaped after 10 seconds).",
+      ].join("\n");
+    default:
+      // Future-proof: any unrecognized code (e.g., a new ConfigErrorCode
+      // variant added without updating this switch) still produces a
+      // legible message rather than crashing the caller.
+      return `Configuration error: ${error.message}`;
+  }
 }

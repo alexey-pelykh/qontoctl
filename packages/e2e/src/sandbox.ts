@@ -2,8 +2,23 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { parse as parseYaml } from "yaml";
+
+/**
+ * Absolute path to the repo-root `.qontoctl.yaml`, computed once from this
+ * module's own location. Used to inject `QONTOCTL_CONFIG_FILE` into spawned
+ * CLI subprocesses so they hit the repo's config file without relying on
+ * CWD inspection (which the resolver no longer does, post #479).
+ *
+ * The walk-up helpers below (`findConfigDir`, `cliCwd`, the loop in
+ * `readConfigFileCredentials`) remain in place for in-process credential
+ * detection used by `hasApiKeyCredentials()`/`hasOAuthCredentials()`/
+ * `hasStagingToken()` — those parse YAML directly and don't go through the
+ * resolver. The full walk-up removal is scoped to #481.
+ */
+const REPO_ROOT_CONFIG_PATH = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", ".qontoctl.yaml");
 
 interface ConfigCredentials {
   readonly organizationSlug?: string;
@@ -201,10 +216,22 @@ function findConfigDir(): string | undefined {
 /**
  * Build an environment for spawning CLI child processes.
  *
- * Passes through the current process environment as-is.
+ * Injects `QONTOCTL_CONFIG_FILE=<repo-root>/.qontoctl.yaml` so the CLI
+ * loads the repo's config file without relying on CWD inspection (which
+ * the resolver no longer performs, post #479). Existing env values for
+ * the variable are preserved — tests that explicitly set
+ * `QONTOCTL_CONFIG_FILE` keep their override.
+ *
+ * Existing api-key / oauth env vars (`QONTOCTL_ORGANIZATION_SLUG`, etc.)
+ * also continue to take precedence over file values via the env-overlay,
+ * so suites that rely on env-only credentials are unaffected.
  */
 export function cliEnv(): Record<string, string> {
-  return { ...(process.env as Record<string, string>) };
+  const env = { ...(process.env as Record<string, string>) };
+  if (env["QONTOCTL_CONFIG_FILE"] === undefined || env["QONTOCTL_CONFIG_FILE"] === "") {
+    env["QONTOCTL_CONFIG_FILE"] = REPO_ROOT_CONFIG_PATH;
+  }
+  return env;
 }
 
 /**

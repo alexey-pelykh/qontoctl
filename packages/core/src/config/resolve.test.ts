@@ -6,7 +6,7 @@ import { mkdir, writeFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
-import { resolveConfig, resolveScaMethod, ConfigError } from "./resolve.js";
+import { resolveConfig, resolveConfigPath, resolveScaMethod, ConfigError } from "./resolve.js";
 
 describe("resolveConfig", () => {
   let testDir: string;
@@ -25,14 +25,12 @@ describe("resolveConfig", () => {
     await rm(baseDir, { recursive: true, force: true });
   });
 
-  it("resolves config from CWD file", async () => {
-    await writeFile(
-      join(testDir, ".qontoctl.yaml"),
-      "api-key:\n  organization-slug: my-org\n  secret-key: my-secret\n",
-    );
+  it("resolves config from explicit path", async () => {
+    const cfgPath = join(testDir, ".qontoctl.yaml");
+    await writeFile(cfgPath, "api-key:\n  organization-slug: my-org\n  secret-key: my-secret\n");
 
     const result = await resolveConfig({
-      cwd: testDir,
+      path: cfgPath,
       home: testHome,
       env: {},
     });
@@ -41,16 +39,16 @@ describe("resolveConfig", () => {
       secretKey: "my-secret",
     });
     expect(result.warnings).toEqual([]);
+    expect(result.path).toBe(cfgPath);
   });
 
-  it("resolves config from home fallback", async () => {
+  it("resolves config from home default when no path or profile is given", async () => {
     await writeFile(
       join(testHome, ".qontoctl.yaml"),
       "api-key:\n  organization-slug: home-org\n  secret-key: home-secret\n",
     );
 
     const result = await resolveConfig({
-      cwd: testDir,
       home: testHome,
       env: {},
     });
@@ -58,6 +56,7 @@ describe("resolveConfig", () => {
       organizationSlug: "home-org",
       secretKey: "home-secret",
     });
+    expect(result.path).toBe(join(testHome, ".qontoctl.yaml"));
   });
 
   it("resolves config from named profile", async () => {
@@ -70,7 +69,6 @@ describe("resolveConfig", () => {
 
     const result = await resolveConfig({
       profile: "staging",
-      cwd: testDir,
       home: testHome,
       env: {},
     });
@@ -78,16 +76,121 @@ describe("resolveConfig", () => {
       organizationSlug: "staging-org",
       secretKey: "staging-secret",
     });
+    expect(result.path).toBe(join(profileDir, "staging.yaml"));
+  });
+
+  describe("path precedence (issue #479)", () => {
+    it("explicit path beats QONTOCTL_CONFIG_FILE env var", async () => {
+      const explicitPath = join(testDir, ".qontoctl.yaml");
+      const envPath = join(testHome, "env-config.yaml");
+      await writeFile(explicitPath, "api-key:\n  organization-slug: explicit\n  secret-key: x\n");
+      await writeFile(envPath, "api-key:\n  organization-slug: from-env\n  secret-key: x\n");
+
+      const result = await resolveConfig({
+        path: explicitPath,
+        home: testHome,
+        env: { QONTOCTL_CONFIG_FILE: envPath },
+      });
+      expect(result.config.apiKey?.organizationSlug).toBe("explicit");
+      expect(result.path).toBe(explicitPath);
+    });
+
+    it("QONTOCTL_CONFIG_FILE beats profile-derived path", async () => {
+      const envPath = join(testDir, "env-config.yaml");
+      const profileDir = join(testHome, ".qontoctl");
+      await mkdir(profileDir);
+      await writeFile(envPath, "api-key:\n  organization-slug: from-env\n  secret-key: x\n");
+      await writeFile(join(profileDir, "prod.yaml"), "api-key:\n  organization-slug: from-profile\n  secret-key: x\n");
+
+      const result = await resolveConfig({
+        profile: "prod",
+        home: testHome,
+        env: { QONTOCTL_CONFIG_FILE: envPath },
+      });
+      expect(result.config.apiKey?.organizationSlug).toBe("from-env");
+      expect(result.path).toBe(envPath);
+    });
+
+    it("profile beats home default", async () => {
+      const profileDir = join(testHome, ".qontoctl");
+      await mkdir(profileDir);
+      await writeFile(join(profileDir, "prod.yaml"), "api-key:\n  organization-slug: from-profile\n  secret-key: x\n");
+      await writeFile(join(testHome, ".qontoctl.yaml"), "api-key:\n  organization-slug: from-home\n  secret-key: x\n");
+
+      const result = await resolveConfig({
+        profile: "prod",
+        home: testHome,
+        env: {},
+      });
+      expect(result.config.apiKey?.organizationSlug).toBe("from-profile");
+    });
+
+    it("does NOT inspect process.cwd at any stage (no CWD discovery)", async () => {
+      // Even when a .qontoctl.yaml exists in process.cwd, the resolver
+      // ignores it. Only path/env/profile/home defaults are honored.
+      // This is the load/write divergence elimination from #479.
+      const result = await resolveConfig({
+        home: testHome,
+        env: {
+          QONTOCTL_ORGANIZATION_SLUG: "from-env",
+          QONTOCTL_SECRET_KEY: "x",
+        },
+      });
+      expect(result.config.apiKey?.organizationSlug).toBe("from-env");
+      // path is undefined when no file was loaded
+      expect(result.path).toBeUndefined();
+    });
+  });
+
+  describe("profile name validation (issue #479)", () => {
+    it.each([
+      ["../etc/passwd", "path traversal"],
+      ["..", "parent directory reference"],
+      ["a/b", "path separator"],
+      ["a\\b", "windows path separator"],
+      ["star*glob", "glob char *"],
+      ["q?mark", "glob char ?"],
+      ["bracket[ed]", "glob char ["],
+      ["", "empty"],
+      ["endpoint", "reserved suffix ENDPOINT"],
+      ["client-id", "reserved suffix CLIENT_ID (with - normalized)"],
+      ["access_token", "reserved suffix ACCESS_TOKEN"],
+      ["config-file", "reserved suffix CONFIG_FILE"],
+      ["sca-method", "reserved suffix SCA_METHOD"],
+    ])('rejects "%s" (%s)', async (profile) => {
+      await expect(
+        resolveConfig({
+          profile,
+          home: testHome,
+          env: {},
+        }),
+      ).rejects.toMatchObject({
+        name: "ConfigError",
+        code: "VALIDATION",
+      });
+    });
+
+    it("accepts ordinary profile names", async () => {
+      const profileDir = join(testHome, ".qontoctl");
+      await mkdir(profileDir);
+      await writeFile(join(profileDir, "production-eu.yaml"), "api-key:\n  organization-slug: org\n  secret-key: x\n");
+
+      const result = await resolveConfig({
+        profile: "production-eu",
+        home: testHome,
+        env: {},
+      });
+      expect(result.config.apiKey?.organizationSlug).toBe("org");
+    });
   });
 
   it("env vars overlay onto file values", async () => {
     await writeFile(
-      join(testDir, ".qontoctl.yaml"),
+      join(testHome, ".qontoctl.yaml"),
       "api-key:\n  organization-slug: file-org\n  secret-key: file-secret\n",
     );
 
     const result = await resolveConfig({
-      cwd: testDir,
       home: testHome,
       env: { QONTOCTL_SECRET_KEY: "env-secret" },
     });
@@ -99,7 +202,6 @@ describe("resolveConfig", () => {
 
   it("resolves credentials from env vars only", async () => {
     const result = await resolveConfig({
-      cwd: testDir,
       home: testHome,
       env: {
         QONTOCTL_ORGANIZATION_SLUG: "env-org",
@@ -112,42 +214,44 @@ describe("resolveConfig", () => {
     });
   });
 
-  it("throws ConfigError when no credentials found", async () => {
-    await expect(resolveConfig({ cwd: testDir, home: testHome, env: {} })).rejects.toThrow(ConfigError);
-    await expect(resolveConfig({ cwd: testDir, home: testHome, env: {} })).rejects.toThrow(/No credentials found/);
+  it("throws ConfigError NO_CREDS when no credentials found", async () => {
+    await expect(resolveConfig({ home: testHome, env: {} })).rejects.toThrow(ConfigError);
+    await expect(resolveConfig({ home: testHome, env: {} })).rejects.toMatchObject({
+      code: "NO_CREDS",
+    });
+    await expect(resolveConfig({ home: testHome, env: {} })).rejects.toThrow(/No credentials found/);
   });
 
-  it("throws ConfigError on schema validation errors", async () => {
-    await writeFile(join(testDir, ".qontoctl.yaml"), "api-key: not-a-mapping\n");
+  it("throws ConfigError VALIDATION on schema validation errors", async () => {
+    await writeFile(join(testHome, ".qontoctl.yaml"), "api-key: not-a-mapping\n");
 
-    await expect(resolveConfig({ cwd: testDir, home: testHome, env: {} })).rejects.toThrow(ConfigError);
-    await expect(resolveConfig({ cwd: testDir, home: testHome, env: {} })).rejects.toThrow(/Invalid configuration/);
+    await expect(resolveConfig({ home: testHome, env: {} })).rejects.toMatchObject({
+      code: "VALIDATION",
+    });
+    await expect(resolveConfig({ home: testHome, env: {} })).rejects.toThrow(/Invalid configuration/);
   });
 
   it("throws ConfigError when organization-slug is missing", async () => {
-    await writeFile(join(testDir, ".qontoctl.yaml"), "api-key:\n  secret-key: my-secret\n");
+    await writeFile(join(testHome, ".qontoctl.yaml"), "api-key:\n  secret-key: my-secret\n");
 
-    await expect(resolveConfig({ cwd: testDir, home: testHome, env: {} })).rejects.toThrow(
+    await expect(resolveConfig({ home: testHome, env: {} })).rejects.toThrow(
       /Missing required field "organization-slug"/,
     );
   });
 
   it("throws ConfigError when secret-key is missing", async () => {
-    await writeFile(join(testDir, ".qontoctl.yaml"), "api-key:\n  organization-slug: my-org\n");
+    await writeFile(join(testHome, ".qontoctl.yaml"), "api-key:\n  organization-slug: my-org\n");
 
-    await expect(resolveConfig({ cwd: testDir, home: testHome, env: {} })).rejects.toThrow(
-      /Missing required field "secret-key"/,
-    );
+    await expect(resolveConfig({ home: testHome, env: {} })).rejects.toThrow(/Missing required field "secret-key"/);
   });
 
   it("returns warnings for unknown keys", async () => {
     await writeFile(
-      join(testDir, ".qontoctl.yaml"),
+      join(testHome, ".qontoctl.yaml"),
       "api-key:\n  organization-slug: my-org\n  secret-key: my-secret\n  extra: value\nfuture-feature: true\n",
     );
 
     const result = await resolveConfig({
-      cwd: testDir,
       home: testHome,
       env: {},
     });
@@ -166,7 +270,6 @@ describe("resolveConfig", () => {
 
     const result = await resolveConfig({
       profile: "prod",
-      cwd: testDir,
       home: testHome,
       env: { QONTOCTL_PROD_SECRET_KEY: "env-secret" },
     });
@@ -180,7 +283,6 @@ describe("resolveConfig", () => {
     await expect(
       resolveConfig({
         profile: "nonexistent",
-        cwd: testDir,
         home: testHome,
         env: {},
       }),
@@ -188,16 +290,16 @@ describe("resolveConfig", () => {
   });
 
   it("describes config path in error when file exists but has no api-key", async () => {
-    await writeFile(join(testDir, ".qontoctl.yaml"), "endpoint: https://example.com\n");
+    const cfgPath = join(testHome, ".qontoctl.yaml");
+    await writeFile(cfgPath, "endpoint: https://example.com\n");
 
-    await expect(resolveConfig({ cwd: testDir, home: testHome, env: {} })).rejects.toThrow(
-      /Found config at .* but it contains no api-key credentials/,
+    await expect(resolveConfig({ home: testHome, env: {} })).rejects.toThrow(
+      /Found config at .* but it contains no credentials/,
     );
   });
 
   it("defaults endpoint to production URL", async () => {
     const result = await resolveConfig({
-      cwd: testDir,
       home: testHome,
       env: {
         QONTOCTL_ORGANIZATION_SLUG: "org",
@@ -209,12 +311,11 @@ describe("resolveConfig", () => {
 
   it("resolves endpoint from config file", async () => {
     await writeFile(
-      join(testDir, ".qontoctl.yaml"),
+      join(testHome, ".qontoctl.yaml"),
       "api-key:\n  organization-slug: org\n  secret-key: secret\nendpoint: https://custom.example.com\n",
     );
 
     const result = await resolveConfig({
-      cwd: testDir,
       home: testHome,
       env: {},
     });
@@ -223,12 +324,11 @@ describe("resolveConfig", () => {
 
   it("resolves staging endpoint when staging-token is configured in oauth", async () => {
     await writeFile(
-      join(testDir, ".qontoctl.yaml"),
+      join(testHome, ".qontoctl.yaml"),
       "oauth:\n  client-id: cid\n  client-secret: csecret\n  staging-token: tok_abc123\n",
     );
 
     const result = await resolveConfig({
-      cwd: testDir,
       home: testHome,
       env: {},
     });
@@ -237,12 +337,11 @@ describe("resolveConfig", () => {
 
   it("explicit endpoint takes precedence over staging-token in oauth", async () => {
     await writeFile(
-      join(testDir, ".qontoctl.yaml"),
+      join(testHome, ".qontoctl.yaml"),
       "oauth:\n  client-id: cid\n  client-secret: csecret\n  staging-token: tok_abc123\nendpoint: https://custom.example.com\n",
     );
 
     const result = await resolveConfig({
-      cwd: testDir,
       home: testHome,
       env: {},
     });
@@ -251,12 +350,11 @@ describe("resolveConfig", () => {
 
   it("QONTOCTL_ENDPOINT env var takes precedence over staging-token in oauth", async () => {
     await writeFile(
-      join(testDir, ".qontoctl.yaml"),
+      join(testHome, ".qontoctl.yaml"),
       "oauth:\n  client-id: cid\n  client-secret: csecret\n  staging-token: tok_abc123\n",
     );
 
     const result = await resolveConfig({
-      cwd: testDir,
       home: testHome,
       env: { QONTOCTL_ENDPOINT: "https://env.example.com" },
     });
@@ -265,7 +363,6 @@ describe("resolveConfig", () => {
 
   it("QONTOCTL_STAGING_TOKEN env var resolves to staging endpoint", async () => {
     const result = await resolveConfig({
-      cwd: testDir,
       home: testHome,
       env: {
         QONTOCTL_CLIENT_ID: "cid",
@@ -278,7 +375,6 @@ describe("resolveConfig", () => {
 
   it("QONTOCTL_ENDPOINT takes precedence over QONTOCTL_STAGING_TOKEN", async () => {
     const result = await resolveConfig({
-      cwd: testDir,
       home: testHome,
       env: {
         QONTOCTL_CLIENT_ID: "cid",
@@ -292,12 +388,11 @@ describe("resolveConfig", () => {
 
   it("loads sca.method from config file", async () => {
     await writeFile(
-      join(testDir, ".qontoctl.yaml"),
+      join(testHome, ".qontoctl.yaml"),
       "api-key:\n  organization-slug: org\n  secret-key: secret\nsca:\n  method: passkey\n",
     );
 
     const result = await resolveConfig({
-      cwd: testDir,
       home: testHome,
       env: {},
     });
@@ -306,12 +401,11 @@ describe("resolveConfig", () => {
 
   it("QONTOCTL_SCA_METHOD env var overlays sca.method", async () => {
     await writeFile(
-      join(testDir, ".qontoctl.yaml"),
+      join(testHome, ".qontoctl.yaml"),
       "api-key:\n  organization-slug: org\n  secret-key: secret\nsca:\n  method: passkey\n",
     );
 
     const result = await resolveConfig({
-      cwd: testDir,
       home: testHome,
       env: { QONTOCTL_SCA_METHOD: "sms-otp" },
     });
@@ -321,18 +415,17 @@ describe("resolveConfig", () => {
   describe("oauthAccessTokenFromEnv flag (issue #495)", () => {
     it("is false when no env access-token is set", async () => {
       await writeFile(
-        join(testDir, ".qontoctl.yaml"),
+        join(testHome, ".qontoctl.yaml"),
         "oauth:\n  client-id: cid\n  client-secret: csecret\n  access-token: file-at\n  refresh-token: file-rt\n",
       );
 
-      const result = await resolveConfig({ cwd: testDir, home: testHome, env: {} });
+      const result = await resolveConfig({ home: testHome, env: {} });
       expect(result.oauthAccessTokenFromEnv).toBe(false);
       expect(result.config.oauth?.accessToken).toBe("file-at");
     });
 
     it("is true when QONTOCTL_ACCESS_TOKEN is set in env", async () => {
       const result = await resolveConfig({
-        cwd: testDir,
         home: testHome,
         env: {
           QONTOCTL_CLIENT_ID: "cid",
@@ -346,12 +439,11 @@ describe("resolveConfig", () => {
 
     it("is true and overrides file access-token when env has QONTOCTL_ACCESS_TOKEN", async () => {
       await writeFile(
-        join(testDir, ".qontoctl.yaml"),
+        join(testHome, ".qontoctl.yaml"),
         "oauth:\n  client-id: cid\n  client-secret: csecret\n  access-token: file-at\n  refresh-token: file-rt\n",
       );
 
       const result = await resolveConfig({
-        cwd: testDir,
         home: testHome,
         env: { QONTOCTL_ACCESS_TOKEN: "env-at" },
       });
@@ -361,12 +453,26 @@ describe("resolveConfig", () => {
       // the source of truth for runtime-mutable fields)
       expect(result.config.oauth?.refreshToken).toBe("file-rt");
     });
+
+    it("env-only QONTOCTL_ACCESS_TOKEN without file or client creds surfaces NO_CREDS, not 'missing client-id' (issue #479)", async () => {
+      // Pre-#479: env access-token alone synthesized an oauth block with
+      // empty client-id, then resolve.ts threw "Missing required field
+      // 'client-id'" — misleading: the user never asked to set client-id.
+      // Post-#479: env access-token alone is insufficient (client creds
+      // cannot be resolved from any source) — NO_CREDS surfaces accurately.
+      await expect(
+        resolveConfig({
+          home: testHome,
+          env: { QONTOCTL_ACCESS_TOKEN: "env-at" },
+        }),
+      ).rejects.toMatchObject({ code: "NO_CREDS" });
+    });
   });
 
   describe("runtime-mutable OAuth fields preserved through env-overlay (issue #495)", () => {
     it("preserves refreshToken from file even when env supplies static OAuth fields", async () => {
       await writeFile(
-        join(testDir, ".qontoctl.yaml"),
+        join(testHome, ".qontoctl.yaml"),
         "oauth:\n" +
           "  client-id: file-cid\n" +
           "  client-secret: file-csecret\n" +
@@ -377,7 +483,6 @@ describe("resolveConfig", () => {
       );
 
       const result = await resolveConfig({
-        cwd: testDir,
         home: testHome,
         env: {
           QONTOCTL_CLIENT_ID: "env-cid",
@@ -396,12 +501,11 @@ describe("resolveConfig", () => {
 
     it("ignores QONTOCTL_REFRESH_TOKEN env var entirely (issue #495)", async () => {
       await writeFile(
-        join(testDir, ".qontoctl.yaml"),
+        join(testHome, ".qontoctl.yaml"),
         "oauth:\n  client-id: cid\n  client-secret: csecret\n  refresh-token: file-rt\n",
       );
 
       const result = await resolveConfig({
-        cwd: testDir,
         home: testHome,
         env: { QONTOCTL_REFRESH_TOKEN: "env-rt-should-be-ignored" },
       });
@@ -412,7 +516,6 @@ describe("resolveConfig", () => {
 
     it("does not surface a refreshToken when only QONTOCTL_REFRESH_TOKEN is set in env (no file)", async () => {
       const result = await resolveConfig({
-        cwd: testDir,
         home: testHome,
         env: {
           QONTOCTL_CLIENT_ID: "cid",
@@ -428,34 +531,71 @@ describe("resolveConfig", () => {
     });
   });
 
-  describe("loader hygiene: empty/comment-only CWD falls back to home (issue #495)", () => {
-    it("falls back to home when CWD .qontoctl.yaml is empty", async () => {
-      await writeFile(join(testDir, ".qontoctl.yaml"), "");
-      await writeFile(
-        join(testHome, ".qontoctl.yaml"),
-        "api-key:\n  organization-slug: home-org\n  secret-key: home-secret\n",
-      );
+  // Windows does not implement Unix file-permission bits the way POSIX
+  // does — `writeFile(..., { mode })` is best-effort and stat reports a
+  // synthesized 0o666/0o444 based on the read-only flag. Skip on Windows
+  // so the warning behavior stays exercised on Linux + macOS where the
+  // mask actually means something. The CI matrix (#477) includes a
+  // POSIX leg, so coverage is preserved.
+  describe.skipIf(process.platform === "win32")("permission warning (issue #479)", () => {
+    it("warns on group/world-readable file containing OAuth client-secret", async () => {
+      const cfgPath = join(testHome, ".qontoctl.yaml");
+      await writeFile(cfgPath, "oauth:\n  client-id: cid\n  client-secret: csec\n", { mode: 0o644 });
 
-      const result = await resolveConfig({ cwd: testDir, home: testHome, env: {} });
-      expect(result.config.apiKey).toEqual({
-        organizationSlug: "home-org",
-        secretKey: "home-secret",
-      });
+      const result = await resolveConfig({ home: testHome, env: {} });
+      expect(result.warnings.some((w) => /permissions 644/.test(w))).toBe(true);
     });
 
-    it("falls back to home when CWD .qontoctl.yaml is comment-only", async () => {
-      await writeFile(join(testDir, ".qontoctl.yaml"), "# only a comment\n");
-      await writeFile(
-        join(testHome, ".qontoctl.yaml"),
-        "api-key:\n  organization-slug: home-org\n  secret-key: home-secret\n",
-      );
+    it("does NOT warn on 0o600 file", async () => {
+      const cfgPath = join(testHome, ".qontoctl.yaml");
+      await writeFile(cfgPath, "oauth:\n  client-id: cid\n  client-secret: csec\n", { mode: 0o600 });
 
-      const result = await resolveConfig({ cwd: testDir, home: testHome, env: {} });
-      expect(result.config.apiKey).toEqual({
-        organizationSlug: "home-org",
-        secretKey: "home-secret",
-      });
+      const result = await resolveConfig({ home: testHome, env: {} });
+      expect(result.warnings.every((w) => !/permissions/.test(w))).toBe(true);
     });
+
+    it("does NOT warn on 0o644 file containing only api-key (no OAuth bearer)", async () => {
+      const cfgPath = join(testHome, ".qontoctl.yaml");
+      await writeFile(cfgPath, "api-key:\n  organization-slug: org\n  secret-key: x\n", { mode: 0o644 });
+
+      const result = await resolveConfig({ home: testHome, env: {} });
+      // Warning is only emitted when the loaded config contains OAuth
+      // credentials. api-key files are out of scope for this warning by
+      // design (the secret-key risk is conveyed via other channels).
+      expect(result.warnings.every((w) => !/permissions/.test(w))).toBe(true);
+    });
+  });
+});
+
+describe("resolveConfigPath", () => {
+  // Use platform-native path separators so the assertions hold on
+  // Windows (`\`) and POSIX (`/`) alike.
+  const HOME = join("home", "u");
+
+  it("returns explicit path when provided", () => {
+    expect(resolveConfigPath({ path: "/tmp/cfg.yaml" })).toBe("/tmp/cfg.yaml");
+  });
+
+  it("returns env-var value when set and no explicit path", () => {
+    expect(resolveConfigPath({ env: { QONTOCTL_CONFIG_FILE: "/etc/qonto.yaml" }, home: HOME })).toBe("/etc/qonto.yaml");
+  });
+
+  it("returns profile-derived path when profile is set", () => {
+    expect(resolveConfigPath({ profile: "staging", home: HOME })).toBe(join(HOME, ".qontoctl", "staging.yaml"));
+  });
+
+  it("returns home default when nothing else is set", () => {
+    expect(resolveConfigPath({ home: HOME })).toBe(join(HOME, ".qontoctl.yaml"));
+  });
+
+  it("explicit path beats env-var", () => {
+    expect(
+      resolveConfigPath({
+        path: "/from-arg.yaml",
+        env: { QONTOCTL_CONFIG_FILE: "/from-env.yaml" },
+        home: HOME,
+      }),
+    ).toBe("/from-arg.yaml");
   });
 });
 

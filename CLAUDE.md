@@ -94,7 +94,13 @@ ESLint enforces this via `eslint-plugin-header`.
 
 **When to run:** E2E tests MUST be run locally and pass before submitting a PR or preparing a release. Also run after implementing or modifying code that touches Qonto API interactions, CLI commands, MCP tools, or any behavior covered by E2E tests.
 
-**Credentials:** The repo contains `.qontoctl.yaml` (gitignored) with both api-key and OAuth credentials. The config resolver picks this up from CWD automatically — no env var overrides needed.
+**Credentials:** The repo contains `.qontoctl.yaml` (gitignored) with both api-key and OAuth credentials. The config resolver does **not** auto-discover from CWD (per #479) — point at the file via one of:
+
+- `direnv` shim: copy `.envrc.example` → `.envrc` (gitignored), run `direnv allow`. Exports `QONTOCTL_CONFIG_FILE="$PWD/.qontoctl.yaml"` automatically when you `cd` into the repo. **Recommended** for daily development.
+- Per-shell env: `export QONTOCTL_CONFIG_FILE="$PWD/.qontoctl.yaml"`
+- (After #480 ships) Per-invocation: `qontoctl --config ./.qontoctl.yaml ...`
+
+The E2E test harness already injects `QONTOCTL_CONFIG_FILE` for spawned CLI subprocesses (see `packages/e2e/src/sandbox.ts`), so `pnpm test:e2e` works without any of the above.
 
 **Test taxonomy:** Each suite is gated on the credential type its endpoints require, per the [Qonto auth table](https://docs.qonto.com/get-started/business-api/authentication/introduction). Three categories:
 

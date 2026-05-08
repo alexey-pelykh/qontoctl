@@ -333,6 +333,11 @@ describe("isValidProfileName", () => {
     expect(isValidProfileName("default")).toBe(true);
     expect(isValidProfileName("my-profile")).toBe(true);
     expect(isValidProfileName("profile_123")).toBe(true);
+    expect(isValidProfileName("production-eu")).toBe(true);
+  });
+
+  it("rejects empty string", () => {
+    expect(isValidProfileName("")).toBe(false);
   });
 
   it("rejects names with forward slashes", () => {
@@ -350,5 +355,36 @@ describe("isValidProfileName", () => {
 
   it("accepts names with single dots", () => {
     expect(isValidProfileName("my.profile")).toBe(true);
+  });
+
+  it("rejects glob characters (issue #479)", () => {
+    expect(isValidProfileName("star*")).toBe(false);
+    expect(isValidProfileName("question?")).toBe(false);
+    expect(isValidProfileName("bracket[")).toBe(false);
+    expect(isValidProfileName("bracket]")).toBe(false);
+  });
+
+  it("rejects names that shadow reserved env-var suffixes (issue #479)", () => {
+    expect(isValidProfileName("endpoint")).toBe(false);
+    expect(isValidProfileName("ENDPOINT")).toBe(false);
+    expect(isValidProfileName("client-id")).toBe(false);
+    expect(isValidProfileName("client-secret")).toBe(false);
+    expect(isValidProfileName("access-token")).toBe(false);
+    expect(isValidProfileName("refresh-token")).toBe(false);
+    expect(isValidProfileName("scopes")).toBe(false);
+    expect(isValidProfileName("staging-token")).toBe(false);
+    expect(isValidProfileName("organization-slug")).toBe(false);
+    expect(isValidProfileName("secret-key")).toBe(false);
+    expect(isValidProfileName("sca-method")).toBe(false);
+    expect(isValidProfileName("config-file")).toBe(false);
+    // Underscore form too (the post-normalization shape)
+    expect(isValidProfileName("client_id")).toBe(false);
+    expect(isValidProfileName("CONFIG_FILE")).toBe(false);
+  });
+
+  it("accepts names that contain reserved suffixes as substrings", () => {
+    // Reserved match is exact (post-normalization), not substring match.
+    expect(isValidProfileName("my-endpoint-prod")).toBe(true);
+    expect(isValidProfileName("client-id-team")).toBe(true);
   });
 });

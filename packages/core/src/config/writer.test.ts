@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import { mkdtemp, readFile, writeFile, rm, mkdir } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile, rm, mkdir, stat, chmod } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { parse as parseYaml } from "yaml";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { saveOAuthTokens, saveOAuthClientCredentials, clearOAuthTokens, saveOAuthScopes } from "./writer.js";
+import { ConfigError } from "./resolve.js";
 
 describe("saveOAuthTokens", () => {
   let tempDir: string;
@@ -26,7 +27,7 @@ describe("saveOAuthTokens", () => {
         refreshToken: "refresh-456",
         accessTokenExpiresAt: "2026-02-28T16:00:00Z",
       },
-      { home: tempDir, cwd: tempDir },
+      { home: tempDir },
     );
 
     const content = await readFile(join(tempDir, ".qontoctl.yaml"), "utf-8");
@@ -46,7 +47,7 @@ describe("saveOAuthTokens", () => {
         accessToken: "access-123",
         accessTokenExpiresAt: "2026-02-28T16:00:00Z",
       },
-      { home: tempDir, cwd: tempDir },
+      { home: tempDir },
     );
 
     const content = await readFile(join(tempDir, ".qontoctl.yaml"), "utf-8");
@@ -65,7 +66,7 @@ describe("saveOAuthTokens", () => {
         accessToken: "access-123",
         accessTokenExpiresAt: "2026-02-28T16:00:00Z",
       },
-      { home: tempDir, cwd: tempDir },
+      { home: tempDir },
     );
 
     const content = await readFile(join(tempDir, ".qontoctl.yaml"), "utf-8");
@@ -99,7 +100,7 @@ describe("saveOAuthTokens", () => {
         accessToken: "access-123",
         accessTokenExpiresAt: "2026-02-28T16:00:00Z",
       },
-      { home: tempDir, cwd: tempDir },
+      { home: tempDir },
     );
 
     const content = await readFile(join(tempDir, ".qontoctl.yaml"), "utf-8");
@@ -107,45 +108,97 @@ describe("saveOAuthTokens", () => {
     const oauth = doc["oauth"] as Record<string, unknown>;
     expect(oauth["refresh-token"]).toBeUndefined();
   });
+
+  it("writes to explicit path option (issue #479)", async () => {
+    const explicitPath = join(tempDir, "custom.yaml");
+    await saveOAuthTokens(
+      {
+        accessToken: "access-via-path",
+        accessTokenExpiresAt: "2026-12-31T23:59:59Z",
+      },
+      { path: explicitPath },
+    );
+
+    const content = await readFile(explicitPath, "utf-8");
+    const doc = parseYaml(content) as Record<string, unknown>;
+    expect((doc["oauth"] as Record<string, unknown>)["access-token"]).toBe("access-via-path");
+    // The home default file MUST NOT be created when path is explicit
+    await expect(readFile(join(tempDir, ".qontoctl.yaml"), "utf-8")).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it("explicit path beats profile (issue #479)", async () => {
+    const explicitPath = join(tempDir, "custom.yaml");
+    await saveOAuthTokens(
+      {
+        accessToken: "via-path",
+        accessTokenExpiresAt: "2026-12-31T23:59:59Z",
+      },
+      { path: explicitPath, profile: "acme", home: tempDir },
+    );
+
+    expect(await readFile(explicitPath, "utf-8")).toMatch(/access-token: via-path/);
+    // Profile-derived path MUST NOT have been created.
+    await expect(readFile(join(tempDir, ".qontoctl", "acme.yaml"), "utf-8")).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it.skipIf(process.platform === "win32")("creates file with 0o600 permissions", async () => {
+    // Windows reports synthesized POSIX modes from the read-only flag, so
+    // 0o600 doesn't roundtrip — skip on Windows. Linux + macOS exercise
+    // the real permission bits.
+    await saveOAuthTokens(
+      {
+        accessToken: "secret-bearer",
+        accessTokenExpiresAt: "2026-12-31T23:59:59Z",
+      },
+      { home: tempDir },
+    );
+
+    const info = await stat(join(tempDir, ".qontoctl.yaml"));
+    // Mask off file-type bits; on POSIX 0o600 is owner-rw only.
+    expect(info.mode & 0o777).toBe(0o600);
+  });
 });
 
 describe("saveOAuthClientCredentials", () => {
-  let cwdDir: string;
-  let homeDir: string;
+  let tempDir: string;
 
   beforeEach(async () => {
-    cwdDir = await mkdtemp(join(tmpdir(), "qontoctl-writer-cwd-"));
-    homeDir = await mkdtemp(join(tmpdir(), "qontoctl-writer-home-"));
+    tempDir = await mkdtemp(join(tmpdir(), "qontoctl-writer-test-"));
   });
 
   afterEach(async () => {
-    await rm(cwdDir, { recursive: true, force: true });
-    await rm(homeDir, { recursive: true, force: true });
+    await rm(tempDir, { recursive: true, force: true });
   });
 
-  it("writes to CWD config when it exists", async () => {
-    // CWD has a config file already
-    await writeFile(join(cwdDir, ".qontoctl.yaml"), "api-key:\n  organization-slug: test\n  secret-key: key\n");
+  it("writes to home default when no path/profile is given", async () => {
+    await saveOAuthClientCredentials({ clientId: "cid", clientSecret: "csecret" }, { home: tempDir });
 
-    await saveOAuthClientCredentials({ clientId: "cid", clientSecret: "csecret" }, { home: homeDir, cwd: cwdDir });
-
-    const content = await readFile(join(cwdDir, ".qontoctl.yaml"), "utf-8");
+    const content = await readFile(join(tempDir, ".qontoctl.yaml"), "utf-8");
     const doc = parseYaml(content) as Record<string, unknown>;
     const oauth = doc["oauth"] as Record<string, unknown>;
     expect(oauth["client-id"]).toBe("cid");
     expect(oauth["client-secret"]).toBe("csecret");
-    // Home config should NOT have been created
-    await expect(readFile(join(homeDir, ".qontoctl.yaml"), "utf-8")).rejects.toThrow();
   });
 
-  it("falls back to home config when CWD has no config", async () => {
-    await saveOAuthClientCredentials({ clientId: "cid", clientSecret: "csecret" }, { home: homeDir, cwd: cwdDir });
+  it("preserves existing fields when adding client credentials", async () => {
+    await writeFile(join(tempDir, ".qontoctl.yaml"), "api-key:\n  organization-slug: test\n  secret-key: key\n");
 
-    const content = await readFile(join(homeDir, ".qontoctl.yaml"), "utf-8");
+    await saveOAuthClientCredentials({ clientId: "cid", clientSecret: "csecret" }, { home: tempDir });
+
+    const content = await readFile(join(tempDir, ".qontoctl.yaml"), "utf-8");
     const doc = parseYaml(content) as Record<string, unknown>;
     const oauth = doc["oauth"] as Record<string, unknown>;
     expect(oauth["client-id"]).toBe("cid");
-    expect(oauth["client-secret"]).toBe("csecret");
+    expect((doc["api-key"] as Record<string, unknown>)["organization-slug"]).toBe("test");
+  });
+
+  it("respects explicit path", async () => {
+    const explicitPath = join(tempDir, "explicit.yaml");
+    await saveOAuthClientCredentials({ clientId: "cid", clientSecret: "csecret" }, { path: explicitPath });
+
+    const content = await readFile(explicitPath, "utf-8");
+    const doc = parseYaml(content) as Record<string, unknown>;
+    expect((doc["oauth"] as Record<string, unknown>)["client-id"]).toBe("cid");
   });
 });
 
@@ -165,7 +218,7 @@ describe("clearOAuthTokens", () => {
       'oauth:\n  client-id: my-client\n  client-secret: my-secret\n  access-token: old-token\n  refresh-token: old-refresh\n  access-token-expires-at: "2026-02-28T15:00:00Z"\n';
     await writeFile(join(tempDir, ".qontoctl.yaml"), content);
 
-    await clearOAuthTokens({ home: tempDir, cwd: tempDir });
+    await clearOAuthTokens({ home: tempDir });
 
     const result = await readFile(join(tempDir, ".qontoctl.yaml"), "utf-8");
     const doc = parseYaml(result) as Record<string, unknown>;
@@ -182,7 +235,7 @@ describe("clearOAuthTokens", () => {
       'oauth:\n  client-id: my-client\n  client-secret: my-secret\n  access-token: old-token\n  token-expires-at: "2026-02-28T15:00:00Z"\n';
     await writeFile(join(tempDir, ".qontoctl.yaml"), content);
 
-    await clearOAuthTokens({ home: tempDir, cwd: tempDir });
+    await clearOAuthTokens({ home: tempDir });
 
     const result = await readFile(join(tempDir, ".qontoctl.yaml"), "utf-8");
     const doc = parseYaml(result) as Record<string, unknown>;
@@ -193,14 +246,14 @@ describe("clearOAuthTokens", () => {
   });
 
   it("does nothing when config file does not exist", async () => {
-    await expect(clearOAuthTokens({ home: tempDir, cwd: tempDir })).resolves.toBeUndefined();
+    await expect(clearOAuthTokens({ home: tempDir })).resolves.toBeUndefined();
   });
 
   it("does nothing when no oauth section exists", async () => {
     const content = "api-key:\n  organization-slug: my-org\n";
     await writeFile(join(tempDir, ".qontoctl.yaml"), content);
 
-    await clearOAuthTokens({ home: tempDir, cwd: tempDir });
+    await clearOAuthTokens({ home: tempDir });
 
     const result = await readFile(join(tempDir, ".qontoctl.yaml"), "utf-8");
     const doc = parseYaml(result) as Record<string, unknown>;
@@ -223,7 +276,7 @@ describe("saveOAuthScopes", () => {
     const existingContent = "oauth:\n  client-id: my-client\n  client-secret: my-secret\n";
     await writeFile(join(tempDir, ".qontoctl.yaml"), existingContent);
 
-    await saveOAuthScopes(["offline_access", "payment.write"], { home: tempDir, cwd: tempDir });
+    await saveOAuthScopes(["offline_access", "payment.write"], { home: tempDir });
 
     const content = await readFile(join(tempDir, ".qontoctl.yaml"), "utf-8");
     const doc = parseYaml(content) as Record<string, unknown>;
@@ -234,11 +287,85 @@ describe("saveOAuthScopes", () => {
   });
 
   it("creates config file when it does not exist", async () => {
-    await saveOAuthScopes(["offline_access"], { home: tempDir, cwd: tempDir });
+    await saveOAuthScopes(["offline_access"], { home: tempDir });
 
     const content = await readFile(join(tempDir, ".qontoctl.yaml"), "utf-8");
     const doc = parseYaml(content) as Record<string, unknown>;
     const oauth = doc["oauth"] as Record<string, unknown>;
     expect(oauth["scopes"]).toEqual(["offline_access"]);
+  });
+});
+
+describe("atomicity and locking (issue #479)", () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "qontoctl-writer-atomic-"));
+  });
+
+  afterEach(async () => {
+    await rm(tempDir, { recursive: true, force: true });
+  });
+
+  it("does not leave a temp file alongside the destination on success", async () => {
+    await saveOAuthTokens(
+      {
+        accessToken: "a",
+        accessTokenExpiresAt: "2026-12-31T23:59:59Z",
+      },
+      { home: tempDir },
+    );
+
+    const fs = await import("node:fs/promises");
+    const entries = await fs.readdir(tempDir);
+    const tmpFiles = entries.filter((e) => /\.qontoctl\.yaml\.tmp\./.test(e));
+    expect(tmpFiles).toEqual([]);
+  });
+
+  it("permission error during write surfaces as ConfigError PERMISSION", async () => {
+    // Make the home directory non-writable so the writer's mkdir + open
+    // fail with EACCES. Skip on root (ignores perms) and Windows (different
+    // perm model — chmod is best-effort).
+    if (process.platform === "win32") {
+      return;
+    }
+    if (process.getuid && process.getuid() === 0) {
+      return;
+    }
+
+    await chmod(tempDir, 0o500);
+    try {
+      await expect(
+        saveOAuthTokens(
+          {
+            accessToken: "a",
+            accessTokenExpiresAt: "2026-12-31T23:59:59Z",
+          },
+          { home: tempDir },
+        ),
+      ).rejects.toBeInstanceOf(ConfigError);
+    } finally {
+      // Restore so afterEach can clean up
+      await chmod(tempDir, 0o700);
+    }
+  });
+
+  it("concurrent writes serialize correctly (no lost updates)", async () => {
+    // Fire two saves at slightly different access tokens; lock should
+    // serialize them. Final file must contain ONE of the two tokens
+    // verbatim — partial writes / interleaved YAML would fail to parse.
+    const explicitPath = join(tempDir, ".qontoctl.yaml");
+
+    const expiresAt = "2026-12-31T23:59:59Z";
+    const writeA = saveOAuthTokens({ accessToken: "AAA", accessTokenExpiresAt: expiresAt }, { path: explicitPath });
+    const writeB = saveOAuthTokens({ accessToken: "BBB", accessTokenExpiresAt: expiresAt }, { path: explicitPath });
+
+    await Promise.all([writeA, writeB]);
+
+    const content = await readFile(explicitPath, "utf-8");
+    const doc = parseYaml(content) as Record<string, unknown>;
+    const oauth = doc["oauth"] as Record<string, unknown>;
+    // Whichever ran second wins; both tokens are valid landings.
+    expect(["AAA", "BBB"]).toContain(oauth["access-token"]);
   });
 });

@@ -14,7 +14,22 @@ export interface CreateOAuthAuthorizationOptions {
   readonly oauth: OAuthCredentials;
   /** OAuth token endpoint URL. */
   readonly tokenUrl: string;
-  /** Optional profile name for persisting refreshed tokens. */
+  /**
+   * Absolute path to the config file the loader read from. Round-tripped
+   * to the writer on token refresh so the persistence target matches
+   * exactly — no re-resolution, no chance of writing to a different file
+   * than the one tokens were loaded from. Pair with the `path` field
+   * returned by {@link import("../config/index.js").resolveConfig}.
+   *
+   * When `undefined`, the writer falls back to its own resolution rules
+   * (`profile` if set, else home default). Callers that loaded from a
+   * file SHOULD pass `path` to keep load/write consistent.
+   */
+  readonly path?: string | undefined;
+  /**
+   * Optional profile name. Used by the writer's resolution chain when
+   * `path` is not provided. Has no effect when `path` is set.
+   */
   readonly profile?: string | undefined;
   /**
    * When `true`, the access token is treated as **read-only /
@@ -51,7 +66,7 @@ export interface CreateOAuthAuthorizationOptions {
  * is left untouched.
  */
 export function createOAuthAuthorization(options: CreateOAuthAuthorizationOptions): () => Promise<string> {
-  const { oauth, tokenUrl, profile, readOnly = false } = options;
+  const { oauth, tokenUrl, path, profile, readOnly = false } = options;
 
   return async () => {
     if (!readOnly && oauth.accessTokenExpiresAt && oauth.refreshToken) {
@@ -71,13 +86,18 @@ export function createOAuthAuthorization(options: CreateOAuthAuthorizationOption
         }
         oauth.accessTokenExpiresAt = new Date(Date.now() + tokens.expiresIn * 1000).toISOString();
 
+        // Round-trip the loaded `path` so the writer hits the same file
+        // the loader read from. When `path` is undefined (caller did not
+        // round-trip), fall back to profile-based resolution.
+        const writeOptions = path !== undefined ? { path } : profile !== undefined ? { profile } : undefined;
+
         await saveOAuthTokens(
           {
             accessToken: oauth.accessToken,
             refreshToken: oauth.refreshToken,
             accessTokenExpiresAt: oauth.accessTokenExpiresAt,
           },
-          profile !== undefined ? { profile } : undefined,
+          writeOptions,
         );
       }
     }

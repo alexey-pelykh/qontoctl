@@ -29,14 +29,14 @@ describe("handleCliError", () => {
 
   describe("ConfigError", () => {
     it("shows configuration guidance", () => {
-      const error = new ConfigError("No credentials found.");
+      const error = new ConfigError("No credentials found.", "NO_CREDS");
 
       handleCliError(error, false);
 
       const output = stderrSpy.mock.calls[0]?.[0] as string;
       expect(output).toContain("Configuration error: No credentials found.");
       expect(output).toContain("~/.qontoctl.yaml");
-      expect(output).toContain("organization-slug");
+      expect(output).toContain("QONTOCTL_ORGANIZATION_SLUG");
       expect(output).toContain("QONTOCTL_ORGANIZATION_SLUG");
       expect(process.exitCode).toBe(1);
     });

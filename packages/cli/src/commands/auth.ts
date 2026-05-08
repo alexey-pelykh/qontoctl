@@ -244,15 +244,36 @@ function resolveOAuthEndpoints(stagingToken?: string): OAuthEndpoints {
   };
 }
 
-async function resolveOAuthConfig(profile: string | undefined): Promise<{ oauth: OAuthCredentials }> {
-  const { config } = await resolveConfig({ profile });
+async function resolveOAuthConfig(
+  profile: string | undefined,
+): Promise<{ oauth: OAuthCredentials; path: string | undefined }> {
+  const { config, path } = await resolveConfig({ profile });
   if (config.oauth === undefined) {
     throw new Error(
       "No OAuth credentials found in configuration. " +
         'Add "oauth.client-id" and "oauth.client-secret" to your config file.',
     );
   }
-  return { oauth: config.oauth };
+  return { oauth: config.oauth, path };
+}
+
+/**
+ * Builds writer options that round-trip the loaded `path` when available,
+ * falling back to profile-based resolution otherwise. Used by all `auth`
+ * sub-commands so writes hit the exact file the loader read from — no
+ * silent divergence between load and write under #479's no-CWD model.
+ */
+function buildWriteOptions(
+  path: string | undefined,
+  profile: string | undefined,
+): { path: string } | { profile: string } | undefined {
+  if (path !== undefined) {
+    return { path };
+  }
+  if (profile !== undefined) {
+    return { profile };
+  }
+  return undefined;
 }
 
 function openBrowser(url: string): void {
@@ -378,13 +399,18 @@ export function registerAuthCommands(program: Command): void {
       "Setup Instructions",
     );
 
-    // Load existing config for defaults on re-run
+    // Load existing config for defaults on re-run. Capture `path` so the
+    // ensuing writes round-trip to the same file the loader read from
+    // (preventing load/write divergence under #479's no-CWD model).
     let existingOAuth: OAuthCredentials | undefined;
+    let loadedPath: string | undefined;
     try {
-      const { config } = await resolveConfig({ profile: opts.profile });
-      existingOAuth = config.oauth;
+      const result = await resolveConfig({ profile: opts.profile });
+      existingOAuth = result.config.oauth;
+      loadedPath = result.path;
     } catch {
-      // No existing config, start fresh
+      // No existing config, start fresh — `loadedPath` stays undefined
+      // and writes fall back to profile/home resolution below.
     }
 
     const clientId = await text({
@@ -425,9 +451,9 @@ export function registerAuthCommands(program: Command): void {
     // Ensure offline_access is always included
     const scopes = selectedScopes.includes("offline_access") ? selectedScopes : ["offline_access", ...selectedScopes];
 
-    const profileOpts = opts.profile !== undefined ? { profile: opts.profile } : undefined;
-    await saveOAuthClientCredentials({ clientId: clientId.trim(), clientSecret: clientSecret.trim() }, profileOpts);
-    await saveOAuthScopes(scopes, profileOpts);
+    const writeOpts = buildWriteOptions(loadedPath, opts.profile);
+    await saveOAuthClientCredentials({ clientId: clientId.trim(), clientSecret: clientSecret.trim() }, writeOpts);
+    await saveOAuthScopes(scopes, writeOpts);
 
     outro('Credentials saved. Run "qontoctl auth login" to authenticate.');
   });
@@ -447,7 +473,7 @@ export function registerAuthCommands(program: Command): void {
     const port = Number.parseInt(opts.port, 10);
     const redirectUri = `http://localhost:${port}/callback`;
 
-    const { oauth } = await resolveOAuthConfig(opts.profile);
+    const { oauth, path: loadedPath } = await resolveOAuthConfig(opts.profile);
     const { authUrl, tokenUrl } = resolveOAuthEndpoints(oauth.stagingToken);
 
     // Scopes must be configured beforehand (via `auth setup`). `auth login` is
@@ -522,14 +548,15 @@ export function registerAuthCommands(program: Command): void {
       // Calculate expiration time
       const expiresAt = new Date(Date.now() + tokens.expiresIn * 1000).toISOString();
 
-      // Save tokens
+      // Save tokens — round-trip the loaded path so writer hits the same
+      // file the loader read from (no load/write divergence).
       await saveOAuthTokens(
         {
           accessToken: tokens.accessToken,
           ...(tokens.refreshToken !== undefined ? { refreshToken: tokens.refreshToken } : {}),
           accessTokenExpiresAt: expiresAt,
         },
-        opts.profile !== undefined ? { profile: opts.profile } : undefined,
+        buildWriteOptions(loadedPath, opts.profile),
       );
 
       s.stop("Login successful! Tokens saved.");
@@ -550,7 +577,7 @@ export function registerAuthCommands(program: Command): void {
   addInheritableOptions(refresh);
   refresh.action(async (_options: unknown, cmd: Command) => {
     const opts = resolveGlobalOptions<GlobalOptions>(cmd);
-    const { oauth } = await resolveOAuthConfig(opts.profile);
+    const { oauth, path: loadedPath } = await resolveOAuthConfig(opts.profile);
     const { tokenUrl } = resolveOAuthEndpoints(oauth.stagingToken);
 
     if (!oauth.refreshToken) {
@@ -574,7 +601,7 @@ export function registerAuthCommands(program: Command): void {
         refreshToken: tokens.refreshToken ?? oauth.refreshToken,
         accessTokenExpiresAt: expiresAt,
       },
-      opts.profile !== undefined ? { profile: opts.profile } : undefined,
+      buildWriteOptions(loadedPath, opts.profile),
     );
 
     process.stderr.write("Access token refreshed successfully.\n");
@@ -631,7 +658,7 @@ export function registerAuthCommands(program: Command): void {
   addInheritableOptions(revoke);
   revoke.action(async (_options: unknown, cmd: Command) => {
     const opts = resolveGlobalOptions<GlobalOptions>(cmd);
-    const { oauth } = await resolveOAuthConfig(opts.profile);
+    const { oauth, path: loadedPath } = await resolveOAuthConfig(opts.profile);
     const { revokeUrl } = resolveOAuthEndpoints(oauth.stagingToken);
 
     if (oauth.accessToken) {
@@ -652,7 +679,7 @@ export function registerAuthCommands(program: Command): void {
       }
     }
 
-    await clearOAuthTokens(opts.profile !== undefined ? { profile: opts.profile } : undefined);
+    await clearOAuthTokens(buildWriteOptions(loadedPath, opts.profile));
     process.stderr.write("OAuth tokens revoked and cleared.\n");
   });
 }

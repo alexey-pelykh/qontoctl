@@ -46,7 +46,7 @@ describe("API key auth flow", () => {
       );
 
       const { config } = await resolveConfig({
-        cwd: testDir,
+        path: join(testDir, ".qontoctl.yaml"),
         home: testHome,
         env: {},
       });
@@ -66,7 +66,6 @@ describe("API key auth flow", () => {
 
       const { config } = await resolveConfig({
         profile: "production",
-        cwd: testDir,
         home: testHome,
         env: {},
       });
@@ -83,7 +82,6 @@ describe("API key auth flow", () => {
   describe("missing credentials error guidance", () => {
     it("describes default search locations when no config exists", async () => {
       const error = await resolveConfig({
-        cwd: testDir,
         home: testHome,
         env: {},
       }).catch((e: unknown) => e);
@@ -97,7 +95,6 @@ describe("API key auth flow", () => {
     it("describes profile-specific search locations for named profiles", async () => {
       const error = await resolveConfig({
         profile: "staging",
-        cwd: testDir,
         home: testHome,
         env: {},
       }).catch((e: unknown) => e);
@@ -108,19 +105,20 @@ describe("API key auth flow", () => {
       expect(message).toMatch(/QONTOCTL_STAGING_\*/);
     });
 
-    it("notes found config file when it lacks api-key section", async () => {
+    it("notes found config file when it lacks credentials", async () => {
       await writeFile(join(testDir, ".qontoctl.yaml"), "future-feature: true\n");
 
       const error = await resolveConfig({
-        cwd: testDir,
+        path: join(testDir, ".qontoctl.yaml"),
         home: testHome,
         env: {},
       }).catch((e: unknown) => e);
 
       expect(error).toBeInstanceOf(ConfigError);
       const message = (error as ConfigError).message;
-      expect(message).toMatch(/Found config at/);
-      expect(message).toMatch(/no api-key credentials/);
+      // Explicit-path message is now produced (path was given).
+      expect(message).toMatch(/Explicit path/);
+      expect(message).toMatch(/no credentials/);
     });
   });
 
@@ -130,7 +128,7 @@ describe("API key auth flow", () => {
   describe("env var overrides flow through to auth header", () => {
     it("builds auth header from env-only credentials", async () => {
       const { config } = await resolveConfig({
-        cwd: testDir,
+        path: join(testDir, ".qontoctl.yaml"),
         home: testHome,
         env: {
           QONTOCTL_ORGANIZATION_SLUG: "env-org",
@@ -150,7 +148,7 @@ describe("API key auth flow", () => {
       );
 
       const { config } = await resolveConfig({
-        cwd: testDir,
+        path: join(testDir, ".qontoctl.yaml"),
         home: testHome,
         env: {
           QONTOCTL_ORGANIZATION_SLUG: "override-org",
@@ -170,7 +168,7 @@ describe("API key auth flow", () => {
       );
 
       const { config } = await resolveConfig({
-        cwd: testDir,
+        path: join(testDir, ".qontoctl.yaml"),
         home: testHome,
         env: { QONTOCTL_SECRET_KEY: "env-secret" },
       });
@@ -183,7 +181,6 @@ describe("API key auth flow", () => {
     it("builds auth header from named profile env vars", async () => {
       const { config } = await resolveConfig({
         profile: "staging",
-        cwd: testDir,
         home: testHome,
         env: {
           QONTOCTL_STAGING_ORGANIZATION_SLUG: "staging-org",

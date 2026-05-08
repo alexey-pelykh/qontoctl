@@ -19,10 +19,12 @@ export {
 
 export {
   resolveConfig,
+  resolveConfigPath,
   resolveScaMethod,
   ConfigError,
   isValidProfileName,
   loadConfigFile,
+  resolveConfigFilePath,
   validateConfig,
   applyEnvOverlay,
   saveOAuthTokens,
@@ -33,14 +35,17 @@ export {
 
 export type {
   ApiKeyCredentials,
+  ConfigErrorCode,
   OAuthCredentials,
   QontoctlConfig,
   ConfigResult,
   ResolveOptions,
   ScaConfig,
+  LoadOptions,
   LoadResult,
   ValidationResult,
   TokenUpdate,
+  WriteOptions,
   EnvOverlayConfig,
   EnvOverlayResult,
   StaticOAuthFields,

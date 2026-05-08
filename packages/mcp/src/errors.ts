@@ -23,21 +23,52 @@ function textError(message: string): CallToolResult {
 }
 
 function formatConfigError(error: ConfigError): CallToolResult {
-  return textError(
-    [
-      `Configuration error: ${error.message}`,
-      "",
-      "To configure credentials, create ~/.qontoctl.yaml:",
-      "",
-      "api-key:",
-      "  organization-slug: <your-org-slug>",
-      "  secret-key: <your-secret-key>",
-      "",
-      "Or set environment variables:",
-      "  QONTOCTL_ORGANIZATION_SLUG=<your-org-slug>",
-      "  QONTOCTL_SECRET_KEY=<your-secret-key>",
-    ].join("\n"),
-  );
+  switch (error.code) {
+    case "NO_CREDS":
+      return textError(
+        [
+          `Configuration error: ${error.message}`,
+          "",
+          "Set credentials via one of:",
+          "  • A config file at ~/.qontoctl.yaml",
+          "  • The QONTOCTL_CONFIG_FILE env var pointing at an absolute path",
+          "  • Env vars QONTOCTL_ORGANIZATION_SLUG + QONTOCTL_SECRET_KEY (api-key)",
+          "  • Env vars QONTOCTL_CLIENT_ID + QONTOCTL_CLIENT_SECRET (oauth)",
+        ].join("\n"),
+      );
+    case "PARSE":
+      return textError(
+        [
+          `Configuration error: ${error.message}`,
+          "",
+          "The YAML file could not be parsed. Check indentation, quoting, and special characters.",
+        ].join("\n"),
+      );
+    case "VALIDATION":
+      return textError([`Configuration error: ${error.message}`, "", "Fix the offending field and retry."].join("\n"));
+    case "PERMISSION":
+      return textError(
+        [
+          `Configuration error: ${error.message}`,
+          "",
+          "Check file ownership and permissions. OAuth-bearing files should be 0600 (chmod 600 <path>).",
+        ].join("\n"),
+      );
+    case "CONFLICT":
+      return textError(
+        [
+          `Configuration error: ${error.message}`,
+          "",
+          "Another qontoctl process is writing to the same config file.",
+          "Wait for it to finish, or kill it if it's stuck (a stale lock is reaped after 10 seconds).",
+        ].join("\n"),
+      );
+    default:
+      // Future-proof: any unrecognized code (e.g., a new ConfigErrorCode
+      // variant added without updating this switch) still produces a
+      // legible message rather than returning undefined.
+      return textError(`Configuration error: ${error.message}`);
+  }
 }
 
 function formatAuthError(error: AuthError): CallToolResult {
@@ -45,7 +76,7 @@ function formatAuthError(error: AuthError): CallToolResult {
     [
       `Authentication error: ${error.message}`,
       "",
-      "Verify your API key credentials in ~/.qontoctl.yaml or environment variables.",
+      "Verify your API key credentials in ~/.qontoctl.yaml, via QONTOCTL_CONFIG_FILE, or via environment variables.",
     ].join("\n"),
   );
 }
