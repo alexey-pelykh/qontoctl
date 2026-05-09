@@ -30,7 +30,7 @@ import {
   saveOAuthScopes,
   clearOAuthTokens,
 } from "@qontoctl/core";
-import { addInheritableOptions, resolveGlobalOptions } from "../inherited-options.js";
+import { addInheritableOptions, buildResolveOptions, resolveGlobalOptions } from "../inherited-options.js";
 import type { GlobalOptions } from "../options.js";
 
 const DEFAULT_REDIRECT_PORT = 18920;
@@ -245,9 +245,9 @@ function resolveOAuthEndpoints(stagingToken?: string): OAuthEndpoints {
 }
 
 async function resolveOAuthConfig(
-  profile: string | undefined,
+  opts: Pick<GlobalOptions, "config" | "profile">,
 ): Promise<{ oauth: OAuthCredentials; path: string | undefined }> {
-  const { config, path } = await resolveConfig({ profile });
+  const { config, path } = await resolveConfig(buildResolveOptions(opts));
   if (config.oauth === undefined) {
     throw new Error(
       "No OAuth credentials found in configuration. " +
@@ -405,7 +405,7 @@ export function registerAuthCommands(program: Command): void {
     let existingOAuth: OAuthCredentials | undefined;
     let loadedPath: string | undefined;
     try {
-      const result = await resolveConfig({ profile: opts.profile });
+      const result = await resolveConfig(buildResolveOptions(opts));
       existingOAuth = result.config.oauth;
       loadedPath = result.path;
     } catch {
@@ -473,7 +473,7 @@ export function registerAuthCommands(program: Command): void {
     const port = Number.parseInt(opts.port, 10);
     const redirectUri = `http://localhost:${port}/callback`;
 
-    const { oauth, path: loadedPath } = await resolveOAuthConfig(opts.profile);
+    const { oauth, path: loadedPath } = await resolveOAuthConfig(opts);
     const { authUrl, tokenUrl } = resolveOAuthEndpoints(oauth.stagingToken);
 
     // Scopes must be configured beforehand (via `auth setup`). `auth login` is
@@ -577,7 +577,7 @@ export function registerAuthCommands(program: Command): void {
   addInheritableOptions(refresh);
   refresh.action(async (_options: unknown, cmd: Command) => {
     const opts = resolveGlobalOptions<GlobalOptions>(cmd);
-    const { oauth, path: loadedPath } = await resolveOAuthConfig(opts.profile);
+    const { oauth, path: loadedPath } = await resolveOAuthConfig(opts);
     const { tokenUrl } = resolveOAuthEndpoints(oauth.stagingToken);
 
     if (!oauth.refreshToken) {
@@ -612,7 +612,7 @@ export function registerAuthCommands(program: Command): void {
   addInheritableOptions(status);
   status.action(async (_options: unknown, cmd: Command) => {
     const opts = resolveGlobalOptions<GlobalOptions>(cmd);
-    const { oauth } = await resolveOAuthConfig(opts.profile);
+    const { oauth } = await resolveOAuthConfig(opts);
 
     if (!oauth.accessToken) {
       process.stdout.write("Status: Not logged in\n");
@@ -658,7 +658,7 @@ export function registerAuthCommands(program: Command): void {
   addInheritableOptions(revoke);
   revoke.action(async (_options: unknown, cmd: Command) => {
     const opts = resolveGlobalOptions<GlobalOptions>(cmd);
-    const { oauth, path: loadedPath } = await resolveOAuthConfig(opts.profile);
+    const { oauth, path: loadedPath } = await resolveOAuthConfig(opts);
     const { revokeUrl } = resolveOAuthEndpoints(oauth.stagingToken);
 
     if (oauth.accessToken) {

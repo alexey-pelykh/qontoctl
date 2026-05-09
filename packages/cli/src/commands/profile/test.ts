@@ -12,7 +12,7 @@ import {
   QontoApiError,
   QontoRateLimitError,
 } from "@qontoctl/core";
-import { addInheritableOptions, resolveGlobalOptions } from "../../inherited-options.js";
+import { addInheritableOptions, buildResolveOptions, resolveGlobalOptions } from "../../inherited-options.js";
 import type { GlobalOptions } from "../../options.js";
 
 interface OrganizationResponse {
@@ -59,7 +59,7 @@ async function testProfile(options: GlobalOptions): Promise<void> {
   }
 
   try {
-    const { config, endpoint } = await resolveConfig({ profile: options.profile });
+    const { config, endpoint } = await resolveConfig(buildResolveOptions(options));
 
     if (config.apiKey === undefined) {
       console.error("Configuration error: no credentials found.");

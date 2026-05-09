@@ -266,6 +266,22 @@ describe("createProgram", () => {
   });
 
   describe("global options", () => {
+    it("parses --config option", () => {
+      const program = parseGlobalOptions(["--config", "/path/to/config.yaml"]);
+      expect(program.opts()["config"]).toBe("/path/to/config.yaml");
+    });
+
+    it("parses --config with relative path", () => {
+      const program = parseGlobalOptions(["--config", "./local.yaml"]);
+      expect(program.opts()["config"]).toBe("./local.yaml");
+    });
+
+    it("includes --config in help output", () => {
+      const program = createProgram();
+      const helpText = program.helpInformation();
+      expect(helpText).toContain("--config");
+    });
+
     it("parses --profile option", () => {
       const program = parseGlobalOptions(["--profile", "work"]);
       expect(program.opts()["profile"]).toBe("work");

@@ -385,6 +385,32 @@ describe("registerAuthCommands", () => {
       );
       expect(saveOAuthScopesMock).toHaveBeenCalledWith(["offline_access"], { profile: "work" });
     });
+
+    it("plumbs --config to resolveConfig and round-trips path on writes", async () => {
+      resolveConfigMock.mockResolvedValue({
+        config: {},
+        endpoint: "https://thirdparty.qonto.com",
+        warnings: [],
+        path: "/explicit/config.yaml",
+        oauthAccessTokenFromEnv: false,
+      });
+      textMock.mockResolvedValueOnce("my-id").mockResolvedValueOnce("my-secret");
+      multiselectMock.mockResolvedValueOnce(["offline_access"]);
+
+      const program = new Command();
+      program.option("-o, --output <format>", "", "table");
+      program.option("--config <path>", "");
+      registerAuthCommands(program);
+
+      await program.parseAsync(["auth", "setup", "--config", "/explicit/config.yaml"], { from: "user" });
+
+      expect(resolveConfigMock).toHaveBeenCalledWith(expect.objectContaining({ path: "/explicit/config.yaml" }));
+      expect(saveOAuthClientCredentialsMock).toHaveBeenCalledWith(
+        { clientId: "my-id", clientSecret: "my-secret" },
+        { path: "/explicit/config.yaml" },
+      );
+      expect(saveOAuthScopesMock).toHaveBeenCalledWith(["offline_access"], { path: "/explicit/config.yaml" });
+    });
   });
 
   describe("auth status", () => {
@@ -720,6 +746,79 @@ describe("registerAuthCommands", () => {
         "test-token",
       );
     });
+
+    it("plumbs --config to resolveConfig and round-trips path on token save", async () => {
+      resolveConfigMock.mockResolvedValue({
+        config: {
+          oauth: {
+            clientId: "cid",
+            clientSecret: "csecret",
+            refreshToken: "old-refresh",
+          },
+        },
+        endpoint: "https://thirdparty.qonto.com",
+        warnings: [],
+        path: "/explicit/config.yaml",
+        oauthAccessTokenFromEnv: false,
+      });
+      refreshAccessTokenMock.mockResolvedValue({
+        accessToken: "new-access",
+        refreshToken: "new-refresh",
+        expiresIn: 3600,
+        tokenType: "Bearer",
+      });
+      saveOAuthTokensMock.mockResolvedValue(undefined);
+
+      const program = new Command();
+      program.option("-o, --output <format>", "", "table");
+      program.option("--config <path>", "");
+      registerAuthCommands(program);
+
+      await program.parseAsync(["auth", "refresh", "--config", "/explicit/config.yaml"], { from: "user" });
+
+      expect(resolveConfigMock).toHaveBeenCalledWith(expect.objectContaining({ path: "/explicit/config.yaml" }));
+      expect(saveOAuthTokensMock).toHaveBeenCalledWith(expect.objectContaining({ accessToken: "new-access" }), {
+        path: "/explicit/config.yaml",
+      });
+    });
+
+    it("round-trips env-resolved path on token save (no --config flag)", async () => {
+      // Simulates QONTOCTL_CONFIG_FILE-only resolution: no --config flag,
+      // but core's resolveConfig returns a `path` (the env-pointed file).
+      // The writer must round-trip that path even though the user did not
+      // pass --config explicitly.
+      resolveConfigMock.mockResolvedValue({
+        config: {
+          oauth: {
+            clientId: "cid",
+            clientSecret: "csecret",
+            refreshToken: "old-refresh",
+          },
+        },
+        endpoint: "https://thirdparty.qonto.com",
+        warnings: [],
+        path: "/from-env/config.yaml",
+        oauthAccessTokenFromEnv: false,
+      });
+      refreshAccessTokenMock.mockResolvedValue({
+        accessToken: "new-access",
+        refreshToken: "new-refresh",
+        expiresIn: 3600,
+        tokenType: "Bearer",
+      });
+      saveOAuthTokensMock.mockResolvedValue(undefined);
+
+      const program = new Command();
+      program.option("-o, --output <format>", "", "table");
+      registerAuthCommands(program);
+
+      await program.parseAsync(["auth", "refresh"], { from: "user" });
+
+      // Even with no --config flag, the writer round-trips the loader's path.
+      expect(saveOAuthTokensMock).toHaveBeenCalledWith(expect.objectContaining({ accessToken: "new-access" }), {
+        path: "/from-env/config.yaml",
+      });
+    });
   });
 
   describe("auth revoke", () => {
@@ -828,6 +927,35 @@ describe("registerAuthCommands", () => {
 
       expect(revokeTokenMock).not.toHaveBeenCalled();
       expect(clearOAuthTokensMock).toHaveBeenCalled();
+    });
+
+    it("plumbs --config to resolveConfig and round-trips path on clearOAuthTokens", async () => {
+      resolveConfigMock.mockResolvedValue({
+        config: {
+          oauth: {
+            clientId: "cid",
+            clientSecret: "csecret",
+            accessToken: "access",
+            refreshToken: "refresh",
+          },
+        },
+        endpoint: "https://thirdparty.qonto.com",
+        warnings: [],
+        path: "/explicit/config.yaml",
+        oauthAccessTokenFromEnv: false,
+      });
+      revokeTokenMock.mockResolvedValue(undefined);
+      clearOAuthTokensMock.mockResolvedValue(undefined);
+
+      const program = new Command();
+      program.option("-o, --output <format>", "", "table");
+      program.option("--config <path>", "");
+      registerAuthCommands(program);
+
+      await program.parseAsync(["auth", "revoke", "--config", "/explicit/config.yaml"], { from: "user" });
+
+      expect(resolveConfigMock).toHaveBeenCalledWith(expect.objectContaining({ path: "/explicit/config.yaml" }));
+      expect(clearOAuthTokensMock).toHaveBeenCalledWith({ path: "/explicit/config.yaml" });
     });
   });
 
@@ -1111,6 +1239,37 @@ describe("registerAuthCommands", () => {
       await parsePromise;
 
       expect(saveOAuthTokensMock).toHaveBeenCalledWith(expect.any(Object), { profile: "work" });
+    });
+
+    it("plumbs --config to resolveConfig and round-trips path on token save", async () => {
+      resolveConfigMock.mockResolvedValue({
+        config: {
+          oauth: {
+            clientId: "cid",
+            clientSecret: "csecret",
+            scopes: ["offline_access", "organization.read"],
+          },
+        },
+        endpoint: "https://thirdparty.qonto.com",
+        warnings: [],
+        path: "/explicit/config.yaml",
+        oauthAccessTokenFromEnv: false,
+      });
+
+      const program = new Command();
+      program.option("-o, --output <format>", "", "table");
+      program.option("--config <path>", "");
+      registerAuthCommands(program);
+
+      const parsePromise = program.parseAsync(["auth", "login", "--config", "/explicit/config.yaml"], {
+        from: "user",
+      });
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      simulateCallback("auth-code", MOCK_STATE_HEX);
+      await parsePromise;
+
+      expect(resolveConfigMock).toHaveBeenCalledWith(expect.objectContaining({ path: "/explicit/config.yaml" }));
+      expect(saveOAuthTokensMock).toHaveBeenCalledWith(expect.any(Object), { path: "/explicit/config.yaml" });
     });
 
     it("throws when no OAuth config", async () => {

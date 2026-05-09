@@ -98,7 +98,7 @@ ESLint enforces this via `eslint-plugin-header`.
 
 - `direnv` shim: copy `.envrc.example` → `.envrc` (gitignored), run `direnv allow`. Exports `QONTOCTL_CONFIG_FILE="$PWD/.qontoctl.yaml"` automatically when you `cd` into the repo. **Recommended** for daily development.
 - Per-shell env: `export QONTOCTL_CONFIG_FILE="$PWD/.qontoctl.yaml"`
-- (After #480 ships) Per-invocation: `qontoctl --config ./.qontoctl.yaml ...`
+- Per-invocation: `qontoctl --config ./.qontoctl.yaml ...` (highest precedence; warns on stderr if it disagrees with `QONTOCTL_CONFIG_FILE` or `--profile`)
 
 The E2E test harness already injects `QONTOCTL_CONFIG_FILE` for spawned CLI subprocesses (see `packages/e2e/src/sandbox.ts`), so `pnpm test:e2e` works without any of the above.
 
