@@ -26,6 +26,7 @@ describe.skipIf(!hasZsh())("zsh completion (e2e)", () => {
   beforeAll(() => {
     completionScript = execFileSync("node", [CLI_PATH, "completion", "zsh"], {
       encoding: "utf-8",
+      stdio: "pipe",
     });
     tempDir = mkdtempSync(join(tmpdir(), "qontoctl-zsh-e2e-"));
     scriptPath = join(tempDir, "_qontoctl");
@@ -46,7 +47,7 @@ describe.skipIf(!hasZsh())("zsh completion (e2e)", () => {
         "-c",
         ["autoload -Uz compinit", `fpath=("${tempDir}" $fpath)`, "compinit -u", `source "${scriptPath}"`].join("; "),
       ],
-      { encoding: "utf-8" },
+      { encoding: "utf-8", stdio: "pipe" },
     );
   });
 
@@ -64,7 +65,7 @@ describe.skipIf(!hasZsh())("zsh completion (e2e)", () => {
           'whence -w _qontoctl | grep "function"',
         ].join("; "),
       ],
-      { encoding: "utf-8" },
+      { encoding: "utf-8", stdio: "pipe" },
     );
     expect(result).toContain("function");
   });

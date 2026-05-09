@@ -14,6 +14,7 @@ function listStatements(): Record<string, unknown>[] {
   const output = execFileSync("node", [CLI_PATH, "statement", "list", "--no-paginate", "-o", "json"], {
     encoding: "utf-8",
     env: cliEnv(),
+    stdio: "pipe",
   });
   return JSON.parse(output) as Record<string, unknown>[];
 }
@@ -47,7 +48,7 @@ describe.skipIf(!hasApiKeyCredentials())("statement CLI commands (e2e)", () => {
       const filteredOutput = execFileSync(
         "node",
         [CLI_PATH, "statement", "list", "--bank-account", bankAccountId, "--no-paginate", "-o", "json"],
-        { encoding: "utf-8", env: cliEnv() },
+        { encoding: "utf-8", env: cliEnv(), stdio: "pipe" },
       );
       const filteredRows = JSON.parse(filteredOutput) as Record<string, unknown>[];
 
@@ -60,7 +61,7 @@ describe.skipIf(!hasApiKeyCredentials())("statement CLI commands (e2e)", () => {
       const output = execFileSync(
         "node",
         [CLI_PATH, "statement", "list", "--from", "01-2025", "--to", "12-2025", "--no-paginate", "-o", "json"],
-        { encoding: "utf-8", env: cliEnv() },
+        { encoding: "utf-8", env: cliEnv(), stdio: "pipe" },
       );
 
       // The command should succeed; results may be empty if no statements in range
@@ -81,6 +82,7 @@ describe.skipIf(!hasApiKeyCredentials())("statement CLI commands (e2e)", () => {
       const showOutput = execFileSync("node", [CLI_PATH, "statement", "show", statementId, "-o", "json"], {
         encoding: "utf-8",
         env: cliEnv(),
+        stdio: "pipe",
       });
       const showRows = JSON.parse(showOutput) as Record<string, unknown>[];
       expect(showRows).toHaveLength(1);
@@ -120,6 +122,7 @@ describe.skipIf(!hasApiKeyCredentials())("statement CLI commands (e2e)", () => {
       execFileSync("node", [CLI_PATH, "statement", "download", statementId], {
         encoding: "utf-8",
         env: cliEnv(),
+        stdio: "pipe",
         cwd: downloadDir,
       });
 
@@ -139,6 +142,7 @@ describe.skipIf(!hasApiKeyCredentials())("statement CLI commands (e2e)", () => {
       execFileSync("node", [CLI_PATH, "statement", "download", statementId, "--output-dir", outputDir], {
         encoding: "utf-8",
         env: cliEnv(),
+        stdio: "pipe",
       });
 
       const downloadedFile = join(outputDir, expectedFileName);

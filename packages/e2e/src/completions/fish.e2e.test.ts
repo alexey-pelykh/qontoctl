@@ -26,6 +26,7 @@ describe.skipIf(!hasFish())("fish completion (e2e)", () => {
   beforeAll(() => {
     completionScript = execFileSync("node", [CLI_PATH, "completion", "fish"], {
       encoding: "utf-8",
+      stdio: "pipe",
     });
     tempDir = mkdtempSync(join(tmpdir(), "qontoctl-fish-e2e-"));
     scriptPath = join(tempDir, "qontoctl.fish");
@@ -39,6 +40,7 @@ describe.skipIf(!hasFish())("fish completion (e2e)", () => {
   it("generates a sourceable script without errors", () => {
     execFileSync("fish", ["-c", `source "${scriptPath}"`], {
       encoding: "utf-8",
+      stdio: "pipe",
     });
   });
 
@@ -46,7 +48,7 @@ describe.skipIf(!hasFish())("fish completion (e2e)", () => {
     const result = execFileSync(
       "fish",
       ["-c", [`source "${scriptPath}"`, 'complete --do-complete "qontoctl "'].join("; ")],
-      { encoding: "utf-8" },
+      { encoding: "utf-8", stdio: "pipe" },
     );
     const completions = result
       .trim()
@@ -63,7 +65,7 @@ describe.skipIf(!hasFish())("fish completion (e2e)", () => {
     const result = execFileSync(
       "fish",
       ["-c", [`source "${scriptPath}"`, 'complete --do-complete "qontoctl completion "'].join("; ")],
-      { encoding: "utf-8" },
+      { encoding: "utf-8", stdio: "pipe" },
     );
     const completions = result
       .trim()

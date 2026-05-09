@@ -45,6 +45,7 @@ function cliSync(...args: string[]): string {
   return execFileSync("node", [CLI_PATH, ...args], {
     encoding: "utf-8",
     env: cliEnv(),
+    stdio: "pipe",
     timeout: 25_000,
   });
 }

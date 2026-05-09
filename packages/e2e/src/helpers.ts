@@ -43,11 +43,17 @@ interface ExecError {
  * Use this when a test wants to inspect the failure shape before deciding
  * whether to skip or fail (e.g. detecting HTTP 404 from sandbox feature
  * gating). For the simpler "throw on failure" pattern, use {@link cli}.
+ *
+ * Uses `stdio: "pipe"` so the child's stderr is captured into the result
+ * instead of being inherited to the parent process — without this, vitest's
+ * worker stderr ends up muxed into the test report between unrelated test
+ * file boundaries (see #512).
  */
 export function cliRaw(args: readonly string[], options: { timeout?: number } = {}): CliResult {
   const execOptions: ExecFileSyncOptions = {
     encoding: "utf-8",
     env: cliEnv(),
+    stdio: "pipe",
     timeout: options.timeout ?? DEFAULT_CLI_TIMEOUT_MS,
   };
 
@@ -77,11 +83,16 @@ function bufferToString(value: Buffer | string | undefined): string {
  * The single canonical CLI invocation helper for E2E tests — use this
  * instead of duplicating the `execFileSync(node, [CLI_PATH, ...args], ...)`
  * boilerplate in every test file.
+ *
+ * Uses `stdio: "pipe"` so the child's stderr is captured into the thrown
+ * error's `stderr` property instead of being inherited to vitest's worker
+ * stderr (see #512).
  */
 export function cli(...args: string[]): string {
   return execFileSync("node", [CLI_PATH, ...args], {
     encoding: "utf-8",
     env: cliEnv(),
+    stdio: "pipe",
     timeout: DEFAULT_CLI_TIMEOUT_MS,
   });
 }
