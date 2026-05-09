@@ -145,6 +145,13 @@ describe("PaginationMetaSchema", () => {
     expect(result.prev_page).toBeUndefined();
   });
 
+  it("accepts missing next_page (e.g. /v2/cards omits it on the final page)", () => {
+    const input = { ...validMeta };
+    delete (input as Record<string, unknown>).next_page;
+    const result = PaginationMetaSchema.parse(input);
+    expect(result.next_page).toBeUndefined();
+  });
+
   it("strips unknown fields", () => {
     const result = PaginationMetaSchema.parse({ ...validMeta, extra: true });
     expect(result).not.toHaveProperty("extra");

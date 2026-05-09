@@ -123,6 +123,28 @@ describe("pagination", () => {
       expect(fetchSpy).toHaveBeenCalledTimes(1);
     });
 
+    it("treats omitted next_page (e.g. /v2/cards) as terminal", async () => {
+      // Some Qonto endpoints (notably /v2/cards) omit `next_page` entirely
+      // on the final page rather than returning `null`. Regression test
+      // for #489 — previously the loop sent `?page=undefined` and got 400.
+      const items = [{ id: "1" }, { id: "2" }, { id: "3" }];
+      fetchSpy.mockImplementation(() =>
+        jsonResponse({
+          items,
+          meta: {
+            current_page: 1,
+            total_pages: 1,
+            total_count: 3,
+            per_page: 100,
+          },
+        }),
+      );
+
+      const result = await fetchAllPages(client, "/v2/cards", "items", 100);
+      expect(result.items).toEqual(items);
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+    });
+
     it("stops at MAX_PAGES safety limit", async () => {
       // Always return a next_page to simulate infinite pagination
       fetchSpy.mockImplementation(() => {

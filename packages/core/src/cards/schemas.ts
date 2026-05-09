@@ -7,6 +7,9 @@ import { PaginationMetaSchema } from "../api-types.schema.js";
 
 /**
  * Visual appearance details for a card.
+ *
+ * `gradient_hex_color` is optional — the Qonto API omits it for some card
+ * designs (verified empirically against `/v2/cards`).
  */
 export const CardAppearanceSchema = z
   .object({
@@ -16,7 +19,7 @@ export const CardAppearanceSchema = z
       front_small_wallet: z.string(),
     }),
     theme: z.enum(["dark", "light"]),
-    gradient_hex_color: z.string(),
+    gradient_hex_color: z.string().optional(),
   })
   .strip();
 
@@ -78,7 +81,7 @@ export const CardSchema = z
     payment_transaction_limit_option: z.boolean(),
     active_days: z.array(z.number()),
     holder_id: z.string(),
-    initiator_id: z.string(),
+    initiator_id: z.string().optional(),
     bank_account_id: z.string(),
     organization_id: z.string(),
     updated_at: z.string(),
@@ -86,7 +89,7 @@ export const CardSchema = z
     shipped_at: z.string().nullable(),
     card_type: z.enum(["debit", "prepaid"]),
     card_level: z.enum(["standard", "plus", "metal", "virtual", "virtual_partner", "flash", "advertising"]),
-    payment_lifespan_limit: z.number(),
+    payment_lifespan_limit: z.number().nullable(),
     payment_lifespan_spent: z.number(),
     pre_expires_at: z.string().nullable(),
     categories: z.array(z.string()),

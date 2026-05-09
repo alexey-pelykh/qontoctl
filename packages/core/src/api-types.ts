@@ -34,10 +34,13 @@ export interface Organization {
 
 /**
  * Pagination metadata returned by the Qonto API.
+ *
+ * `next_page` is optional because some endpoints (notably `/v2/cards`) omit
+ * the field entirely on the final page rather than returning `null`.
  */
 export interface PaginationMeta {
   readonly current_page: number;
-  readonly next_page: number | null;
+  readonly next_page?: number | null | undefined;
   readonly prev_page?: number | null | undefined;
   readonly total_pages: number;
   readonly total_count: number;

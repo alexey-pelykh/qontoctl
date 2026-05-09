@@ -92,6 +92,14 @@ describe("CardAppearanceSchema", () => {
   it("rejects missing assets", () => {
     expect(() => CardAppearanceSchema.parse({ theme: "light", gradient_hex_color: "#000" })).toThrow();
   });
+
+  it("accepts appearance without gradient_hex_color (Qonto omits it for some designs)", () => {
+    const appearance = makeAppearance();
+    delete (appearance as { gradient_hex_color?: string }).gradient_hex_color;
+    const result = CardAppearanceSchema.parse(appearance);
+    expect(result.gradient_hex_color).toBeUndefined();
+    expect(result.theme).toBe("dark");
+  });
 });
 
 describe("ParentCardSummarySchema", () => {
@@ -124,10 +132,19 @@ describe("CardSchema", () => {
         shipped_at: null,
         type_of_print: null,
         discard_on: null,
+        payment_lifespan_limit: null,
       }),
     );
     expect(result.embossed_name).toBeNull();
     expect(result.type_of_print).toBeNull();
+    expect(result.payment_lifespan_limit).toBeNull();
+  });
+
+  it("accepts card without initiator_id (Qonto omits it for some endpoints)", () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { initiator_id: _initiator_id, ...cardWithoutInitiator } = makeCard();
+    const result = CardSchema.parse(cardWithoutInitiator);
+    expect(result.initiator_id).toBeUndefined();
   });
 
   it("accepts card with parent_card_summary", () => {

@@ -40,7 +40,7 @@ export const OrganizationSchema = z
 export const PaginationMetaSchema = z
   .object({
     current_page: z.number(),
-    next_page: z.number().nullable(),
+    next_page: z.number().nullable().optional(),
     prev_page: z.number().nullable().optional(),
     total_pages: z.number(),
     total_count: z.number(),
