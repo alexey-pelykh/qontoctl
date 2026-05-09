@@ -75,7 +75,9 @@ export async function fetchAllPages<T>(
 
   let currentMeta = firstPage.meta;
   let pagesFetched = 1;
-  while (currentMeta.next_page !== null) {
+  // Some Qonto endpoints (e.g. `/v2/cards`) omit `next_page` entirely on
+  // the final page rather than returning `null`; treat both as terminal.
+  while (typeof currentMeta.next_page === "number") {
     if (pagesFetched >= MAX_PAGES) {
       break;
     }

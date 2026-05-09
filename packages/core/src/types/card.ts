@@ -3,6 +3,9 @@
 
 /**
  * Visual appearance details for a card.
+ *
+ * `gradient_hex_color` is optional — the Qonto API omits it for some card
+ * designs (verified empirically against `/v2/cards`).
  */
 export interface CardAppearance {
   readonly assets: {
@@ -11,7 +14,7 @@ export interface CardAppearance {
     readonly front_small_wallet: string;
   };
   readonly theme: "dark" | "light";
-  readonly gradient_hex_color: string;
+  readonly gradient_hex_color?: string | undefined;
 }
 
 /**
@@ -68,7 +71,7 @@ export interface Card {
   readonly payment_transaction_limit_option: boolean;
   readonly active_days: readonly number[];
   readonly holder_id: string;
-  readonly initiator_id: string;
+  readonly initiator_id?: string | undefined;
   readonly bank_account_id: string;
   readonly organization_id: string;
   readonly updated_at: string;
@@ -76,7 +79,7 @@ export interface Card {
   readonly shipped_at: string | null;
   readonly card_type: "debit" | "prepaid";
   readonly card_level: "standard" | "plus" | "metal" | "virtual" | "virtual_partner" | "flash" | "advertising";
-  readonly payment_lifespan_limit: number;
+  readonly payment_lifespan_limit: number | null;
   readonly payment_lifespan_spent: number;
   readonly pre_expires_at: string | null;
   readonly categories: readonly string[];
