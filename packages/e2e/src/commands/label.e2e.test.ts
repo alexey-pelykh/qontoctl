@@ -53,11 +53,11 @@ describe.skipIf(!hasApiKeyCredentials())("label commands (e2e)", () => {
       const firstLabel = labels[0];
       expect(firstLabel).toBeDefined();
       const labelId = (firstLabel as { id: string }).id;
+      // `label show --output json` emits the bare label object, not an
+      // array (table mode wraps it in a 1-row array; JSON does not).
+      // See `packages/cli/src/commands/label.ts` § show action.
       const output = cli("--output", "json", "label", "show", labelId);
-      const parsed = JSON.parse(output) as unknown[];
-      expect(parsed).toHaveLength(1);
-
-      const label = parsed[0] as Record<string, unknown>;
+      const label = JSON.parse(output) as Record<string, unknown>;
       LabelSchema.parse(label);
       expect(label).toHaveProperty("id", labelId);
       expect(label).toHaveProperty("name");

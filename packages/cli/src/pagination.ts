@@ -75,9 +75,19 @@ export async function fetchAllPages<T>(
 
   let currentMeta = firstPage.meta;
   let pagesFetched = 1;
-  // Some Qonto endpoints (e.g. `/v2/cards`) omit `next_page` entirely on
-  // the final page rather than returning `null`; treat both as terminal.
-  while (typeof currentMeta.next_page === "number") {
+  // Per-endpoint quirks observed in the Qonto API:
+  //   - `/v2/cards` (#489): omits `next_page` entirely on the final page
+  //     rather than returning `null`. `typeof === "number"` covers both.
+  //   - `/v2/payment_links` (#490): returns `next_page: 0` (rather than
+  //     `null`) on empty result sets — without the `> 0` guard the loop
+  //     would request `?page=0` forever.
+  // Strict forward progress (`next > current`) defends against any other
+  // malformed meta (e.g. `next_page: 1` when `current_page: 1`).
+  while (
+    typeof currentMeta.next_page === "number" &&
+    currentMeta.next_page > 0 &&
+    currentMeta.next_page > currentMeta.current_page
+  ) {
     if (pagesFetched >= MAX_PAGES) {
       break;
     }

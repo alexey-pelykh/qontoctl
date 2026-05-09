@@ -148,3 +148,90 @@ pnpm test:e2e
 See [`docs/oauth-setup.md`](./oauth-setup.md) for OAuth app registration and
 [`docs/sandbox-testing.md`](./sandbox-testing.md) for sandbox setup including
 the `mock` SCA flow.
+
+## Sandbox-data-dependent tests
+
+Some Qonto endpoints behave differently per organization (subscription tier,
+account configuration, prior data). E2E tests must not assume specific
+resources exist, or that opt-in features are enabled. Three strategies cover
+the spectrum, applied per-test in
+[`packages/e2e/src/commands/payment-link.e2e.test.ts`](../packages/e2e/src/commands/payment-link.e2e.test.ts)
+as the canonical reference:
+
+### 1. Skip-if-empty
+
+When a test needs a resource (e.g. payment link, invoice, beneficiary) to
+exercise a `show`/`update`/`delete` flow, list first and skip when empty.
+This is the dominant pattern for `show`-style tests:
+
+```ts
+const items = cliJson<{ id: string }[]>("payment-link", "list");
+if (items.length === 0) return; // Skip: nothing to show
+const first = items[0] as { id: string };
+const detail = cliJson<unknown>("payment-link", "show", first.id);
+```
+
+### 2. Skip-if-feature-unavailable
+
+When an endpoint returns HTTP 404 because a feature is not enabled (Qonto
+Payment Links subscription, OAuth-only Embed scopes, …), wrap the CLI call
+in [`skipIfNotFound`](../packages/e2e/src/helpers.ts) and bail on the
+sentinel:
+
+```ts
+import { cliJson, SKIP, skipIfNotFound } from "../helpers.js";
+
+const stdout = skipIfNotFound("--output", "json", "payment-link", "list");
+if (stdout === SKIP) return; // Feature unavailable in this sandbox
+const items = JSON.parse(stdout) as { id: string }[];
+```
+
+`skipIfNotFound` is a special case of
+[`skipIfQontoStatus`](../packages/e2e/src/helpers.ts), which accepts an
+arbitrary set of "OK to skip" HTTP statuses (e.g. `[403, 404]` for tools
+gated by both subscription and OAuth scope). Both helpers re-throw on any
+other failure, so genuine bugs surface as test failures.
+
+### 3. Looser assertion
+
+When a test validates structural properties (e.g. "list returns an array",
+"each item has an `id`"), assert at the field level rather than calling
+`Schema.parse(item)` for every element. The strict parse is brittle when
+the sandbox returns slightly different shapes than production (or when the
+schema is not yet aligned with the actual API response — see
+[`docs/e2e-testing.md` § E2E in CI](#ci-behavior) for the production-only CI
+caveat).
+
+Use `Schema.parse` only on `show`-style tests where a single, fully-formed
+resource is fetched.
+
+### MCP analogue
+
+MCP tools surface the same Qonto error payloads via the
+`isError: true, content: [{ text: ... }]` wrapper. Tests detect feature
+unavailability by inspecting the error text — see the
+`isFeatureUnavailable` helper in
+[`packages/e2e/src/commands/mcp-payment-links.e2e.test.ts`](../packages/e2e/src/commands/mcp-payment-links.e2e.test.ts)
+for the canonical implementation. (The shared helpers module exposes
+`firstTextFromMcpResult` to centralize the content-extraction
+boilerplate.)
+
+### Helpers reference
+
+[`packages/e2e/src/helpers.ts`](../packages/e2e/src/helpers.ts) exports the
+shared helpers used across E2E suites:
+
+| Helper                   | Purpose                                                                   |
+| ------------------------ | ------------------------------------------------------------------------- |
+| `cli(...args)`           | Spawn the bundled CLI; throws on non-zero exit (canonical invocation).    |
+| `cliJson<T>(...args)`    | `cli` with `--output json` prepended; returns parsed JSON.                |
+| `cliRaw(args, opts?)`    | Structured `{ ok, stdout } \| { ok: false, status, stdout, stderr }`.     |
+| `skipIfNotFound(...)`    | Run CLI, return `SKIP` on HTTP 404, throw on any other error.             |
+| `skipIfQontoStatus(...)` | Generalized form taking `readonly number[]` of skippable statuses.        |
+| `qontoHttpStatus(text)`  | Extract status from CLI's `Qonto API error (HTTP NNN):` stderr prefix.    |
+| `firstTextFromMcpResult` | Extract the first text-typed content entry from an MCP `callTool` result. |
+| `CLI_PATH`               | Absolute path to the bundled CLI binary (for spawning MCP transport).     |
+
+Tests that adopt the helpers should remove their inlined copies of the
+same boilerplate to keep the codebase DRY — the helpers are the single
+source of truth for "how E2E tests talk to the CLI / MCP server".
