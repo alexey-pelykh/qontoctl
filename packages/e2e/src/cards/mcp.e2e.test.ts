@@ -1,22 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import { resolve } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { CardListResponseSchema, CardSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { CLI_PATH, firstTextFromMcpResult } from "../helpers.js";
 import { cliEnv, hasOAuthCredentials } from "../sandbox.js";
-
-const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
-
-function firstText(result: Awaited<ReturnType<Client["callTool"]>>): string {
-  const content = result.content as { type: string; text: string }[];
-  expect(content).toHaveLength(1);
-  const entry = content[0] as { type: string; text: string };
-  expect(entry.type).toBe("text");
-  return entry.text;
-}
 
 interface CardItem {
   readonly id: string;
@@ -62,7 +52,7 @@ describe.skipIf(!hasOAuthCredentials())("card MCP tools (e2e)", () => {
 
       if (result.isError === true) return;
 
-      const parsed = JSON.parse(firstText(result)) as CardListResponse;
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as CardListResponse;
       CardListResponseSchema.parse(parsed);
       expect(parsed).toHaveProperty("cards");
       expect(parsed).toHaveProperty("meta");
@@ -77,7 +67,7 @@ describe.skipIf(!hasOAuthCredentials())("card MCP tools (e2e)", () => {
 
       if (result.isError === true) return;
 
-      const parsed = JSON.parse(firstText(result)) as CardListResponse;
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as CardListResponse;
       expect(parsed.cards.length).toBeLessThanOrEqual(2);
       expect(parsed.meta.current_page).toBe(1);
     });
@@ -90,7 +80,7 @@ describe.skipIf(!hasOAuthCredentials())("card MCP tools (e2e)", () => {
 
       if (result.isError === true) return;
 
-      const parsed = JSON.parse(firstText(result)) as CardListResponse;
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as CardListResponse;
       for (const c of parsed.cards) {
         expect(c.status).toBe("live");
       }
@@ -105,7 +95,7 @@ describe.skipIf(!hasOAuthCredentials())("card MCP tools (e2e)", () => {
       });
       if (listResult.isError === true) return;
 
-      const listParsed = JSON.parse(firstText(listResult)) as CardListResponse;
+      const listParsed = JSON.parse(firstTextFromMcpResult(listResult)) as CardListResponse;
       const first = listParsed.cards[0];
       if (first === undefined) return;
 
@@ -115,7 +105,7 @@ describe.skipIf(!hasOAuthCredentials())("card MCP tools (e2e)", () => {
       });
 
       expect(result.isError).toBeFalsy();
-      const parsed = JSON.parse(firstText(result)) as CardItem;
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as CardItem;
       CardSchema.parse(parsed);
       expect(parsed.id).toBe(first.id);
       expect(parsed).toHaveProperty("status");
@@ -132,7 +122,7 @@ describe.skipIf(!hasOAuthCredentials())("card MCP tools (e2e)", () => {
 
       if (result.isError === true) return;
 
-      const parsed = JSON.parse(firstText(result)) as unknown[];
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as unknown[];
       expect(Array.isArray(parsed)).toBe(true);
     });
   });

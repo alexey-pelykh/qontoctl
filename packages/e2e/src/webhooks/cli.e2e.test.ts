@@ -1,27 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import { execFileSync } from "node:child_process";
-import { resolve } from "node:path";
 import { WebhookSubscriptionSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
-import { cliEnv, hasOAuthCredentials } from "../sandbox.js";
-
-const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
-
-function cli(...args: string[]): string {
-  return execFileSync("node", [CLI_PATH, ...args], {
-    encoding: "utf-8",
-    env: cliEnv(),
-    stdio: "pipe",
-    timeout: 30_000,
-  });
-}
-
-function cliJson<T>(...args: string[]): T {
-  const output = cli(...args, "--output", "json");
-  return JSON.parse(output) as T;
-}
+import { cli, cliJson } from "../helpers.js";
+import { hasOAuthCredentials } from "../sandbox.js";
 
 interface WebhookItem {
   readonly id: string;
