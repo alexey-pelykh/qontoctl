@@ -53,13 +53,17 @@ export interface ClientInvoiceAddress {
 
 /**
  * A client embedded in a client invoice.
+ *
+ * `first_name` and `last_name` are returned only when `type` is
+ * `"individual"` or `"freelancer"` — they are omitted entirely (not just
+ * null) for `type: "company"`.
  */
 export interface ClientInvoiceClient {
   readonly id: string;
   readonly type: "individual" | "company" | "freelancer";
   readonly name: string | null;
-  readonly first_name: string | null;
-  readonly last_name: string | null;
+  readonly first_name?: string | null | undefined;
+  readonly last_name?: string | null | undefined;
   readonly email: string | null;
   readonly vat_number: string | null;
   readonly tax_identification_number: string | null;

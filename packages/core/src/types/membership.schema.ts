@@ -6,14 +6,16 @@ import { z } from "zod";
 import { PaginationMetaSchema } from "../api-types.schema.js";
 import type { Membership } from "./membership.js";
 
+// `role` and `team_id` are nullable: invitable memberships (status: "invitable")
+// have not yet accepted the invitation, so the API returns null for both fields.
 export const MembershipSchema = z
   .object({
     id: z.string(),
     first_name: z.string(),
     last_name: z.string(),
     email: z.string().optional(),
-    role: z.enum(["owner", "admin", "manager", "reporting", "employee", "accountant"]),
-    team_id: z.string(),
+    role: z.enum(["owner", "admin", "manager", "reporting", "employee", "accountant"]).nullable(),
+    team_id: z.string().nullable(),
     residence_country: z.string().nullable().optional(),
     birthdate: z.string().nullable().optional(),
     nationality: z.string().nullable().optional(),

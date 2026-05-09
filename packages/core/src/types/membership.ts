@@ -3,14 +3,18 @@
 
 /**
  * A Qonto organization membership representing a team member.
+ *
+ * `role` and `team_id` are nullable: invitable memberships (status:
+ * "invitable") have not yet accepted the invitation, so the API returns
+ * null for both fields.
  */
 export interface Membership {
   readonly id: string;
   readonly first_name: string;
   readonly last_name: string;
   readonly email?: string | undefined;
-  readonly role: "owner" | "admin" | "manager" | "reporting" | "employee" | "accountant";
-  readonly team_id: string;
+  readonly role: "owner" | "admin" | "manager" | "reporting" | "employee" | "accountant" | null;
+  readonly team_id: string | null;
   readonly residence_country?: string | null | undefined;
   readonly birthdate?: string | null | undefined;
   readonly nationality?: string | null | undefined;

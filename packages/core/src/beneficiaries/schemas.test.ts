@@ -53,6 +53,58 @@ describe("BeneficiarySchema", () => {
   it("rejects invalid status", () => {
     expect(() => BeneficiarySchema.parse({ ...validBeneficiary, status: "unknown" })).toThrow();
   });
+
+  it("hoists iban and bic from nested bank_account (regression: #514)", () => {
+    // Production returns flat `iban`/`bic`. The Qonto sandbox wraps both
+    // under `bank_account: { iban, bic, currency }`. The schema's
+    // preprocess hoists the nested values so downstream consumers always
+    // see flat fields.
+    const sandboxShape = {
+      id: "ben-2",
+      name: "Sandbox SARL",
+      status: "validated",
+      trusted: true,
+      created_at: "2026-05-09T10:00:00.000Z",
+      updated_at: "2026-05-09T10:00:00.000Z",
+      bank_account: {
+        iban: "FR7630001007941234567890185",
+        bic: "QNTOFRP1XXX",
+        currency: "EUR",
+      },
+    };
+    const result = BeneficiarySchema.parse(sandboxShape);
+    expect(result.iban).toBe("FR7630001007941234567890185");
+    expect(result.bic).toBe("QNTOFRP1XXX");
+    expect(result).not.toHaveProperty("bank_account");
+  });
+
+  it("hoists null bic from nested bank_account", () => {
+    const sandboxShape = {
+      id: "ben-3",
+      name: "Foreign bank",
+      status: "validated" as const,
+      trusted: false,
+      created_at: "2026-05-09T10:00:00.000Z",
+      updated_at: "2026-05-09T10:00:00.000Z",
+      bank_account: { iban: "DE89370400440532013000", bic: null, currency: "EUR" },
+    };
+    const result = BeneficiarySchema.parse(sandboxShape);
+    expect(result.iban).toBe("DE89370400440532013000");
+    expect(result.bic).toBeNull();
+  });
+
+  it("flat fields take precedence over nested bank_account fields", () => {
+    // If both flat and nested are present, the flat field wins. This
+    // matches the production contract — preprocess only fills absent
+    // flat fields from `bank_account`.
+    const mixedShape = {
+      ...validBeneficiary,
+      bank_account: { iban: "DIFFERENT", bic: "DIFFERENT", currency: "EUR" },
+    };
+    const result = BeneficiarySchema.parse(mixedShape);
+    expect(result.iban).toBe(validBeneficiary.iban);
+    expect(result.bic).toBe(validBeneficiary.bic);
+  });
 });
 
 describe("BeneficiaryResponseSchema", () => {

@@ -9,6 +9,16 @@ import { formatOutput } from "../formatters/index.js";
 import { addInheritableOptions, resolveGlobalOptions } from "../inherited-options.js";
 import type { GlobalOptions, PaginationOptions } from "../options.js";
 
+function creditNoteClientDisplay(client: CreditNote["client"]): string {
+  if (client === undefined) {
+    return "";
+  }
+  if (client.name) {
+    return client.name;
+  }
+  return `${client.first_name} ${client.last_name}`.trim();
+}
+
 export function createCreditNoteCommand(): Command {
   const creditNote = new Command("credit-note").description("Manage credit notes");
 
@@ -26,9 +36,9 @@ export function createCreditNoteCommand(): Command {
         : result.items.map((cn) => ({
             id: cn.id,
             number: cn.number,
-            client: cn.client.name || `${cn.client.first_name} ${cn.client.last_name}`.trim(),
+            client: creditNoteClientDisplay(cn.client),
             total_amount: `${cn.total_amount.value} ${cn.total_amount.currency}`,
-            status: cn.einvoicing_status,
+            status: cn.einvoicing_status ?? "",
             issue_date: cn.issue_date,
           }));
 
@@ -51,10 +61,10 @@ export function createCreditNoteCommand(): Command {
             {
               id: cn.id,
               number: cn.number,
-              client: cn.client.name || `${cn.client.first_name} ${cn.client.last_name}`.trim(),
+              client: creditNoteClientDisplay(cn.client),
               total_amount: `${cn.total_amount.value} ${cn.total_amount.currency}`,
               vat_amount: `${cn.vat_amount.value} ${cn.vat_amount.currency}`,
-              status: cn.einvoicing_status,
+              status: cn.einvoicing_status ?? "",
               issue_date: cn.issue_date,
               invoice_id: cn.invoice_id,
               currency: cn.currency,

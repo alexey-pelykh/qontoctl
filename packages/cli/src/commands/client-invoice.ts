@@ -85,7 +85,9 @@ function clientDisplayName(client: ClientInvoice["client"]): string {
   if (client.name !== null) {
     return client.name;
   }
-  const parts = [client.first_name, client.last_name].filter((p) => p !== null);
+  // `!= null` (not `!== null`) to also strip undefined: for company clients,
+  // first_name/last_name are omitted from the response, not present-and-null.
+  const parts = [client.first_name, client.last_name].filter((p) => p != null);
   return parts.length > 0 ? parts.join(" ") : "";
 }
 
