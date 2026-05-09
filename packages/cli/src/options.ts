@@ -15,6 +15,16 @@ export const OUTPUT_FORMATS: readonly OutputFormat[] = ["table", "json", "yaml",
  * Global CLI options parsed from Commander.
  */
 export interface GlobalOptions {
+  /**
+   * Explicit path to a YAML config file (any filename — `.qontoctl.yaml` is the
+   * default name when discovered via env/profile/home, but any path is accepted
+   * here). Highest-priority resolver input — overrides {@link profile} and the
+   * `QONTOCTL_CONFIG_FILE` env var. When both `--config` and `--profile` are
+   * supplied, `--config` wins for FILE selection; a warning is emitted on stderr
+   * if the resolved paths disagree, and the profile is preserved so
+   * `QONTOCTL_<PROFILE>_*` env-var overrides continue to apply.
+   */
+  readonly config?: string | undefined;
   readonly profile?: string | undefined;
   readonly output: OutputFormat;
   readonly verbose?: true | undefined;

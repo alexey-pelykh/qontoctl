@@ -5,7 +5,7 @@ import type { Command } from "commander";
 import { mockScaDecision, resolveConfig } from "@qontoctl/core";
 import { createClient } from "../../client.js";
 import { formatOutput } from "../../formatters/index.js";
-import { addInheritableOptions, resolveGlobalOptions } from "../../inherited-options.js";
+import { addInheritableOptions, buildResolveOptions, resolveGlobalOptions } from "../../inherited-options.js";
 import type { GlobalOptions } from "../../options.js";
 
 const VALID_DECISIONS = ["allow", "deny"] as const;
@@ -33,7 +33,7 @@ export function registerScaSessionMockDecisionCommand(parent: Command): void {
 
     const opts = resolveGlobalOptions<GlobalOptions>(action);
 
-    const { config } = await resolveConfig({ profile: opts.profile });
+    const { config } = await resolveConfig(buildResolveOptions(opts));
     if (config.oauth?.stagingToken === undefined) {
       throw new Error(
         "sca-session mock-decision is only available in the sandbox environment. " +

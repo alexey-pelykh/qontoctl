@@ -12,20 +12,22 @@ import {
   OAUTH_TOKEN_URL,
   OAUTH_TOKEN_SANDBOX_URL,
 } from "@qontoctl/core";
+import { buildResolveOptions } from "./inherited-options.js";
 import type { GlobalOptions } from "./options.js";
 
 /**
  * Create an authenticated HttpClient from global CLI options.
  *
- * Resolves configuration (profile, env), builds the authorization
+ * Resolves configuration (`--config` > `QONTOCTL_CONFIG_FILE` env >
+ * `--profile` derived path > home default), builds the authorization
  * header, and uses the resolved endpoint.
  *
  * Auth precedence: OAuth (with auto-refresh) > API key.
  */
 export async function createClient(options: GlobalOptions): Promise<HttpClient> {
-  const { config, endpoint, warnings, path, oauthAccessTokenFromEnv } = await resolveConfig({
-    profile: options.profile,
-  });
+  const { config, endpoint, warnings, path, oauthAccessTokenFromEnv } = await resolveConfig(
+    buildResolveOptions(options),
+  );
 
   for (const warning of warnings) {
     process.stderr.write(`Warning: ${warning}\n`);

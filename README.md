@@ -410,15 +410,16 @@ The pending response's textual format is stable, so callers that need to extract
 
 ### Global Options
 
-| Option                  | Description                                             |
-| ----------------------- | ------------------------------------------------------- |
-| `-p, --profile <name>`  | Configuration profile to use                            |
-| `-o, --output <format>` | Output format: `table` (default), `json`, `yaml`, `csv` |
-| `--page <number>`       | Fetch a specific page of results                        |
-| `--per-page <number>`   | Results per page                                        |
-| `--no-paginate`         | Disable auto-pagination                                 |
-| `--verbose`             | Enable verbose output                                   |
-| `--debug`               | Enable debug output (implies `--verbose`)               |
+| Option                  | Description                                                                       |
+| ----------------------- | --------------------------------------------------------------------------------- |
+| `--config <path>`       | Explicit path to a config file (overrides `--profile` and `QONTOCTL_CONFIG_FILE`) |
+| `-p, --profile <name>`  | Configuration profile to use                                                      |
+| `-o, --output <format>` | Output format: `table` (default), `json`, `yaml`, `csv`                           |
+| `--page <number>`       | Fetch a specific page of results                                                  |
+| `--per-page <number>`   | Results per page                                                                  |
+| `--no-paginate`         | Disable auto-pagination                                                           |
+| `--verbose`             | Enable verbose output                                                             |
+| `--debug`               | Enable debug output (implies `--verbose`)                                         |
 
 ## Configuration
 
@@ -445,16 +446,21 @@ oauth:
 
 ### Resolution Order
 
-**Without `--profile`:**
+The CLI resolves the config **file** in this order (highest priority first):
 
-1. `QONTOCTL_*` environment variables (highest priority)
-2. `.qontoctl.yaml` in current directory
-3. `~/.qontoctl.yaml` (home default)
+1. `--config <path>` flag
+2. `QONTOCTL_CONFIG_FILE` env var
+3. `~/.qontoctl/{name}.yaml` (when `--profile <name>` is given)
+4. `~/.qontoctl.yaml` (home default)
 
-**With `--profile acme`:**
+When `--config` is supplied alongside `QONTOCTL_CONFIG_FILE` or `--profile` and the resolved paths disagree, `--config` wins and a warning is emitted on stderr so the override is visible.
 
-1. `QONTOCTL_ACME_*` environment variables (highest priority)
-2. `~/.qontoctl/acme.yaml`
+> **No current-directory discovery.** The CLI does not scan the working directory for `.qontoctl.yaml`. For repo-local config, use a `direnv` shim that exports `QONTOCTL_CONFIG_FILE="$PWD/.qontoctl.yaml"`, or pass `--config ./.qontoctl.yaml` explicitly per invocation.
+
+**Per-field overrides** apply on top of the loaded file:
+
+- Without `--profile`: `QONTOCTL_*` env vars override file values
+- With `--profile acme`: `QONTOCTL_ACME_*` env vars override file values
 
 ### Environment Variables
 

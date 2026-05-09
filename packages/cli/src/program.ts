@@ -35,6 +35,9 @@ export function createProgram(): Command {
   program.name("qontoctl").description("The complete CLI & MCP for Qonto").version(packageJson.version);
 
   program
+    .addOption(
+      new Option("--config <path>", "path to configuration file (overrides --profile and QONTOCTL_CONFIG_FILE)"),
+    )
     .addOption(new Option("-p, --profile <name>", "configuration profile to use"))
     .addOption(new Option("-o, --output <format>", "output format").choices([...OUTPUT_FORMATS]).default("table"))
     .addOption(new Option("--verbose", "enable verbose output"))
