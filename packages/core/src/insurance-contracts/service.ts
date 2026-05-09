@@ -4,22 +4,58 @@
 import type { HttpClient } from "../http-client.js";
 import { parseResponse } from "../response.js";
 import { InsuranceContractResponseSchema, InsuranceDocumentResponseSchema } from "./schemas.js";
-import type { InsuranceContract, InsuranceDocument } from "./types.js";
+import type {
+  InsuranceContract,
+  InsuranceContractOrigin,
+  InsuranceContractPaymentFrequency,
+  InsuranceContractPrice,
+  InsuranceContractStatus,
+  InsuranceDocument,
+} from "./types.js";
 
+/**
+ * Parameters for creating a new insurance contract.
+ *
+ * Per the Qonto API docs, `name`, `contract_id`, `origin`, `provider_slug`,
+ * `type`, and `status` are required. The Qonto sandbox additionally rejects
+ * requests missing `payment_frequency` or `price` with HTTP 400, so this
+ * type marks them required as well.
+ */
 export interface CreateInsuranceContractParams {
-  readonly insurance_type: string;
-  readonly provider_name: string;
-  readonly contract_number?: string | undefined;
-  readonly start_date: string;
-  readonly end_date?: string | undefined;
+  readonly name: string;
+  readonly contract_id: string;
+  readonly origin: InsuranceContractOrigin;
+  readonly provider_slug: string;
+  readonly type: string;
+  readonly status: InsuranceContractStatus;
+  readonly payment_frequency: InsuranceContractPaymentFrequency;
+  readonly price: InsuranceContractPrice;
+  readonly start_date?: string | undefined;
+  readonly expiration_date?: string | undefined;
+  readonly renewal_date?: string | undefined;
+  readonly service_url?: string | undefined;
+  readonly troubleshooting_url?: string | undefined;
 }
 
+/**
+ * Parameters for updating an existing insurance contract.
+ *
+ * All fields are optional per the Qonto API docs.
+ */
 export interface UpdateInsuranceContractParams {
-  readonly insurance_type?: string | undefined;
-  readonly provider_name?: string | undefined;
-  readonly contract_number?: string | undefined;
+  readonly name?: string | undefined;
+  readonly contract_id?: string | undefined;
+  readonly origin?: InsuranceContractOrigin | undefined;
+  readonly provider_slug?: string | undefined;
+  readonly type?: string | undefined;
+  readonly status?: InsuranceContractStatus | undefined;
+  readonly payment_frequency?: InsuranceContractPaymentFrequency | undefined;
+  readonly price?: InsuranceContractPrice | undefined;
   readonly start_date?: string | undefined;
-  readonly end_date?: string | undefined;
+  readonly expiration_date?: string | undefined;
+  readonly renewal_date?: string | undefined;
+  readonly service_url?: string | undefined;
+  readonly troubleshooting_url?: string | undefined;
 }
 
 /**
@@ -69,7 +105,7 @@ export async function updateInsuranceContract(
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<InsuranceContract> {
   const endpointPath = `/v2/insurance_contracts/${encodeURIComponent(id)}`;
-  const response = await client.put(endpointPath, { insurance_contract: params }, options);
+  const response = await client.patch(endpointPath, { insurance_contract: params }, options);
   return parseResponse(InsuranceContractResponseSchema, response, endpointPath).insurance_contract;
 }
 

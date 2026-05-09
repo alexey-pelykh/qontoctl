@@ -45,8 +45,15 @@ describe.skipIf(!hasOAuthCredentials())("insurance MCP tools (e2e)", () => {
       const result = await client.callTool({
         name: "insurance_create",
         arguments: {
-          insurance_type: "professional_liability",
-          provider_name: "E2E MCP Test Provider",
+          name: "E2E MCP ProLiability Plan",
+          contract_id: `e2e-mcp-${Date.now()}`,
+          origin: "qonto_other",
+          provider_slug: "axa",
+          type: "professional_liability",
+          status: "active",
+          payment_frequency: "annual",
+          price_value: "99.99",
+          price_currency: "EUR",
           start_date: "2026-01-01",
         },
       });
@@ -56,7 +63,7 @@ describe.skipIf(!hasOAuthCredentials())("insurance MCP tools (e2e)", () => {
       const parsed = JSON.parse(firstText(result)) as Record<string, unknown>;
       InsuranceContractSchema.parse(parsed);
       expect(parsed).toHaveProperty("id");
-      expect(parsed).toHaveProperty("insurance_type", "professional_liability");
+      expect(parsed).toHaveProperty("type", "professional_liability");
       createdId = parsed["id"] as string;
     });
 
@@ -81,14 +88,14 @@ describe.skipIf(!hasOAuthCredentials())("insurance MCP tools (e2e)", () => {
         name: "insurance_update",
         arguments: {
           id: createdId,
-          provider_name: "Updated E2E MCP Provider",
+          provider_slug: "allianz",
         },
       });
 
       expect(result.isError).toBeFalsy();
       const parsed = JSON.parse(firstText(result)) as Record<string, unknown>;
       expect(parsed).toHaveProperty("id", createdId);
-      expect(parsed).toHaveProperty("provider_name", "Updated E2E MCP Provider");
+      expect(parsed).toHaveProperty("provider_slug", "allianz");
     });
   });
 });

@@ -15,14 +15,16 @@ import { createClient } from "../client.js";
 
 const sampleContract = {
   id: "ic-123",
-  insurance_type: "professional_liability",
+  name: "ProLiability Plan 2026",
+  contract_id: "CNT-12345",
+  origin: "qonto_other",
+  provider_slug: "axa",
+  type: "business_liability",
   status: "active",
-  provider_name: "AXA",
-  contract_number: "CNT-12345",
+  payment_frequency: "annual",
+  price: { value: "99.99", currency: "EUR" },
   start_date: "2026-01-01",
-  end_date: "2027-01-01",
-  created_at: "2026-01-01T10:00:00Z",
-  updated_at: "2026-01-01T10:00:00Z",
+  expiration_date: "2027-01-01",
 };
 
 const sampleDocument = {
@@ -79,7 +81,7 @@ describe("insurance commands", () => {
       expect(stdoutSpy).toHaveBeenCalled();
       const output = stdoutSpy.mock.calls[0]?.[0] as string;
       expect(output).toContain("ic-123");
-      expect(output).toContain("AXA");
+      expect(output).toContain("axa");
     });
 
     it("shows contract details in json format", async () => {
@@ -95,8 +97,8 @@ describe("insurance commands", () => {
       const output = stdoutSpy.mock.calls[0]?.[0] as string;
       const parsed = JSON.parse(output) as Record<string, unknown>;
       expect(parsed).toHaveProperty("id", "ic-123");
-      expect(parsed).toHaveProperty("insurance_type", "professional_liability");
-      expect(parsed).toHaveProperty("provider_name", "AXA");
+      expect(parsed).toHaveProperty("type", "business_liability");
+      expect(parsed).toHaveProperty("provider_slug", "axa");
     });
 
     it("sends GET to the correct API endpoint", async () => {
@@ -115,6 +117,29 @@ describe("insurance commands", () => {
   });
 
   describe("insurance create", () => {
+    const createArgs = [
+      "insurance",
+      "create",
+      "--name",
+      "ProLiability Plan 2026",
+      "--contract-id",
+      "CNT-12345",
+      "--origin",
+      "qonto_other",
+      "--provider-slug",
+      "axa",
+      "--type",
+      "business_liability",
+      "--status",
+      "active",
+      "--payment-frequency",
+      "annual",
+      "--price-value",
+      "99.99",
+      "--price-currency",
+      "EUR",
+    ];
+
     it("creates a contract in table format", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ insurance_contract: sampleContract }));
 
@@ -122,48 +147,22 @@ describe("insurance commands", () => {
       const program = createProgram();
       program.exitOverride();
 
-      await program.parseAsync(
-        [
-          "insurance",
-          "create",
-          "--insurance-type",
-          "professional_liability",
-          "--provider-name",
-          "AXA",
-          "--start-date",
-          "2026-01-01",
-        ],
-        { from: "user" },
-      );
+      await program.parseAsync(createArgs, { from: "user" });
 
       expect(stdoutSpy).toHaveBeenCalled();
       const output = stdoutSpy.mock.calls[0]?.[0] as string;
       expect(output).toContain("ic-123");
-      expect(output).toContain("AXA");
+      expect(output).toContain("axa");
     });
 
-    it("sends POST with correct body", async () => {
+    it("sends POST with correct body (mandatory fields only)", async () => {
       fetchSpy.mockImplementation(() => jsonResponse({ insurance_contract: sampleContract }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
       program.exitOverride();
 
-      await program.parseAsync(
-        [
-          "insurance",
-          "create",
-          "--insurance-type",
-          "professional_liability",
-          "--provider-name",
-          "AXA",
-          "--start-date",
-          "2026-01-01",
-          "--contract-number",
-          "CNT-12345",
-        ],
-        { from: "user" },
-      );
+      await program.parseAsync(createArgs, { from: "user" });
 
       const [url, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
       expect(url.pathname).toBe("/v2/insurance_contracts");
@@ -172,12 +171,63 @@ describe("insurance commands", () => {
       const body = JSON.parse(opts.body as string) as Record<string, unknown>;
       expect(body).toEqual({
         insurance_contract: {
-          insurance_type: "professional_liability",
-          provider_name: "AXA",
-          start_date: "2026-01-01",
-          contract_number: "CNT-12345",
+          name: "ProLiability Plan 2026",
+          contract_id: "CNT-12345",
+          origin: "qonto_other",
+          provider_slug: "axa",
+          type: "business_liability",
+          status: "active",
+          payment_frequency: "annual",
+          price: { value: "99.99", currency: "EUR" },
         },
       });
+    });
+
+    it("sends POST with all optional fields when provided", async () => {
+      fetchSpy.mockImplementation(() => jsonResponse({ insurance_contract: sampleContract }));
+
+      const { createProgram } = await import("../program.js");
+      const program = createProgram();
+      program.exitOverride();
+
+      await program.parseAsync(
+        [
+          ...createArgs,
+          "--start-date",
+          "2026-01-01",
+          "--expiration-date",
+          "2027-01-01",
+          "--renewal-date",
+          "2026-12-15",
+          "--service-url",
+          "https://service.example.com",
+          "--troubleshooting-url",
+          "https://help.example.com",
+        ],
+        { from: "user" },
+      );
+
+      const [, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      const body = JSON.parse(opts.body as string) as { insurance_contract: Record<string, unknown> };
+      expect(body.insurance_contract).toMatchObject({
+        start_date: "2026-01-01",
+        expiration_date: "2027-01-01",
+        renewal_date: "2026-12-15",
+        service_url: "https://service.example.com",
+        troubleshooting_url: "https://help.example.com",
+      });
+    });
+
+    it("rejects unknown origin values", async () => {
+      const { createProgram } = await import("../program.js");
+      const program = createProgram();
+      program.exitOverride();
+
+      const argsWithBadOrigin = createArgs.map((arg, idx) => {
+        return idx > 0 && createArgs[idx - 1] === "--origin" ? "made_up" : arg;
+      });
+
+      await expect(program.parseAsync(argsWithBadOrigin, { from: "user" })).rejects.toThrow();
     });
   });
 
@@ -189,14 +239,41 @@ describe("insurance commands", () => {
       const program = createProgram();
       program.exitOverride();
 
-      await program.parseAsync(["insurance", "update", "ic-123", "--provider-name", "Allianz"], { from: "user" });
+      await program.parseAsync(["insurance", "update", "ic-123", "--provider-slug", "allianz"], { from: "user" });
 
       const [url, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
       expect(url.pathname).toBe("/v2/insurance_contracts/ic-123");
-      expect(opts.method).toBe("PUT");
+      expect(opts.method).toBe("PATCH");
 
       const body = JSON.parse(opts.body as string) as Record<string, unknown>;
-      expect(body).toEqual({ insurance_contract: { provider_name: "Allianz" } });
+      expect(body).toEqual({ insurance_contract: { provider_slug: "allianz" } });
+    });
+
+    it("sends a price object when both --price-value and --price-currency are provided", async () => {
+      fetchSpy.mockImplementation(() => jsonResponse({ insurance_contract: sampleContract }));
+
+      const { createProgram } = await import("../program.js");
+      const program = createProgram();
+      program.exitOverride();
+
+      await program.parseAsync(
+        ["insurance", "update", "ic-123", "--price-value", "120.00", "--price-currency", "EUR"],
+        { from: "user" },
+      );
+
+      const [, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      const body = JSON.parse(opts.body as string) as { insurance_contract: Record<string, unknown> };
+      expect(body.insurance_contract).toEqual({ price: { value: "120.00", currency: "EUR" } });
+    });
+
+    it("rejects partial --price-value without --price-currency", async () => {
+      const { createProgram } = await import("../program.js");
+      const program = createProgram();
+      program.exitOverride();
+
+      await expect(
+        program.parseAsync(["insurance", "update", "ic-123", "--price-value", "120.00"], { from: "user" }),
+      ).rejects.toThrow(/--price-value and --price-currency must be provided together/);
     });
   });
 

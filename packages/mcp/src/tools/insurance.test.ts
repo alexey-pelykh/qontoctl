@@ -8,14 +8,16 @@ import { connectInMemory } from "../testing/mcp-helpers.js";
 
 const sampleContract = {
   id: "ic-1",
-  insurance_type: "professional_liability",
+  name: "ProLiability Plan 2026",
+  contract_id: "CNT-12345",
+  origin: "qonto_other",
+  provider_slug: "axa",
+  type: "business_liability",
   status: "active",
-  provider_name: "AXA",
-  contract_number: "CNT-12345",
+  payment_frequency: "annual",
+  price: { value: "99.99", currency: "EUR" },
   start_date: "2026-01-01",
-  end_date: "2027-01-01",
-  created_at: "2026-01-01T10:00:00Z",
-  updated_at: "2026-01-01T10:00:00Z",
+  expiration_date: "2027-01-01",
 };
 
 const sampleDocument = {
@@ -71,16 +73,24 @@ describe("insurance MCP tools", () => {
   });
 
   describe("insurance_create", () => {
+    const createArgs = {
+      name: "ProLiability Plan 2026",
+      contract_id: "CNT-12345",
+      origin: "qonto_other",
+      provider_slug: "axa",
+      type: "business_liability",
+      status: "active",
+      payment_frequency: "annual",
+      price_value: "99.99",
+      price_currency: "EUR",
+    };
+
     it("creates an insurance contract", async () => {
       fetchSpy.mockReturnValue(jsonResponse({ insurance_contract: sampleContract }));
 
       const result = await mcpClient.callTool({
         name: "insurance_create",
-        arguments: {
-          insurance_type: "professional_liability",
-          provider_name: "AXA",
-          start_date: "2026-01-01",
-        },
+        arguments: createArgs,
       });
 
       const content = result.content as { type: string; text: string }[];
@@ -94,12 +104,7 @@ describe("insurance MCP tools", () => {
 
       await mcpClient.callTool({
         name: "insurance_create",
-        arguments: {
-          insurance_type: "professional_liability",
-          provider_name: "AXA",
-          start_date: "2026-01-01",
-          contract_number: "CNT-12345",
-        },
+        arguments: createArgs,
       });
 
       const [url, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
@@ -109,11 +114,37 @@ describe("insurance MCP tools", () => {
       const body = JSON.parse(opts.body as string) as Record<string, unknown>;
       expect(body).toEqual({
         insurance_contract: {
-          insurance_type: "professional_liability",
-          provider_name: "AXA",
-          start_date: "2026-01-01",
-          contract_number: "CNT-12345",
+          name: "ProLiability Plan 2026",
+          contract_id: "CNT-12345",
+          origin: "qonto_other",
+          provider_slug: "axa",
+          type: "business_liability",
+          status: "active",
+          payment_frequency: "annual",
+          price: { value: "99.99", currency: "EUR" },
         },
+      });
+    });
+
+    it("includes optional fields when provided", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ insurance_contract: sampleContract }));
+
+      await mcpClient.callTool({
+        name: "insurance_create",
+        arguments: {
+          ...createArgs,
+          start_date: "2026-01-01",
+          expiration_date: "2027-01-01",
+          service_url: "https://service.example.com",
+        },
+      });
+
+      const [, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      const body = JSON.parse(opts.body as string) as { insurance_contract: Record<string, unknown> };
+      expect(body.insurance_contract).toMatchObject({
+        start_date: "2026-01-01",
+        expiration_date: "2027-01-01",
+        service_url: "https://service.example.com",
       });
     });
   });
@@ -126,7 +157,7 @@ describe("insurance MCP tools", () => {
         name: "insurance_update",
         arguments: {
           id: "ic-1",
-          provider_name: "Allianz",
+          provider_slug: "allianz",
         },
       });
 
@@ -137,7 +168,7 @@ describe("insurance MCP tools", () => {
 
       const [url, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
       expect(url.pathname).toBe("/v2/insurance_contracts/ic-1");
-      expect(opts.method).toBe("PUT");
+      expect(opts.method).toBe("PATCH");
     });
 
     it("omits undefined optional fields from the request body", async () => {
@@ -147,7 +178,7 @@ describe("insurance MCP tools", () => {
         name: "insurance_update",
         arguments: {
           id: "ic-1",
-          provider_name: "Allianz",
+          provider_slug: "allianz",
         },
       });
 
@@ -155,9 +186,40 @@ describe("insurance MCP tools", () => {
       const body = JSON.parse(opts.body as string) as Record<string, unknown>;
       expect(body).toEqual({
         insurance_contract: {
-          provider_name: "Allianz",
+          provider_slug: "allianz",
         },
       });
+    });
+
+    it("sends a price object when both price_value and price_currency are provided", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ insurance_contract: sampleContract }));
+
+      await mcpClient.callTool({
+        name: "insurance_update",
+        arguments: {
+          id: "ic-1",
+          price_value: "120.00",
+          price_currency: "EUR",
+        },
+      });
+
+      const [, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      const body = JSON.parse(opts.body as string) as { insurance_contract: Record<string, unknown> };
+      expect(body.insurance_contract).toEqual({ price: { value: "120.00", currency: "EUR" } });
+    });
+
+    it("returns an error result when only price_value is provided", async () => {
+      const result = await mcpClient.callTool({
+        name: "insurance_update",
+        arguments: {
+          id: "ic-1",
+          price_value: "120.00",
+        },
+      });
+
+      expect(result.isError).toBe(true);
+      const content = result.content as { type: string; text: string }[];
+      expect(content[0]?.text).toContain("price_value and price_currency must be provided together");
     });
   });
 

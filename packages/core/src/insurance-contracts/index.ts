@@ -11,11 +11,24 @@ export {
 
 export type { CreateInsuranceContractParams, UpdateInsuranceContractParams } from "./service.js";
 
-export type { InsuranceContract, InsuranceDocument } from "./types.js";
+export type {
+  InsuranceContract,
+  InsuranceContractDocumentRef,
+  InsuranceContractOrigin,
+  InsuranceContractPaymentFrequency,
+  InsuranceContractPrice,
+  InsuranceContractStatus,
+  InsuranceDocument,
+} from "./types.js";
 
 export {
-  InsuranceContractSchema,
+  InsuranceContractDocumentRefSchema,
+  InsuranceContractOriginSchema,
+  InsuranceContractPaymentFrequencySchema,
+  InsuranceContractPriceSchema,
   InsuranceContractResponseSchema,
-  InsuranceDocumentSchema,
+  InsuranceContractSchema,
+  InsuranceContractStatusSchema,
   InsuranceDocumentResponseSchema,
+  InsuranceDocumentSchema,
 } from "./schemas.js";
