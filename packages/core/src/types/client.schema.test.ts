@@ -142,6 +142,28 @@ describe("ClientSchema", () => {
     expect(result.currency).toBeUndefined();
   });
 
+  it("accepts individual clients without `name` field (regression: #496)", () => {
+    // Individual clients (kind: "individual") return first_name / last_name and
+    // OMIT the `name` field entirely. The schema must accept the field as
+    // optional, not just nullable.
+    const individualClient = {
+      id: "client-individual",
+      type: "individual",
+      kind: "individual" as const,
+      first_name: "Jean",
+      last_name: "Dupont",
+      email: "jean.dupont@example.com",
+      billing_address: null,
+      created_at: "2024-01-01T00:00:00.000Z",
+      updated_at: "2024-06-15T12:00:00.000Z",
+    };
+    const result = ClientSchema.parse(individualClient);
+    expect(result.name).toBeUndefined();
+    expect(result.first_name).toBe("Jean");
+    expect(result.last_name).toBe("Dupont");
+    expect(result.kind).toBe("individual");
+  });
+
   it("rejects missing required fields", () => {
     expect(() => ClientSchema.parse({ id: "client-1" })).toThrow();
   });

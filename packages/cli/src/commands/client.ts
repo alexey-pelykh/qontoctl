@@ -41,10 +41,10 @@ interface ClientUpdateOptions extends GlobalOptions, WriteOptions {
 }
 
 function clientDisplayName(c: Client): string {
-  if (c.name !== null) {
+  if (c.name != null) {
     return c.name;
   }
-  const parts = [c.first_name, c.last_name].filter((p) => p !== null);
+  const parts = [c.first_name, c.last_name].filter((p) => p != null);
   return parts.length > 0 ? parts.join(" ") : "";
 }
 
