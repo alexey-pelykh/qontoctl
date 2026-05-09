@@ -50,6 +50,21 @@ pnpm license-check    # Verify dependency licenses
 pnpm dev              # Watch mode
 ```
 
+## Configuration
+
+QontoCtl resolves its config file via a deterministic precedence chain (highest first):
+
+1. `--config <path>` CLI flag (CLI only)
+2. `QONTOCTL_CONFIG_FILE` env var (CLI **and** MCP server)
+3. `~/.qontoctl/{profile}.yaml` (when `--profile <name>` is passed)
+4. `~/.qontoctl.yaml` (home default)
+
+**No CWD discovery** — the resolver does not scan or walk up the working directory (removed in #479). For repo-local configs, use the `direnv` shim (`.envrc.example` → `.envrc`) that exports `QONTOCTL_CONFIG_FILE="$PWD/.qontoctl.yaml"`, or pass `--config ./.qontoctl.yaml` per CLI invocation.
+
+The MCP server has no CLI flags, so `QONTOCTL_CONFIG_FILE` is its only mechanism for pointing at a non-default file. The path is captured at MCP startup.
+
+Full reference (per-field env overlay, profile semantics, migration guidance for users coming from pre-#479 builds): [`docs/configuration.md`](docs/configuration.md).
+
 ## Conventions
 
 ### Source Files

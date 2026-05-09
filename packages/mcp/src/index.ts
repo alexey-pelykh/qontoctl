@@ -12,11 +12,19 @@ import {
   OAUTH_TOKEN_SANDBOX_URL,
   type Authorization,
 } from "@qontoctl/core";
+import { buildMcpResolveOptions } from "./config.js";
 import { runStdioServer } from "./stdio.js";
+
+// Capture QONTOCTL_CONFIG_FILE at MCP startup. The env var is the only way
+// to point the MCP server at a non-default config path (no CLI flags exist),
+// so reading it explicitly here mirrors the CLI's `--config` codepath
+// (`resolveConfig({ path })`) and freezes the resolution destination — later
+// `process.env` mutations cannot redirect subsequent loads.
+const mcpResolveOptions = buildMcpResolveOptions();
 
 await runStdioServer({
   getClient: async () => {
-    const { config, endpoint, path, oauthAccessTokenFromEnv } = await resolveConfig();
+    const { config, endpoint, path, oauthAccessTokenFromEnv } = await resolveConfig(mcpResolveOptions);
 
     let authorization: Authorization;
     let fallbackAuthorization: Authorization | undefined;

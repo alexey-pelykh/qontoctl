@@ -100,8 +100,15 @@ CI workflow and can be removed from repository settings.
 ## Running locally
 
 `pnpm test:e2e` runs the full suite. Suites gate themselves based on what's
-configured in `.qontoctl.yaml` (auto-discovered by walking up from CWD) or
+configured in `.qontoctl.yaml` (located via `QONTOCTL_CONFIG_FILE`,
+`--config`, `--profile`, or the home default — see
+[`docs/configuration.md`](./configuration.md) for the full chain) or
 `QONTOCTL_*` environment variables.
+
+The harness in `packages/e2e/src/sandbox.ts` injects `QONTOCTL_CONFIG_FILE`
+into spawned CLI subprocesses, pointing at the repo's `.qontoctl.yaml`
+(gitignored), so you can keep credentials in the repo without exporting the
+env var in your shell.
 
 To run **api-key-compatible suites only** (mirroring CI behavior):
 
