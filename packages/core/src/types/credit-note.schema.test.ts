@@ -125,4 +125,42 @@ describe("CreditNoteSchema", () => {
   it("rejects missing required fields", () => {
     expect(() => CreditNoteSchema.parse({ id: "cn-1" })).toThrow();
   });
+
+  it("accepts sandbox shape that omits client/header/footer/einvoicing_status/invoice_url/invoice_issue_date (regression: #514)", () => {
+    // The Qonto sandbox returns credit notes that omit the listed fields
+    // entirely (per the official schema, only `id` is strictly required).
+    // The capital-`I` `Invoice_issue_date` and `reason` keys appear in
+    // sandbox responses; `.strip()` discards them silently.
+    const sandboxShape = {
+      id: "cn-2",
+      invoice_id: "inv-2",
+      attachment_id: "att-2",
+      number: "CN-2026-002",
+      issue_date: "2026-05-09",
+      terms_and_conditions: "Standard terms",
+      currency: "EUR",
+      vat_amount: amount,
+      vat_amount_cents: 4000,
+      total_amount: amount,
+      total_amount_cents: 20000,
+      stamp_duty_amount: "0",
+      created_at: "2026-05-09T00:00:00.000Z",
+      finalized_at: "2026-05-09T12:00:00.000Z",
+      contact_email: "contact@acme.com",
+      items: [item],
+      // Sandbox-specific extras — silently dropped by `.strip()`:
+      Invoice_issue_date: "2026-04-09",
+      reason: "duplicated",
+    };
+    const result = CreditNoteSchema.parse(sandboxShape);
+    expect(result.id).toBe("cn-2");
+    expect(result.invoice_issue_date).toBeUndefined();
+    expect(result.header).toBeUndefined();
+    expect(result.footer).toBeUndefined();
+    expect(result.einvoicing_status).toBeUndefined();
+    expect(result.client).toBeUndefined();
+    expect(result.invoice_url).toBeUndefined();
+    expect(result).not.toHaveProperty("Invoice_issue_date");
+    expect(result).not.toHaveProperty("reason");
+  });
 });

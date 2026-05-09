@@ -60,13 +60,17 @@ export const ClientInvoiceAddressSchema = z
   })
   .strip() satisfies z.ZodType<ClientInvoiceAddress>;
 
+// Per the Qonto API docs, `first_name` and `last_name` "will be returned
+// only if the client is an individual or a freelancer" — i.e., omitted
+// entirely (not just null) for `type: "company"`. Make them optional in
+// addition to nullable. Mirrors the standalone-ClientSchema fix from #496.
 export const ClientInvoiceClientSchema = z
   .object({
     id: z.string(),
     type: z.enum(["individual", "company", "freelancer"]),
     name: z.string().nullable(),
-    first_name: z.string().nullable(),
-    last_name: z.string().nullable(),
+    first_name: z.string().nullable().optional(),
+    last_name: z.string().nullable().optional(),
     email: z.string().nullable(),
     vat_number: z.string().nullable(),
     tax_identification_number: z.string().nullable(),

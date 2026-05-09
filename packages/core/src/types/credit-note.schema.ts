@@ -49,6 +49,13 @@ export const CreditNoteClientSchema = z
   })
   .strip() satisfies z.ZodType<CreditNoteClient>;
 
+// Per the Qonto credit-note schema, only `id` is strictly required; all
+// other fields are technically optional. The sandbox confirms that
+// `invoice_issue_date`, `header`, `footer`, `einvoicing_status`, `client`,
+// and `invoice_url` may be omitted from the response (the sandbox returns
+// a capital-`I` `Invoice_issue_date` and a `reason` field instead — both
+// silently dropped by `.strip()`). Loosen those six fields to optional;
+// other fields stay required by convention until evidence demands change.
 export const CreditNoteSchema = z
   .object({
     id: z.string(),
@@ -56,9 +63,9 @@ export const CreditNoteSchema = z
     attachment_id: z.string(),
     number: z.string(),
     issue_date: z.string(),
-    invoice_issue_date: z.string(),
-    header: z.string(),
-    footer: z.string(),
+    invoice_issue_date: z.string().optional(),
+    header: z.string().optional(),
+    footer: z.string().optional(),
     terms_and_conditions: z.string(),
     currency: z.string(),
     vat_amount: CreditNoteAmountSchema,
@@ -69,10 +76,10 @@ export const CreditNoteSchema = z
     created_at: z.string(),
     finalized_at: z.string(),
     contact_email: z.string(),
-    invoice_url: z.string(),
-    einvoicing_status: z.string(),
+    invoice_url: z.string().optional(),
+    einvoicing_status: z.string().optional(),
     items: z.array(CreditNoteItemSchema).readonly(),
-    client: CreditNoteClientSchema,
+    client: CreditNoteClientSchema.optional(),
   })
   .strip() satisfies z.ZodType<CreditNote>;
 

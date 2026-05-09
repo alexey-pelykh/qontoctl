@@ -8,7 +8,14 @@ import type { Beneficiary } from "../types/beneficiary.js";
 
 // https://docs.qonto.com/api-reference/business-api/payments-transfers/sepa-transfers/beneficiaries/sepa-beneficiaries/show
 // https://docs.qonto.com/api-reference/business-api/payments-transfers/sepa-transfers/beneficiaries/sepa-beneficiaries/index
-export const BeneficiarySchema = z
+//
+// Production returns `iban`/`bic` as flat top-level fields per the official
+// SepaBeneficiary schema. The Qonto sandbox additionally wraps them under
+// `bank_account: { iban, bic, currency }`. The preprocess hoists those
+// nested values to the top level when the flat fields are absent, so a
+// single Beneficiary type serves both environments and existing CLI/MCP
+// code (which reads `.iban`/`.bic`) keeps working unchanged.
+const BeneficiaryObjectSchema = z
   .object({
     id: z.string(),
     name: z.string(),
@@ -24,7 +31,27 @@ export const BeneficiarySchema = z
     created_at: z.string(),
     updated_at: z.string(),
   })
-  .strip() satisfies z.ZodType<Beneficiary>;
+  .strip();
+
+export const BeneficiarySchema: z.ZodType<Beneficiary> = z.preprocess((input) => {
+  if (input === null || typeof input !== "object" || Array.isArray(input)) {
+    return input;
+  }
+  const obj = input as Record<string, unknown>;
+  const bankAccount = obj["bank_account"];
+  if (bankAccount === null || typeof bankAccount !== "object" || Array.isArray(bankAccount)) {
+    return input;
+  }
+  const ba = bankAccount as Record<string, unknown>;
+  const out: Record<string, unknown> = { ...obj };
+  if (!("iban" in out) && typeof ba["iban"] === "string") {
+    out["iban"] = ba["iban"];
+  }
+  if (!("bic" in out) && (typeof ba["bic"] === "string" || ba["bic"] === null)) {
+    out["bic"] = ba["bic"];
+  }
+  return out;
+}, BeneficiaryObjectSchema);
 
 export const BeneficiaryResponseSchema = z
   .object({

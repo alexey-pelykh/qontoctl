@@ -49,6 +49,10 @@ export interface CreditNoteClient {
 
 /**
  * A Qonto credit note issued to correct or cancel a previously issued invoice.
+ *
+ * Per the Qonto credit-note schema, only `id` is strictly required; in
+ * practice the sandbox may omit `invoice_issue_date`, `header`, `footer`,
+ * `einvoicing_status`, `client`, and `invoice_url`.
  */
 export interface CreditNote {
   readonly id: string;
@@ -56,9 +60,9 @@ export interface CreditNote {
   readonly attachment_id: string;
   readonly number: string;
   readonly issue_date: string;
-  readonly invoice_issue_date: string;
-  readonly header: string;
-  readonly footer: string;
+  readonly invoice_issue_date?: string | undefined;
+  readonly header?: string | undefined;
+  readonly footer?: string | undefined;
   readonly terms_and_conditions: string;
   readonly currency: string;
   readonly vat_amount: CreditNoteAmount;
@@ -69,8 +73,8 @@ export interface CreditNote {
   readonly created_at: string;
   readonly finalized_at: string;
   readonly contact_email: string;
-  readonly invoice_url: string;
-  readonly einvoicing_status: string;
+  readonly invoice_url?: string | undefined;
+  readonly einvoicing_status?: string | undefined;
   readonly items: readonly CreditNoteItem[];
-  readonly client: CreditNoteClient;
+  readonly client?: CreditNoteClient | undefined;
 }

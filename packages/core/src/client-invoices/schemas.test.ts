@@ -198,6 +198,32 @@ describe("ClientInvoiceClientSchema", () => {
   it("rejects invalid client type", () => {
     expect(() => ClientInvoiceClientSchema.parse({ ...validClient, type: "unknown" })).toThrow();
   });
+
+  it("accepts company clients without first_name/last_name (regression: #514)", () => {
+    // Per the Qonto API docs, `first_name` and `last_name` are returned
+    // only for `type: "individual"` or `"freelancer"` — they are omitted
+    // entirely (not just null) for `type: "company"`. Mirrors #496 for
+    // the standalone ClientSchema.
+    const companyClient = {
+      id: "client-company-1",
+      type: "company" as const,
+      name: "Acme Corp",
+      email: "billing@acme.com",
+      vat_number: "FR12345678901",
+      tax_identification_number: null,
+      address: null,
+      city: null,
+      zip_code: null,
+      country_code: null,
+      locale: "fr",
+      billing_address: null,
+    };
+    const result = ClientInvoiceClientSchema.parse(companyClient);
+    expect(result.name).toBe("Acme Corp");
+    expect(result.first_name).toBeUndefined();
+    expect(result.last_name).toBeUndefined();
+    expect(result.type).toBe("company");
+  });
 });
 
 describe("ClientInvoiceUploadSchema", () => {

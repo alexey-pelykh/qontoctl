@@ -74,4 +74,23 @@ describe("MembershipSchema", () => {
   it("rejects missing required fields", () => {
     expect(() => MembershipSchema.parse({ id: "member-1" })).toThrow();
   });
+
+  it("accepts invitable memberships with null role and team_id (regression: #514)", () => {
+    // Invitable memberships have not yet accepted the invitation, so the
+    // Qonto API returns null for role and team_id and `status: "invitable"`.
+    // The captured sandbox response also omits `email` for these entries.
+    const invitable = {
+      id: "019aeeb2-fff8-7404-81ae-cc62d41ae9be",
+      first_name: "Nicolas",
+      last_name: "Muller",
+      role: null,
+      status: "invitable",
+      team_id: null,
+    };
+    const result = MembershipSchema.parse(invitable);
+    expect(result.role).toBeNull();
+    expect(result.team_id).toBeNull();
+    expect(result.status).toBe("invitable");
+    expect(result.email).toBeUndefined();
+  });
 });
