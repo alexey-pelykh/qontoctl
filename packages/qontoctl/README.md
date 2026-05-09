@@ -143,6 +143,26 @@ Add to `~/.codeium/windsurf/mcp_config.json`:
 
 </details>
 
+#### Pointing MCP at a non-default config file
+
+The MCP server has no CLI flags. To load credentials from a config file other than `~/.qontoctl.yaml`, set `QONTOCTL_CONFIG_FILE` in the host's `env` block:
+
+```jsonc
+{
+    "mcpServers": {
+        "qontoctl": {
+            "command": "npx",
+            "args": ["qontoctl", "mcp"],
+            "env": {
+                "QONTOCTL_CONFIG_FILE": "/abs/path/to/qontoctl.yaml",
+            },
+        },
+    },
+}
+```
+
+The path is captured at server startup. See [`docs/configuration.md`](https://github.com/alexey-pelykh/qontoctl/blob/main/docs/configuration.md) for the full resolution chain.
+
 ### Available MCP Tools
 
 | Tool                            | Description                                                       |
@@ -340,15 +360,16 @@ Once configured, you can ask your AI assistant things like:
 
 ### Global Options
 
-| Option                  | Description                                             |
-| ----------------------- | ------------------------------------------------------- |
-| `-p, --profile <name>`  | Configuration profile to use                            |
-| `-o, --output <format>` | Output format: `table` (default), `json`, `yaml`, `csv` |
-| `--page <number>`       | Fetch a specific page of results                        |
-| `--per-page <number>`   | Results per page                                        |
-| `--no-paginate`         | Disable auto-pagination                                 |
-| `--verbose`             | Enable verbose output                                   |
-| `--debug`               | Enable debug output (implies `--verbose`)               |
+| Option                  | Description                                                                       |
+| ----------------------- | --------------------------------------------------------------------------------- |
+| `--config <path>`       | Explicit path to a config file (overrides `--profile` and `QONTOCTL_CONFIG_FILE`) |
+| `-p, --profile <name>`  | Configuration profile to use                                                      |
+| `-o, --output <format>` | Output format: `table` (default), `json`, `yaml`, `csv`                           |
+| `--page <number>`       | Fetch a specific page of results                                                  |
+| `--per-page <number>`   | Results per page                                                                  |
+| `--no-paginate`         | Disable auto-pagination                                                           |
+| `--verbose`             | Enable verbose output                                                             |
+| `--debug`               | Enable debug output (implies `--verbose`)                                         |
 
 ## Configuration
 
@@ -383,16 +404,23 @@ When both API key and OAuth credentials are configured, OAuth is used when an ac
 
 ### Resolution Order
 
-**Without `--profile`:**
+The CLI resolves the config **file** in this order (highest priority first):
 
-1. `QONTOCTL_*` environment variables (highest priority)
-2. `.qontoctl.yaml` in current directory
-3. `~/.qontoctl.yaml` (home default)
+1. `--config <path>` flag
+2. `QONTOCTL_CONFIG_FILE` env var
+3. `~/.qontoctl/{name}.yaml` (when `--profile <name>` is given)
+4. `~/.qontoctl.yaml` (home default)
 
-**With `--profile acme`:**
+When `--config` is supplied alongside `QONTOCTL_CONFIG_FILE` or `--profile` and the resolved paths disagree, `--config` wins and a warning is emitted on stderr so the override is visible.
 
-1. `QONTOCTL_ACME_*` environment variables (highest priority)
-2. `~/.qontoctl/acme.yaml`
+> **No current-directory discovery.** The CLI does not scan the working directory for `.qontoctl.yaml`. For repo-local config, use a `direnv` shim that exports `QONTOCTL_CONFIG_FILE="$PWD/.qontoctl.yaml"`, or pass `--config ./.qontoctl.yaml` explicitly per invocation.
+
+**Per-field overrides** apply on top of the loaded file:
+
+- Without `--profile`: `QONTOCTL_*` env vars override file values
+- With `--profile acme`: `QONTOCTL_ACME_*` env vars override file values
+
+For the full reference (including the migration story for users coming from pre-`0.x` builds that walked CWD), see [`docs/configuration.md`](https://github.com/alexey-pelykh/qontoctl/blob/main/docs/configuration.md).
 
 ### Environment Variables
 

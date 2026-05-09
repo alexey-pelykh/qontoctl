@@ -143,6 +143,26 @@ Add to `~/.codeium/windsurf/mcp_config.json`:
 
 </details>
 
+#### Pointing MCP at a non-default config file
+
+The MCP server has no CLI flags. To load credentials from a config file other than `~/.qontoctl.yaml`, set `QONTOCTL_CONFIG_FILE` in the host's `env` block:
+
+```jsonc
+{
+    "mcpServers": {
+        "qontoctl": {
+            "command": "npx",
+            "args": ["qontoctl", "mcp"],
+            "env": {
+                "QONTOCTL_CONFIG_FILE": "/abs/path/to/qontoctl.yaml",
+            },
+        },
+    },
+}
+```
+
+The path is captured at server startup. See [`docs/configuration.md`](docs/configuration.md) for the full resolution chain.
+
 ### Available MCP Tools
 
 | Tool                            | Description                                                           |
@@ -461,6 +481,8 @@ When `--config` is supplied alongside `QONTOCTL_CONFIG_FILE` or `--profile` and 
 
 - Without `--profile`: `QONTOCTL_*` env vars override file values
 - With `--profile acme`: `QONTOCTL_ACME_*` env vars override file values
+
+For the full reference (precedence rules per entry point, profile semantics, migration from CWD discovery), see [`docs/configuration.md`](docs/configuration.md).
 
 ### Environment Variables
 

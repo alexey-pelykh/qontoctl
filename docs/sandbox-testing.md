@@ -76,14 +76,27 @@ Highest wins:
 
 The MCP server resolves the SCA method from **environment / config only** — there is no MCP tool input parameter for it. This is deliberate: letting an LLM client choose the SCA method on a write is a threat-model risk in production. Operators control the SCA method by setting env vars or config; the LLM cannot.
 
-Sandbox MCP testing therefore looks like:
+Sandbox MCP testing has two equivalent setups:
+
+**Env-only** (no config file):
 
 ```sh
 QONTOCTL_STAGING_TOKEN="..." \
   QONTOCTL_CLIENT_ID="..." \
   QONTOCTL_CLIENT_SECRET="..." \
-  qontoctl mcp serve  # auto-defaults sca.method to "mock"
+  qontoctl mcp  # auto-defaults sca.method to "mock"
 ```
+
+**Config-file pointer** (when credentials live in a YAML file):
+
+```sh
+QONTOCTL_CONFIG_FILE="$PWD/.qontoctl.yaml" qontoctl mcp
+```
+
+In MCP host configs, the same env var goes in the `env` block — see
+[`docs/configuration.md`](./configuration.md#mcp-client-wiring) for the
+full pattern. The MCP server has no CLI flags, so `QONTOCTL_CONFIG_FILE`
+is the only way to point it at a non-default file.
 
 ## Approving sandbox SCA challenges
 
