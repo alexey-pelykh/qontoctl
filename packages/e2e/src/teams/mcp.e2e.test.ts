@@ -1,22 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import { resolve } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { TeamListResponseSchema, TeamSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { CLI_PATH, firstTextFromMcpResult } from "../helpers.js";
 import { cliEnv, hasOAuthCredentials } from "../sandbox.js";
-
-const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
-
-function firstText(result: Awaited<ReturnType<Client["callTool"]>>): string {
-  const content = result.content as { type: string; text: string }[];
-  expect(content).toHaveLength(1);
-  const entry = content[0] as { type: string; text: string };
-  expect(entry.type).toBe("text");
-  return entry.text;
-}
 
 interface TeamItem {
   readonly id: string;
@@ -61,7 +51,7 @@ describe.skipIf(!hasOAuthCredentials())("team MCP tools (e2e)", () => {
 
       if (result.isError === true) return;
 
-      const parsed = JSON.parse(firstText(result)) as TeamListResponse;
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as TeamListResponse;
       TeamListResponseSchema.parse(parsed);
       expect(parsed).toHaveProperty("teams");
       expect(parsed).toHaveProperty("meta");
@@ -76,7 +66,7 @@ describe.skipIf(!hasOAuthCredentials())("team MCP tools (e2e)", () => {
 
       if (result.isError === true) return;
 
-      const parsed = JSON.parse(firstText(result)) as TeamListResponse;
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as TeamListResponse;
       expect(parsed.teams.length).toBeLessThanOrEqual(2);
       expect(parsed.meta.current_page).toBe(1);
     });
@@ -89,7 +79,7 @@ describe.skipIf(!hasOAuthCredentials())("team MCP tools (e2e)", () => {
 
       if (result.isError === true) return;
 
-      const parsed = JSON.parse(firstText(result)) as TeamListResponse;
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as TeamListResponse;
       const first = parsed.teams[0];
       if (first === undefined) return;
 

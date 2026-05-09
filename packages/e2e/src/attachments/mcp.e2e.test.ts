@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import { resolve } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { AttachmentSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { CLI_PATH, firstTextFromMcpResult } from "../helpers.js";
 import { cliEnv, hasApiKeyCredentials } from "../sandbox.js";
-
-const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
 interface TransactionItem {
   readonly id: string;
@@ -66,8 +64,7 @@ describe.skipIf(!hasApiKeyCredentials())("attachment MCP tools (e2e)", () => {
       arguments: { with_attachments: true, per_page: 5 },
     });
 
-    const textContent = result.content[0] as { type: string; text: string };
-    const parsed = JSON.parse(textContent.text) as TransactionListResponse;
+    const parsed = JSON.parse(firstTextFromMcpResult(result)) as TransactionListResponse;
 
     return parsed.transactions.find((txn) => txn.attachment_ids !== undefined && txn.attachment_ids.length > 0);
   }
@@ -83,12 +80,8 @@ describe.skipIf(!hasApiKeyCredentials())("attachment MCP tools (e2e)", () => {
       });
 
       expect(result.isError).not.toBe(true);
-      expect(result.content).toHaveLength(1);
 
-      const textContent = result.content[0] as { type: string; text: string };
-      expect(textContent.type).toBe("text");
-
-      const parsed = JSON.parse(textContent.text) as AttachmentListResponse;
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as AttachmentListResponse;
       expect(parsed).toHaveProperty("attachments");
       expect(Array.isArray(parsed.attachments)).toBe(true);
       expect(parsed.attachments.length).toBeGreaterThan(0);
@@ -114,8 +107,7 @@ describe.skipIf(!hasApiKeyCredentials())("attachment MCP tools (e2e)", () => {
         arguments: { transaction_id: txn.id },
       });
 
-      const listText = (listResult.content[0] as { type: string; text: string }).text;
-      const listParsed = JSON.parse(listText) as AttachmentListResponse;
+      const listParsed = JSON.parse(firstTextFromMcpResult(listResult)) as AttachmentListResponse;
       expect(listParsed.attachments.length).toBeGreaterThan(0);
 
       const attachmentId = (listParsed.attachments[0] as AttachmentItem).id;
@@ -128,8 +120,7 @@ describe.skipIf(!hasApiKeyCredentials())("attachment MCP tools (e2e)", () => {
 
       expect(showResult.isError).not.toBe(true);
 
-      const showText = (showResult.content[0] as { type: string; text: string }).text;
-      const showParsed = JSON.parse(showText) as AttachmentItem;
+      const showParsed = JSON.parse(firstTextFromMcpResult(showResult)) as AttachmentItem;
       AttachmentSchema.parse(showParsed);
       expect(showParsed.id).toBe(attachmentId);
       expect(showParsed).toHaveProperty("file_name");

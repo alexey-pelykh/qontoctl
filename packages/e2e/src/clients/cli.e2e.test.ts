@@ -1,22 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import { execFileSync } from "node:child_process";
-import { resolve } from "node:path";
 import { ClientSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
-import { cliEnv, hasApiKeyCredentials } from "../sandbox.js";
-
-const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
-
-function cli(...args: string[]): string {
-  return execFileSync("node", [CLI_PATH, ...args], {
-    encoding: "utf-8",
-    env: cliEnv(),
-    stdio: "pipe",
-    timeout: 30_000,
-  });
-}
+import { cli } from "../helpers.js";
+import { hasApiKeyCredentials } from "../sandbox.js";
 
 describe.skipIf(!hasApiKeyCredentials())("client commands (e2e)", () => {
   describe("client list", () => {

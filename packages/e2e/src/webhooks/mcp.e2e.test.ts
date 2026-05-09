@@ -1,22 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import { resolve } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { WebhookSubscriptionListResponseSchema, WebhookSubscriptionSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { CLI_PATH, firstTextFromMcpResult } from "../helpers.js";
 import { cliEnv, hasOAuthCredentials } from "../sandbox.js";
-
-const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
-
-function firstText(result: Awaited<ReturnType<Client["callTool"]>>): string {
-  const content = result.content as { type: string; text: string }[];
-  expect(content).toHaveLength(1);
-  const entry = content[0] as { type: string; text: string };
-  expect(entry.type).toBe("text");
-  return entry.text;
-}
 
 interface WebhookItem {
   readonly id: string;
@@ -62,7 +52,7 @@ describe.skipIf(!hasOAuthCredentials())("webhook MCP tools (e2e)", () => {
 
       if (result.isError === true) return;
 
-      const parsed = JSON.parse(firstText(result)) as WebhookListResponse;
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as WebhookListResponse;
       WebhookSubscriptionListResponseSchema.parse(parsed);
       expect(parsed).toHaveProperty("webhook_subscriptions");
       expect(parsed).toHaveProperty("meta");
@@ -77,7 +67,7 @@ describe.skipIf(!hasOAuthCredentials())("webhook MCP tools (e2e)", () => {
 
       if (result.isError === true) return;
 
-      const parsed = JSON.parse(firstText(result)) as WebhookListResponse;
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as WebhookListResponse;
       expect(parsed.webhook_subscriptions.length).toBeLessThanOrEqual(2);
       expect(parsed.meta.current_page).toBe(1);
     });
@@ -91,7 +81,7 @@ describe.skipIf(!hasOAuthCredentials())("webhook MCP tools (e2e)", () => {
       });
       if (listResult.isError === true) return;
 
-      const listParsed = JSON.parse(firstText(listResult)) as WebhookListResponse;
+      const listParsed = JSON.parse(firstTextFromMcpResult(listResult)) as WebhookListResponse;
       const first = listParsed.webhook_subscriptions[0];
       if (first === undefined) return;
 
@@ -101,7 +91,7 @@ describe.skipIf(!hasOAuthCredentials())("webhook MCP tools (e2e)", () => {
       });
 
       expect(result.isError).toBeFalsy();
-      const parsed = JSON.parse(firstText(result)) as WebhookItem;
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as WebhookItem;
       WebhookSubscriptionSchema.parse(parsed);
       expect(parsed.id).toBe(first.id);
       expect(parsed).toHaveProperty("callback_url");
