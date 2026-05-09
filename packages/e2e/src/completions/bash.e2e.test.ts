@@ -26,6 +26,7 @@ describe.skipIf(!hasBash())("bash completion (e2e)", () => {
   beforeAll(() => {
     completionScript = execFileSync("node", [CLI_PATH, "completion", "bash"], {
       encoding: "utf-8",
+      stdio: "pipe",
     });
     tempDir = mkdtempSync(join(tmpdir(), "qontoctl-bash-e2e-"));
     scriptPath = join(tempDir, "completion.bash");
@@ -53,6 +54,7 @@ describe.skipIf(!hasBash())("bash completion (e2e)", () => {
 
     const result = execFileSync("bash", ["-c", testScript], {
       encoding: "utf-8",
+      stdio: "pipe",
     });
     return result.trim().split("\n").filter(Boolean);
   }
@@ -60,6 +62,7 @@ describe.skipIf(!hasBash())("bash completion (e2e)", () => {
   it("generates a sourceable script without errors", () => {
     execFileSync("bash", ["-c", `source "${scriptPath}"`], {
       encoding: "utf-8",
+      stdio: "pipe",
     });
   });
 

@@ -12,6 +12,7 @@ const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 const execOpts: ExecFileSyncOptionsWithStringEncoding = {
   encoding: "utf-8",
   env: cliEnv(),
+  stdio: "pipe",
   timeout: 15_000,
 };
 
