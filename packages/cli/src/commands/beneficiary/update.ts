@@ -22,7 +22,7 @@ function toTableRow(b: Beneficiary): Record<string, string | boolean> {
     id: b.id,
     name: b.name,
     iban: b.iban,
-    bic: b.bic,
+    bic: b.bic ?? "",
     status: b.status,
     trusted: b.trusted,
   };

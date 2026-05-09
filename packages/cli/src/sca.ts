@@ -53,7 +53,12 @@ export async function executeWithCliSca<T>(
   try {
     return await executeWithSca(client, operation, {
       onScaRequired: () => {
-        s = (options?.createSpinner ?? spinner)();
+        // Spinner writes to stderr (not the default stdout) so machine-readable
+        // output modes (`--output json`, `--output yaml`) keep a clean stdout
+        // — escape sequences and progress frames would otherwise corrupt the
+        // structured payload (#491). stderr is the conventional channel for
+        // progress indicators and is what interactive users already see.
+        s = (options?.createSpinner ?? (() => spinner({ output: process.stderr })))();
         s.start("Waiting for SCA approval on your Qonto mobile app...");
       },
       onPoll: (_attempt, elapsedMs) => {
