@@ -68,15 +68,7 @@ describe.skipIf(!hasOAuthCredentials())("insurance CLI commands (e2e)", () => {
     it("updates the created insurance contract", () => {
       if (createdId === undefined) return;
 
-      const output = cli(
-        "--output",
-        "json",
-        "insurance",
-        "update",
-        createdId,
-        "--provider-slug",
-        "allianz",
-      );
+      const output = cli("--output", "json", "insurance", "update", createdId, "--provider-slug", "allianz");
       const parsed = JSON.parse(output) as Record<string, unknown>;
       expect(parsed).toHaveProperty("id", createdId);
       expect(parsed).toHaveProperty("provider_slug", "allianz");

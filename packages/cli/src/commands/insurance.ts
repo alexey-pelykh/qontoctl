@@ -106,24 +106,18 @@ export function registerInsuranceCommands(program: Command): void {
     .description("Create a new insurance contract")
     .addOption(new Option("--name <name>", "contract display name").makeOptionMandatory())
     .addOption(new Option("--contract-id <id>", "partner-generated contract identifier").makeOptionMandatory())
-    .addOption(
-      new Option("--origin <origin>", "contract origin")
-        .choices([...ORIGIN_CHOICES])
-        .makeOptionMandatory(),
-    )
+    .addOption(new Option("--origin <origin>", "contract origin").choices([...ORIGIN_CHOICES]).makeOptionMandatory())
     .addOption(new Option("--provider-slug <slug>", "insurance provider identifier (e.g. axa)").makeOptionMandatory())
     .addOption(new Option("--type <type>", "insurance category (e.g. business_liability)").makeOptionMandatory())
-    .addOption(
-      new Option("--status <status>", "contract status")
-        .choices([...STATUS_CHOICES])
-        .makeOptionMandatory(),
-    )
+    .addOption(new Option("--status <status>", "contract status").choices([...STATUS_CHOICES]).makeOptionMandatory())
     .addOption(
       new Option("--payment-frequency <frequency>", "payment frequency")
         .choices([...PAYMENT_FREQUENCY_CHOICES])
         .makeOptionMandatory(),
     )
-    .addOption(new Option("--price-value <amount>", "price amount as a decimal string (e.g. 99.99)").makeOptionMandatory())
+    .addOption(
+      new Option("--price-value <amount>", "price amount as a decimal string (e.g. 99.99)").makeOptionMandatory(),
+    )
     .addOption(new Option("--price-currency <code>", "price currency code (ISO 4217, e.g. EUR)").makeOptionMandatory())
     .option("--start-date <date>", "coverage start date (YYYY-MM-DD)")
     .option("--expiration-date <date>", "contract expiration date (YYYY-MM-DD)")
@@ -171,7 +165,9 @@ export function registerInsuranceCommands(program: Command): void {
     .option("--provider-slug <slug>", "insurance provider identifier")
     .option("--type <type>", "insurance category")
     .addOption(new Option("--status <status>", "contract status").choices([...STATUS_CHOICES]))
-    .addOption(new Option("--payment-frequency <frequency>", "payment frequency").choices([...PAYMENT_FREQUENCY_CHOICES]))
+    .addOption(
+      new Option("--payment-frequency <frequency>", "payment frequency").choices([...PAYMENT_FREQUENCY_CHOICES]),
+    )
     .option("--price-value <amount>", "price amount as a decimal string")
     .option("--price-currency <code>", "price currency code (ISO 4217)")
     .option("--start-date <date>", "coverage start date (YYYY-MM-DD)")

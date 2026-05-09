@@ -116,7 +116,10 @@ export function registerInsuranceTools(server: McpServer, getClient: () => Promi
         type: z.string().optional().describe("Insurance category"),
         status: z.enum(STATUS_VALUES).optional().describe("Contract status"),
         payment_frequency: z.enum(PAYMENT_FREQUENCY_VALUES).optional().describe("Payment frequency"),
-        price_value: z.string().optional().describe("Price amount as a decimal string (must be paired with price_currency)"),
+        price_value: z
+          .string()
+          .optional()
+          .describe("Price amount as a decimal string (must be paired with price_currency)"),
         price_currency: z.string().optional().describe("Price currency code (must be paired with price_value)"),
         start_date: z.string().optional().describe("Coverage start date (YYYY-MM-DD)"),
         expiration_date: z.string().optional().describe("Contract expiration date (YYYY-MM-DD)"),
