@@ -10,15 +10,15 @@ import { addInheritableOptions, resolveGlobalOptions } from "../inherited-option
 import type { GlobalOptions } from "../options.js";
 
 interface IntlCurrenciesOptions extends GlobalOptions {
+  readonly source: string;
   readonly search?: string | undefined;
 }
 
 function toTableRow(c: IntlCurrency): Record<string, string> {
   return {
-    code: c.code,
-    name: c.name,
-    ...(c.min_amount !== undefined ? { min_amount: String(c.min_amount) } : {}),
-    ...(c.max_amount !== undefined ? { max_amount: String(c.max_amount) } : {}),
+    currency_code: c.currency_code,
+    country_code: c.country_code,
+    ...(c.suggestion_priority !== undefined ? { suggestion_priority: String(c.suggestion_priority) } : {}),
   };
 }
 
@@ -28,17 +28,22 @@ export function registerIntlCurrenciesCommand(program: Command): void {
     program.command("intl").description("International operations");
 
   const currencies = intl.command("currencies").description("List supported currencies for international transfers");
-  currencies.addOption(new Option("--search <term>", "filter currencies by code or name"));
+  currencies.addOption(
+    new Option("--source <code>", "ISO 4217 source currency code (required by the API)").default("EUR"),
+  );
+  currencies.addOption(new Option("--search <term>", "filter currencies by code"));
   addInheritableOptions(currencies);
   currencies.action(async (_opts: unknown, cmd: Command) => {
     const opts = resolveGlobalOptions<IntlCurrenciesOptions>(cmd);
     const client = await createClient(opts);
 
-    let result = await listIntlCurrencies(client);
+    let result = await listIntlCurrencies(client, opts.source);
 
     if (opts.search !== undefined) {
       const term = opts.search.toLowerCase();
-      result = result.filter((c) => c.code.toLowerCase().includes(term) || c.name.toLowerCase().includes(term));
+      result = result.filter(
+        (c) => c.currency_code.toLowerCase().includes(term) || c.country_code.toLowerCase().includes(term),
+      );
     }
 
     const data = opts.output === "table" || opts.output === "csv" ? result.map(toTableRow) : result;

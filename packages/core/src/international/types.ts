@@ -3,21 +3,29 @@
 
 /**
  * International transfer eligibility status.
+ *
+ * The Qonto sandbox returns a flat object such as
+ * `{ "status": "STATUS_INELIGIBLE", "reason": "REASON_UNKNOWN" }`. Both fields
+ * are string enums; we keep them as `string` for forward compatibility with
+ * future enum values.
  */
 export interface IntlEligibility {
-  readonly eligible: boolean;
+  readonly status: string;
   readonly reason?: string | undefined;
   readonly [key: string]: unknown;
 }
 
 /**
  * A supported currency for international transfers.
+ *
+ * The Qonto API returns each currency as
+ * `{ "country_code": "US", "currency_code": "USD", "suggestion_priority": 6 }`.
+ * `suggestion_priority` is present only for top-suggested entries.
  */
 export interface IntlCurrency {
-  readonly code: string;
-  readonly name: string;
-  readonly min_amount?: number | undefined;
-  readonly max_amount?: number | undefined;
+  readonly country_code: string;
+  readonly currency_code: string;
+  readonly suggestion_priority?: number | undefined;
   readonly [key: string]: unknown;
 }
 

@@ -48,7 +48,7 @@ describe("intl beneficiary list command", () => {
   it("lists intl beneficiaries in table format", async () => {
     const international_beneficiaries = [
       { id: "intl-ben-1", name: "Global Corp", country: "US", currency: "USD" },
-      { id: "intl-ben-2", name: "Euro GmbH", country: "DE", currency: "EUR" },
+      { id: "intl-ben-2", name: "Tokyo Inc", country: "JP", currency: "USD" },
     ];
     fetchSpy.mockImplementation(() =>
       jsonResponse({
@@ -61,14 +61,14 @@ describe("intl beneficiary list command", () => {
     const program = createProgram();
     program.exitOverride();
 
-    await program.parseAsync(["intl", "beneficiary", "list"], { from: "user" });
+    await program.parseAsync(["intl", "beneficiary", "list", "--currency", "USD"], { from: "user" });
 
     expect(stdoutSpy).toHaveBeenCalled();
     const output = stdoutSpy.mock.calls[0]?.[0] as string;
     expect(output).toContain("intl-ben-1");
     expect(output).toContain("Global Corp");
     expect(output).toContain("intl-ben-2");
-    expect(output).toContain("Euro GmbH");
+    expect(output).toContain("Tokyo Inc");
   });
 
   it("lists intl beneficiaries in json format", async () => {
@@ -84,13 +84,33 @@ describe("intl beneficiary list command", () => {
     const program = createProgram();
     program.exitOverride();
 
-    await program.parseAsync(["--output", "json", "intl", "beneficiary", "list"], { from: "user" });
+    await program.parseAsync(["--output", "json", "intl", "beneficiary", "list", "--currency", "USD"], {
+      from: "user",
+    });
 
     expect(stdoutSpy).toHaveBeenCalled();
     const output = stdoutSpy.mock.calls[0]?.[0] as string;
     const parsed = JSON.parse(output) as unknown[];
     expect(parsed).toHaveLength(1);
     expect(parsed[0]).toEqual(international_beneficiaries[0]);
+  });
+
+  it("passes the required currency param to the API", async () => {
+    fetchSpy.mockImplementation(() =>
+      jsonResponse({
+        international_beneficiaries: [],
+        meta: makeMeta(),
+      }),
+    );
+
+    const { createProgram } = await import("../../program.js");
+    const program = createProgram();
+    program.exitOverride();
+
+    await program.parseAsync(["intl", "beneficiary", "list", "--currency", "GBP"], { from: "user" });
+
+    const [url] = fetchSpy.mock.calls[0] as [URL];
+    expect(url.searchParams.get("currency")).toBe("GBP");
   });
 
   it("passes pagination options to API", async () => {
@@ -105,11 +125,15 @@ describe("intl beneficiary list command", () => {
     const program = createProgram();
     program.exitOverride();
 
-    await program.parseAsync(["--page", "2", "--per-page", "50", "intl", "beneficiary", "list"], { from: "user" });
+    await program.parseAsync(
+      ["--page", "2", "--per-page", "50", "intl", "beneficiary", "list", "--currency", "USD"],
+      { from: "user" },
+    );
 
     const [url] = fetchSpy.mock.calls[0] as [URL];
     expect(url.searchParams.get("page")).toBe("2");
     expect(url.searchParams.get("per_page")).toBe("50");
+    expect(url.searchParams.get("currency")).toBe("USD");
   });
 
   it("calls the correct API endpoint", async () => {
@@ -124,7 +148,7 @@ describe("intl beneficiary list command", () => {
     const program = createProgram();
     program.exitOverride();
 
-    await program.parseAsync(["intl", "beneficiary", "list"], { from: "user" });
+    await program.parseAsync(["intl", "beneficiary", "list", "--currency", "USD"], { from: "user" });
 
     const [url] = fetchSpy.mock.calls[0] as [URL];
     expect(url.pathname).toBe("/v2/international/beneficiaries");

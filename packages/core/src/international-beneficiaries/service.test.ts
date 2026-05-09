@@ -47,24 +47,26 @@ describe("listIntlBeneficiaries", () => {
     vi.restoreAllMocks();
   });
 
-  it("calls the correct endpoint", async () => {
+  it("calls the correct endpoint with the required currency param", async () => {
     fetchSpy.mockReturnValue(jsonResponse({ international_beneficiaries: [sampleBeneficiary], meta: sampleMeta }));
 
-    const result = await listIntlBeneficiaries(client);
+    const result = await listIntlBeneficiaries(client, { currency: "USD" });
 
     const [url] = fetchSpy.mock.calls[0] as [URL];
     expect(url.pathname).toBe("/v2/international/beneficiaries");
+    expect(url.searchParams.get("currency")).toBe("USD");
     expect(result.international_beneficiaries).toHaveLength(1);
     expect(result.international_beneficiaries[0]).toHaveProperty("id", "intl-ben-1");
     expect(result.meta).toEqual(sampleMeta);
   });
 
-  it("passes pagination params", async () => {
+  it("passes pagination params alongside the currency param", async () => {
     fetchSpy.mockReturnValue(jsonResponse({ international_beneficiaries: [], meta: sampleMeta }));
 
-    await listIntlBeneficiaries(client, { page: 2, per_page: 10 });
+    await listIntlBeneficiaries(client, { currency: "USD", page: 2, per_page: 10 });
 
     const [url] = fetchSpy.mock.calls[0] as [URL];
+    expect(url.searchParams.get("currency")).toBe("USD");
     expect(url.searchParams.get("page")).toBe("2");
     expect(url.searchParams.get("per_page")).toBe("10");
   });

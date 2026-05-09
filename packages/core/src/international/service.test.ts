@@ -23,28 +23,28 @@ describe("getIntlEligibility", () => {
     vi.restoreAllMocks();
   });
 
-  it("returns eligibility from the API response", async () => {
-    const eligibility = { eligible: true };
-    fetchSpy.mockReturnValue(jsonResponse({ eligibility }));
+  it("returns the (flat) eligibility from the API response", async () => {
+    const eligibility = { status: "STATUS_INELIGIBLE", reason: "REASON_UNKNOWN" };
+    fetchSpy.mockReturnValue(jsonResponse(eligibility));
 
     const result = await getIntlEligibility(client);
 
     expect(result).toEqual(eligibility);
-    expect(result.eligible).toBe(true);
+    expect(result.status).toBe("STATUS_INELIGIBLE");
+    expect(result.reason).toBe("REASON_UNKNOWN");
   });
 
-  it("returns eligibility with reason when not eligible", async () => {
-    const eligibility = { eligible: false, reason: "Organization not verified" };
-    fetchSpy.mockReturnValue(jsonResponse({ eligibility }));
+  it("returns eligibility without reason when not present", async () => {
+    fetchSpy.mockReturnValue(jsonResponse({ status: "STATUS_ELIGIBLE" }));
 
     const result = await getIntlEligibility(client);
 
-    expect(result.eligible).toBe(false);
-    expect(result.reason).toBe("Organization not verified");
+    expect(result.status).toBe("STATUS_ELIGIBLE");
+    expect(result.reason).toBeUndefined();
   });
 
   it("calls the correct endpoint", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({ eligibility: { eligible: true } }));
+    fetchSpy.mockReturnValue(jsonResponse({ status: "STATUS_ELIGIBLE" }));
 
     await getIntlEligibility(client);
 
@@ -72,25 +72,26 @@ describe("listIntlCurrencies", () => {
 
   it("returns currencies from the API response", async () => {
     const currencies = [
-      { code: "USD", name: "US Dollar", min_amount: 1, max_amount: 100000 },
-      { code: "GBP", name: "British Pound" },
+      { country_code: "US", currency_code: "USD", suggestion_priority: 6 },
+      { country_code: "GB", currency_code: "GBP" },
     ];
     fetchSpy.mockReturnValue(jsonResponse({ currencies }));
 
-    const result = await listIntlCurrencies(client);
+    const result = await listIntlCurrencies(client, "EUR");
 
     expect(result).toHaveLength(2);
     expect(result[0]).toEqual(currencies[0]);
-    expect(result[1]?.code).toBe("GBP");
+    expect(result[1]?.currency_code).toBe("GBP");
   });
 
-  it("calls the correct endpoint", async () => {
+  it("calls the correct endpoint with the source query param", async () => {
     fetchSpy.mockReturnValue(jsonResponse({ currencies: [] }));
 
-    await listIntlCurrencies(client);
+    await listIntlCurrencies(client, "EUR");
 
     const [url] = fetchSpy.mock.calls[0] as [URL];
     expect(url.pathname).toBe("/v2/international/currencies");
+    expect(url.searchParams.get("source")).toBe("EUR");
   });
 });
 

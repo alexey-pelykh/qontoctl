@@ -5,7 +5,6 @@ export { getIntlEligibility, listIntlCurrencies, createIntlQuote } from "./servi
 
 export {
   IntlEligibilitySchema,
-  IntlEligibilityResponseSchema,
   IntlCurrencySchema,
   IntlCurrencyListResponseSchema,
   IntlQuoteSchema,

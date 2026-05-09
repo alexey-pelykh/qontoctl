@@ -34,17 +34,18 @@ export function registerInternationalTools(server: McpServer, getClient: () => P
     {
       description: "List supported currencies for international transfers",
       inputSchema: {
-        search: z.string().optional().describe("Filter currencies by code or name"),
+        source: z.string().describe("ISO 4217 source currency code (e.g. EUR — required by the API)"),
+        search: z.string().optional().describe("Filter currencies by currency_code or country_code"),
       },
     },
     async (args) =>
       withClient(getClient, async (client) => {
-        let currencies = await listIntlCurrencies(client);
+        let currencies = await listIntlCurrencies(client, args.source);
 
         if (args.search !== undefined) {
           const term = args.search.toLowerCase();
           currencies = currencies.filter(
-            (c) => c.code.toLowerCase().includes(term) || c.name.toLowerCase().includes(term),
+            (c) => c.currency_code.toLowerCase().includes(term) || c.country_code.toLowerCase().includes(term),
           );
         }
 

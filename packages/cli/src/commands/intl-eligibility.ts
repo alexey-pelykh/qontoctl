@@ -25,7 +25,7 @@ export function registerIntlEligibilityCommand(program: Command): void {
       opts.output === "table" || opts.output === "csv"
         ? [
             {
-              eligible: String(result.eligible),
+              status: result.status,
               ...(result.reason !== undefined ? { reason: result.reason } : {}),
             },
           ]

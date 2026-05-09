@@ -36,8 +36,8 @@ describe("intl eligibility command", () => {
     vi.restoreAllMocks();
   });
 
-  it("displays eligibility in table format", async () => {
-    getIntlEligibilityMock.mockResolvedValue({ eligible: true });
+  it("displays eligibility status in table format", async () => {
+    getIntlEligibilityMock.mockResolvedValue({ status: "STATUS_ELIGIBLE" });
 
     const program = new Command();
     program.option("-o, --output <format>", "", "table");
@@ -48,11 +48,11 @@ describe("intl eligibility command", () => {
     expect(getIntlEligibilityMock).toHaveBeenCalled();
     expect(stdoutSpy).toHaveBeenCalled();
     const output = stdoutSpy.mock.calls[0]?.[0] as string;
-    expect(output).toContain("true");
+    expect(output).toContain("STATUS_ELIGIBLE");
   });
 
-  it("displays eligibility with reason in json format", async () => {
-    getIntlEligibilityMock.mockResolvedValue({ eligible: false, reason: "Not verified" });
+  it("displays eligibility status with reason in json format", async () => {
+    getIntlEligibilityMock.mockResolvedValue({ status: "STATUS_INELIGIBLE", reason: "REASON_UNKNOWN" });
 
     const program = new Command();
     program.option("-o, --output <format>", "", "json");
@@ -62,8 +62,8 @@ describe("intl eligibility command", () => {
 
     expect(stdoutSpy).toHaveBeenCalled();
     const output = stdoutSpy.mock.calls[0]?.[0] as string;
-    const parsed = JSON.parse(output) as { eligible: boolean; reason: string };
-    expect(parsed.eligible).toBe(false);
-    expect(parsed.reason).toBe("Not verified");
+    const parsed = JSON.parse(output) as { status: string; reason: string };
+    expect(parsed.status).toBe("STATUS_INELIGIBLE");
+    expect(parsed.reason).toBe("REASON_UNKNOWN");
   });
 });

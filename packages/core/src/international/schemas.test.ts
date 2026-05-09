@@ -4,7 +4,6 @@
 import { describe, it, expect } from "vitest";
 import {
   IntlEligibilitySchema,
-  IntlEligibilityResponseSchema,
   IntlCurrencySchema,
   IntlCurrencyListResponseSchema,
   IntlQuoteSchema,
@@ -12,18 +11,23 @@ import {
 } from "./schemas.js";
 
 describe("IntlEligibilitySchema", () => {
+  // Mirrors the actual sandbox response — the endpoint returns the eligibility
+  // flat (no `eligibility` wrapper).
   const validEligibility = {
-    eligible: true,
+    status: "STATUS_INELIGIBLE",
+    reason: "REASON_UNKNOWN",
   };
 
-  it("accepts a valid eligibility", () => {
+  it("accepts the actual sandbox response shape", () => {
     const result = IntlEligibilitySchema.parse(validEligibility);
-    expect(result.eligible).toBe(true);
+    expect(result.status).toBe("STATUS_INELIGIBLE");
+    expect(result.reason).toBe("REASON_UNKNOWN");
   });
 
-  it("accepts optional reason", () => {
-    const result = IntlEligibilitySchema.parse({ ...validEligibility, reason: "account verified" });
-    expect(result.reason).toBe("account verified");
+  it("accepts eligibility without reason", () => {
+    const result = IntlEligibilitySchema.parse({ status: "STATUS_ELIGIBLE" });
+    expect(result.status).toBe("STATUS_ELIGIBLE");
+    expect(result.reason).toBeUndefined();
   });
 
   it("preserves extra fields (loose schema)", () => {
@@ -33,33 +37,31 @@ describe("IntlEligibilitySchema", () => {
 
   it("rejects missing required fields", () => {
     expect(() => IntlEligibilitySchema.parse({})).toThrow();
+    expect(() => IntlEligibilitySchema.parse({ reason: "REASON_UNKNOWN" })).toThrow();
   });
-});
 
-describe("IntlEligibilityResponseSchema", () => {
-  it("validates response wrapper", () => {
-    const response = { eligibility: { eligible: false, reason: "not verified" } };
-    const result = IntlEligibilityResponseSchema.parse(response);
-    expect(result.eligibility.eligible).toBe(false);
+  it("rejects non-string status", () => {
+    expect(() => IntlEligibilitySchema.parse({ status: true })).toThrow();
   });
 });
 
 describe("IntlCurrencySchema", () => {
+  // Mirrors the actual sandbox response: `country_code` + `currency_code` +
+  // optional `suggestion_priority`.
   const validCurrency = {
-    code: "USD",
-    name: "US Dollar",
+    country_code: "US",
+    currency_code: "USD",
   };
 
   it("accepts a valid currency", () => {
     const result = IntlCurrencySchema.parse(validCurrency);
-    expect(result.code).toBe("USD");
-    expect(result.name).toBe("US Dollar");
+    expect(result.currency_code).toBe("USD");
+    expect(result.country_code).toBe("US");
   });
 
-  it("accepts optional min/max amounts", () => {
-    const result = IntlCurrencySchema.parse({ ...validCurrency, min_amount: 10, max_amount: 100000 });
-    expect(result.min_amount).toBe(10);
-    expect(result.max_amount).toBe(100000);
+  it("accepts optional suggestion_priority", () => {
+    const result = IntlCurrencySchema.parse({ ...validCurrency, suggestion_priority: 6 });
+    expect(result.suggestion_priority).toBe(6);
   });
 
   it("preserves extra fields (loose schema)", () => {
@@ -68,21 +70,23 @@ describe("IntlCurrencySchema", () => {
   });
 
   it("rejects missing required fields", () => {
-    expect(() => IntlCurrencySchema.parse({ code: "USD" })).toThrow();
-    expect(() => IntlCurrencySchema.parse({ name: "US Dollar" })).toThrow();
+    expect(() => IntlCurrencySchema.parse({ currency_code: "USD" })).toThrow();
+    expect(() => IntlCurrencySchema.parse({ country_code: "US" })).toThrow();
   });
 });
 
 describe("IntlCurrencyListResponseSchema", () => {
-  it("validates response wrapper with array", () => {
+  it("validates response wrapper with array (real sandbox shape)", () => {
     const response = {
       currencies: [
-        { code: "USD", name: "US Dollar" },
-        { code: "GBP", name: "British Pound" },
+        { country_code: "US", currency_code: "USD", suggestion_priority: 6 },
+        { country_code: "GB", currency_code: "GBP", suggestion_priority: 5 },
+        { country_code: "MA", currency_code: "MAD" },
       ],
     };
     const result = IntlCurrencyListResponseSchema.parse(response);
-    expect(result.currencies).toHaveLength(2);
+    expect(result.currencies).toHaveLength(3);
+    expect(result.currencies[0]?.currency_code).toBe("USD");
   });
 });
 

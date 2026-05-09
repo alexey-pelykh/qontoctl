@@ -42,7 +42,7 @@ describe.skipIf(!hasOAuthCredentials())("intl-beneficiary MCP tools (e2e)", () =
     it("returns a list with expected structure", async () => {
       const result = await client.callTool({
         name: "intl_beneficiary_list",
-        arguments: {},
+        arguments: { currency: "USD" },
       });
 
       if (result.isError === true) return;
@@ -60,7 +60,7 @@ describe.skipIf(!hasOAuthCredentials())("intl-beneficiary MCP tools (e2e)", () =
     it("supports pagination", async () => {
       const result = await client.callTool({
         name: "intl_beneficiary_list",
-        arguments: { per_page: 2, page: 1 },
+        arguments: { currency: "USD", per_page: 2, page: 1 },
       });
 
       if (result.isError === true) return;
@@ -78,7 +78,7 @@ describe.skipIf(!hasOAuthCredentials())("intl-beneficiary MCP tools (e2e)", () =
     it("returns requirements for an existing beneficiary", async () => {
       const listResult = await client.callTool({
         name: "intl_beneficiary_list",
-        arguments: {},
+        arguments: { currency: "USD" },
       });
       if (listResult.isError === true) return;
 
