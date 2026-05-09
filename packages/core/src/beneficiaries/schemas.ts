@@ -13,7 +13,10 @@ export const BeneficiarySchema = z
     id: z.string(),
     name: z.string(),
     iban: z.string(),
-    bic: z.string(),
+    // BIC is nullable: the Qonto API derives BIC from IBAN where possible
+    // (e.g., French SEPA IBANs), but returns `null` when derivation fails
+    // (typical for foreign-bank or partial-data beneficiaries).
+    bic: z.nullable(z.string()).optional().default(null),
     email: z.nullable(z.string()).optional().default(null),
     activity_tag: z.nullable(z.string()).optional().default(null),
     status: z.enum(["pending", "validated", "declined"]),

@@ -24,16 +24,19 @@ describe("BeneficiarySchema", () => {
   });
 
   it("accepts null for nullable fields", () => {
-    const result = BeneficiarySchema.parse({ ...validBeneficiary, email: null, activity_tag: null });
+    const result = BeneficiarySchema.parse({ ...validBeneficiary, bic: null, email: null, activity_tag: null });
+    expect(result.bic).toBeNull();
     expect(result.email).toBeNull();
     expect(result.activity_tag).toBeNull();
   });
 
-  it("defaults absent email and activity_tag to null", () => {
+  it("defaults absent bic, email, and activity_tag to null", () => {
     const input = { ...validBeneficiary };
+    delete (input as Record<string, unknown>).bic;
     delete (input as Record<string, unknown>).email;
     delete (input as Record<string, unknown>).activity_tag;
     const result = BeneficiarySchema.parse(input);
+    expect(result.bic).toBeNull();
     expect(result.email).toBeNull();
     expect(result.activity_tag).toBeNull();
   });

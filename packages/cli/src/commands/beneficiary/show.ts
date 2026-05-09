@@ -25,7 +25,7 @@ export function registerBeneficiaryShowCommand(parent: Command): void {
               id: b.id,
               name: b.name,
               iban: b.iban,
-              bic: b.bic,
+              bic: b.bic ?? "",
               email: b.email ?? "",
               activity_tag: b.activity_tag ?? "",
               status: b.status,

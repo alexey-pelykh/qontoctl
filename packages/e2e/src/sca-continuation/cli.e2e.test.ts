@@ -27,6 +27,7 @@ interface BeneficiaryItem {
   readonly name: string;
   readonly iban: string;
   readonly status: string;
+  readonly trusted: boolean;
 }
 
 interface BankAccountItem {
@@ -59,11 +60,27 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("SCA continuation 
 
   beforeAll(() => {
     const beneficiaries = cliJson<BeneficiaryItem[]>("beneficiary", "list");
-    const validatedBeneficiary = beneficiaries.find((b) => b.status === "validated") ?? beneficiaries[0];
-    if (validatedBeneficiary === undefined) {
-      throw new Error("E2E setup: no beneficiaries available in sandbox");
+    // PSD2 Article 13(b): transfers to "trusted" beneficiaries are exempt from
+    // SCA. To exercise the SCA continuation flow under test we MUST pick a
+    // non-trusted beneficiary — otherwise the sandbox responds to the initial
+    // POST with 200 OK directly, no 428/polling URL is logged, and the test
+    // fails at the "capture SCA session token" assertion (#491).
+    //
+    // Prefer `validated && !trusted` so the SCA challenge under test is the
+    // transfer-level one (the code path the SCA continuation flow is designed
+    // for). Fall back to any `!trusted` beneficiary (typically `pending`),
+    // whose first-use validation challenge produces an equivalent SCA session
+    // that exercises the same client polling/retry code path.
+    const beneficiary =
+      beneficiaries.find((b) => b.status === "validated" && !b.trusted) ?? beneficiaries.find((b) => !b.trusted);
+    if (beneficiary === undefined) {
+      throw new Error(
+        "E2E setup: no non-trusted beneficiaries available in sandbox; " +
+          "SCA-continuation tests need an untrusted beneficiary to trigger the SCA gate " +
+          "(trusted beneficiaries are SCA-exempt under PSD2 Article 13(b))",
+      );
     }
-    beneficiaryId = validatedBeneficiary.id;
+    beneficiaryId = beneficiary.id;
 
     const accounts = cliJson<BankAccountItem[]>("account", "list");
     const firstAccount = accounts[0];
@@ -78,9 +95,9 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("SCA continuation 
       "transfer",
       "verify-payee",
       "--iban",
-      validatedBeneficiary.iban,
+      beneficiary.iban,
       "--name",
-      validatedBeneficiary.name,
+      beneficiary.name,
     );
     vopProofToken = vop.proof_token.token;
   });
