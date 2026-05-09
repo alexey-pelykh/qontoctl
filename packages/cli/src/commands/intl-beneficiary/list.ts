@@ -26,10 +26,7 @@ function toTableRow(b: IntlBeneficiary): Record<string, string> {
 export function registerIntlBeneficiaryListCommand(parent: Command): void {
   const list = parent.command("list").description("List international beneficiaries");
   list.addOption(
-    new Option(
-      "--currency <code>",
-      "ISO 4217 target currency code (required by the API)",
-    ).makeOptionMandatory(true),
+    new Option("--currency <code>", "ISO 4217 target currency code (required by the API)").makeOptionMandatory(true),
   );
   addInheritableOptions(list);
   list.action(async (_opts: unknown, cmd: Command) => {

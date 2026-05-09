@@ -81,8 +81,7 @@ describe.skipIf(!hasOAuthCredentials())("international MCP tools (e2e)", () => {
       const parsed = JSON.parse(firstText(result)) as { currency_code: string; country_code: string }[];
       expect(Array.isArray(parsed)).toBe(true);
       for (const c of parsed) {
-        const match =
-          c.currency_code.toLowerCase().includes("eur") || c.country_code.toLowerCase().includes("eur");
+        const match = c.currency_code.toLowerCase().includes("eur") || c.country_code.toLowerCase().includes("eur");
         expect(match).toBe(true);
       }
     });

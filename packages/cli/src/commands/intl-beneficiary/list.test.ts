@@ -125,10 +125,9 @@ describe("intl beneficiary list command", () => {
     const program = createProgram();
     program.exitOverride();
 
-    await program.parseAsync(
-      ["--page", "2", "--per-page", "50", "intl", "beneficiary", "list", "--currency", "USD"],
-      { from: "user" },
-    );
+    await program.parseAsync(["--page", "2", "--per-page", "50", "intl", "beneficiary", "list", "--currency", "USD"], {
+      from: "user",
+    });
 
     const [url] = fetchSpy.mock.calls[0] as [URL];
     expect(url.searchParams.get("page")).toBe("2");

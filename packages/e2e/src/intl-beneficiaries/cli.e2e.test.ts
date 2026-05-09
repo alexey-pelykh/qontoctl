@@ -81,17 +81,7 @@ describe.skipIf(!hasOAuthCredentials())("intl-beneficiary CLI commands (e2e)", (
     });
 
     it("outputs CSV format", () => {
-      const result = cliMaybe(
-        "intl",
-        "beneficiary",
-        "list",
-        "--currency",
-        "USD",
-        "--output",
-        "csv",
-        "--per-page",
-        "5",
-      );
+      const result = cliMaybe("intl", "beneficiary", "list", "--currency", "USD", "--output", "csv", "--per-page", "5");
       if (!result.ok) return;
       const lines = result.stdout.trim().split("\n");
       expect(lines.length).toBeGreaterThanOrEqual(1);
