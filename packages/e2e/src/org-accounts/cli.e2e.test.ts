@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { BankAccountSchema, OrganizationSchema } from "@qontoctl/core";
 import { beforeAll, describe, expect, it } from "vitest";
+import { SKIP, skipIfQontoErrorContains } from "../helpers.js";
 import { cliEnv, hasApiKeyCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
@@ -105,9 +106,25 @@ describe.skipIf(!hasApiKeyCredentials())("organization & accounts CLI (e2e)", ()
   it("account iban-certificate downloads a PDF file", () => {
     const outputFile = join(tmpdir(), `iban-cert-e2e-${Date.now()}.pdf`);
     try {
-      const output = cli(["account", "iban-certificate", knownAccountId, "--output-file", outputFile]);
-      expect(output).toContain("Downloaded:");
-      expect(output).toContain(outputFile);
+      // The IBAN-certificate endpoint requires the organization to be
+      // KYB-validated. Sandbox test orgs and Qonto-issued test API-key
+      // orgs are typically not KYB-accepted, returning HTTP 400
+      // `iban_generation_failed: Organization is not KYB accepted`. Skip
+      // rather than fail in that environmental case (#511); KYB-validated
+      // orgs still exercise the full PDF download path.
+      const stdout = skipIfQontoErrorContains(
+        [400],
+        ["KYB accepted"],
+        "account",
+        "iban-certificate",
+        knownAccountId,
+        "--output-file",
+        outputFile,
+      );
+      if (stdout === SKIP) return;
+
+      expect(stdout).toContain("Downloaded:");
+      expect(stdout).toContain(outputFile);
       expect(existsSync(outputFile)).toBe(true);
 
       const content = readFileSync(outputFile);
