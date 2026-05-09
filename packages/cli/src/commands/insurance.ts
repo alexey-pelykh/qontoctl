@@ -4,7 +4,12 @@
 import { readFile } from "node:fs/promises";
 import { basename } from "node:path";
 import { Command, Option } from "commander";
-import type { InsuranceContract } from "@qontoctl/core";
+import type {
+  InsuranceContract,
+  InsuranceContractOrigin,
+  InsuranceContractPaymentFrequency,
+  InsuranceContractStatus,
+} from "@qontoctl/core";
 import {
   getInsuranceContract,
   createInsuranceContract,
@@ -17,31 +22,64 @@ import { formatOutput } from "../formatters/index.js";
 import { addInheritableOptions, addWriteOptions, resolveGlobalOptions } from "../inherited-options.js";
 import type { GlobalOptions, WriteOptions } from "../options.js";
 
+const ORIGIN_CHOICES = ["insurance_hub", "qonto_other", "stello"] as const;
+const STATUS_CHOICES = [
+  "active",
+  "pending_payment",
+  "pending_others",
+  "action_required",
+  "expired",
+  "archived",
+] as const;
+const PAYMENT_FREQUENCY_CHOICES = ["month", "quarter", "semester", "annual"] as const;
+
 interface InsuranceCreateOptions extends GlobalOptions, WriteOptions {
-  readonly insuranceType: string;
-  readonly providerName: string;
-  readonly contractNumber?: string | undefined;
-  readonly startDate: string;
-  readonly endDate?: string | undefined;
+  readonly name: string;
+  readonly contractId: string;
+  readonly origin: InsuranceContractOrigin;
+  readonly providerSlug: string;
+  readonly type: string;
+  readonly status: InsuranceContractStatus;
+  readonly paymentFrequency: InsuranceContractPaymentFrequency;
+  readonly priceValue: string;
+  readonly priceCurrency: string;
+  readonly startDate?: string | undefined;
+  readonly expirationDate?: string | undefined;
+  readonly renewalDate?: string | undefined;
+  readonly serviceUrl?: string | undefined;
+  readonly troubleshootingUrl?: string | undefined;
 }
 
 interface InsuranceUpdateOptions extends GlobalOptions, WriteOptions {
-  readonly insuranceType?: string | undefined;
-  readonly providerName?: string | undefined;
-  readonly contractNumber?: string | undefined;
+  readonly name?: string | undefined;
+  readonly contractId?: string | undefined;
+  readonly origin?: InsuranceContractOrigin | undefined;
+  readonly providerSlug?: string | undefined;
+  readonly type?: string | undefined;
+  readonly status?: InsuranceContractStatus | undefined;
+  readonly paymentFrequency?: InsuranceContractPaymentFrequency | undefined;
+  readonly priceValue?: string | undefined;
+  readonly priceCurrency?: string | undefined;
   readonly startDate?: string | undefined;
-  readonly endDate?: string | undefined;
+  readonly expirationDate?: string | undefined;
+  readonly renewalDate?: string | undefined;
+  readonly serviceUrl?: string | undefined;
+  readonly troubleshootingUrl?: string | undefined;
 }
 
 function contractToTableRow(c: InsuranceContract): Record<string, string> {
   return {
     id: c.id,
-    insurance_type: c.insurance_type,
+    name: c.name,
+    type: c.type,
     status: c.status,
-    provider_name: c.provider_name,
-    contract_number: c.contract_number ?? "",
-    start_date: c.start_date,
-    end_date: c.end_date ?? "",
+    provider_slug: c.provider_slug,
+    contract_id: c.contract_id,
+    origin: c.origin,
+    payment_frequency: c.payment_frequency,
+    price: `${c.price.value} ${c.price.currency}`,
+    start_date: c.start_date ?? "",
+    expiration_date: c.expiration_date ?? "",
   };
 }
 
@@ -66,11 +104,32 @@ export function registerInsuranceCommands(program: Command): void {
   const create = insurance
     .command("create")
     .description("Create a new insurance contract")
-    .addOption(new Option("--insurance-type <type>", "insurance type").makeOptionMandatory())
-    .addOption(new Option("--provider-name <name>", "insurance provider name").makeOptionMandatory())
-    .option("--contract-number <number>", "contract number")
-    .addOption(new Option("--start-date <date>", "contract start date (YYYY-MM-DD)").makeOptionMandatory())
-    .option("--end-date <date>", "contract end date (YYYY-MM-DD)");
+    .addOption(new Option("--name <name>", "contract display name").makeOptionMandatory())
+    .addOption(new Option("--contract-id <id>", "partner-generated contract identifier").makeOptionMandatory())
+    .addOption(
+      new Option("--origin <origin>", "contract origin")
+        .choices([...ORIGIN_CHOICES])
+        .makeOptionMandatory(),
+    )
+    .addOption(new Option("--provider-slug <slug>", "insurance provider identifier (e.g. axa)").makeOptionMandatory())
+    .addOption(new Option("--type <type>", "insurance category (e.g. business_liability)").makeOptionMandatory())
+    .addOption(
+      new Option("--status <status>", "contract status")
+        .choices([...STATUS_CHOICES])
+        .makeOptionMandatory(),
+    )
+    .addOption(
+      new Option("--payment-frequency <frequency>", "payment frequency")
+        .choices([...PAYMENT_FREQUENCY_CHOICES])
+        .makeOptionMandatory(),
+    )
+    .addOption(new Option("--price-value <amount>", "price amount as a decimal string (e.g. 99.99)").makeOptionMandatory())
+    .addOption(new Option("--price-currency <code>", "price currency code (ISO 4217, e.g. EUR)").makeOptionMandatory())
+    .option("--start-date <date>", "coverage start date (YYYY-MM-DD)")
+    .option("--expiration-date <date>", "contract expiration date (YYYY-MM-DD)")
+    .option("--renewal-date <date>", "policy renewal date (YYYY-MM-DD)")
+    .option("--service-url <url>", "customer portal access URL")
+    .option("--troubleshooting-url <url>", "support / troubleshooting URL");
   addInheritableOptions(create);
   addWriteOptions(create);
   create.action(async (_options: unknown, cmd: Command) => {
@@ -80,11 +139,19 @@ export function registerInsuranceCommands(program: Command): void {
     const contract = await createInsuranceContract(
       client,
       {
-        insurance_type: opts.insuranceType,
-        provider_name: opts.providerName,
-        start_date: opts.startDate,
-        contract_number: opts.contractNumber,
-        end_date: opts.endDate,
+        name: opts.name,
+        contract_id: opts.contractId,
+        origin: opts.origin,
+        provider_slug: opts.providerSlug,
+        type: opts.type,
+        status: opts.status,
+        payment_frequency: opts.paymentFrequency,
+        price: { value: opts.priceValue, currency: opts.priceCurrency },
+        ...(opts.startDate !== undefined ? { start_date: opts.startDate } : {}),
+        ...(opts.expirationDate !== undefined ? { expiration_date: opts.expirationDate } : {}),
+        ...(opts.renewalDate !== undefined ? { renewal_date: opts.renewalDate } : {}),
+        ...(opts.serviceUrl !== undefined ? { service_url: opts.serviceUrl } : {}),
+        ...(opts.troubleshootingUrl !== undefined ? { troubleshooting_url: opts.troubleshootingUrl } : {}),
       },
       opts.idempotencyKey !== undefined ? { idempotencyKey: opts.idempotencyKey } : undefined,
     );
@@ -98,26 +165,49 @@ export function registerInsuranceCommands(program: Command): void {
   const update = insurance
     .command("update <id>")
     .description("Update an insurance contract")
-    .option("--insurance-type <type>", "insurance type")
-    .option("--provider-name <name>", "insurance provider name")
-    .option("--contract-number <number>", "contract number")
-    .option("--start-date <date>", "contract start date (YYYY-MM-DD)")
-    .option("--end-date <date>", "contract end date (YYYY-MM-DD)");
+    .option("--name <name>", "contract display name")
+    .option("--contract-id <id>", "partner-generated contract identifier")
+    .addOption(new Option("--origin <origin>", "contract origin").choices([...ORIGIN_CHOICES]))
+    .option("--provider-slug <slug>", "insurance provider identifier")
+    .option("--type <type>", "insurance category")
+    .addOption(new Option("--status <status>", "contract status").choices([...STATUS_CHOICES]))
+    .addOption(new Option("--payment-frequency <frequency>", "payment frequency").choices([...PAYMENT_FREQUENCY_CHOICES]))
+    .option("--price-value <amount>", "price amount as a decimal string")
+    .option("--price-currency <code>", "price currency code (ISO 4217)")
+    .option("--start-date <date>", "coverage start date (YYYY-MM-DD)")
+    .option("--expiration-date <date>", "contract expiration date (YYYY-MM-DD)")
+    .option("--renewal-date <date>", "policy renewal date (YYYY-MM-DD)")
+    .option("--service-url <url>", "customer portal access URL")
+    .option("--troubleshooting-url <url>", "support / troubleshooting URL");
   addInheritableOptions(update);
   addWriteOptions(update);
   update.action(async (id: string, _options: unknown, cmd: Command) => {
     const opts = resolveGlobalOptions<InsuranceUpdateOptions>(cmd);
     const client = await createClient(opts);
 
+    if ((opts.priceValue === undefined) !== (opts.priceCurrency === undefined)) {
+      throw new Error("--price-value and --price-currency must be provided together.");
+    }
+
     const contract = await updateInsuranceContract(
       client,
       id,
       {
-        insurance_type: opts.insuranceType,
-        provider_name: opts.providerName,
-        contract_number: opts.contractNumber,
-        start_date: opts.startDate,
-        end_date: opts.endDate,
+        ...(opts.name !== undefined ? { name: opts.name } : {}),
+        ...(opts.contractId !== undefined ? { contract_id: opts.contractId } : {}),
+        ...(opts.origin !== undefined ? { origin: opts.origin } : {}),
+        ...(opts.providerSlug !== undefined ? { provider_slug: opts.providerSlug } : {}),
+        ...(opts.type !== undefined ? { type: opts.type } : {}),
+        ...(opts.status !== undefined ? { status: opts.status } : {}),
+        ...(opts.paymentFrequency !== undefined ? { payment_frequency: opts.paymentFrequency } : {}),
+        ...(opts.priceValue !== undefined && opts.priceCurrency !== undefined
+          ? { price: { value: opts.priceValue, currency: opts.priceCurrency } }
+          : {}),
+        ...(opts.startDate !== undefined ? { start_date: opts.startDate } : {}),
+        ...(opts.expirationDate !== undefined ? { expiration_date: opts.expirationDate } : {}),
+        ...(opts.renewalDate !== undefined ? { renewal_date: opts.renewalDate } : {}),
+        ...(opts.serviceUrl !== undefined ? { service_url: opts.serviceUrl } : {}),
+        ...(opts.troubleshootingUrl !== undefined ? { troubleshooting_url: opts.troubleshootingUrl } : {}),
       },
       opts.idempotencyKey !== undefined ? { idempotencyKey: opts.idempotencyKey } : undefined,
     );

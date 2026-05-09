@@ -455,16 +455,26 @@ export {
   updateInsuranceContract,
   uploadInsuranceDocument,
   removeInsuranceDocument,
-  InsuranceContractSchema,
+  InsuranceContractDocumentRefSchema,
+  InsuranceContractOriginSchema,
+  InsuranceContractPaymentFrequencySchema,
+  InsuranceContractPriceSchema,
   InsuranceContractResponseSchema,
-  InsuranceDocumentSchema,
+  InsuranceContractSchema,
+  InsuranceContractStatusSchema,
   InsuranceDocumentResponseSchema,
+  InsuranceDocumentSchema,
 } from "./insurance-contracts/index.js";
 
 export type {
-  InsuranceContract,
-  InsuranceDocument,
   CreateInsuranceContractParams,
+  InsuranceContract,
+  InsuranceContractDocumentRef,
+  InsuranceContractOrigin,
+  InsuranceContractPaymentFrequency,
+  InsuranceContractPrice,
+  InsuranceContractStatus,
+  InsuranceDocument,
   UpdateInsuranceContractParams,
 } from "./insurance-contracts/index.js";
 

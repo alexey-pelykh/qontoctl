@@ -14,14 +14,16 @@ import {
 
 const sampleContract = {
   id: "ic-1",
-  insurance_type: "professional_liability",
-  status: "active",
-  provider_name: "AXA",
-  contract_number: "CNT-12345",
+  name: "ProLiability Plan 2026",
+  contract_id: "CNT-12345",
+  origin: "qonto_other" as const,
+  provider_slug: "axa",
+  type: "business_liability",
+  status: "active" as const,
+  payment_frequency: "annual" as const,
+  price: { value: "99.99", currency: "EUR" },
   start_date: "2026-01-01",
-  end_date: "2027-01-01",
-  created_at: "2026-01-01T10:00:00Z",
-  updated_at: "2026-01-01T10:00:00Z",
+  expiration_date: "2027-01-01",
 };
 
 const sampleDocument = {
@@ -69,9 +71,14 @@ describe("insurance contract service", () => {
       fetchSpy.mockReturnValue(jsonResponse({ insurance_contract: sampleContract }));
 
       const result = await createInsuranceContract(client, {
-        insurance_type: "professional_liability",
-        provider_name: "AXA",
-        start_date: "2026-01-01",
+        name: "ProLiability Plan 2026",
+        contract_id: "CNT-12345",
+        origin: "qonto_other",
+        provider_slug: "axa",
+        type: "business_liability",
+        status: "active",
+        payment_frequency: "annual",
+        price: { value: "99.99", currency: "EUR" },
       });
 
       expect(result).toEqual(sampleContract);
@@ -83,9 +90,14 @@ describe("insurance contract service", () => {
       const body = JSON.parse(opts.body as string) as Record<string, unknown>;
       expect(body).toEqual({
         insurance_contract: {
-          insurance_type: "professional_liability",
-          provider_name: "AXA",
-          start_date: "2026-01-01",
+          name: "ProLiability Plan 2026",
+          contract_id: "CNT-12345",
+          origin: "qonto_other",
+          provider_slug: "axa",
+          type: "business_liability",
+          status: "active",
+          payment_frequency: "annual",
+          price: { value: "99.99", currency: "EUR" },
         },
       });
     });
@@ -95,7 +107,16 @@ describe("insurance contract service", () => {
 
       await createInsuranceContract(
         client,
-        { insurance_type: "health", provider_name: "MAIF", start_date: "2026-01-01" },
+        {
+          name: "Health Cover",
+          contract_id: "CNT-2",
+          origin: "qonto_other",
+          provider_slug: "maif",
+          type: "health",
+          status: "active",
+          payment_frequency: "annual",
+          price: { value: "499.00", currency: "EUR" },
+        },
         { idempotencyKey: "key-123" },
       );
 
@@ -110,23 +131,23 @@ describe("insurance contract service", () => {
       fetchSpy.mockReturnValue(jsonResponse({ insurance_contract: sampleContract }));
 
       const result = await updateInsuranceContract(client, "ic-1", {
-        provider_name: "Allianz",
+        provider_slug: "allianz",
       });
 
       expect(result).toEqual(sampleContract);
 
       const [url, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
       expect(url.pathname).toBe("/v2/insurance_contracts/ic-1");
-      expect(opts.method).toBe("PUT");
+      expect(opts.method).toBe("PATCH");
 
       const body = JSON.parse(opts.body as string) as Record<string, unknown>;
-      expect(body).toEqual({ insurance_contract: { provider_name: "Allianz" } });
+      expect(body).toEqual({ insurance_contract: { provider_slug: "allianz" } });
     });
 
     it("passes idempotency key when provided", async () => {
       fetchSpy.mockReturnValue(jsonResponse({ insurance_contract: sampleContract }));
 
-      await updateInsuranceContract(client, "ic-1", { end_date: "2028-01-01" }, { idempotencyKey: "key-456" });
+      await updateInsuranceContract(client, "ic-1", { expiration_date: "2028-01-01" }, { idempotencyKey: "key-456" });
 
       const [, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
       const headers = opts.headers as Record<string, string>;

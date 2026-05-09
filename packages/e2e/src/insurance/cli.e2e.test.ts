@@ -27,16 +27,31 @@ describe.skipIf(!hasOAuthCredentials())("insurance CLI commands (e2e)", () => {
         "json",
         "insurance",
         "create",
-        "--insurance-type",
+        "--name",
+        "E2E ProLiability Plan",
+        "--contract-id",
+        `e2e-cli-${Date.now()}`,
+        "--origin",
+        "qonto_other",
+        "--provider-slug",
+        "axa",
+        "--type",
         "professional_liability",
-        "--provider-name",
-        "E2E Test Provider",
+        "--status",
+        "active",
+        "--payment-frequency",
+        "annual",
+        "--price-value",
+        "99.99",
+        "--price-currency",
+        "EUR",
         "--start-date",
         "2026-01-01",
       );
       const parsed = JSON.parse(output) as Record<string, unknown>;
       expect(parsed).toHaveProperty("id");
-      expect(parsed).toHaveProperty("insurance_type", "professional_liability");
+      expect(parsed).toHaveProperty("type", "professional_liability");
+      expect(parsed).toHaveProperty("provider_slug", "axa");
       InsuranceContractSchema.parse(parsed);
       createdId = parsed["id"] as string;
     });
@@ -59,12 +74,12 @@ describe.skipIf(!hasOAuthCredentials())("insurance CLI commands (e2e)", () => {
         "insurance",
         "update",
         createdId,
-        "--provider-name",
-        "Updated E2E Provider",
+        "--provider-slug",
+        "allianz",
       );
       const parsed = JSON.parse(output) as Record<string, unknown>;
       expect(parsed).toHaveProperty("id", createdId);
-      expect(parsed).toHaveProperty("provider_name", "Updated E2E Provider");
+      expect(parsed).toHaveProperty("provider_slug", "allianz");
     });
   });
 });
