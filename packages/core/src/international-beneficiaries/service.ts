@@ -17,17 +17,20 @@ import type {
 } from "./types.js";
 
 /**
- * List international beneficiaries with optional pagination.
+ * List international beneficiaries for the given target currency.
+ *
+ * Requires a `currency` query param: the endpoint rejects requests without it
+ * with HTTP 422 (`invalid_currency: currency parameter is required`).
  */
 export async function listIntlBeneficiaries(
   client: HttpClient,
-  params?: { page?: number; per_page?: number },
+  params: { currency: string; page?: number; per_page?: number },
 ): Promise<{ international_beneficiaries: IntlBeneficiary[]; meta: PaginationMeta }> {
-  const query: Record<string, string> = {};
-  if (params?.page !== undefined) query["page"] = String(params.page);
-  if (params?.per_page !== undefined) query["per_page"] = String(params.per_page);
+  const query: Record<string, string> = { currency: params.currency };
+  if (params.page !== undefined) query["page"] = String(params.page);
+  if (params.per_page !== undefined) query["per_page"] = String(params.per_page);
   const endpointPath = "/v2/international/beneficiaries";
-  const response = await client.get(endpointPath, Object.keys(query).length > 0 ? query : undefined);
+  const response = await client.get(endpointPath, query);
   return parseResponse(IntlBeneficiaryListResponseSchema, response, endpointPath);
 }
 

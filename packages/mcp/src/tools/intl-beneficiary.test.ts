@@ -33,9 +33,9 @@ describe("intl-beneficiary MCP tools", () => {
         },
         {
           id: "intl-ben-2",
-          name: "Tokyo Inc",
-          country: "JP",
-          currency: "JPY",
+          name: "Acme Inc",
+          country: "US",
+          currency: "USD",
           created_at: "2025-02-01T00:00:00.000Z",
           updated_at: "2025-02-01T00:00:00.000Z",
         },
@@ -56,7 +56,7 @@ describe("intl-beneficiary MCP tools", () => {
 
       const result = await mcpClient.callTool({
         name: "intl_beneficiary_list",
-        arguments: {},
+        arguments: { currency: "USD" },
       });
 
       const content = result.content as { type: string; text: string }[];
@@ -66,7 +66,31 @@ describe("intl-beneficiary MCP tools", () => {
       expect(parsed.international_beneficiaries).toHaveLength(2);
     });
 
-    it("passes pagination params to API", async () => {
+    it("passes the required currency param to the API", async () => {
+      fetchSpy.mockReturnValue(
+        jsonResponse({
+          international_beneficiaries: [],
+          meta: {
+            current_page: 1,
+            next_page: null,
+            prev_page: null,
+            total_pages: 1,
+            total_count: 0,
+            per_page: 100,
+          },
+        }),
+      );
+
+      await mcpClient.callTool({
+        name: "intl_beneficiary_list",
+        arguments: { currency: "GBP" },
+      });
+
+      const [url] = fetchSpy.mock.calls[0] as [URL];
+      expect(url.searchParams.get("currency")).toBe("GBP");
+    });
+
+    it("passes pagination params to API alongside currency", async () => {
       fetchSpy.mockReturnValue(
         jsonResponse({
           international_beneficiaries: [],
@@ -83,10 +107,11 @@ describe("intl-beneficiary MCP tools", () => {
 
       await mcpClient.callTool({
         name: "intl_beneficiary_list",
-        arguments: { page: 2, per_page: 10 },
+        arguments: { currency: "USD", page: 2, per_page: 10 },
       });
 
       const [url] = fetchSpy.mock.calls[0] as [URL];
+      expect(url.searchParams.get("currency")).toBe("USD");
       expect(url.searchParams.get("page")).toBe("2");
       expect(url.searchParams.get("per_page")).toBe("10");
     });

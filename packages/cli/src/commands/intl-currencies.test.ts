@@ -24,9 +24,9 @@ const { listIntlCurrencies } = await import("@qontoctl/core");
 const listIntlCurrenciesMock = vi.mocked(listIntlCurrencies);
 
 const sampleCurrencies = [
-  { code: "USD", name: "US Dollar", min_amount: 1, max_amount: 100000 },
-  { code: "GBP", name: "British Pound", min_amount: 1, max_amount: 50000 },
-  { code: "JPY", name: "Japanese Yen", min_amount: 100, max_amount: 10000000 },
+  { country_code: "US", currency_code: "USD", suggestion_priority: 6 },
+  { country_code: "GB", currency_code: "GBP", suggestion_priority: 5 },
+  { country_code: "JP", currency_code: "JPY" },
 ];
 
 describe("intl currencies command", () => {
@@ -51,7 +51,7 @@ describe("intl currencies command", () => {
 
     await program.parseAsync(["intl", "currencies"], { from: "user" });
 
-    expect(listIntlCurrenciesMock).toHaveBeenCalled();
+    expect(listIntlCurrenciesMock).toHaveBeenCalledWith(expect.anything(), "EUR");
     expect(stdoutSpy).toHaveBeenCalled();
     const output = stdoutSpy.mock.calls[0]?.[0] as string;
     expect(output).toContain("USD");
@@ -71,22 +71,49 @@ describe("intl currencies command", () => {
     const output = stdoutSpy.mock.calls[0]?.[0] as string;
     const parsed = JSON.parse(output) as typeof sampleCurrencies;
     expect(parsed).toHaveLength(3);
-    expect(parsed[0]?.code).toBe("USD");
+    expect(parsed[0]?.currency_code).toBe("USD");
   });
 
-  it("filters currencies by search term", async () => {
+  it("passes the --source flag to listIntlCurrencies", async () => {
     listIntlCurrenciesMock.mockResolvedValue(sampleCurrencies);
 
     const program = new Command();
     program.option("-o, --output <format>", "", "json");
     registerIntlCurrenciesCommand(program);
 
-    await program.parseAsync(["intl", "currencies", "--search", "dollar"], { from: "user" });
+    await program.parseAsync(["intl", "currencies", "--source", "USD"], { from: "user" });
+
+    expect(listIntlCurrenciesMock).toHaveBeenCalledWith(expect.anything(), "USD");
+  });
+
+  it("filters currencies by --search term against currency_code", async () => {
+    listIntlCurrenciesMock.mockResolvedValue(sampleCurrencies);
+
+    const program = new Command();
+    program.option("-o, --output <format>", "", "json");
+    registerIntlCurrenciesCommand(program);
+
+    await program.parseAsync(["intl", "currencies", "--search", "usd"], { from: "user" });
 
     expect(stdoutSpy).toHaveBeenCalled();
     const output = stdoutSpy.mock.calls[0]?.[0] as string;
     const parsed = JSON.parse(output) as typeof sampleCurrencies;
     expect(parsed).toHaveLength(1);
-    expect(parsed[0]?.code).toBe("USD");
+    expect(parsed[0]?.currency_code).toBe("USD");
+  });
+
+  it("filters currencies by --search term against country_code", async () => {
+    listIntlCurrenciesMock.mockResolvedValue(sampleCurrencies);
+
+    const program = new Command();
+    program.option("-o, --output <format>", "", "json");
+    registerIntlCurrenciesCommand(program);
+
+    await program.parseAsync(["intl", "currencies", "--search", "JP"], { from: "user" });
+
+    const output = stdoutSpy.mock.calls[0]?.[0] as string;
+    const parsed = JSON.parse(output) as typeof sampleCurrencies;
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0]?.currency_code).toBe("JPY");
   });
 });

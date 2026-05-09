@@ -7,25 +7,24 @@ import type { IntlCurrency, IntlEligibility, IntlQuote } from "./types.js";
 
 // International API schemas use .loose() to pass through unknown fields.
 // These endpoints are less stable and may return additional undocumented properties.
+
+/**
+ * Schema for the eligibility object — and for the
+ * `GET /v2/international/eligibility` response, which returns the eligibility
+ * flat (no `eligibility` wrapper).
+ */
 export const IntlEligibilitySchema = z
   .object({
-    eligible: z.boolean(),
+    status: z.string(),
     reason: z.string().optional(),
   })
   .loose() satisfies z.ZodType<IntlEligibility>;
 
-export const IntlEligibilityResponseSchema = z
-  .object({
-    eligibility: IntlEligibilitySchema,
-  })
-  .strip();
-
 export const IntlCurrencySchema = z
   .object({
-    code: z.string(),
-    name: z.string(),
-    min_amount: z.number().optional(),
-    max_amount: z.number().optional(),
+    country_code: z.string(),
+    currency_code: z.string(),
+    suggestion_priority: z.number().optional(),
   })
   .loose() satisfies z.ZodType<IntlCurrency>;
 

@@ -384,7 +384,6 @@ export {
   listIntlCurrencies,
   createIntlQuote,
   IntlEligibilitySchema,
-  IntlEligibilityResponseSchema,
   IntlCurrencySchema,
   IntlCurrencyListResponseSchema,
   IntlQuoteSchema,

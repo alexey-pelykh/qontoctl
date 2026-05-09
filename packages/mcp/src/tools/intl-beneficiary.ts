@@ -19,6 +19,7 @@ export function registerIntlBeneficiaryTools(server: McpServer, getClient: () =>
     {
       description: "List international beneficiaries in the organization",
       inputSchema: {
+        currency: z.string().describe("ISO 4217 target currency code (e.g. USD — required by the API)"),
         page: z.number().int().positive().optional().describe("Page number"),
         per_page: z.number().int().positive().max(100).optional().describe("Items per page (max 100)"),
       },
@@ -26,6 +27,7 @@ export function registerIntlBeneficiaryTools(server: McpServer, getClient: () =>
     async (args) =>
       withClient(getClient, async (client) => {
         const result = await listIntlBeneficiaries(client, {
+          currency: args.currency,
           ...(args.page !== undefined ? { page: args.page } : {}),
           ...(args.per_page !== undefined ? { per_page: args.per_page } : {}),
         });

@@ -23,8 +23,9 @@ function cliJson<T>(...args: string[]): T {
 }
 
 interface IntlCurrencyItem {
-  readonly code: string;
-  readonly name: string;
+  readonly country_code: string;
+  readonly currency_code: string;
+  readonly suggestion_priority?: number;
 }
 
 describe.skipIf(!hasOAuthCredentials())("international CLI commands (e2e)", () => {
@@ -34,46 +35,46 @@ describe.skipIf(!hasOAuthCredentials())("international CLI commands (e2e)", () =
       expect(output).toBeDefined();
     });
 
-    it("returns eligibility as JSON", () => {
-      const parsed = cliJson<{ eligible: boolean; reason?: string }>("intl", "eligibility");
+    it("returns eligibility as JSON matching the (flat) schema", () => {
+      const parsed = cliJson<{ status: string; reason?: string }>("intl", "eligibility");
       IntlEligibilitySchema.parse(parsed);
-      expect(parsed).toHaveProperty("eligible");
-      expect(typeof parsed.eligible).toBe("boolean");
+      expect(parsed).toHaveProperty("status");
+      expect(typeof parsed.status).toBe("string");
     });
   });
 
   describe("intl currencies", () => {
-    it("lists currencies with default output", () => {
+    it("lists currencies with default output (default --source EUR)", () => {
       const output = cli("intl", "currencies");
       expect(output).toBeDefined();
     });
 
-    it("returns currencies as JSON", () => {
-      const parsed = cliJson<IntlCurrencyItem[]>("intl", "currencies");
+    it("returns currencies as JSON with country_code/currency_code shape", () => {
+      const parsed = cliJson<IntlCurrencyItem[]>("intl", "currencies", "--source", "EUR");
       expect(Array.isArray(parsed)).toBe(true);
       const first = parsed[0];
       if (first !== undefined) {
         IntlCurrencySchema.parse(first);
-        expect(first).toHaveProperty("code");
-        expect(first).toHaveProperty("name");
+        expect(first).toHaveProperty("currency_code");
+        expect(first).toHaveProperty("country_code");
       }
     });
 
-    it("supports --search filter", () => {
-      const parsed = cliJson<IntlCurrencyItem[]>("intl", "currencies", "--search", "USD");
+    it("supports --search filter on currency_code", () => {
+      const parsed = cliJson<IntlCurrencyItem[]>("intl", "currencies", "--source", "EUR", "--search", "USD");
       expect(Array.isArray(parsed)).toBe(true);
       for (const c of parsed) {
-        const match = c.code.toLowerCase().includes("usd") || c.name.toLowerCase().includes("usd");
+        const match = c.currency_code.toLowerCase().includes("usd") || c.country_code.toLowerCase().includes("usd");
         expect(match).toBe(true);
       }
     });
 
     it("outputs CSV format", () => {
-      const output = cli("intl", "currencies", "--output", "csv");
+      const output = cli("intl", "currencies", "--source", "EUR", "--output", "csv");
       const lines = output.trim().split("\n");
       expect(lines.length).toBeGreaterThanOrEqual(1);
       const header = lines[0] ?? "";
-      expect(header).toContain("code");
+      expect(header).toContain("currency_code");
     });
   });
 });

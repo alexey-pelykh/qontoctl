@@ -4,7 +4,7 @@
 import { resolve } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import { IntlEligibilityResponseSchema, IntlCurrencySchema } from "@qontoctl/core";
+import { IntlEligibilitySchema, IntlCurrencySchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { cliEnv, hasOAuthCredentials } from "../sandbox.js";
 
@@ -39,7 +39,7 @@ describe.skipIf(!hasOAuthCredentials())("international MCP tools (e2e)", () => {
   });
 
   describe("intl_eligibility", () => {
-    it("returns eligibility status", async () => {
+    it("returns eligibility status (flat shape)", async () => {
       const result = await client.callTool({
         name: "intl_eligibility",
         arguments: {},
@@ -48,8 +48,8 @@ describe.skipIf(!hasOAuthCredentials())("international MCP tools (e2e)", () => {
       if (result.isError === true) return;
 
       const parsed = JSON.parse(firstText(result)) as Record<string, unknown>;
-      IntlEligibilityResponseSchema.parse(parsed);
-      expect(parsed).toHaveProperty("eligibility");
+      IntlEligibilitySchema.parse(parsed);
+      expect(parsed).toHaveProperty("status");
     });
   });
 
@@ -57,7 +57,7 @@ describe.skipIf(!hasOAuthCredentials())("international MCP tools (e2e)", () => {
     it("returns a list of currencies", async () => {
       const result = await client.callTool({
         name: "intl_currencies",
-        arguments: {},
+        arguments: { source: "EUR" },
       });
 
       if (result.isError === true) return;
@@ -73,15 +73,16 @@ describe.skipIf(!hasOAuthCredentials())("international MCP tools (e2e)", () => {
     it("supports search filter", async () => {
       const result = await client.callTool({
         name: "intl_currencies",
-        arguments: { search: "EUR" },
+        arguments: { source: "EUR", search: "EUR" },
       });
 
       if (result.isError === true) return;
 
-      const parsed = JSON.parse(firstText(result)) as { code: string; name: string }[];
+      const parsed = JSON.parse(firstText(result)) as { currency_code: string; country_code: string }[];
       expect(Array.isArray(parsed)).toBe(true);
       for (const c of parsed) {
-        const match = c.code.toLowerCase().includes("eur") || c.name.toLowerCase().includes("eur");
+        const match =
+          c.currency_code.toLowerCase().includes("eur") || c.country_code.toLowerCase().includes("eur");
         expect(match).toBe(true);
       }
     });

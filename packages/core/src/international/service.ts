@@ -3,24 +3,30 @@
 
 import type { HttpClient } from "../http-client.js";
 import { parseResponse } from "../response.js";
-import { IntlCurrencyListResponseSchema, IntlEligibilityResponseSchema, IntlQuoteResponseSchema } from "./schemas.js";
+import { IntlCurrencyListResponseSchema, IntlEligibilitySchema, IntlQuoteResponseSchema } from "./schemas.js";
 import type { CreateIntlQuoteParams, IntlCurrency, IntlEligibility, IntlQuote } from "./types.js";
 
 /**
  * Check eligibility for international transfers.
+ *
+ * The endpoint returns the eligibility object flat (no `eligibility` wrapper).
  */
 export async function getIntlEligibility(client: HttpClient): Promise<IntlEligibility> {
   const endpointPath = "/v2/international/eligibility";
   const response = await client.get(endpointPath);
-  return parseResponse(IntlEligibilityResponseSchema, response, endpointPath).eligibility;
+  return parseResponse(IntlEligibilitySchema, response, endpointPath);
 }
 
 /**
  * List supported currencies for international transfers.
+ *
+ * Requires a source currency: the endpoint rejects requests without `?source=`
+ * with HTTP 400 (`Field validation for 'FromCurrency' failed on the 'required'
+ * tag`).
  */
-export async function listIntlCurrencies(client: HttpClient): Promise<IntlCurrency[]> {
+export async function listIntlCurrencies(client: HttpClient, source: string): Promise<IntlCurrency[]> {
   const endpointPath = "/v2/international/currencies";
-  const response = await client.get(endpointPath);
+  const response = await client.get(endpointPath, { source });
   return parseResponse(IntlCurrencyListResponseSchema, response, endpointPath).currencies;
 }
 
