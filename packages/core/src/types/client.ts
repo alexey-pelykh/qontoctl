@@ -18,7 +18,7 @@ export interface ClientAddress {
 export interface Client {
   readonly id: string;
   readonly type?: string | undefined;
-  readonly name: string | null;
+  readonly name?: string | null | undefined;
   readonly first_name?: string | null | undefined;
   readonly last_name?: string | null | undefined;
   readonly kind: "company" | "individual" | "freelancer";

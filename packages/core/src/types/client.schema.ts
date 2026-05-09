@@ -20,7 +20,9 @@ export const ClientSchema = z
   .object({
     id: z.string(),
     type: z.string().optional(),
-    name: z.string().nullable(),
+    // Individual clients (kind: "individual") may omit `name` entirely; Qonto returns
+    // `first_name` / `last_name` instead. See #496.
+    name: z.string().nullable().optional(),
     first_name: z.string().nullable().optional(),
     last_name: z.string().nullable().optional(),
     kind: z.enum(["company", "individual", "freelancer"]),
