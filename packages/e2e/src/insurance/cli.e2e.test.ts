@@ -5,7 +5,7 @@ import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { InsuranceContractSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
-import { cliCwd, cliEnv, hasOAuthCredentials } from "../sandbox.js";
+import { cliEnv, hasOAuthCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
@@ -13,7 +13,6 @@ function cli(...args: string[]): string {
   return execFileSync("node", [CLI_PATH, ...args], {
     encoding: "utf-8",
     env: cliEnv(),
-    cwd: cliCwd(),
     timeout: 30_000,
   });
 }

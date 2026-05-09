@@ -2,23 +2,25 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { readFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse as parseYaml } from "yaml";
 
-/**
- * Absolute path to the repo-root `.qontoctl.yaml`, computed once from this
- * module's own location. Used to inject `QONTOCTL_CONFIG_FILE` into spawned
- * CLI subprocesses so they hit the repo's config file without relying on
- * CWD inspection (which the resolver no longer does, post #479).
- *
- * The walk-up helpers below (`findConfigDir`, `cliCwd`, the loop in
- * `readConfigFileCredentials`) remain in place for in-process credential
- * detection used by `hasApiKeyCredentials()`/`hasOAuthCredentials()`/
- * `hasStagingToken()` — those parse YAML directly and don't go through the
- * resolver. The full walk-up removal is scoped to #481.
- */
 const REPO_ROOT_CONFIG_PATH = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", ".qontoctl.yaml");
+
+/**
+ * Return the absolute path to the repo-root `.qontoctl.yaml`. Computed once
+ * at module load via `import.meta.url`, so it is independent of process CWD.
+ *
+ * Used both for in-process credential detection (`hasApiKeyCredentials()` /
+ * `hasOAuthCredentials()` / `hasStagingToken()` / `getCredentials()`) and for
+ * `cliEnv()` to inject `QONTOCTL_CONFIG_FILE` into spawned CLI subprocesses,
+ * so the harness no longer relies on CWD-walking heuristics (the resolver
+ * dropped CWD discovery in #479).
+ */
+export function cliConfigPath(): string {
+  return REPO_ROOT_CONFIG_PATH;
+}
 
 interface ConfigCredentials {
   readonly organizationSlug?: string;
@@ -29,27 +31,12 @@ interface ConfigCredentials {
 }
 
 /**
- * Read credentials from `.qontoctl.yaml`, searching from the
- * working directory up to the filesystem root. Returns `undefined` if
- * no config file with credentials is found.
+ * Read credentials from the repo-root `.qontoctl.yaml`. Returns `undefined`
+ * if the file is absent, unreadable, or contains no recognized credentials.
  */
 function readConfigFileCredentials(): ConfigCredentials | undefined {
-  let dir = process.cwd();
-  for (;;) {
-    const result = tryReadConfigFile(join(dir, ".qontoctl.yaml"));
-    if (result !== undefined) {
-      return result;
-    }
-    const parent = dirname(dir);
-    if (parent === dir) break;
-    dir = parent;
-  }
-  return undefined;
-}
-
-function tryReadConfigFile(path: string): ConfigCredentials | undefined {
   try {
-    const content = readFileSync(path, "utf-8");
+    const content = readFileSync(REPO_ROOT_CONFIG_PATH, "utf-8");
     const parsed: unknown = parseYaml(content);
     if (typeof parsed !== "object" || parsed === null) {
       return undefined;
@@ -98,9 +85,8 @@ function tryReadConfigFile(path: string): ConfigCredentials | undefined {
 
     return hasAnyCreds ? result : undefined;
   } catch {
-    // File not found or unreadable
+    return undefined;
   }
-  return undefined;
 }
 
 /**
@@ -195,25 +181,6 @@ export function getCredentials(): ConfigCredentials {
 }
 
 /**
- * Find the directory containing `.qontoctl.yaml` by walking upward
- * from CWD. Returns `undefined` if no config file is found.
- */
-function findConfigDir(): string | undefined {
-  let dir = process.cwd();
-  for (;;) {
-    try {
-      readFileSync(join(dir, ".qontoctl.yaml"), "utf-8");
-      return dir;
-    } catch {
-      // not found, try parent
-    }
-    const parent = dirname(dir);
-    if (parent === dir) return undefined;
-    dir = parent;
-  }
-}
-
-/**
  * Build an environment for spawning CLI child processes.
  *
  * Injects `QONTOCTL_CONFIG_FILE=<repo-root>/.qontoctl.yaml` so the CLI
@@ -229,16 +196,7 @@ function findConfigDir(): string | undefined {
 export function cliEnv(): Record<string, string> {
   const env = { ...(process.env as Record<string, string>) };
   if (env["QONTOCTL_CONFIG_FILE"] === undefined || env["QONTOCTL_CONFIG_FILE"] === "") {
-    env["QONTOCTL_CONFIG_FILE"] = REPO_ROOT_CONFIG_PATH;
+    env["QONTOCTL_CONFIG_FILE"] = cliConfigPath();
   }
   return env;
-}
-
-/**
- * Return the CWD to use for CLI child processes so they can
- * discover `.qontoctl.yaml` via the config loader. Falls back
- * to the current CWD when no config file is found in parent dirs.
- */
-export function cliCwd(): string {
-  return findConfigDir() ?? process.cwd();
 }

@@ -7,7 +7,7 @@ import { resolve } from "node:path";
 import { promisify } from "node:util";
 import { TransferSchema } from "@qontoctl/core";
 import { beforeAll, describe, expect, it } from "vitest";
-import { cliCwd, cliEnv, hasOAuthCredentials, hasStagingToken } from "../sandbox.js";
+import { cliEnv, hasOAuthCredentials, hasStagingToken } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 const execFileAsync = promisify(execFile);
@@ -44,7 +44,6 @@ function cliSync(...args: string[]): string {
   return execFileSync("node", [CLI_PATH, ...args], {
     encoding: "utf-8",
     env: cliEnv(),
-    cwd: cliCwd(),
     timeout: 25_000,
   });
 }
@@ -111,7 +110,6 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("SCA continuation 
       ],
       {
         env: cliEnv(),
-        cwd: cliCwd(),
         stdio: ["ignore", "pipe", "pipe"],
       },
     );
@@ -146,7 +144,6 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("SCA continuation 
           // primary child (filling the OS pipe buffer would deadlock it).
           approvePromise = execFileAsync("node", [CLI_PATH, "sca-session", "mock-decision", scaToken, "allow"], {
             env: cliEnv(),
-            cwd: cliCwd(),
             timeout: 25_000,
           });
           // Attach a no-op error handler to avoid an "unhandled rejection"

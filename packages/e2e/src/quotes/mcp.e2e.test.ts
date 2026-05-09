@@ -6,7 +6,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { QuoteListResponseSchema, QuoteSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { cliCwd, cliEnv, hasOAuthCredentials } from "../sandbox.js";
+import { cliEnv, hasOAuthCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
@@ -27,7 +27,6 @@ describe.skipIf(!hasOAuthCredentials())("MCP quote tools (e2e)", () => {
       command: "node",
       args: [CLI_PATH, "mcp"],
       env: cliEnv(),
-      cwd: cliCwd(),
       stderr: "pipe",
     });
 
