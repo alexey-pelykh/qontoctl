@@ -136,7 +136,25 @@ describe.skipIf(!hasApiKeyCredentials())("organization & accounts MCP (e2e)", ()
       name: "account_iban_certificate",
       arguments: { id: accountId },
     });
-    expect(result.isError).not.toBe(true);
+
+    // The IBAN-certificate endpoint requires the organization to be
+    // KYB-validated. Sandbox test orgs and Qonto-issued test API-key
+    // orgs are typically not KYB-accepted, surfacing as MCP
+    // `isError: true` with text `Qonto API error (HTTP 400): …
+    // iban_generation_failed: Organization is not KYB accepted`. Skip
+    // rather than fail in that environmental case (#511); KYB-validated
+    // orgs still exercise the full PDF download path. Mirrors the CLI
+    // test's `skipIfQontoErrorContains([400], ["KYB accepted"])` pattern.
+    if (result.isError === true) {
+      const errorText = (result.content as { type: string; text?: string }[])[0]?.text ?? "";
+      if (errorText.includes("KYB accepted")) {
+        console.warn(
+          `[e2e] skipping: account_iban_certificate -> HTTP 400 matching "KYB accepted" (known environmental limitation)`,
+        );
+        return;
+      }
+      throw new Error(`account_iban_certificate failed unexpectedly: ${errorText}`);
+    }
 
     const content = result.content as { type: string; resource?: { blob: string; mimeType: string } }[];
     expect(content).toHaveLength(1);

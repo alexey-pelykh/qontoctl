@@ -172,6 +172,55 @@ export function skipIfNotFound(...args: string[]): string | Skip {
 }
 
 /**
+ * Run a CLI invocation and return {@link SKIP} when the call failed with
+ * one of the caller-supplied HTTP statuses **and** the stderr contains
+ * any of the caller-supplied substrings. More restrictive than
+ * {@link skipIfQontoStatus} alone — useful for HTTP 400 cases where the
+ * status is generic but the error message identifies a specific known
+ * environmental limitation (e.g. `"Organization is not KYB accepted"`
+ * for IBAN-certificate generation against non-KYB-validated test orgs).
+ *
+ * Re-throws on any other failure shape — only the explicitly-named
+ * limitation is absorbed; unrelated 400s still fail the test.
+ *
+ * Standard usage:
+ *
+ * ```ts
+ * const stdout = skipIfQontoErrorContains(
+ *   [400],
+ *   ["KYB accepted"],
+ *   "account", "iban-certificate", id, "--output-file", path,
+ * );
+ * if (stdout === SKIP) return; // Test org not KYB-validated
+ * ```
+ */
+export function skipIfQontoErrorContains(
+  skippableStatuses: readonly number[],
+  errorPatterns: readonly string[],
+  ...args: string[]
+): string | Skip {
+  const result = cliRaw(args);
+  if (result.ok) return result.stdout;
+
+  const status = qontoHttpStatus(result.stderr);
+  if (status !== undefined && skippableStatuses.includes(status)) {
+    const matched = errorPatterns.find((p) => result.stderr.includes(p));
+    if (matched !== undefined) {
+      console.warn(
+        `[e2e] skipping: ${args.join(" ")} -> HTTP ${String(status)} matching "${matched}" (known environmental limitation)`,
+      );
+      return SKIP;
+    }
+  }
+
+  // Genuine failure — re-throw the original error so the test fails with
+  // useful context.
+  throw new Error(
+    `CLI failed: \`${args.join(" ")}\` exit=${String(result.status)}\n--- stderr ---\n${result.stderr}\n--- stdout ---\n${result.stdout}`,
+  );
+}
+
+/**
  * Single-entry MCP tool result content shape (text payload).
  */
 interface McpTextContent {
