@@ -145,6 +145,53 @@ describe("pagination", () => {
       expect(fetchSpy).toHaveBeenCalledTimes(1);
     });
 
+    it("treats next_page: 0 as terminal (Qonto payment_links empty-result quirk)", async () => {
+      // Regression for #490: Qonto's `/v2/payment_links` returns
+      // `next_page: 0` (not `null`/omitted) on an empty result set, which
+      // would loop forever requesting `?page=0` if the guard only checked
+      // `typeof === "number"` (since `0` is a number). The `> 0` clause
+      // covers this quirk.
+      const items: { id: string }[] = [];
+      fetchSpy.mockImplementation(() =>
+        jsonResponse({
+          items,
+          meta: makeMeta({
+            current_page: 1,
+            next_page: 0,
+            prev_page: 1,
+            total_pages: 0,
+            total_count: 0,
+          }),
+        }),
+      );
+
+      const result = await fetchAllPages(client, "/v2/items", "items", 100);
+      expect(result.items).toEqual([]);
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it("stops if next_page does not advance past current_page (defensive)", async () => {
+      // Defends against any malformed pagination meta where `next_page` is
+      // a positive number but does not strictly advance — e.g. a server
+      // returning `current_page: 1, next_page: 1`. Without the strict-
+      // progress guard, this would loop forever fetching the same page.
+      fetchSpy.mockImplementation(() =>
+        jsonResponse({
+          items: [{ id: "1" }],
+          meta: makeMeta({
+            current_page: 1,
+            next_page: 1,
+            total_pages: 1,
+            total_count: 1,
+          }),
+        }),
+      );
+
+      const result = await fetchAllPages(client, "/v2/items", "items", 100);
+      expect(result.items).toHaveLength(1);
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+    });
+
     it("stops at MAX_PAGES safety limit", async () => {
       // Always return a next_page to simulate infinite pagination
       fetchSpy.mockImplementation(() => {
