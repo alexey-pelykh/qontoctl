@@ -7,7 +7,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { BulkTransferListResponseSchema, BulkTransferSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { cliCwd, cliEnv, hasOAuthCredentials, hasStagingToken } from "../sandbox.js";
+import { cliEnv, hasOAuthCredentials, hasStagingToken } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
@@ -52,7 +52,6 @@ describe.skipIf(!hasOAuthCredentials())("bulk-transfer MCP tools (e2e)", () => {
       // stderr — the create test extracts the SCA token from there.
       args: [CLI_PATH, "--verbose", "mcp"],
       env: cliEnv(),
-      cwd: cliCwd(),
       stderr: "pipe",
     });
 

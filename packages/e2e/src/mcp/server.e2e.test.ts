@@ -7,7 +7,7 @@ import { join, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import { cliCwd, cliEnv, hasApiKeyCredentials } from "../sandbox.js";
+import { cliEnv, hasApiKeyCredentials } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
@@ -147,7 +147,6 @@ describe("MCP server via stdio (e2e)", () => {
       command: "node",
       args: [CLI_PATH, "mcp"],
       env: cliEnv(),
-      cwd: cliCwd(),
       stderr: "pipe",
     });
     client = new Client({ name: "e2e-test", version: "0.0.0" });

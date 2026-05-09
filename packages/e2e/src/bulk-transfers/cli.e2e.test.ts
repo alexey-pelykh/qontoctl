@@ -8,7 +8,7 @@ import { join, resolve } from "node:path";
 import { promisify } from "node:util";
 import { BulkTransferSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
-import { cliCwd, cliEnv, hasOAuthCredentials, hasStagingToken } from "../sandbox.js";
+import { cliEnv, hasOAuthCredentials, hasStagingToken } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 const execFileAsync = promisify(execFile);
@@ -25,7 +25,6 @@ function cli(...args: string[]): string {
   return execFileSync("node", [CLI_PATH, ...args], {
     encoding: "utf-8",
     env: cliEnv(),
-    cwd: cliCwd(),
   });
 }
 
@@ -111,7 +110,7 @@ describe.skipIf(!hasOAuthCredentials())("bulk-transfer CLI commands (e2e)", () =
             "--debit-account",
             accountId,
           ],
-          { env: cliEnv(), cwd: cliCwd(), stdio: ["ignore", "pipe", "pipe"] },
+          { env: cliEnv(), stdio: ["ignore", "pipe", "pipe"] },
         );
 
         let stdout = "";
@@ -140,7 +139,6 @@ describe.skipIf(!hasOAuthCredentials())("bulk-transfer CLI commands (e2e)", () =
               scaToken = match[1];
               approvePromise = execFileAsync("node", [CLI_PATH, "sca-session", "mock-decision", scaToken, "allow"], {
                 env: cliEnv(),
-                cwd: cliCwd(),
                 timeout: 25_000,
               });
               approvePromise.catch(() => {});

@@ -6,7 +6,7 @@ import { resolve } from "node:path";
 import { promisify } from "node:util";
 import { RecurringTransferSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
-import { cliCwd, cliEnv, hasOAuthCredentials, hasStagingToken } from "../sandbox.js";
+import { cliEnv, hasOAuthCredentials, hasStagingToken } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 const execFileAsync = promisify(execFile);
@@ -23,7 +23,6 @@ function cli(...args: string[]): string {
   return execFileSync("node", [CLI_PATH, ...args], {
     encoding: "utf-8",
     env: cliEnv(),
-    cwd: cliCwd(),
   });
 }
 
@@ -49,7 +48,6 @@ interface SpawnWithScaResult {
 async function spawnWithScaApproval(...args: string[]): Promise<SpawnWithScaResult> {
   const child = spawn("node", [CLI_PATH, "--verbose", "--output", "json", ...args], {
     env: cliEnv(),
-    cwd: cliCwd(),
     stdio: ["ignore", "pipe", "pipe"],
   });
 
@@ -79,7 +77,6 @@ async function spawnWithScaApproval(...args: string[]): Promise<SpawnWithScaResu
         scaToken = match[1];
         approvePromise = execFileAsync("node", [CLI_PATH, "sca-session", "mock-decision", scaToken, "allow"], {
           env: cliEnv(),
-          cwd: cliCwd(),
           timeout: 25_000,
         });
         approvePromise.catch(() => {});
