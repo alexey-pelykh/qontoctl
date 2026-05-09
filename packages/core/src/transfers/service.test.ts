@@ -403,6 +403,17 @@ describe("cancelTransfer", () => {
     const [url] = fetchSpy.mock.calls[0] as [URL];
     expect(url.pathname).toBe("/v2/sepa/transfers/a%2Fb/cancel");
   });
+
+  it("resolves on a true 204 No Content response (no JSON body)", async () => {
+    // Regression guard for #499: the Qonto API returns `204 No Content` on
+    // successful cancel. A naive `client.post` would attempt `response.json()`
+    // on the empty body and throw "Unexpected end of JSON input"; the prior
+    // tests masked this by mocking `jsonResponse({})` (a valid empty-object
+    // JSON body) instead of a true 204.
+    fetchSpy.mockReturnValue(Promise.resolve(new Response(null, { status: 204 })));
+
+    await expect(cancelTransfer(client, "txfr-1")).resolves.toBeUndefined();
+  });
 });
 
 describe("getTransferProof", () => {

@@ -134,13 +134,17 @@ export async function createTransfer(
 
 /**
  * Cancel a pending SEPA transfer.
+ *
+ * The Qonto API returns `204 No Content` on success, so this uses
+ * `requestVoid` rather than `client.post` (which would attempt to parse the
+ * empty body as JSON and throw "Unexpected end of JSON input").
  */
 export async function cancelTransfer(
   client: HttpClient,
   id: string,
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<void> {
-  await client.post("/v2/sepa/transfers/" + encodeURIComponent(id) + "/cancel", undefined, options);
+  await client.requestVoid("POST", `/v2/sepa/transfers/${encodeURIComponent(id)}/cancel`, options);
 }
 
 /**
