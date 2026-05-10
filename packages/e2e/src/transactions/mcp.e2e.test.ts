@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import { resolve } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { TransactionListResponseSchema, TransactionSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { CLI_PATH, firstTextFromMcpResult } from "../helpers.js";
 import { cliEnv, hasApiKeyCredentials } from "../sandbox.js";
-
-const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
 interface TransactionItem {
   readonly id: string;
@@ -61,16 +59,7 @@ describe.skipIf(!hasApiKeyCredentials())("transaction MCP tools (e2e)", () => {
         arguments: {},
       });
 
-      expect(result.content).toBeDefined();
-      expect(Array.isArray(result.content)).toBe(true);
-
-      const textContent = result.content[0] as {
-        type: string;
-        text: string;
-      };
-      expect(textContent.type).toBe("text");
-
-      const parsed = JSON.parse(textContent.text) as TransactionListResponse;
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as TransactionListResponse;
       TransactionListResponseSchema.parse(parsed);
       expect(parsed).toHaveProperty("transactions");
       expect(parsed).toHaveProperty("meta");
@@ -83,11 +72,7 @@ describe.skipIf(!hasApiKeyCredentials())("transaction MCP tools (e2e)", () => {
         arguments: { per_page: 2, page: 1 },
       });
 
-      const textContent = result.content[0] as {
-        type: string;
-        text: string;
-      };
-      const parsed = JSON.parse(textContent.text) as TransactionListResponse;
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as TransactionListResponse;
       expect(parsed.transactions.length).toBeLessThanOrEqual(2);
       expect(parsed.meta.current_page).toBe(1);
     });
@@ -98,11 +83,7 @@ describe.skipIf(!hasApiKeyCredentials())("transaction MCP tools (e2e)", () => {
         arguments: { status: "completed" },
       });
 
-      const textContent = result.content[0] as {
-        type: string;
-        text: string;
-      };
-      const parsed = JSON.parse(textContent.text) as TransactionListResponse;
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as TransactionListResponse;
       for (const txn of parsed.transactions) {
         expect(txn.status).toBe("completed");
       }
@@ -114,11 +95,7 @@ describe.skipIf(!hasApiKeyCredentials())("transaction MCP tools (e2e)", () => {
         arguments: { side: "debit" },
       });
 
-      const textContent = result.content[0] as {
-        type: string;
-        text: string;
-      };
-      const parsed = JSON.parse(textContent.text) as TransactionListResponse;
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as TransactionListResponse;
       for (const txn of parsed.transactions) {
         expect(txn.side).toBe("debit");
       }
@@ -133,11 +110,7 @@ describe.skipIf(!hasApiKeyCredentials())("transaction MCP tools (e2e)", () => {
         },
       });
 
-      const textContent = result.content[0] as {
-        type: string;
-        text: string;
-      };
-      const parsed = JSON.parse(textContent.text) as TransactionListResponse;
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as TransactionListResponse;
       expect(parsed).toHaveProperty("transactions");
       expect(Array.isArray(parsed.transactions)).toBe(true);
     });
@@ -148,11 +121,7 @@ describe.skipIf(!hasApiKeyCredentials())("transaction MCP tools (e2e)", () => {
         name: "transaction_list",
         arguments: { per_page: 1 },
       });
-      const listText = listResult.content[0] as {
-        type: string;
-        text: string;
-      };
-      const listParsed = JSON.parse(listText.text) as TransactionListResponse;
+      const listParsed = JSON.parse(firstTextFromMcpResult(listResult)) as TransactionListResponse;
       const firstTxn = listParsed.transactions[0];
       if (firstTxn === undefined) return;
 
@@ -162,11 +131,7 @@ describe.skipIf(!hasApiKeyCredentials())("transaction MCP tools (e2e)", () => {
         arguments: { bank_account_id: bankAccountId },
       });
 
-      const textContent = result.content[0] as {
-        type: string;
-        text: string;
-      };
-      const parsed = JSON.parse(textContent.text) as TransactionListResponse;
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as TransactionListResponse;
       for (const txn of parsed.transactions) {
         expect(txn.bank_account_id).toBe(bankAccountId);
       }
@@ -180,11 +145,7 @@ describe.skipIf(!hasApiKeyCredentials())("transaction MCP tools (e2e)", () => {
         name: "transaction_list",
         arguments: { per_page: 1 },
       });
-      const listText = listResult.content[0] as {
-        type: string;
-        text: string;
-      };
-      const listParsed = JSON.parse(listText.text) as TransactionListResponse;
+      const listParsed = JSON.parse(firstTextFromMcpResult(listResult)) as TransactionListResponse;
       const firstTxn = listParsed.transactions[0];
       if (firstTxn === undefined) return;
 
@@ -194,14 +155,7 @@ describe.skipIf(!hasApiKeyCredentials())("transaction MCP tools (e2e)", () => {
         arguments: { id: txnId },
       });
 
-      expect(result.content).toBeDefined();
-      const textContent = result.content[0] as {
-        type: string;
-        text: string;
-      };
-      expect(textContent.type).toBe("text");
-
-      const transaction = JSON.parse(textContent.text) as TransactionItem;
+      const transaction = JSON.parse(firstTextFromMcpResult(result)) as TransactionItem;
       TransactionSchema.parse(transaction);
       expect(transaction.id).toBe(txnId);
       expect(transaction).toHaveProperty("amount");

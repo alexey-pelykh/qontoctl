@@ -4,19 +4,13 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { CLI_PATH, cli, cliJson } from "../helpers.js";
 import { cliEnv, hasApiKeyCredentials } from "../sandbox.js";
 
-const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
-
 function listStatements(): Record<string, unknown>[] {
-  const output = execFileSync("node", [CLI_PATH, "statement", "list", "--no-paginate", "-o", "json"], {
-    encoding: "utf-8",
-    env: cliEnv(),
-    stdio: "pipe",
-  });
-  return JSON.parse(output) as Record<string, unknown>[];
+  return cliJson<Record<string, unknown>[]>("statement", "list", "--no-paginate");
 }
 
 describe.skipIf(!hasApiKeyCredentials())("statement CLI commands (e2e)", () => {
@@ -45,12 +39,13 @@ describe.skipIf(!hasApiKeyCredentials())("statement CLI commands (e2e)", () => {
 
       const bankAccountId = (allRows[0] as Record<string, unknown>)["bank_account_id"] as string;
 
-      const filteredOutput = execFileSync(
-        "node",
-        [CLI_PATH, "statement", "list", "--bank-account", bankAccountId, "--no-paginate", "-o", "json"],
-        { encoding: "utf-8", env: cliEnv(), stdio: "pipe" },
+      const filteredRows = cliJson<Record<string, unknown>[]>(
+        "statement",
+        "list",
+        "--bank-account",
+        bankAccountId,
+        "--no-paginate",
       );
-      const filteredRows = JSON.parse(filteredOutput) as Record<string, unknown>[];
 
       for (const row of filteredRows) {
         expect(row["bank_account_id"]).toBe(bankAccountId);
@@ -58,14 +53,8 @@ describe.skipIf(!hasApiKeyCredentials())("statement CLI commands (e2e)", () => {
     });
 
     it("filters by period range", () => {
-      const output = execFileSync(
-        "node",
-        [CLI_PATH, "statement", "list", "--from", "01-2025", "--to", "12-2025", "--no-paginate", "-o", "json"],
-        { encoding: "utf-8", env: cliEnv(), stdio: "pipe" },
-      );
-
       // The command should succeed; results may be empty if no statements in range
-      const rows = JSON.parse(output) as unknown[];
+      const rows = cliJson<unknown[]>("statement", "list", "--from", "01-2025", "--to", "12-2025", "--no-paginate");
       expect(Array.isArray(rows)).toBe(true);
     });
   });
@@ -79,12 +68,7 @@ describe.skipIf(!hasApiKeyCredentials())("statement CLI commands (e2e)", () => {
 
       const statementId = (allRows[0] as Record<string, unknown>)["id"] as string;
 
-      const showOutput = execFileSync("node", [CLI_PATH, "statement", "show", statementId, "-o", "json"], {
-        encoding: "utf-8",
-        env: cliEnv(),
-        stdio: "pipe",
-      });
-      const showRows = JSON.parse(showOutput) as Record<string, unknown>[];
+      const showRows = cliJson<Record<string, unknown>[]>("statement", "show", statementId);
       expect(showRows).toHaveLength(1);
 
       const row = showRows[0] as Record<string, unknown>;
@@ -119,6 +103,10 @@ describe.skipIf(!hasApiKeyCredentials())("statement CLI commands (e2e)", () => {
       const expectedFileName = firstRow["file_name"] as string;
 
       const downloadDir = mkdtempSync(join(tempDir, "cwd-"));
+      // Inline execFileSync here because the test exercises the CLI's
+      // current-working-directory behavior (downloads to cwd when no
+      // --output-dir is given). The shared `cli()` helper does not expose
+      // a `cwd` option, and adding one is out of scope for this refactor.
       execFileSync("node", [CLI_PATH, "statement", "download", statementId], {
         encoding: "utf-8",
         env: cliEnv(),
@@ -139,11 +127,7 @@ describe.skipIf(!hasApiKeyCredentials())("statement CLI commands (e2e)", () => {
       const expectedFileName = firstRow["file_name"] as string;
 
       const outputDir = mkdtempSync(join(tempDir, "outdir-"));
-      execFileSync("node", [CLI_PATH, "statement", "download", statementId, "--output-dir", outputDir], {
-        encoding: "utf-8",
-        env: cliEnv(),
-        stdio: "pipe",
-      });
+      cli("statement", "download", statementId, "--output-dir", outputDir);
 
       const downloadedFile = join(outputDir, expectedFileName);
       expect(existsSync(downloadedFile)).toBe(true);

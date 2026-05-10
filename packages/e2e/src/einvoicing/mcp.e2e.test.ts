@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import { resolve } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { EInvoicingSettingsSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { CLI_PATH, firstTextFromMcpResult } from "../helpers.js";
 import { cliEnv, hasOAuthCredentials, pinAuthPreference } from "../sandbox.js";
-
-const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
 describe.skipIf(!hasOAuthCredentials())("e-invoicing MCP (e2e)", () => {
   pinAuthPreference("oauth-first");
@@ -38,13 +36,8 @@ describe.skipIf(!hasOAuthCredentials())("e-invoicing MCP (e2e)", () => {
       arguments: {},
     });
     expect(result.isError).not.toBe(true);
-    expect(result.content).toBeDefined();
 
-    const content = result.content as { type: string; text: string }[];
-    expect(content).toHaveLength(1);
-    expect((content[0] as { type: string }).type).toBe("text");
-
-    const settings = JSON.parse((content[0] as { text: string }).text) as Record<string, unknown>;
+    const settings = JSON.parse(firstTextFromMcpResult(result)) as Record<string, unknown>;
     EInvoicingSettingsSchema.parse(settings);
     expect(settings).toHaveProperty("sending_status");
     expect(settings).toHaveProperty("receiving_status");

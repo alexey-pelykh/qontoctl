@@ -1,15 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import { resolve } from "node:path";
 import type { Readable } from "node:stream";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { BulkTransferListResponseSchema, BulkTransferSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { CLI_PATH, firstTextFromMcpResult } from "../helpers.js";
 import { cliEnv, hasOAuthCredentials, hasStagingToken, pinAuthPreference } from "../sandbox.js";
-
-const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
 /**
  * Pattern matching the SCA session polling URL the core HTTP client logs at
@@ -105,16 +103,14 @@ describe.skipIf(!hasOAuthCredentials())("bulk-transfer MCP tools (e2e)", () => {
         name: "beneficiary_list",
         arguments: { per_page: 1 },
       });
-      const beneficiaryText = beneficiaryResult.content[0] as { type: string; text: string };
-      const beneficiaryParsed = JSON.parse(beneficiaryText.text) as {
+      const beneficiaryParsed = JSON.parse(firstTextFromMcpResult(beneficiaryResult)) as {
         beneficiaries: { id: string }[];
       };
       if (beneficiaryParsed.beneficiaries.length === 0) return;
       const beneficiaryId = (beneficiaryParsed.beneficiaries[0] as { id: string }).id;
 
       const accountResult = await client.callTool({ name: "account_list", arguments: {} });
-      const accountText = accountResult.content[0] as { type: string; text: string };
-      const accountParsed = JSON.parse(accountText.text) as { id: string }[];
+      const accountParsed = JSON.parse(firstTextFromMcpResult(accountResult)) as { id: string }[];
       if (accountParsed.length === 0) return;
       const bankAccountId = (accountParsed[0] as { id: string }).id;
 
@@ -142,12 +138,11 @@ describe.skipIf(!hasOAuthCredentials())("bulk-transfer MCP tools (e2e)", () => {
 
       expect(result.isError).not.toBe(true);
 
-      const textContent = result.content[0] as { type: string; text: string };
-      expect(textContent.type).toBe("text");
+      const text = firstTextFromMcpResult(result);
       // Must be a successful bulk transfer (JSON), NOT an SCA-pending text response.
-      expect(textContent.text).not.toMatch(/^SCA required/);
+      expect(text).not.toMatch(/^SCA required/);
 
-      const bt = JSON.parse(textContent.text) as BulkTransferRecord;
+      const bt = JSON.parse(text) as BulkTransferRecord;
       BulkTransferSchema.parse(bt);
       expect(bt).toHaveProperty("id");
       expect(bt).toHaveProperty("total_count");
@@ -163,16 +158,8 @@ describe.skipIf(!hasOAuthCredentials())("bulk-transfer MCP tools (e2e)", () => {
       });
 
       expect(result.isError).not.toBe(true);
-      expect(result.content).toBeDefined();
-      expect(Array.isArray(result.content)).toBe(true);
 
-      const textContent = result.content[0] as {
-        type: string;
-        text: string;
-      };
-      expect(textContent.type).toBe("text");
-
-      const parsed = JSON.parse(textContent.text) as BulkTransferListResponse;
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as BulkTransferListResponse;
       BulkTransferListResponseSchema.parse(parsed);
       expect(parsed).toHaveProperty("bulk_transfers");
       expect(parsed).toHaveProperty("meta");
@@ -187,11 +174,7 @@ describe.skipIf(!hasOAuthCredentials())("bulk-transfer MCP tools (e2e)", () => {
 
       expect(result.isError).not.toBe(true);
 
-      const textContent = result.content[0] as {
-        type: string;
-        text: string;
-      };
-      const parsed = JSON.parse(textContent.text) as BulkTransferListResponse;
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as BulkTransferListResponse;
       expect(parsed.bulk_transfers.length).toBeLessThanOrEqual(2);
       expect(parsed.meta.current_page).toBe(1);
     });
@@ -205,11 +188,7 @@ describe.skipIf(!hasOAuthCredentials())("bulk-transfer MCP tools (e2e)", () => {
       });
       if (listResult.isError === true) return;
 
-      const listText = listResult.content[0] as {
-        type: string;
-        text: string;
-      };
-      const listParsed = JSON.parse(listText.text) as BulkTransferListResponse;
+      const listParsed = JSON.parse(firstTextFromMcpResult(listResult)) as BulkTransferListResponse;
       const first = listParsed.bulk_transfers[0];
       if (first === undefined) return;
 
@@ -218,14 +197,7 @@ describe.skipIf(!hasOAuthCredentials())("bulk-transfer MCP tools (e2e)", () => {
         arguments: { id: first.id },
       });
 
-      expect(result.content).toBeDefined();
-      const textContent = result.content[0] as {
-        type: string;
-        text: string;
-      };
-      expect(textContent.type).toBe("text");
-
-      const bt = JSON.parse(textContent.text) as BulkTransferRecord;
+      const bt = JSON.parse(firstTextFromMcpResult(result)) as BulkTransferRecord;
       BulkTransferSchema.parse(bt);
       expect(bt.id).toBe(first.id);
       expect(bt).toHaveProperty("total_count");

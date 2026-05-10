@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import { resolve } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { BankAccountSchema, OrganizationSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { CLI_PATH, firstTextFromMcpResult } from "../helpers.js";
 import { cliEnv, hasApiKeyCredentials } from "../sandbox.js";
-
-const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
 describe.skipIf(!hasApiKeyCredentials())("organization & accounts MCP (e2e)", () => {
   let client: Client;
@@ -40,11 +38,7 @@ describe.skipIf(!hasApiKeyCredentials())("organization & accounts MCP (e2e)", ()
     expect(result.isError).not.toBe(true);
     expect(result.content).toBeDefined();
 
-    const content = result.content as { type: string; text: string }[];
-    expect(content).toHaveLength(1);
-    expect((content[0] as { type: string }).type).toBe("text");
-
-    const org = JSON.parse((content[0] as { text: string }).text) as Record<string, unknown>;
+    const org = JSON.parse(firstTextFromMcpResult(result)) as Record<string, unknown>;
     OrganizationSchema.parse(org);
     expect(org).toHaveProperty("slug");
     expect(org).toHaveProperty("legal_name");
@@ -63,11 +57,7 @@ describe.skipIf(!hasApiKeyCredentials())("organization & accounts MCP (e2e)", ()
     });
     expect(result.isError).not.toBe(true);
 
-    const content = result.content as { type: string; text: string }[];
-    expect(content).toHaveLength(1);
-    expect((content[0] as { type: string }).type).toBe("text");
-
-    const accounts = JSON.parse((content[0] as { text: string }).text) as Record<string, unknown>[];
+    const accounts = JSON.parse(firstTextFromMcpResult(result)) as Record<string, unknown>[];
     expect(Array.isArray(accounts)).toBe(true);
     expect(accounts.length).toBeGreaterThan(0);
 
@@ -88,11 +78,7 @@ describe.skipIf(!hasApiKeyCredentials())("organization & accounts MCP (e2e)", ()
       name: "account_list",
       arguments: {},
     });
-    const listContent = listResult.content as {
-      type: string;
-      text: string;
-    }[];
-    const accounts = JSON.parse((listContent[0] as { text: string }).text) as { id: string }[];
+    const accounts = JSON.parse(firstTextFromMcpResult(listResult)) as { id: string }[];
     const accountId = (accounts[0] as { id: string }).id;
 
     const result = await client.callTool({
@@ -101,11 +87,7 @@ describe.skipIf(!hasApiKeyCredentials())("organization & accounts MCP (e2e)", ()
     });
     expect(result.isError).not.toBe(true);
 
-    const content = result.content as { type: string; text: string }[];
-    expect(content).toHaveLength(1);
-    expect((content[0] as { type: string }).type).toBe("text");
-
-    const account = JSON.parse((content[0] as { text: string }).text) as Record<string, unknown>;
+    const account = JSON.parse(firstTextFromMcpResult(result)) as Record<string, unknown>;
     BankAccountSchema.parse(account);
     expect(account).toHaveProperty("id", accountId);
     expect(account).toHaveProperty("name");
@@ -125,11 +107,7 @@ describe.skipIf(!hasApiKeyCredentials())("organization & accounts MCP (e2e)", ()
       name: "account_list",
       arguments: {},
     });
-    const listContent = listResult.content as {
-      type: string;
-      text: string;
-    }[];
-    const accounts = JSON.parse((listContent[0] as { text: string }).text) as { id: string }[];
+    const accounts = JSON.parse(firstTextFromMcpResult(listResult)) as { id: string }[];
     const accountId = (accounts[0] as { id: string }).id;
 
     const result = await client.callTool({

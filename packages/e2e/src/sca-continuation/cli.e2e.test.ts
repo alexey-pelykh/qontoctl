@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import { execFile, execFileSync, spawn } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { resolve } from "node:path";
 import { promisify } from "node:util";
 import { TransferSchema } from "@qontoctl/core";
 import { beforeAll, describe, expect, it } from "vitest";
+import { CLI_PATH, cliJson } from "../helpers.js";
 import { cliEnv, hasOAuthCredentials, hasStagingToken, pinAuthPreference } from "../sandbox.js";
 
-const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 const execFileAsync = promisify(execFile);
 
 /**
@@ -36,22 +35,6 @@ interface BankAccountItem {
 
 interface VopProofToken {
   readonly proof_token: { readonly token: string };
-}
-
-/**
- * Run the CLI synchronously for setup and approval helpers.
- */
-function cliSync(...args: string[]): string {
-  return execFileSync("node", [CLI_PATH, ...args], {
-    encoding: "utf-8",
-    env: cliEnv(),
-    stdio: "pipe",
-    timeout: 25_000,
-  });
-}
-
-function cliJson<T>(...args: string[]): T {
-  return JSON.parse(cliSync("--output", "json", ...args)) as T;
 }
 
 describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("SCA continuation CLI (e2e, sandbox)", () => {

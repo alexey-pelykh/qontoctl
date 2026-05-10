@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import { resolve } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { StatementListResponseSchema, StatementSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { CLI_PATH, firstTextFromMcpResult } from "../helpers.js";
 import { cliEnv, hasApiKeyCredentials } from "../sandbox.js";
-
-const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
 describe.skipIf(!hasApiKeyCredentials())("statement MCP tools (e2e)", () => {
   let client: Client;
@@ -37,12 +35,7 @@ describe.skipIf(!hasApiKeyCredentials())("statement MCP tools (e2e)", () => {
       // Sandbox may not have statements — skip gracefully on tool error
       if (result.isError === true) return;
 
-      expect(result.content).toHaveLength(1);
-
-      const textContent = result.content[0] as { type: string; text: string };
-      expect(textContent.type).toBe("text");
-
-      const parsed = JSON.parse(textContent.text) as {
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as {
         statements: Record<string, unknown>[];
         meta: Record<string, unknown>;
       };
@@ -69,8 +62,7 @@ describe.skipIf(!hasApiKeyCredentials())("statement MCP tools (e2e)", () => {
 
       expect(result.isError).not.toBe(true);
 
-      const textContent = result.content[0] as { type: string; text: string };
-      const parsed = JSON.parse(textContent.text) as {
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as {
         statements: unknown[];
         meta: unknown;
       };
@@ -87,8 +79,7 @@ describe.skipIf(!hasApiKeyCredentials())("statement MCP tools (e2e)", () => {
       });
       if (listResult.isError === true) return;
 
-      const listText = (listResult.content[0] as { type: string; text: string }).text;
-      const listParsed = JSON.parse(listText) as {
+      const listParsed = JSON.parse(firstTextFromMcpResult(listResult)) as {
         statements: Record<string, unknown>[];
       };
       if (listParsed.statements.length === 0) return;
@@ -103,8 +94,7 @@ describe.skipIf(!hasApiKeyCredentials())("statement MCP tools (e2e)", () => {
 
       expect(showResult.isError).not.toBe(true);
 
-      const showText = (showResult.content[0] as { type: string; text: string }).text;
-      const showParsed = JSON.parse(showText) as Record<string, unknown>;
+      const showParsed = JSON.parse(firstTextFromMcpResult(showResult)) as Record<string, unknown>;
       StatementSchema.parse(showParsed);
       expect(showParsed["id"]).toBe(statementId);
       expect(showParsed).toHaveProperty("bank_account_id");
