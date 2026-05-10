@@ -15,13 +15,19 @@ interface WebhookItem {
 }
 
 interface WebhookListResponse {
-  readonly webhook_subscriptions: WebhookItem[];
+  readonly subscriptions: WebhookItem[];
   readonly meta: {
     readonly current_page: number;
     readonly total_pages: number;
     readonly total_count: number;
   };
 }
+
+// Stable webhook.site URL used purely as an opaque registration target — the
+// test never receives or asserts on delivered events (per #452 AC item 2). The
+// fixed UUID encodes #452 to make stray sandbox webhooks from failed runs easy
+// to spot and clean up manually.
+const TEST_CALLBACK_URL = "https://webhook.site/00000000-0000-0000-0000-000000000452";
 
 describe.skipIf(!hasOAuthCredentials())("webhook MCP tools (e2e)", () => {
   pinAuthPreference("oauth-first");
@@ -56,9 +62,9 @@ describe.skipIf(!hasOAuthCredentials())("webhook MCP tools (e2e)", () => {
 
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as WebhookListResponse;
       WebhookSubscriptionListResponseSchema.parse(parsed);
-      expect(parsed).toHaveProperty("webhook_subscriptions");
+      expect(parsed).toHaveProperty("subscriptions");
       expect(parsed).toHaveProperty("meta");
-      expect(Array.isArray(parsed.webhook_subscriptions)).toBe(true);
+      expect(Array.isArray(parsed.subscriptions)).toBe(true);
     });
 
     it("supports pagination", async () => {
@@ -70,7 +76,7 @@ describe.skipIf(!hasOAuthCredentials())("webhook MCP tools (e2e)", () => {
       if (result.isError === true) return;
 
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as WebhookListResponse;
-      expect(parsed.webhook_subscriptions.length).toBeLessThanOrEqual(2);
+      expect(parsed.subscriptions.length).toBeLessThanOrEqual(2);
       expect(parsed.meta.current_page).toBe(1);
     });
   });
@@ -84,7 +90,7 @@ describe.skipIf(!hasOAuthCredentials())("webhook MCP tools (e2e)", () => {
       if (listResult.isError === true) return;
 
       const listParsed = JSON.parse(firstTextFromMcpResult(listResult)) as WebhookListResponse;
-      const first = listParsed.webhook_subscriptions[0];
+      const first = listParsed.subscriptions[0];
       if (first === undefined) return;
 
       const result = await client.callTool({
@@ -98,6 +104,86 @@ describe.skipIf(!hasOAuthCredentials())("webhook MCP tools (e2e)", () => {
       expect(parsed.id).toBe(first.id);
       expect(parsed).toHaveProperty("callback_url");
       expect(parsed).toHaveProperty("types");
+    });
+  });
+
+  // MCP CRUD smoke for `webhook_create` / `webhook_update` / `webhook_delete` —
+  // closes the audit gap from umbrella #449 (Group 3). Mirrors the CLI suite's
+  // round-trip but exercises the operations through callTool so the MCP wrapper
+  // contract is asserted on top of the underlying API contract.
+  describe("webhook CRUD lifecycle (MCP)", () => {
+    let createdWebhookId: string | undefined;
+
+    it("creates a webhook via callTool", async () => {
+      const result = await client.callTool({
+        name: "webhook_create",
+        arguments: {
+          callback_url: TEST_CALLBACK_URL,
+          types: ["v1/transactions"],
+        },
+      });
+
+      expect(result.isError).toBeFalsy();
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as WebhookItem;
+      WebhookSubscriptionSchema.parse(parsed);
+      expect(parsed.id).toBeDefined();
+      expect(parsed.callback_url).toBe(TEST_CALLBACK_URL);
+      expect(parsed.types).toContain("v1/transactions");
+      createdWebhookId = parsed.id;
+    });
+
+    it("updates the webhook by widening the event filter", async () => {
+      if (createdWebhookId === undefined) return;
+
+      // The Qonto API treats PUT as full-replacement (not partial) — sending
+      // only `types` returns "HTTP 400: CallbackURL is missing", so the URL
+      // has to be re-sent on every update even when unchanged. The MCP
+      // surface mirrors that contract directly; auto-merge would be a UX
+      // improvement but is out of scope for #452.
+      const result = await client.callTool({
+        name: "webhook_update",
+        arguments: {
+          id: createdWebhookId,
+          callback_url: TEST_CALLBACK_URL,
+          types: ["v1/transactions", "v1/cards"],
+        },
+      });
+
+      expect(result.isError).toBeFalsy();
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as WebhookItem;
+      WebhookSubscriptionSchema.parse(parsed);
+      expect(parsed.id).toBe(createdWebhookId);
+      expect(parsed.types).toEqual(expect.arrayContaining(["v1/transactions", "v1/cards"]));
+    });
+
+    it("deletes the webhook via callTool", async () => {
+      if (createdWebhookId === undefined) return;
+
+      const result = await client.callTool({
+        name: "webhook_delete",
+        arguments: { id: createdWebhookId },
+      });
+
+      expect(result.isError).toBeFalsy();
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as { deleted: boolean; id: string };
+      expect(parsed.deleted).toBe(true);
+      expect(parsed.id).toBe(createdWebhookId);
+    });
+
+    it("returns 404 when fetching the deleted webhook", async () => {
+      if (createdWebhookId === undefined) return;
+
+      const result = await client.callTool({
+        name: "webhook_show",
+        arguments: { id: createdWebhookId },
+      });
+
+      expect(result.isError).toBe(true);
+      // The MCP error wrapper surfaces `QontoApiError` as text content with the
+      // human-readable "Qonto API error (HTTP 404):" prefix; assert on that
+      // rather than re-parsing the structured shape.
+      const text = firstTextFromMcpResult(result);
+      expect(text).toMatch(/HTTP 404/);
     });
   });
 });
