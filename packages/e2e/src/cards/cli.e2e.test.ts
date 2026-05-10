@@ -72,4 +72,45 @@ describe.skipIf(!hasOAuthCredentials())("card CLI commands (e2e)", () => {
       expect(output).toContain("id:");
     });
   });
+
+  describe("card show", () => {
+    it("shows a card by ID", () => {
+      // Pick the first card from the list as a known-good ID. If the org has
+      // no cards in the sandbox, skip — we cannot exercise show without one.
+      const cards = cliJson<CardItem[]>("card", "list", "--per-page", "1");
+      const first = cards[0];
+      if (first === undefined) return;
+
+      const card = cliJson<CardItem>("card", "show", first.id);
+      CardSchema.parse(card);
+      expect(card.id).toBe(first.id);
+      expect(card).toHaveProperty("status");
+      expect(card).toHaveProperty("card_level");
+    });
+
+    it("supports table output", () => {
+      const cards = cliJson<CardItem[]>("card", "list", "--per-page", "1");
+      const first = cards[0];
+      if (first === undefined) return;
+
+      const output = cli("card", "show", first.id);
+      expect(output).toContain(first.id);
+    });
+  });
+
+  describe("card iframe-url", () => {
+    it("returns a secure iframe URL for an existing card", () => {
+      // Pick the first card from the list. The data_view endpoint requires
+      // a real card ID; skip if the sandbox has no cards.
+      const cards = cliJson<CardItem[]>("card", "list", "--per-page", "1");
+      const first = cards[0];
+      if (first === undefined) return;
+
+      const result = cliJson<{ iframe_url: string }>("card", "iframe-url", first.id);
+      expect(result).toHaveProperty("iframe_url");
+      expect(typeof result.iframe_url).toBe("string");
+      // The URL must be HTTPS — the iframe carries sensitive PAN/CVV data.
+      expect(result.iframe_url).toMatch(/^https:\/\//);
+    });
+  });
 });

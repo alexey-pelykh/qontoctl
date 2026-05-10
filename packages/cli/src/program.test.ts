@@ -103,6 +103,7 @@ describe("createProgram", () => {
       const names = card.commands.map((c) => c.name());
 
       expect(names).toContain("list");
+      expect(names).toContain("show");
       expect(names).toContain("create");
       expect(names).toContain("bulk-create");
       expect(names).toContain("lock");
@@ -116,7 +117,7 @@ describe("createProgram", () => {
       expect(names).toContain("update-restrictions");
       expect(names).toContain("iframe-url");
       expect(names).toContain("appearances");
-      expect(card.commands).toHaveLength(14);
+      expect(card.commands).toHaveLength(15);
     });
 
     it("registers expected einvoicing subcommands", () => {
