@@ -6,6 +6,12 @@ import { jsonResponse } from "@qontoctl/core/testing";
 import { createWebhookCommand } from "./webhook.js";
 import type { PaginationMeta } from "../pagination.js";
 
+// Mocks mirror the actual Qonto API contract (empirically verified 2026-05-10
+// via #452): single-resource responses are unwrapped, lists wrap items under
+// `subscriptions` (NOT `webhook_subscriptions`), and `description` is omitted
+// from API responses entirely. Prior fixtures reflected aspirational shapes
+// that hid the drift behind the unit tests.
+
 function makeMeta(overrides: Partial<PaginationMeta> = {}): PaginationMeta {
   return {
     current_page: 1,
@@ -57,8 +63,7 @@ describe("webhook commands", () => {
           organization_id: "org-1",
           membership_id: "mem-1",
           callback_url: "https://example.com/hook1",
-          types: ["transactions.created"],
-          description: null,
+          types: ["v1/transactions"],
           secret: null,
           created_at: "2026-01-01T00:00:00Z",
           updated_at: "2026-01-01T00:00:00Z",
@@ -68,7 +73,7 @@ describe("webhook commands", () => {
           organization_id: "org-1",
           membership_id: "mem-1",
           callback_url: "https://example.com/hook2",
-          types: ["transactions.created", "transactions.updated"],
+          types: ["v1/transactions", "v1/cards"],
           description: "Second hook",
           secret: null,
           created_at: "2026-01-02T00:00:00Z",
@@ -77,7 +82,7 @@ describe("webhook commands", () => {
       ];
       fetchSpy.mockImplementation(() =>
         jsonResponse({
-          webhook_subscriptions: webhooks,
+          subscriptions: webhooks,
           meta: makeMeta({ total_count: 2 }),
         }),
       );
@@ -104,8 +109,7 @@ describe("webhook commands", () => {
           organization_id: "org-1",
           membership_id: "mem-1",
           callback_url: "https://example.com/hook",
-          types: ["transactions.created"],
-          description: null,
+          types: ["v1/transactions"],
           secret: null,
           created_at: "2026-01-01T00:00:00Z",
           updated_at: "2026-01-01T00:00:00Z",
@@ -113,7 +117,7 @@ describe("webhook commands", () => {
       ];
       fetchSpy.mockImplementation(() =>
         jsonResponse({
-          webhook_subscriptions: webhooks,
+          subscriptions: webhooks,
           meta: makeMeta({ total_count: 1 }),
         }),
       );
@@ -136,8 +140,7 @@ describe("webhook commands", () => {
         organization_id: "org-1",
         membership_id: "mem-1",
         callback_url: "https://example.com/hook",
-        types: ["transactions.created"],
-        description: null,
+        types: ["v1/transactions"],
         secret: null,
         created_at: "2026-01-01T00:00:00Z",
         updated_at: "2026-01-01T00:00:00Z",
@@ -147,7 +150,7 @@ describe("webhook commands", () => {
     it("passes pagination options to API", async () => {
       fetchSpy.mockImplementation(() =>
         jsonResponse({
-          webhook_subscriptions: [],
+          subscriptions: [],
           meta: makeMeta(),
         }),
       );
@@ -167,7 +170,7 @@ describe("webhook commands", () => {
     it("calls the correct API endpoint", async () => {
       fetchSpy.mockImplementation(() =>
         jsonResponse({
-          webhook_subscriptions: [],
+          subscriptions: [],
           meta: makeMeta(),
         }),
       );
@@ -190,15 +193,14 @@ describe("webhook commands", () => {
       organization_id: "org-1",
       membership_id: "mem-1",
       callback_url: "https://example.com/hook",
-      types: ["transactions.created"],
-      description: null,
+      types: ["v1/transactions"],
       secret: null,
       created_at: "2026-01-01T00:00:00Z",
       updated_at: "2026-01-01T00:00:00Z",
     };
 
     it("shows webhook details in json format", async () => {
-      fetchSpy.mockImplementation(() => jsonResponse({ webhook_subscription: sampleWebhook }));
+      fetchSpy.mockImplementation(() => jsonResponse(sampleWebhook));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -212,11 +214,11 @@ describe("webhook commands", () => {
       const parsed = JSON.parse(output) as Record<string, unknown>;
       expect(parsed).toHaveProperty("id", "wh-1");
       expect(parsed).toHaveProperty("callback_url", "https://example.com/hook");
-      expect(parsed).toHaveProperty("types", ["transactions.created"]);
+      expect(parsed).toHaveProperty("types", ["v1/transactions"]);
     });
 
     it("shows webhook details in table format", async () => {
-      fetchSpy.mockImplementation(() => jsonResponse({ webhook_subscription: sampleWebhook }));
+      fetchSpy.mockImplementation(() => jsonResponse(sampleWebhook));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -229,11 +231,11 @@ describe("webhook commands", () => {
       const output = stdoutSpy.mock.calls[0]?.[0] as string;
       expect(output).toContain("wh-1");
       expect(output).toContain("https://example.com/hook");
-      expect(output).toContain("transactions.created");
+      expect(output).toContain("v1/transactions");
     });
 
     it("calls the correct API endpoint", async () => {
-      fetchSpy.mockImplementation(() => jsonResponse({ webhook_subscription: sampleWebhook }));
+      fetchSpy.mockImplementation(() => jsonResponse(sampleWebhook));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -253,15 +255,14 @@ describe("webhook commands", () => {
       organization_id: "org-1",
       membership_id: "mem-1",
       callback_url: "https://example.com/hook",
-      types: ["transactions.created", "transactions.updated"],
-      description: null,
+      types: ["v1/transactions", "v1/cards"],
       secret: "generated-secret",
       created_at: "2026-03-01T00:00:00Z",
       updated_at: "2026-03-01T00:00:00Z",
     };
 
     it("creates a webhook in json format", async () => {
-      fetchSpy.mockImplementation(() => jsonResponse({ webhook_subscription: createdWebhook }));
+      fetchSpy.mockImplementation(() => jsonResponse(createdWebhook));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -277,8 +278,8 @@ describe("webhook commands", () => {
           "--url",
           "https://example.com/hook",
           "--events",
-          "transactions.created",
-          "transactions.updated",
+          "v1/transactions",
+          "v1/cards",
         ],
         { from: "user" },
       );
@@ -288,11 +289,11 @@ describe("webhook commands", () => {
       const parsed = JSON.parse(output) as Record<string, unknown>;
       expect(parsed).toHaveProperty("id", "wh-new");
       expect(parsed).toHaveProperty("callback_url", "https://example.com/hook");
-      expect(parsed).toHaveProperty("types", ["transactions.created", "transactions.updated"]);
+      expect(parsed).toHaveProperty("types", ["v1/transactions", "v1/cards"]);
     });
 
     it("sends POST to the correct endpoint with body", async () => {
-      fetchSpy.mockImplementation(() => jsonResponse({ webhook_subscription: createdWebhook }));
+      fetchSpy.mockImplementation(() => jsonResponse(createdWebhook));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -300,7 +301,7 @@ describe("webhook commands", () => {
       program.exitOverride();
 
       await program.parseAsync(
-        ["webhook", "create", "--url", "https://example.com/hook", "--events", "transactions.created"],
+        ["webhook", "create", "--url", "https://example.com/hook", "--events", "v1/transactions"],
         { from: "user" },
       );
 
@@ -310,12 +311,12 @@ describe("webhook commands", () => {
       const body = JSON.parse(opts.body as string) as Record<string, unknown>;
       expect(body).toEqual({
         callback_url: "https://example.com/hook",
-        types: ["transactions.created"],
+        types: ["v1/transactions"],
       });
     });
 
     it("passes idempotency key when provided", async () => {
-      fetchSpy.mockImplementation(() => jsonResponse({ webhook_subscription: createdWebhook }));
+      fetchSpy.mockImplementation(() => jsonResponse(createdWebhook));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -329,7 +330,7 @@ describe("webhook commands", () => {
           "--url",
           "https://example.com/hook",
           "--events",
-          "transactions.created",
+          "v1/transactions",
           "--idempotency-key",
           "key-abc-123",
         ],
@@ -348,15 +349,14 @@ describe("webhook commands", () => {
       organization_id: "org-1",
       membership_id: "mem-1",
       callback_url: "https://example.com/new-hook",
-      types: ["transactions.created"],
-      description: null,
+      types: ["v1/transactions"],
       secret: null,
       created_at: "2026-01-01T00:00:00Z",
       updated_at: "2026-03-01T00:00:00Z",
     };
 
     it("updates a webhook in json format", async () => {
-      fetchSpy.mockImplementation(() => jsonResponse({ webhook_subscription: updatedWebhook }));
+      fetchSpy.mockImplementation(() => jsonResponse(updatedWebhook));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -376,7 +376,7 @@ describe("webhook commands", () => {
     });
 
     it("sends PUT to the correct endpoint with body", async () => {
-      fetchSpy.mockImplementation(() => jsonResponse({ webhook_subscription: updatedWebhook }));
+      fetchSpy.mockImplementation(() => jsonResponse(updatedWebhook));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -391,8 +391,8 @@ describe("webhook commands", () => {
           "--url",
           "https://example.com/new-hook",
           "--events",
-          "transactions.created",
-          "transactions.updated",
+          "v1/transactions",
+          "v1/cards",
         ],
         { from: "user" },
       );
@@ -403,7 +403,7 @@ describe("webhook commands", () => {
       const body = JSON.parse(opts.body as string) as Record<string, unknown>;
       expect(body).toEqual({
         callback_url: "https://example.com/new-hook",
-        types: ["transactions.created", "transactions.updated"],
+        types: ["v1/transactions", "v1/cards"],
       });
     });
   });

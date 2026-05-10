@@ -315,7 +315,6 @@ export {
   updateWebhook,
   deleteWebhook,
   WebhookSubscriptionSchema,
-  WebhookSubscriptionResponseSchema,
   WebhookSubscriptionListResponseSchema,
 } from "./webhooks/index.js";
 

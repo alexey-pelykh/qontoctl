@@ -6,13 +6,16 @@ import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { jsonResponse } from "@qontoctl/core/testing";
 import { connectInMemory } from "../testing/mcp-helpers.js";
 
+// Mirrors the actual Qonto API response shape (empirically verified
+// 2026-05-10 against the live sandbox via #452): the `description` field is
+// omitted entirely, single-resource responses are unwrapped, and lists wrap
+// items under `subscriptions`.
 const sampleWebhook = {
   id: "wh-123",
   organization_id: "org-1",
   membership_id: "mem-1",
   callback_url: "https://example.com/webhook",
-  types: ["transaction.created", "transaction.updated"],
-  description: null,
+  types: ["v1/transactions", "v1/cards"],
   secret: "whsec_abc123",
   created_at: "2026-01-15T10:00:00Z",
   updated_at: "2026-01-15T10:00:00Z",
@@ -36,7 +39,7 @@ describe("webhook MCP tools", () => {
     it("returns webhook subscriptions from API", async () => {
       fetchSpy.mockReturnValue(
         jsonResponse({
-          webhook_subscriptions: [sampleWebhook],
+          subscriptions: [sampleWebhook],
           meta: {
             current_page: 1,
             next_page: null,
@@ -56,14 +59,14 @@ describe("webhook MCP tools", () => {
       const content = result.content as { type: string; text: string }[];
       expect(content).toHaveLength(1);
       const first = content[0] as { type: string; text: string };
-      const parsed = JSON.parse(first.text) as { webhook_subscriptions: unknown[] };
-      expect(parsed.webhook_subscriptions).toHaveLength(1);
+      const parsed = JSON.parse(first.text) as { subscriptions: unknown[] };
+      expect(parsed.subscriptions).toHaveLength(1);
     });
 
     it("passes pagination params to API", async () => {
       fetchSpy.mockReturnValue(
         jsonResponse({
-          webhook_subscriptions: [],
+          subscriptions: [],
           meta: {
             current_page: 2,
             next_page: null,
@@ -88,7 +91,7 @@ describe("webhook MCP tools", () => {
 
   describe("webhook_show", () => {
     it("returns a single webhook subscription", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ webhook_subscription: sampleWebhook }));
+      fetchSpy.mockReturnValue(jsonResponse(sampleWebhook));
 
       const result = await mcpClient.callTool({
         name: "webhook_show",
@@ -104,7 +107,7 @@ describe("webhook MCP tools", () => {
     });
 
     it("calls the correct API endpoint", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ webhook_subscription: sampleWebhook }));
+      fetchSpy.mockReturnValue(jsonResponse(sampleWebhook));
 
       await mcpClient.callTool({
         name: "webhook_show",
@@ -118,13 +121,13 @@ describe("webhook MCP tools", () => {
 
   describe("webhook_create", () => {
     it("creates a webhook and returns the result", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ webhook_subscription: sampleWebhook }));
+      fetchSpy.mockReturnValue(jsonResponse(sampleWebhook));
 
       const result = await mcpClient.callTool({
         name: "webhook_create",
         arguments: {
           callback_url: "https://example.com/webhook",
-          types: ["transaction.created"],
+          types: ["v1/transactions"],
         },
       });
 
@@ -136,13 +139,13 @@ describe("webhook MCP tools", () => {
     });
 
     it("sends POST to the correct endpoint", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ webhook_subscription: sampleWebhook }));
+      fetchSpy.mockReturnValue(jsonResponse(sampleWebhook));
 
       await mcpClient.callTool({
         name: "webhook_create",
         arguments: {
           callback_url: "https://example.com/webhook",
-          types: ["transaction.created"],
+          types: ["v1/transactions"],
         },
       });
 
@@ -154,9 +157,7 @@ describe("webhook MCP tools", () => {
 
   describe("webhook_update", () => {
     it("updates a webhook and returns the result", async () => {
-      fetchSpy.mockReturnValue(
-        jsonResponse({ webhook_subscription: { ...sampleWebhook, callback_url: "https://example.com/new" } }),
-      );
+      fetchSpy.mockReturnValue(jsonResponse({ ...sampleWebhook, callback_url: "https://example.com/new" }));
 
       const result = await mcpClient.callTool({
         name: "webhook_update",
@@ -174,7 +175,7 @@ describe("webhook MCP tools", () => {
     });
 
     it("sends PUT to the correct endpoint", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ webhook_subscription: sampleWebhook }));
+      fetchSpy.mockReturnValue(jsonResponse(sampleWebhook));
 
       await mcpClient.callTool({
         name: "webhook_update",
