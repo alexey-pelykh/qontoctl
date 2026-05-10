@@ -1,25 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import { execFile, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { promisify } from "node:util";
 import { TransferSchema } from "@qontoctl/core";
 import { beforeAll, describe, expect, it } from "vitest";
-import { CLI_PATH, cliJson } from "../helpers.js";
-import { cliEnv, hasOAuthCredentials, hasStagingToken, pinAuthPreference } from "../sandbox.js";
-
-const execFileAsync = promisify(execFile);
-
-/**
- * Pattern matching the SCA session polling URL the core HTTP client logs at
- * verbose level. Tokens are base64url, so they survive `encodeURIComponent`
- * unchanged and contain only `[A-Za-z0-9_-]`. Matches both the production
- * endpoint (`/v2/sca/sessions/{token}`) and the sandbox-only mocked endpoint
- * (`/v2/mocked_sca_sessions/{token}`) — see
- * `packages/core/src/sca/sca-service.ts#getScaSession` for the routing logic.
- */
-const SCA_POLL_URL_RE = /\/v2\/(?:sca\/sessions|mocked_sca_sessions)\/([A-Za-z0-9_-]+)(?=\s|$|\/)/;
+import { cliJson } from "../helpers.js";
+import { hasOAuthCredentials, hasStagingToken, pinAuthPreference } from "../sandbox.js";
+import { approveAndRetryCli, SCA_POLL_URL_RE, triggerScaCli } from "../sca-helpers.js";
 
 interface BeneficiaryItem {
   readonly id: string;
@@ -31,6 +18,8 @@ interface BeneficiaryItem {
 
 interface BankAccountItem {
   readonly id: string;
+  readonly main: boolean;
+  readonly balance_cents: number;
 }
 
 interface VopProofToken {
@@ -69,11 +58,18 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("SCA continuation 
     beneficiaryId = beneficiary.id;
 
     const accounts = cliJson<BankAccountItem[]>("account", "list");
-    const firstAccount = accounts[0];
-    if (firstAccount === undefined) {
+    // Pick the `main: true` account: in shared sandbox orgs the non-main
+    // accounts are typically scratch / depleted and cause `400 insufficient_funds`
+    // on the post-SCA retry — masking actual SCA-flow regressions as
+    // environmental flakes. Fall back to the highest-balance account if no
+    // main is flagged (defensive against sandbox config changes).
+    const account =
+      accounts.find((a) => a.main) ??
+      [...accounts].sort((a, b) => b.balance_cents - a.balance_cents)[0];
+    if (account === undefined) {
       throw new Error("E2E setup: no bank accounts available in sandbox");
     }
-    bankAccountId = firstAccount.id;
+    bankAccountId = account.id;
 
     // Pre-resolve the VoP proof token so the SCA test does not race against
     // a separate VoP API call inside the per-test 30s budget.
@@ -91,98 +87,46 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("SCA continuation 
   it("transfer create triggers SCA, mock-decision allow, retry succeeds", async () => {
     const reference = `e2e-sca-${randomUUID().slice(0, 12)}`;
 
-    const child = spawn(
-      "node",
-      [
-        CLI_PATH,
-        "--verbose",
-        "--output",
-        "json",
-        "transfer",
-        "create",
-        "--beneficiary",
-        beneficiaryId,
-        "--debit-account",
-        bankAccountId,
-        "--reference",
-        reference,
-        "--amount",
-        "1.50",
-        "--vop-proof-token",
-        vopProofToken,
-      ],
-      {
-        env: cliEnv(),
-        stdio: ["ignore", "pipe", "pipe"],
-      },
-    );
+    // Round-trip primitives under test (#450):
+    //   triggerScaCli — spawns a CLI write op, captures token mid-poll
+    //   approveAndRetryCli — calls `sca-session mock-decision`, awaits exit
+    const trigger = await triggerScaCli([
+      "--output",
+      "json",
+      "transfer",
+      "create",
+      "--beneficiary",
+      beneficiaryId,
+      "--debit-account",
+      bankAccountId,
+      "--reference",
+      reference,
+      "--amount",
+      "1.50",
+      "--vop-proof-token",
+      vopProofToken,
+    ]);
 
-    let stdout = "";
-    let stderr = "";
-    let stderrBuffer = "";
-    let scaToken: string | undefined;
-    let approvePromise: Promise<unknown> | undefined;
+    // AC #4: assert on the actual `sca_session_token` field, not the
+    // `"unknown"` fallback (which #445 made the parser throw on).
+    expect(trigger.scaSessionToken).not.toBe("unknown");
+    expect(trigger.scaSessionToken).toMatch(/^[A-Za-z0-9_-]+$/);
 
-    child.stdout.setEncoding("utf-8");
-    child.stdout.on("data", (chunk: string) => {
-      stdout += chunk;
-    });
+    const exit = await approveAndRetryCli(trigger, "allow");
 
-    child.stderr.setEncoding("utf-8");
-    child.stderr.on("data", (chunk: string) => {
-      stderr += chunk;
-      if (scaToken !== undefined) return;
-
-      stderrBuffer += chunk;
-      let nlIdx: number;
-      while ((nlIdx = stderrBuffer.indexOf("\n")) !== -1) {
-        const line = stderrBuffer.slice(0, nlIdx);
-        stderrBuffer = stderrBuffer.slice(nlIdx + 1);
-
-        if (scaToken !== undefined) continue;
-        const match = line.match(SCA_POLL_URL_RE);
-        if (match !== null && match[1] !== undefined) {
-          scaToken = match[1];
-          // Approve asynchronously so we keep draining stderr from the
-          // primary child (filling the OS pipe buffer would deadlock it).
-          approvePromise = execFileAsync("node", [CLI_PATH, "sca-session", "mock-decision", scaToken, "allow"], {
-            env: cliEnv(),
-            timeout: 25_000,
-          });
-          // Attach a no-op error handler to avoid an "unhandled rejection"
-          // warning if approve rejects before the test reaches the explicit
-          // `await approvePromise` below (we still surface the failure there).
-          approvePromise.catch(() => {});
-        }
-      }
-    });
-
-    const exitCode = await new Promise<number>((resolveExit, rejectExit) => {
-      child.on("error", rejectExit);
-      child.on("close", (code) => {
-        resolveExit(code ?? 1);
-      });
-    });
-
-    if (exitCode !== 0) {
+    if (exit.exitCode !== 0) {
       throw new Error(
-        `transfer create exited ${String(exitCode)}\n--- stderr ---\n${stderr}\n--- stdout ---\n${stdout}`,
+        `transfer create exited ${String(exit.exitCode)}\n--- stderr ---\n${exit.stderr}\n--- stdout ---\n${exit.stdout}`,
       );
-    }
-
-    expect(scaToken, "expected to capture SCA session token from polling URL").toBeDefined();
-    if (approvePromise !== undefined) {
-      // Surface mock-decision failures (e.g., token expired, sandbox missing).
-      await approvePromise;
     }
 
     // Spinner output is non-deterministic across terminals, so assert on the
     // wire-log lines that prove the SCA continuation actually exercised:
     // initial transfer POST + at least one SCA-session poll.
-    expect(stderr).toMatch(/POST .*\/v2\/sepa\/transfers/);
-    expect(stderr).toMatch(SCA_POLL_URL_RE);
+    expect(exit.stderr).toMatch(/POST .*\/v2\/sepa\/transfers/);
+    expect(exit.stderr).toMatch(SCA_POLL_URL_RE);
 
-    const transfer = JSON.parse(stdout) as Record<string, unknown>;
+    const transfer = JSON.parse(exit.stdout) as Record<string, unknown>;
     TransferSchema.parse(transfer);
     expect(transfer).toHaveProperty("id");
     expect(transfer).toHaveProperty("beneficiary_id", beneficiaryId);
