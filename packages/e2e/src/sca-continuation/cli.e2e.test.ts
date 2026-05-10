@@ -63,9 +63,7 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("SCA continuation 
     // on the post-SCA retry — masking actual SCA-flow regressions as
     // environmental flakes. Fall back to the highest-balance account if no
     // main is flagged (defensive against sandbox config changes).
-    const account =
-      accounts.find((a) => a.main) ??
-      [...accounts].sort((a, b) => b.balance_cents - a.balance_cents)[0];
+    const account = accounts.find((a) => a.main) ?? [...accounts].sort((a, b) => b.balance_cents - a.balance_cents)[0];
     if (account === undefined) {
       throw new Error("E2E setup: no bank accounts available in sandbox");
     }
