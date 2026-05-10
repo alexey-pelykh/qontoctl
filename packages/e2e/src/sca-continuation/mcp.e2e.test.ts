@@ -9,23 +9,7 @@ import { TransferSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { CLI_PATH, firstTextFromMcpResult } from "../helpers.js";
 import { cliEnv, hasOAuthCredentials, hasStagingToken, pinAuthPreference } from "../sandbox.js";
-
-/**
- * Pattern matching the SCA session polling URL the core HTTP client logs at
- * verbose level. Tokens are base64url, so they survive `encodeURIComponent`
- * unchanged and contain only `[A-Za-z0-9_-]`. Matches both production
- * (`/v2/sca/sessions/{token}`) and sandbox-only mocked
- * (`/v2/mocked_sca_sessions/{token}`) endpoints — see
- * `packages/core/src/sca/sca-service.ts#getScaSession`.
- */
-const SCA_POLL_URL_RE = /\/v2\/(?:sca\/sessions|mocked_sca_sessions)\/([A-Za-z0-9_-]+)(?=\s|$|\/)/;
-
-/**
- * Pattern matching the literal `Session token: <token>` line in the
- * structured "SCA pending" MCP response from `formatScaPendingResponse`. See
- * `packages/mcp/src/sca.ts#formatScaPendingResponse`.
- */
-const SCA_PENDING_TOKEN_RE = /Session token: ([A-Za-z0-9_-]+)/;
+import { approveAndRetryMcp, SCA_POLL_URL_RE, triggerScaMcp } from "../sca-helpers.js";
 
 interface BeneficiaryItem {
   readonly id: string;
@@ -37,6 +21,8 @@ interface BeneficiaryItem {
 
 interface BankAccountItem {
   readonly id: string;
+  readonly main: boolean;
+  readonly balance_cents: number;
 }
 
 interface VopProofToken {
@@ -59,7 +45,9 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("SCA continuation 
     transport = new StdioClientTransport({
       // `--verbose` enables wire logging so the SCA polling URL (containing
       // the session token in its path) appears on the server's stderr stream.
-      // Test 2 uses this stream to discover the token mid-poll.
+      // The inline-poll test (`wait: 10`) uses this stream to discover the
+      // token mid-poll; the two-step tests use the SCA-pending response
+      // body via `triggerScaMcp` and don't need the stderr signal.
       command: "node",
       args: [CLI_PATH, "--verbose", "mcp"],
       env: cliEnv(),
@@ -115,11 +103,17 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("SCA continuation 
       arguments: {},
     });
     const accounts = JSON.parse(firstTextFromMcpResult(accountListResult)) as BankAccountItem[];
-    const firstAccount = accounts[0];
-    if (firstAccount === undefined) {
+    // Pick the `main: true` account: in shared sandbox orgs the non-main
+    // accounts are typically scratch / depleted and cause `400 insufficient_funds`
+    // on the post-SCA retry — masking actual SCA-flow regressions as
+    // environmental flakes. Fall back to the highest-balance account if no
+    // main is flagged (defensive against sandbox config changes).
+    const account =
+      accounts.find((a) => a.main) ?? [...accounts].sort((a, b) => b.balance_cents - a.balance_cents)[0];
+    if (account === undefined) {
       throw new Error("E2E setup: no bank accounts available in sandbox");
     }
-    bankAccountId = firstAccount.id;
+    bankAccountId = account.id;
 
     const vopResult = await client.callTool({
       name: "transfer_verify_payee",
@@ -138,20 +132,21 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("SCA continuation 
    * so each test issues its own SCA session, immune to PSD2 dynamic-linking
    * single-use semantics.
    */
-  function createArgs(extra: Record<string, unknown>): Record<string, unknown> {
+  function createArgs(): Record<string, unknown> {
     return {
       beneficiary_id: beneficiaryId,
       bank_account_id: bankAccountId,
       reference: `e2e-sca-${randomUUID().slice(0, 12)}`,
       amount: 1.5,
       vop_proof_token: vopProofToken,
-      ...extra,
     };
   }
 
   /**
    * Wait for the SCA session polling URL to appear in the MCP server's
-   * stderr, then extract and return the SCA session token.
+   * stderr, then extract and return the SCA session token. Used only by
+   * the inline-poll variant (`wait: 10`) — the two-step tests get the
+   * token from the SCA-pending response body via `triggerScaMcp`.
    */
   async function captureScaTokenFromStderr(timeoutMs: number): Promise<string> {
     const deadline = Date.now() + timeoutMs;
@@ -170,9 +165,12 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("SCA continuation 
   }
 
   it("transfer_create with wait=10 + mock-decision allow at t=2s returns transfer in single call", async () => {
-    const args = createArgs({ wait: 10 });
+    // Inline-poll variant: the server polls inside the call, so the test
+    // must approve concurrently while the call is in flight. This pattern
+    // is structurally distinct from the two-step round-trip exercised
+    // below — it stays expressed at the raw `client.callTool` layer.
+    const args = { ...createArgs(), wait: 10 };
 
-    // Kick off the tool call (blocks until SCA resolves or wait expires).
     const callStartedAt = Date.now();
     const callPromise = client.callTool({ name: "transfer_create", arguments: args });
 
@@ -182,6 +180,10 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("SCA continuation 
     // poll observes "allow" and the wrapper retries the POST.
     const approvalPromise = (async () => {
       const token = await captureScaTokenFromStderr(8_000);
+      // AC #4 traceability: token must be a real base64url, not "unknown".
+      expect(token).not.toBe("unknown");
+      expect(token).toMatch(/^[A-Za-z0-9_-]+$/);
+
       const elapsedSinceCall = Date.now() - callStartedAt;
       const remainingUntilT2 = Math.max(0, 2_000 - elapsedSinceCall);
       await new Promise((r) => setTimeout(r, remainingUntilT2));
@@ -205,33 +207,22 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("SCA continuation 
   });
 
   it("transfer_create with wait=5 returns SCA-pending; second call with sca_session_token after mock allow returns transfer", async () => {
-    const args = createArgs({ wait: 5 });
+    // Two-step round-trip via the bounded-poll variant: server polls 5s,
+    // returns pending after timeout, test approves, retries with token.
+    // Exercises `triggerScaMcp(..., { wait: 5 })` + `approveAndRetryMcp`.
+    const args = createArgs();
 
-    // First call: poll for 5s with no decision → SCA-pending response.
-    const pendingResult = await client.callTool({ name: "transfer_create", arguments: args });
-    expect(pendingResult.isError).not.toBe(true);
-    const pendingText = firstTextFromMcpResult(pendingResult);
-    expect(pendingText).toMatch(/^SCA required/);
-    expect(pendingText).toContain("sca_session_show");
-    expect(pendingText).toContain("sca_session_token");
+    const trigger = await triggerScaMcp(client, "transfer_create", args, { wait: 5 });
 
-    const tokenMatch = pendingText.match(SCA_PENDING_TOKEN_RE);
-    expect(tokenMatch, `expected Session token line in SCA-pending response: ${pendingText}`).not.toBeNull();
-    const token = tokenMatch?.[1] as string;
+    // AC #4: assert on the actual `sca_session_token` field — not the
+    // literal `"unknown"` sentinel that #445 removed from the codebase.
+    expect(trigger.scaSessionToken).not.toBe("unknown");
+    expect(trigger.scaSessionToken).toMatch(/^[A-Za-z0-9_-]+$/);
+    expect(trigger.pendingText).toContain("sca_session_show");
+    expect(trigger.pendingText).toContain("sca_session_token");
 
-    // Approve via mock-decision.
-    const approveResult = await client.callTool({
-      name: "sca_session_mock_decision",
-      arguments: { token, decision: "allow" },
-    });
-    expect(approveResult.isError).not.toBe(true);
+    const retryResult = await approveAndRetryMcp(trigger, "allow");
 
-    // Second call: identical params (PSD2 dynamic-linking binds the token to
-    // amount + payee) plus the approved sca_session_token → transfer lands.
-    const retryResult = await client.callTool({
-      name: "transfer_create",
-      arguments: { ...args, sca_session_token: token },
-    });
     expect(retryResult.isError).not.toBe(true);
     const retryText = firstTextFromMcpResult(retryResult);
     expect(retryText).not.toMatch(/^SCA required/);
@@ -243,36 +234,25 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("SCA continuation 
   });
 
   it("transfer_create with wait=false returns SCA-pending in <2s; second call with sca_session_token after mock allow returns transfer", async () => {
-    const args = createArgs({ wait: false });
+    // Pure two-step variant — server returns pending immediately on 428,
+    // no inline polling. This is the canonical pattern Group 6 write
+    // tests will use, so the helper defaults to `wait: false`.
+    const args = createArgs();
 
-    // First call: pure two-step — must return immediately (no inline polling).
     const start = Date.now();
-    const pendingResult = await client.callTool({ name: "transfer_create", arguments: args });
+    const trigger = await triggerScaMcp(client, "transfer_create", args);
     const elapsedMs = Date.now() - start;
 
-    expect(pendingResult.isError).not.toBe(true);
     expect(elapsedMs).toBeLessThan(2_000);
+    // AC #4 traceability.
+    expect(trigger.scaSessionToken).not.toBe("unknown");
+    expect(trigger.scaSessionToken).toMatch(/^[A-Za-z0-9_-]+$/);
+    expect(trigger.pendingText).toContain("sca_session_show");
+    expect(trigger.pendingText).toContain("sca_session_token");
+    expect(trigger.pendingText).toContain("No inline poll was requested");
 
-    const pendingText = firstTextFromMcpResult(pendingResult);
-    expect(pendingText).toMatch(/^SCA required/);
-    expect(pendingText).toContain("sca_session_show");
-    expect(pendingText).toContain("sca_session_token");
-    expect(pendingText).toContain("No inline poll was requested");
+    const retryResult = await approveAndRetryMcp(trigger, "allow");
 
-    const tokenMatch = pendingText.match(SCA_PENDING_TOKEN_RE);
-    expect(tokenMatch, `expected Session token line in SCA-pending response: ${pendingText}`).not.toBeNull();
-    const token = tokenMatch?.[1] as string;
-
-    const approveResult = await client.callTool({
-      name: "sca_session_mock_decision",
-      arguments: { token, decision: "allow" },
-    });
-    expect(approveResult.isError).not.toBe(true);
-
-    const retryResult = await client.callTool({
-      name: "transfer_create",
-      arguments: { ...args, sca_session_token: token },
-    });
     expect(retryResult.isError).not.toBe(true);
     const retryText = firstTextFromMcpResult(retryResult);
     expect(retryText).not.toMatch(/^SCA required/);
