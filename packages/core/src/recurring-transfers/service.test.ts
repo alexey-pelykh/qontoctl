@@ -186,6 +186,21 @@ describe("cancelRecurringTransfer", () => {
     const [url] = fetchSpy.mock.calls[0] as [URL];
     expect(url.pathname).toBe("/v2/sepa/recurring_transfers/a%2Fb/cancel");
   });
+
+  // Regression lock for #498: the cancel endpoint returns a true 204 No Content.
+  // The other tests in this block use jsonResponse({}) which would have ALSO
+  // passed under the old buggy client.post path (response.json() succeeds on
+  // "{}"). Only an empty-body 204 exercises the regression path that requires
+  // requestVoid (which never reads the body).
+  it("succeeds on a real 204 No Content response", async () => {
+    fetchSpy.mockReturnValue(Promise.resolve(new Response(null, { status: 204 })));
+
+    await expect(cancelRecurringTransfer(client, "rt-1")).resolves.toBeUndefined();
+
+    const [url, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+    expect(url.pathname).toBe("/v2/sepa/recurring_transfers/rt-1/cancel");
+    expect(init.method).toBe("POST");
+  });
 });
 
 describe("getRecurringTransfer", () => {
