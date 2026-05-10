@@ -1,15 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import { resolve } from "node:path";
 import type { Readable } from "node:stream";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { RecurringTransferListResponseSchema, RecurringTransferSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { CLI_PATH, firstTextFromMcpResult } from "../helpers.js";
 import { cliEnv, hasOAuthCredentials, hasStagingToken, pinAuthPreference } from "../sandbox.js";
-
-const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
 /**
  * Pattern matching the SCA session polling URL the core HTTP client logs at
@@ -107,16 +105,14 @@ describe.skipIf(!hasOAuthCredentials())("recurring-transfer MCP tools (e2e)", ()
         name: "beneficiary_list",
         arguments: { per_page: 1 },
       });
-      const beneficiaryText = beneficiaryResult.content[0] as { type: string; text: string };
-      const beneficiaryParsed = JSON.parse(beneficiaryText.text) as {
+      const beneficiaryParsed = JSON.parse(firstTextFromMcpResult(beneficiaryResult)) as {
         beneficiaries: { id: string }[];
       };
       if (beneficiaryParsed.beneficiaries.length === 0) return;
       const beneficiaryId = (beneficiaryParsed.beneficiaries[0] as { id: string }).id;
 
       const accountResult = await client.callTool({ name: "account_list", arguments: {} });
-      const accountText = accountResult.content[0] as { type: string; text: string };
-      const accountParsed = JSON.parse(accountText.text) as { id: string }[];
+      const accountParsed = JSON.parse(firstTextFromMcpResult(accountResult)) as { id: string }[];
       if (accountParsed.length === 0) return;
       const accountId = (accountParsed[0] as { id: string }).id;
 
@@ -151,12 +147,11 @@ describe.skipIf(!hasOAuthCredentials())("recurring-transfer MCP tools (e2e)", ()
 
       expect(result.isError).not.toBe(true);
 
-      const textContent = result.content[0] as { type: string; text: string };
-      expect(textContent.type).toBe("text");
+      const text = firstTextFromMcpResult(result);
       // Must be a successful recurring transfer (JSON), NOT an SCA-pending text response.
-      expect(textContent.text).not.toMatch(/^SCA required/);
+      expect(text).not.toMatch(/^SCA required/);
 
-      const rt = JSON.parse(textContent.text) as RecurringTransferItem;
+      const rt = JSON.parse(text) as RecurringTransferItem;
       RecurringTransferSchema.parse(rt);
       expect(rt).toHaveProperty("id");
       expect(rt.frequency).toBe("monthly");
@@ -179,16 +174,14 @@ describe.skipIf(!hasOAuthCredentials())("recurring-transfer MCP tools (e2e)", ()
         name: "beneficiary_list",
         arguments: { per_page: 1 },
       });
-      const beneficiaryText = beneficiaryResult.content[0] as { type: string; text: string };
-      const beneficiaryParsed = JSON.parse(beneficiaryText.text) as {
+      const beneficiaryParsed = JSON.parse(firstTextFromMcpResult(beneficiaryResult)) as {
         beneficiaries: { id: string }[];
       };
       if (beneficiaryParsed.beneficiaries.length === 0) return;
       const beneficiaryId = (beneficiaryParsed.beneficiaries[0] as { id: string }).id;
 
       const accountResult = await client.callTool({ name: "account_list", arguments: {} });
-      const accountText = accountResult.content[0] as { type: string; text: string };
-      const accountParsed = JSON.parse(accountText.text) as { id: string }[];
+      const accountParsed = JSON.parse(firstTextFromMcpResult(accountResult)) as { id: string }[];
       if (accountParsed.length === 0) return;
       const accountId = (accountParsed[0] as { id: string }).id;
 
@@ -219,9 +212,9 @@ describe.skipIf(!hasOAuthCredentials())("recurring-transfer MCP tools (e2e)", ()
       const [createResult] = await Promise.all([createCallPromise, createApprovalPromise]);
 
       expect(createResult.isError).not.toBe(true);
-      const createText = createResult.content[0] as { type: string; text: string };
-      expect(createText.text).not.toMatch(/^SCA required/);
-      const created = JSON.parse(createText.text) as RecurringTransferItem;
+      const createText = firstTextFromMcpResult(createResult);
+      expect(createText).not.toMatch(/^SCA required/);
+      const created = JSON.parse(createText) as RecurringTransferItem;
       expect(created).toHaveProperty("id");
 
       // --- Step 2: cancel (no inline SCA orchestration available). ---
@@ -231,9 +224,9 @@ describe.skipIf(!hasOAuthCredentials())("recurring-transfer MCP tools (e2e)", ()
       });
 
       expect(cancelResult.isError).not.toBe(true);
-      const cancelText = cancelResult.content[0] as { type: string; text: string };
-      expect(cancelText.text).not.toMatch(/^SCA required/);
-      const canceled = JSON.parse(cancelText.text) as { canceled: boolean; id: string };
+      const cancelText = firstTextFromMcpResult(cancelResult);
+      expect(cancelText).not.toMatch(/^SCA required/);
+      const canceled = JSON.parse(cancelText) as { canceled: boolean; id: string };
       expect(canceled.canceled).toBe(true);
       expect(canceled.id).toBe(created.id);
     });
@@ -246,16 +239,7 @@ describe.skipIf(!hasOAuthCredentials())("recurring-transfer MCP tools (e2e)", ()
         arguments: {},
       });
 
-      expect(result.content).toBeDefined();
-      expect(Array.isArray(result.content)).toBe(true);
-
-      const textContent = result.content[0] as {
-        type: string;
-        text: string;
-      };
-      expect(textContent.type).toBe("text");
-
-      const parsed = JSON.parse(textContent.text) as RecurringTransferListResponse;
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as RecurringTransferListResponse;
       RecurringTransferListResponseSchema.parse(parsed);
       expect(parsed).toHaveProperty("recurring_transfers");
       expect(parsed).toHaveProperty("meta");
@@ -268,11 +252,7 @@ describe.skipIf(!hasOAuthCredentials())("recurring-transfer MCP tools (e2e)", ()
         arguments: { per_page: 2, page: 1 },
       });
 
-      const textContent = result.content[0] as {
-        type: string;
-        text: string;
-      };
-      const parsed = JSON.parse(textContent.text) as RecurringTransferListResponse;
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as RecurringTransferListResponse;
       expect(parsed.recurring_transfers.length).toBeLessThanOrEqual(2);
       expect(parsed.meta.current_page).toBe(1);
     });
@@ -284,11 +264,7 @@ describe.skipIf(!hasOAuthCredentials())("recurring-transfer MCP tools (e2e)", ()
         name: "recurring_transfer_list",
         arguments: { per_page: 1 },
       });
-      const listText = listResult.content[0] as {
-        type: string;
-        text: string;
-      };
-      const listParsed = JSON.parse(listText.text) as RecurringTransferListResponse;
+      const listParsed = JSON.parse(firstTextFromMcpResult(listResult)) as RecurringTransferListResponse;
       const first = listParsed.recurring_transfers[0];
       if (first === undefined) return;
 
@@ -297,14 +273,7 @@ describe.skipIf(!hasOAuthCredentials())("recurring-transfer MCP tools (e2e)", ()
         arguments: { id: first.id },
       });
 
-      expect(result.content).toBeDefined();
-      const textContent = result.content[0] as {
-        type: string;
-        text: string;
-      };
-      expect(textContent.type).toBe("text");
-
-      const rt = JSON.parse(textContent.text) as RecurringTransferItem;
+      const rt = JSON.parse(firstTextFromMcpResult(result)) as RecurringTransferItem;
       RecurringTransferSchema.parse(rt);
       expect(rt.id).toBe(first.id);
       expect(rt).toHaveProperty("amount");

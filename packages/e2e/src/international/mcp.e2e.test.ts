@@ -1,22 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import { resolve } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import { IntlEligibilitySchema, IntlCurrencySchema } from "@qontoctl/core";
+import { IntlCurrencySchema, IntlEligibilitySchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { CLI_PATH, firstTextFromMcpResult } from "../helpers.js";
 import { cliEnv, hasOAuthCredentials, pinAuthPreference } from "../sandbox.js";
-
-const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
-
-function firstText(result: Awaited<ReturnType<Client["callTool"]>>): string {
-  const content = result.content as { type: string; text: string }[];
-  expect(content).toHaveLength(1);
-  const entry = content[0] as { type: string; text: string };
-  expect(entry.type).toBe("text");
-  return entry.text;
-}
 
 describe.skipIf(!hasOAuthCredentials())("international MCP tools (e2e)", () => {
   pinAuthPreference("oauth-first");
@@ -49,7 +39,7 @@ describe.skipIf(!hasOAuthCredentials())("international MCP tools (e2e)", () => {
 
       if (result.isError === true) return;
 
-      const parsed = JSON.parse(firstText(result)) as Record<string, unknown>;
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as Record<string, unknown>;
       IntlEligibilitySchema.parse(parsed);
       expect(parsed).toHaveProperty("status");
     });
@@ -64,7 +54,7 @@ describe.skipIf(!hasOAuthCredentials())("international MCP tools (e2e)", () => {
 
       if (result.isError === true) return;
 
-      const parsed = JSON.parse(firstText(result)) as unknown[];
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as unknown[];
       expect(Array.isArray(parsed)).toBe(true);
       const first = parsed[0];
       if (first !== undefined) {
@@ -80,7 +70,7 @@ describe.skipIf(!hasOAuthCredentials())("international MCP tools (e2e)", () => {
 
       if (result.isError === true) return;
 
-      const parsed = JSON.parse(firstText(result)) as { currency_code: string; country_code: string }[];
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as { currency_code: string; country_code: string }[];
       expect(Array.isArray(parsed)).toBe(true);
       for (const c of parsed) {
         const match = c.currency_code.toLowerCase().includes("eur") || c.country_code.toLowerCase().includes("eur");

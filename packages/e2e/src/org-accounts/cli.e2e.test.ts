@@ -1,31 +1,20 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, unlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { BankAccountSchema, OrganizationSchema } from "@qontoctl/core";
 import { beforeAll, describe, expect, it } from "vitest";
-import { SKIP, skipIfQontoErrorContains } from "../helpers.js";
-import { cliEnv, hasApiKeyCredentials } from "../sandbox.js";
-
-const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
-
-function cli(args: string[]): string {
-  return execFileSync("node", [CLI_PATH, ...args], {
-    encoding: "utf-8",
-    env: cliEnv(),
-    stdio: "pipe",
-  });
-}
+import { cli, SKIP, skipIfQontoErrorContains } from "../helpers.js";
+import { hasApiKeyCredentials } from "../sandbox.js";
 
 describe.skipIf(!hasApiKeyCredentials())("organization & accounts CLI (e2e)", () => {
   let knownAccountId: string;
 
   beforeAll(() => {
     // Discover an account ID from the sandbox for use in `account show`
-    const json = cli(["account", "list", "--output", "json"]);
+    const json = cli("account", "list", "--output", "json");
     const accounts = JSON.parse(json) as { id: string }[];
     expect(accounts.length).toBeGreaterThan(0);
     knownAccountId = (accounts[0] as { id: string }).id;
@@ -34,14 +23,14 @@ describe.skipIf(!hasApiKeyCredentials())("organization & accounts CLI (e2e)", ()
   // ── org show ────────────────────────────────────────────────────
 
   it("org show displays organization details in table format", () => {
-    const output = cli(["org", "show"]);
+    const output = cli("org", "show");
     expect(output).toContain("slug");
     expect(output).toContain("legal_name");
     expect(output).toContain("bank_accounts");
   });
 
   it("org show --output json produces valid JSON with expected fields", () => {
-    const output = cli(["org", "show", "--output", "json"]);
+    const output = cli("org", "show", "--output", "json");
     const org = JSON.parse(output) as Record<string, unknown>;
     OrganizationSchema.parse(org);
     expect(org).toHaveProperty("slug");
@@ -55,7 +44,7 @@ describe.skipIf(!hasApiKeyCredentials())("organization & accounts CLI (e2e)", ()
   // ── account list ───────────────────────────────────────────────
 
   it("account list displays accounts in table format", () => {
-    const output = cli(["account", "list"]);
+    const output = cli("account", "list");
     expect(output).toContain("id");
     expect(output).toContain("name");
     expect(output).toContain("iban");
@@ -64,7 +53,7 @@ describe.skipIf(!hasApiKeyCredentials())("organization & accounts CLI (e2e)", ()
   });
 
   it("account list --output json produces valid JSON array", () => {
-    const output = cli(["account", "list", "--output", "json"]);
+    const output = cli("account", "list", "--output", "json");
     const accounts = JSON.parse(output) as Record<string, unknown>[];
     expect(Array.isArray(accounts)).toBe(true);
     expect(accounts.length).toBeGreaterThan(0);
@@ -81,7 +70,7 @@ describe.skipIf(!hasApiKeyCredentials())("organization & accounts CLI (e2e)", ()
   // ── account show ───────────────────────────────────────────────
 
   it("account show displays account details in table format", () => {
-    const output = cli(["account", "show", knownAccountId]);
+    const output = cli("account", "show", knownAccountId);
     expect(output).toContain(knownAccountId);
     expect(output).toContain("iban");
     expect(output).toContain("balance");
@@ -89,7 +78,7 @@ describe.skipIf(!hasApiKeyCredentials())("organization & accounts CLI (e2e)", ()
   });
 
   it("account show --output json produces valid JSON object", () => {
-    const output = cli(["account", "show", knownAccountId, "--output", "json"]);
+    const output = cli("account", "show", knownAccountId, "--output", "json");
     const account = JSON.parse(output) as Record<string, unknown>;
     BankAccountSchema.parse(account);
     expect(account).toHaveProperty("id", knownAccountId);

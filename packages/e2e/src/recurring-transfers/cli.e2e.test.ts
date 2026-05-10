@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import { execFile, execFileSync, spawn } from "node:child_process";
-import { resolve } from "node:path";
+import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import { RecurringTransferSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
+import { CLI_PATH, cli, cliJson } from "../helpers.js";
 import { cliEnv, hasOAuthCredentials, hasStagingToken, pinAuthPreference } from "../sandbox.js";
 
-const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 const execFileAsync = promisify(execFile);
 
 /**
@@ -18,19 +17,6 @@ const execFileAsync = promisify(execFile);
  * (`/v2/mocked_sca_sessions/{token}`) — the core picks per `client.isSandbox`.
  */
 const SCA_POLL_URL_RE = /\/v2\/(?:sca\/sessions|mocked_sca_sessions)\/([A-Za-z0-9_-]+)(?=\s|$|\/)/;
-
-function cli(...args: string[]): string {
-  return execFileSync("node", [CLI_PATH, ...args], {
-    encoding: "utf-8",
-    env: cliEnv(),
-    stdio: "pipe",
-  });
-}
-
-function cliJson<T>(...args: string[]): T {
-  const output = cli(...args, "--output", "json");
-  return JSON.parse(output) as T;
-}
 
 interface SpawnWithScaResult {
   readonly exitCode: number;

@@ -2,15 +2,13 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { randomUUID } from "node:crypto";
-import { resolve } from "node:path";
 import type { Readable } from "node:stream";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { TransferSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { CLI_PATH, firstTextFromMcpResult } from "../helpers.js";
 import { cliEnv, hasOAuthCredentials, hasStagingToken, pinAuthPreference } from "../sandbox.js";
-
-const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
 /**
  * Pattern matching the SCA session polling URL the core HTTP client logs at
@@ -43,20 +41,6 @@ interface BankAccountItem {
 
 interface VopProofToken {
   readonly proof_token: { readonly token: string };
-}
-
-interface ToolTextContent {
-  readonly type: string;
-  readonly text: string;
-}
-
-function firstText(content: unknown): string {
-  const arr = content as ToolTextContent[] | undefined;
-  const first = arr?.[0];
-  if (first === undefined) {
-    throw new Error("Tool returned no content");
-  }
-  return first.text;
 }
 
 describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("SCA continuation MCP (e2e, sandbox)", () => {
@@ -98,7 +82,7 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("SCA continuation 
       name: "beneficiary_list",
       arguments: {},
     });
-    const beneficiaryList = JSON.parse(firstText(beneficiaryListResult.content)) as {
+    const beneficiaryList = JSON.parse(firstTextFromMcpResult(beneficiaryListResult)) as {
       beneficiaries: BeneficiaryItem[];
     };
     // PSD2 Article 13(b): transfers to "trusted" beneficiaries are exempt from
@@ -130,7 +114,7 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("SCA continuation 
       name: "account_list",
       arguments: {},
     });
-    const accounts = JSON.parse(firstText(accountListResult.content)) as BankAccountItem[];
+    const accounts = JSON.parse(firstTextFromMcpResult(accountListResult)) as BankAccountItem[];
     const firstAccount = accounts[0];
     if (firstAccount === undefined) {
       throw new Error("E2E setup: no bank accounts available in sandbox");
@@ -141,7 +125,7 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("SCA continuation 
       name: "transfer_verify_payee",
       arguments: { iban: beneficiaryIban, name: beneficiaryName },
     });
-    const vop = JSON.parse(firstText(vopResult.content)) as VopProofToken;
+    const vop = JSON.parse(firstTextFromMcpResult(vopResult)) as VopProofToken;
     vopProofToken = vop.proof_token.token;
   });
 
@@ -210,7 +194,7 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("SCA continuation 
     const [callResult] = await Promise.all([callPromise, approvalPromise]);
 
     expect(callResult.isError).not.toBe(true);
-    const text = firstText(callResult.content);
+    const text = firstTextFromMcpResult(callResult);
     // Must be a successful transfer (JSON), NOT an SCA-pending text response.
     expect(text).not.toMatch(/^SCA required/);
     const transfer = JSON.parse(text) as Record<string, unknown>;
@@ -226,7 +210,7 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("SCA continuation 
     // First call: poll for 5s with no decision → SCA-pending response.
     const pendingResult = await client.callTool({ name: "transfer_create", arguments: args });
     expect(pendingResult.isError).not.toBe(true);
-    const pendingText = firstText(pendingResult.content);
+    const pendingText = firstTextFromMcpResult(pendingResult);
     expect(pendingText).toMatch(/^SCA required/);
     expect(pendingText).toContain("sca_session_show");
     expect(pendingText).toContain("sca_session_token");
@@ -249,7 +233,7 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("SCA continuation 
       arguments: { ...args, sca_session_token: token },
     });
     expect(retryResult.isError).not.toBe(true);
-    const retryText = firstText(retryResult.content);
+    const retryText = firstTextFromMcpResult(retryResult);
     expect(retryText).not.toMatch(/^SCA required/);
     const transfer = JSON.parse(retryText) as Record<string, unknown>;
     TransferSchema.parse(transfer);
@@ -269,7 +253,7 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("SCA continuation 
     expect(pendingResult.isError).not.toBe(true);
     expect(elapsedMs).toBeLessThan(2_000);
 
-    const pendingText = firstText(pendingResult.content);
+    const pendingText = firstTextFromMcpResult(pendingResult);
     expect(pendingText).toMatch(/^SCA required/);
     expect(pendingText).toContain("sca_session_show");
     expect(pendingText).toContain("sca_session_token");
@@ -290,7 +274,7 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("SCA continuation 
       arguments: { ...args, sca_session_token: token },
     });
     expect(retryResult.isError).not.toBe(true);
-    const retryText = firstText(retryResult.content);
+    const retryText = firstTextFromMcpResult(retryResult);
     expect(retryText).not.toMatch(/^SCA required/);
     const transfer = JSON.parse(retryText) as Record<string, unknown>;
     TransferSchema.parse(transfer);
