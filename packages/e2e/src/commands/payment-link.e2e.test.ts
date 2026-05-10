@@ -4,9 +4,11 @@
 import { PaymentLinkSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
 import { cliJson, SKIP, skipIfNotFound } from "../helpers.js";
-import { hasOAuthCredentials } from "../sandbox.js";
+import { hasOAuthCredentials, pinAuthPreference } from "../sandbox.js";
 
 describe.skipIf(!hasOAuthCredentials())("payment-link commands (e2e)", () => {
+  pinAuthPreference("oauth-first");
+
   describe("payment-link list", () => {
     it("lists payment links", () => {
       // `payment-link` requires the Qonto Payment Links subscription to be

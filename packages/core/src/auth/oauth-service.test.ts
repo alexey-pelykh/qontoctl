@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { exchangeCode, refreshAccessToken, revokeToken } from "./oauth-service.js";
+import { exchangeCode, refreshAccessToken, revokeToken, OAuthRefreshError } from "./oauth-service.js";
 import { AuthError } from "./api-key.js";
 
 function jsonResponse(data: unknown, status = 200): Response {
@@ -173,6 +173,41 @@ describe("refreshAccessToken", () => {
     await expect(
       refreshAccessToken("https://oauth.example.com/token", "client-id", "client-secret", "bad-refresh"),
     ).rejects.toThrow(AuthError);
+  });
+
+  it("throws OAuthRefreshError (typed marker) on failure so HttpClient can advance to fallback", async () => {
+    vi.mocked(fetch).mockResolvedValue(textResponse("invalid_grant", 400));
+
+    await expect(
+      refreshAccessToken("https://oauth.example.com/token", "client-id", "client-secret", "bad-refresh"),
+    ).rejects.toThrow(OAuthRefreshError);
+  });
+
+  it("preserves the original cause on the OAuthRefreshError", async () => {
+    vi.mocked(fetch).mockResolvedValue(textResponse("invalid_grant", 400));
+
+    try {
+      await refreshAccessToken("https://oauth.example.com/token", "client-id", "client-secret", "bad-refresh");
+      expect.fail("expected refreshAccessToken to throw");
+    } catch (err) {
+      expect(err).toBeInstanceOf(OAuthRefreshError);
+      expect(err).toBeInstanceOf(AuthError);
+      const refreshErr = err as OAuthRefreshError;
+      expect(refreshErr.cause).toBeInstanceOf(AuthError);
+      expect(refreshErr.message).toContain("OAuth token refresh failed");
+    }
+  });
+
+  it("wraps non-AuthError causes (e.g. network errors) into OAuthRefreshError", async () => {
+    vi.mocked(fetch).mockRejectedValue(new Error("network unreachable"));
+
+    try {
+      await refreshAccessToken("https://oauth.example.com/token", "client-id", "client-secret", "ref");
+      expect.fail("expected refreshAccessToken to throw");
+    } catch (err) {
+      expect(err).toBeInstanceOf(OAuthRefreshError);
+      expect((err as OAuthRefreshError).message).toContain("network unreachable");
+    }
   });
 });
 

@@ -7,6 +7,43 @@ import { parseResponse } from "../response.js";
 import { AuthError } from "./api-key.js";
 
 /**
+ * Error thrown when the OAuth refresh-token flow fails (e.g. the refresh
+ * token has expired or been revoked, returning `invalid_grant` from the
+ * authorization server, or a network error during the refresh request).
+ *
+ * Distinct from {@link AuthError} so the HTTP client can recognize this
+ * specific failure class — pre-flight, before any API call is dispatched —
+ * and advance to a fallback authorization (e.g., api-key) when the auth
+ * chain configuration permits. Without a typed marker, the HTTP client
+ * could not distinguish a refresh failure from any other `AuthError`
+ * surfacing during header construction.
+ *
+ * Inherits from {@link AuthError} so existing `instanceof AuthError`
+ * checks (and the broader `name === "AuthError"` lookups some callers
+ * use) continue to match.
+ *
+ * See [#523](https://github.com/alexey-pelykh/qontoctl/issues/523) for the
+ * incident this addresses: refresh-token expiry that previously caused
+ * the CLI to fail entirely instead of falling back to api-key auth even
+ * when api-key creds were configured.
+ */
+export class OAuthRefreshError extends AuthError {
+  /**
+   * Underlying error that caused the refresh failure (e.g. the original
+   * `AuthError` from the token-endpoint response, or a network error). Useful
+   * for surfacing actionable messages to the user without losing the original
+   * cause chain.
+   */
+  readonly cause: unknown;
+
+  constructor(message: string, cause: unknown) {
+    super(message);
+    this.name = "OAuthRefreshError";
+    this.cause = cause;
+  }
+}
+
+/**
  * Tokens returned from a successful OAuth token exchange or refresh.
  */
 export interface OAuthTokens {
@@ -57,6 +94,12 @@ export async function exchangeCode(
  * @param clientId - The OAuth client ID
  * @param clientSecret - The OAuth client secret
  * @param refreshToken - The refresh token
+ *
+ * @throws {OAuthRefreshError} when the token endpoint rejects the refresh
+ *   request (e.g. `invalid_grant`) or the request fails for any other reason
+ *   (network error, parse failure). The original cause is preserved on the
+ *   thrown error so the HTTP client can advance to a fallback authorization
+ *   without losing diagnostic information.
  */
 export async function refreshAccessToken(
   tokenUrl: string,
@@ -72,7 +115,12 @@ export async function refreshAccessToken(
     refresh_token: refreshToken,
   });
 
-  return requestTokens(tokenUrl, body, stagingToken);
+  try {
+    return await requestTokens(tokenUrl, body, stagingToken);
+  } catch (cause) {
+    const detail = cause instanceof Error ? cause.message : String(cause);
+    throw new OAuthRefreshError(`OAuth token refresh failed: ${detail}`, cause);
+  }
 }
 
 /**

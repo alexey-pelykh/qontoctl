@@ -10,6 +10,8 @@ import {
   QontoScaNotEnrolledError,
   QontoScaRequiredError,
 } from "./http-client.js";
+import { OAuthRefreshError } from "./auth/oauth-service.js";
+import { AuthError } from "./auth/api-key.js";
 import { binaryResponse } from "./testing/binary-response.js";
 import { jsonResponse } from "./testing/json-response.js";
 
@@ -1576,6 +1578,128 @@ describe("HttpClient", () => {
       expect((error as QontoApiError).status).toBe(403);
       expect((error as QontoApiError).errors[0]?.code).toBe("insufficient_funds");
       expect(fetchSpy).toHaveBeenCalledTimes(1);
+    });
+
+    // ---------------------------------------------------------------------
+    // Auth-flow fallback (OAuthRefreshError) — closes the gap from #523:
+    // before this branch, an OAuth refresh failure (e.g., refresh-token
+    // `invalid_grant`) propagated out of the request entirely, never
+    // advancing to the fallback authorization. Now the typed
+    // `OAuthRefreshError` is caught pre-fetch and the request is dispatched
+    // with the fallback credential, mirroring the HTTP-401 fallback shape.
+    // ---------------------------------------------------------------------
+
+    it("falls back to api-key when OAuth auth callback throws OAuthRefreshError pre-fetch", async () => {
+      const oauthAuth = vi.fn(() => {
+        throw new OAuthRefreshError("OAuth token refresh failed: invalid_grant", new Error("invalid_grant"));
+      });
+      fetchSpy.mockReturnValue(jsonResponse({ data: "ok" }));
+
+      const onFallback = vi.fn();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: oauthAuth,
+        fallbackAuthorization: "slug:key",
+        onFallback,
+      });
+
+      const result = await client.get("/v2/organizations");
+
+      expect(result).toEqual({ data: "ok" });
+      // Critical: the request was dispatched ONCE — directly with fallback —
+      // not (failed primary then fallback retry). The OAuth attempt never
+      // reached the network because the auth callback threw.
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      const [, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      expect((init.headers as Record<string, string>)["Authorization"]).toBe("slug:key");
+      expect(onFallback).toHaveBeenCalledWith("GET", "/v2/organizations");
+    });
+
+    it("propagates OAuthRefreshError when no fallback is configured", async () => {
+      const oauthAuth = vi.fn(() => {
+        throw new OAuthRefreshError("OAuth token refresh failed: invalid_grant", new Error("invalid_grant"));
+      });
+
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: oauthAuth,
+        // No fallbackAuthorization — chain has nowhere to advance.
+      });
+
+      const error = await client.get("/v2/organizations").catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(OAuthRefreshError);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it("propagates non-OAuthRefreshError AuthError without falling back (do not mask config bugs)", async () => {
+      // A non-typed AuthError (e.g., misconfigured api-key with empty secret)
+      // is a configuration problem, NOT a refresh-flow failure. Falling back
+      // would silently mask it. Verify we propagate.
+      const auth = vi.fn(() => {
+        throw new AuthError("Missing secret key in API key credentials");
+      });
+
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: auth,
+        fallbackAuthorization: "slug:key",
+      });
+
+      const error = await client.get("/v2/organizations").catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(AuthError);
+      expect(error).not.toBeInstanceOf(OAuthRefreshError);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it("does NOT trigger HTTP 401 fallback when already on fallback after OAuthRefreshError", async () => {
+      // Edge case: OAuthRefreshError pre-fetch → fallback dispatched → API
+      // returns 401 (e.g., the api-key creds are also invalid). The 401
+      // fallback path must NOT re-trigger (which would dispatch the same
+      // fallback creds a third time and confuse the error class). The test
+      // asserts: fetch called ONCE with fallback, then 401 propagates as
+      // QontoApiError (not retried, not fallback-of-fallback'd).
+      const oauthAuth = vi.fn(() => {
+        throw new OAuthRefreshError("OAuth token refresh failed: invalid_grant", new Error("invalid_grant"));
+      });
+      fetchSpy.mockReturnValue(
+        jsonResponse({ errors: [{ code: "unauthorized", detail: "Unauthorized" }] }, { status: 401 }),
+      );
+
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: oauthAuth,
+        fallbackAuthorization: "slug:bad-key",
+      });
+
+      const error = await client.get("/v2/organizations").catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(QontoApiError);
+      expect((error as QontoApiError).status).toBe(401);
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it("preserves idempotency key on auth-flow fallback for write requests", async () => {
+      const oauthAuth = vi.fn(() => {
+        throw new OAuthRefreshError("OAuth token refresh failed: invalid_grant", new Error("invalid_grant"));
+      });
+      fetchSpy.mockReturnValue(jsonResponse({ id: "123" }, { status: 201 }));
+
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: oauthAuth,
+        fallbackAuthorization: "slug:key",
+      });
+
+      await client.post("/v2/transfers", { amount: 100 });
+
+      const [, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      const headers = init.headers as Record<string, string>;
+      // Idempotency key was generated up-front in fetchWithRetry and applied
+      // to the (single) fallback request — without this, the fallback would
+      // miss the safety net for retried writes.
+      expect(headers["X-Qonto-Idempotency-Key"]).toBeDefined();
     });
   });
 

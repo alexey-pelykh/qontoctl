@@ -63,6 +63,8 @@ QontoCtl resolves its config file via a deterministic precedence chain (highest 
 
 The MCP server has no CLI flags, so `QONTOCTL_CONFIG_FILE` is its only mechanism for pointing at a non-default file. The path is captured at MCP startup.
 
+Auth precedence between api-key and OAuth credentials is governed by the explicit `auth.preference` field (or `--auth <mode>` flag, or `QONTOCTL_AUTH` env var) with four modes (`api-key`, `api-key-first`, `oauth`, `oauth-first`); default is `oauth-first` — see [`docs/configuration.md`](docs/configuration.md) § Authentication precedence.
+
 Full reference (per-field env overlay, profile semantics, migration guidance for users coming from pre-#479 builds): [`docs/configuration.md`](docs/configuration.md).
 
 ## Conventions

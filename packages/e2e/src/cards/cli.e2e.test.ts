@@ -4,7 +4,7 @@
 import { CardSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
 import { cli, cliJson } from "../helpers.js";
-import { hasOAuthCredentials } from "../sandbox.js";
+import { hasOAuthCredentials, pinAuthPreference } from "../sandbox.js";
 
 interface CardItem {
   readonly id: string;
@@ -16,6 +16,8 @@ interface CardItem {
 }
 
 describe.skipIf(!hasOAuthCredentials())("card CLI commands (e2e)", () => {
+  pinAuthPreference("oauth-first");
+
   describe("card list", () => {
     it("lists cards with default output", () => {
       const output = cli("card", "list");

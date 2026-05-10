@@ -6,7 +6,7 @@ import { resolve } from "node:path";
 import { promisify } from "node:util";
 import { RecurringTransferSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
-import { cliEnv, hasOAuthCredentials, hasStagingToken } from "../sandbox.js";
+import { cliEnv, hasOAuthCredentials, hasStagingToken, pinAuthPreference } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 const execFileAsync = promisify(execFile);
@@ -129,6 +129,8 @@ interface RecurringTransferItem {
 }
 
 describe.skipIf(!hasOAuthCredentials())("recurring-transfer CLI commands (e2e)", () => {
+  pinAuthPreference("oauth-first");
+
   describe("recurring-transfer list", () => {
     it("lists recurring transfers with default output", () => {
       const output = cli("recurring-transfer", "list", "--no-paginate");

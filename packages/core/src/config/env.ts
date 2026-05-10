@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import type { ApiKeyCredentials, OAuthCredentials, ScaConfig } from "./types.js";
+import type { ApiKeyCredentials, AuthConfig, AuthPreference, OAuthCredentials, ScaConfig } from "./types.js";
+import { AUTH_PREFERENCES } from "./types.js";
 
 const ENV_PREFIX = "QONTOCTL";
 const ORG_SLUG_SUFFIX = "ORGANIZATION_SLUG";
@@ -12,6 +13,13 @@ const CLIENT_SECRET_SUFFIX = "CLIENT_SECRET";
 const ACCESS_TOKEN_SUFFIX = "ACCESS_TOKEN";
 const STAGING_TOKEN_SUFFIX = "STAGING_TOKEN";
 const SCA_METHOD_SUFFIX = "SCA_METHOD";
+// `QONTOCTL_AUTH` (no `_PREFERENCE` suffix) mirrors the user-facing `--auth`
+// CLI flag — the dominant interaction surface — rather than the YAML structure
+// `auth.preference`. Trade-off accepted: the YAML/file path is more verbose,
+// the env var is leaner. If the `auth` section grows additional fields they
+// will use `QONTOCTL_AUTH_<FIELD>` (e.g. `QONTOCTL_AUTH_TIMEOUT`); preference
+// keeps the canonical short form because it is the section's primary control.
+const AUTH_SUFFIX = "AUTH";
 
 /**
  * Subset of {@link OAuthCredentials} that env vars are permitted to set.
@@ -46,6 +54,7 @@ export interface EnvOverlayConfig {
   oauth?: StaticOAuthFields;
   endpoint?: string;
   sca?: ScaConfig;
+  auth?: AuthConfig;
 }
 
 /**
@@ -77,6 +86,9 @@ export interface EnvOverlayResult {
  * - `QONTOCTL_STAGING_TOKEN` (sandbox routing)
  * - `QONTOCTL_ENDPOINT` (override)
  * - `QONTOCTL_SCA_METHOD` (preference)
+ * - `QONTOCTL_AUTH` (auth precedence — `api-key` / `api-key-first` / `oauth`
+ *   / `oauth-first`; invalid values are silently dropped here, the `--auth`
+ *   flag's `choices()` validation catches misspellings at parse time)
  *
  * Runtime-mutable fields (`refreshToken`, `accessTokenExpiresAt`, `scopes`)
  * are **never** read from env. They belong to file state the tool both reads
@@ -107,6 +119,7 @@ export function applyEnvOverlay(
   const accessToken = env[`${prefix}_${ACCESS_TOKEN_SUFFIX}`];
   const stagingToken = env[`${prefix}_${STAGING_TOKEN_SUFFIX}`];
   const scaMethod = env[`${prefix}_${SCA_METHOD_SUFFIX}`];
+  const authPreference = env[`${prefix}_${AUTH_SUFFIX}`];
 
   let result: EnvOverlayConfig = config;
 
@@ -184,6 +197,13 @@ export function applyEnvOverlay(
 
   if (scaMethod !== undefined) {
     result = { ...result, sca: { ...result.sca, method: scaMethod } };
+  }
+
+  if (authPreference !== undefined && (AUTH_PREFERENCES as readonly string[]).includes(authPreference)) {
+    // Silently ignore invalid env values — env-overlay is forgiving by design
+    // (the hard validation lives in the CLI's `--auth` choices() check).
+    // This mirrors the SCA method behavior where free-form values pass through.
+    result = { ...result, auth: { ...result.auth, preference: authPreference as AuthPreference } };
   }
 
   return { config: result, accessTokenFromEnv: accessToken !== undefined };

@@ -39,6 +39,69 @@ export interface ScaConfig {
 }
 
 /**
+ * Explicit authentication preference modes for {@link AuthConfig.preference}.
+ *
+ * Replaces the legacy presence-based selection (`oauth.accessToken
+ * !== undefined ⇒ OAuth primary, api-key fallback`) with explicit user control
+ * over which credential is primary AND whether the other is a fallback.
+ *
+ * - `api-key` — api-key only, **no fallback**. Use when api-key auth must be
+ *   forced and OAuth must NEVER be attempted (e.g., CI where OAuth is
+ *   undesirable, or pinned-credential workflows).
+ * - `api-key-first` — api-key primary, OAuth fallback when api-key fails.
+ * - `oauth` — OAuth only, **no fallback**. Use to force-pin OAuth and surface
+ *   refresh failures loudly (vs silently degrading to api-key).
+ * - `oauth-first` — OAuth primary, api-key fallback when OAuth fails. **Default**
+ *   when both credentials are present and no preference is set; preserves
+ *   the pre-#523 behavior.
+ *
+ * The `*-first` modes wire fallback when the secondary credential is available;
+ * non-`-first` modes never wire fallback.
+ *
+ * Industry precedent: AWS SDK credential provider chain, gcloud Application
+ * Default Credentials, kubectl context picker (no-fallback model).
+ */
+export type AuthPreference = "api-key" | "api-key-first" | "oauth" | "oauth-first";
+
+/**
+ * All valid {@link AuthPreference} values, used for runtime validation
+ * (env-var parsing, Commander `.choices()`, schema validation).
+ */
+export const AUTH_PREFERENCES: readonly AuthPreference[] = [
+  "api-key",
+  "api-key-first",
+  "oauth",
+  "oauth-first",
+] as const;
+
+/**
+ * Default preference applied when neither flag, env var, nor config sets one.
+ *
+ * Chosen to preserve pre-#523 behavior: OAuth primary (when both creds
+ * present), api-key as silent fallback. Flipping the default direction is a
+ * separate major-release decision gated on telemetry.
+ */
+export const DEFAULT_AUTH_PREFERENCE: AuthPreference = "oauth-first";
+
+/**
+ * Authentication-related configuration.
+ *
+ * Currently exposes the {@link preference} field. Lives at top-level (not
+ * under `oauth` or `api-key`) because the preference governs the chain
+ * across both credential types — placing it under either would imply
+ * subordination that the field does not have.
+ */
+export interface AuthConfig {
+  /**
+   * Explicit auth preference mode. See {@link AuthPreference}.
+   *
+   * Precedence (highest first): `--auth` CLI flag > `QONTOCTL_AUTH` env var
+   * > `auth.preference` config field > {@link DEFAULT_AUTH_PREFERENCE}.
+   */
+  preference?: AuthPreference;
+}
+
+/**
  * Parsed configuration from a `.qontoctl.yaml` file.
  */
 export interface QontoctlConfig {
@@ -46,6 +109,7 @@ export interface QontoctlConfig {
   oauth?: OAuthCredentials;
   endpoint?: string;
   sca?: ScaConfig;
+  auth?: AuthConfig;
 }
 
 /**

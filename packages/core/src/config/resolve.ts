@@ -189,6 +189,9 @@ function pickStaticFields(config: QontoctlConfig): EnvOverlayConfig {
   if (config.sca !== undefined) {
     result.sca = config.sca;
   }
+  if (config.auth !== undefined) {
+    result.auth = config.auth;
+  }
   return result;
 }
 
@@ -203,6 +206,7 @@ function mergeRuntimeFields(staticPortion: EnvOverlayConfig, source: QontoctlCon
     ...(staticPortion.apiKey !== undefined ? { apiKey: staticPortion.apiKey } : {}),
     ...(staticPortion.endpoint !== undefined ? { endpoint: staticPortion.endpoint } : {}),
     ...(staticPortion.sca !== undefined ? { sca: staticPortion.sca } : {}),
+    ...(staticPortion.auth !== undefined ? { auth: staticPortion.auth } : {}),
   };
 
   if (staticPortion.oauth !== undefined) {

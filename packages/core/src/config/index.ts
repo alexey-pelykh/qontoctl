@@ -3,12 +3,15 @@
 
 export type {
   ApiKeyCredentials,
+  AuthConfig,
+  AuthPreference,
   OAuthCredentials,
   QontoctlConfig,
   ConfigResult,
   ResolveOptions,
   ScaConfig,
 } from "./types.js";
+export { AUTH_PREFERENCES, DEFAULT_AUTH_PREFERENCE } from "./types.js";
 export { resolveConfig, resolveConfigPath, resolveScaMethod, ConfigError } from "./resolve.js";
 export type { ConfigErrorCode } from "./resolve.js";
 export { loadConfigFile, resolveConfigFilePath } from "./loader.js";

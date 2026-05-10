@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
+import type { AuthPreference } from "@qontoctl/core";
+
 /**
  * Supported output formats for CLI commands.
  */
@@ -35,6 +37,14 @@ export interface GlobalOptions {
    * default. See `docs/sandbox-testing.md`.
    */
   readonly scaMethod?: string | undefined;
+  /**
+   * Auth precedence preference (`--auth` flag), one of `api-key`,
+   * `api-key-first`, `oauth`, `oauth-first`. Highest-priority preference input —
+   * overrides `QONTOCTL_AUTH` env var and `auth.preference` config field. When
+   * unset, falls back to env > config > built-in default (`oauth-first`).
+   * See [#523](https://github.com/alexey-pelykh/qontoctl/issues/523).
+   */
+  readonly auth?: AuthPreference | undefined;
 }
 
 /**

@@ -6,9 +6,11 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { InsuranceContractSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { CLI_PATH, firstTextFromMcpResult } from "../helpers.js";
-import { cliEnv, hasOAuthCredentials } from "../sandbox.js";
+import { cliEnv, hasOAuthCredentials, pinAuthPreference } from "../sandbox.js";
 
 describe.skipIf(!hasOAuthCredentials())("insurance MCP tools (e2e)", () => {
+  pinAuthPreference("oauth-first");
+
   let client: Client;
   let transport: StdioClientTransport;
 

@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import type { QontoctlConfig } from "./types.js";
+import type { AuthPreference, QontoctlConfig } from "./types.js";
+import { AUTH_PREFERENCES } from "./types.js";
 
 /**
  * Profile names that would shadow no-profile env-var suffixes.
@@ -27,6 +28,7 @@ const RESERVED_PROFILE_SUFFIXES = new Set([
   "SCOPES",
   "STAGING_TOKEN",
   "SCA_METHOD",
+  "AUTH",
   "CONFIG_FILE",
 ]);
 
@@ -52,7 +54,7 @@ export function isValidProfileName(name: string): boolean {
   return true;
 }
 
-const KNOWN_TOP_LEVEL_KEYS = new Set(["api-key", "oauth", "endpoint", "sca"]);
+const KNOWN_TOP_LEVEL_KEYS = new Set(["api-key", "oauth", "endpoint", "sca", "auth"]);
 const KNOWN_API_KEY_KEYS = new Set(["organization-slug", "secret-key"]);
 const KNOWN_OAUTH_KEYS = new Set([
   "client-id",
@@ -65,6 +67,7 @@ const KNOWN_OAUTH_KEYS = new Set([
   "staging-token",
 ]);
 const KNOWN_SCA_KEYS = new Set(["method"]);
+const KNOWN_AUTH_KEYS = new Set(["preference"]);
 
 export interface ValidationResult {
   config: QontoctlConfig;
@@ -244,6 +247,39 @@ export function validateConfig(raw: unknown): ValidationResult {
 
       if (typeof method === "string") {
         config.sca = { method };
+      }
+    }
+  }
+
+  if ("auth" in doc) {
+    const authSection = doc["auth"];
+
+    if (authSection === null || authSection === undefined) {
+      // auth section present but empty — not an error
+    } else if (typeof authSection !== "object" || Array.isArray(authSection)) {
+      errors.push('"auth" must be a mapping');
+    } else {
+      const auth = authSection as Record<string, unknown>;
+
+      for (const key of Object.keys(auth)) {
+        if (!KNOWN_AUTH_KEYS.has(key)) {
+          warnings.push(`Unknown key in "auth": "${key}"`);
+        }
+      }
+
+      const preference = auth["preference"];
+
+      if (preference !== undefined) {
+        if (typeof preference !== "string") {
+          errors.push('"auth.preference" must be a string');
+        } else if (!(AUTH_PREFERENCES as readonly string[]).includes(preference)) {
+          // Hard error here — unlike env vars, file values can be edited carefully,
+          // so a typo (`api-key-only` instead of `api-key`) deserves a clear failure
+          // rather than a silent fallback to the default direction.
+          errors.push(`"auth.preference" must be one of: ${AUTH_PREFERENCES.join(", ")} (got "${preference}")`);
+        } else {
+          config.auth = { preference: preference as AuthPreference };
+        }
       }
     }
   }

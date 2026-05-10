@@ -6,7 +6,7 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { PaymentLinkListResponseSchema, PaymentLinkSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { CLI_PATH, firstTextFromMcpResult } from "../helpers.js";
-import { cliEnv, hasOAuthCredentials } from "../sandbox.js";
+import { cliEnv, hasOAuthCredentials, pinAuthPreference } from "../sandbox.js";
 
 /**
  * Best-effort detection of "feature unavailable" errors surfaced by MCP
@@ -26,6 +26,8 @@ function isFeatureUnavailable(result: { isError?: boolean | undefined; content: 
 }
 
 describe.skipIf(!hasOAuthCredentials())("MCP payment link tools (e2e)", () => {
+  pinAuthPreference("oauth-first");
+
   let client: Client;
   let transport: StdioClientTransport;
 

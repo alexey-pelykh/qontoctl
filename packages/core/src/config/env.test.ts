@@ -419,4 +419,65 @@ describe("applyEnvOverlay", () => {
     );
     expect(accessTokenFromEnv).toBe(false);
   });
+
+  describe("QONTOCTL_AUTH", () => {
+    it.each(["api-key", "api-key-first", "oauth", "oauth-first"] as const)(
+      "overlays valid value %s from bare env var",
+      (value) => {
+        const { config: result } = applyEnvOverlay({}, { env: { QONTOCTL_AUTH: value } });
+        expect(result.auth?.preference).toBe(value);
+      },
+    );
+
+    it("env preference overrides file preference", () => {
+      const { config: result } = applyEnvOverlay(
+        { auth: { preference: "oauth-first" } },
+        { env: { QONTOCTL_AUTH: "api-key" } },
+      );
+      expect(result.auth?.preference).toBe("api-key");
+    });
+
+    it("silently drops invalid env value (CLI flag's choices() catches typos at parse time)", () => {
+      const { config: result } = applyEnvOverlay(
+        {},
+        { env: { QONTOCTL_AUTH: "api-key-only" } }, // common typo
+      );
+      // Falls through with no auth preference set; resolveAuthPreference's
+      // default (`oauth-first`) will kick in downstream.
+      expect(result.auth).toBeUndefined();
+    });
+
+    it("overlays profile-scoped variant", () => {
+      const { config: result } = applyEnvOverlay(
+        {},
+        {
+          profile: "staging",
+          env: { QONTOCTL_STAGING_AUTH: "oauth" },
+        },
+      );
+      expect(result.auth?.preference).toBe("oauth");
+    });
+
+    it("ignores bare QONTOCTL_AUTH when profile is specified", () => {
+      const { config: result } = applyEnvOverlay(
+        {},
+        {
+          profile: "staging",
+          env: { QONTOCTL_AUTH: "api-key" },
+        },
+      );
+      expect(result.auth).toBeUndefined();
+    });
+
+    it("preserves existing auth fields when only some are env-supplied", () => {
+      // Today there is only `preference` under auth, so this just verifies the
+      // spread doesn't drop the field. When the auth namespace grows, the
+      // pattern is already in place.
+      const { config: result } = applyEnvOverlay(
+        { auth: { preference: "api-key" } },
+        { env: { QONTOCTL_AUTH: "oauth" } },
+      );
+      expect(result.auth?.preference).toBe("oauth");
+    });
+  });
 });

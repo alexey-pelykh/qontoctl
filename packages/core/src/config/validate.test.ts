@@ -326,6 +326,49 @@ describe("validateConfig", () => {
     const result = validateConfig({ sca: { method: "mock" } });
     expect(result.warnings).toEqual([]);
   });
+
+  describe("auth section", () => {
+    it.each(["api-key", "api-key-first", "oauth", "oauth-first"])("accepts valid auth.preference value %s", (value) => {
+      const result = validateConfig({ auth: { preference: value } });
+      expect(result.errors).toEqual([]);
+      expect(result.config.auth).toEqual({ preference: value });
+    });
+
+    it("ignores empty auth section", () => {
+      const result = validateConfig({ auth: null });
+      expect(result.config.auth).toBeUndefined();
+      expect(result.errors).toEqual([]);
+    });
+
+    it("errors when auth section is not a mapping", () => {
+      const result = validateConfig({ auth: "api-key" });
+      expect(result.errors).toContain('"auth" must be a mapping');
+    });
+
+    it("errors on invalid auth.preference value (typo not silently dropped)", () => {
+      // File-level validation is strict (unlike env-overlay) — config files are
+      // edited carefully and a typo in a checked-in file deserves a clear failure.
+      const result = validateConfig({ auth: { preference: "api-key-only" } });
+      expect(result.errors.some((e) => e.includes('"auth.preference"'))).toBe(true);
+      expect(result.errors.some((e) => e.includes("api-key-only"))).toBe(true);
+    });
+
+    it("errors when auth.preference is not a string", () => {
+      const result = validateConfig({ auth: { preference: 42 } });
+      expect(result.errors).toContain('"auth.preference" must be a string');
+    });
+
+    it("warns on unknown keys inside auth", () => {
+      const result = validateConfig({ auth: { preference: "oauth", future: "value" } });
+      expect(result.warnings).toContain('Unknown key in "auth": "future"');
+      expect(result.config.auth).toEqual({ preference: "oauth" });
+    });
+
+    it("does not warn on auth as a known top-level key", () => {
+      const result = validateConfig({ auth: { preference: "oauth-first" } });
+      expect(result.warnings).toEqual([]);
+    });
+  });
 });
 
 describe("isValidProfileName", () => {
@@ -376,6 +419,8 @@ describe("isValidProfileName", () => {
     expect(isValidProfileName("organization-slug")).toBe(false);
     expect(isValidProfileName("secret-key")).toBe(false);
     expect(isValidProfileName("sca-method")).toBe(false);
+    expect(isValidProfileName("auth")).toBe(false);
+    expect(isValidProfileName("AUTH")).toBe(false);
     expect(isValidProfileName("config-file")).toBe(false);
     // Underscore form too (the post-normalization shape)
     expect(isValidProfileName("client_id")).toBe(false);

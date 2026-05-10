@@ -70,16 +70,17 @@ scopes) lives in the file only.
 
 Without `--profile`:
 
-| Variable                     | Field                       | Notes                                            |
-| ---------------------------- | --------------------------- | ------------------------------------------------ |
-| `QONTOCTL_ORGANIZATION_SLUG` | `api-key.organization-slug` |                                                  |
-| `QONTOCTL_SECRET_KEY`        | `api-key.secret-key`        |                                                  |
-| `QONTOCTL_CLIENT_ID`         | `oauth.client-id`           |                                                  |
-| `QONTOCTL_CLIENT_SECRET`     | `oauth.client-secret`       |                                                  |
-| `QONTOCTL_ACCESS_TOKEN`      | `oauth.access-token`        | Read-only — see semantics note below             |
-| `QONTOCTL_ENDPOINT`          | `endpoint`                  | Custom API endpoint                              |
-| `QONTOCTL_STAGING_TOKEN`     | `oauth.staging-token`       | Activates sandbox URLs                           |
-| `QONTOCTL_SCA_METHOD`        | `sca.method`                | See [`sandbox-testing.md`](./sandbox-testing.md) |
+| Variable                     | Field                       | Notes                                                                    |
+| ---------------------------- | --------------------------- | ------------------------------------------------------------------------ |
+| `QONTOCTL_ORGANIZATION_SLUG` | `api-key.organization-slug` |                                                                          |
+| `QONTOCTL_SECRET_KEY`        | `api-key.secret-key`        |                                                                          |
+| `QONTOCTL_CLIENT_ID`         | `oauth.client-id`           |                                                                          |
+| `QONTOCTL_CLIENT_SECRET`     | `oauth.client-secret`       |                                                                          |
+| `QONTOCTL_ACCESS_TOKEN`      | `oauth.access-token`        | Read-only — see semantics note below                                     |
+| `QONTOCTL_ENDPOINT`          | `endpoint`                  | Custom API endpoint                                                      |
+| `QONTOCTL_STAGING_TOKEN`     | `oauth.staging-token`       | Activates sandbox URLs                                                   |
+| `QONTOCTL_SCA_METHOD`        | `sca.method`                | See [`sandbox-testing.md`](./sandbox-testing.md)                         |
+| `QONTOCTL_AUTH`              | `auth.preference`           | See [`auth.preference`](#authentication-precedence-authpreference) below |
 
 With `--profile <name>`, the prefix becomes `QONTOCTL_{NAME}_` (uppercased,
 hyphens replaced with underscores). For example, `--profile acme` reads
@@ -97,6 +98,94 @@ hyphens replaced with underscores). For example, `--profile acme` reads
 > file-based credentials (`~/.qontoctl.yaml` or a profile) for OAuth flows
 > that need refresh, or stick with API-key env vars in CI. See
 > [#495](https://github.com/alexey-pelykh/qontoctl/pull/497).
+
+## Authentication precedence (`auth.preference`)
+
+When both api-key and OAuth credentials are configured, QontoCtl needs to
+decide which one is **primary** (used first) and whether the other is a
+**fallback** (used when the primary fails). Pre-[#523](https://github.com/alexey-pelykh/qontoctl/issues/523)
+builds inferred this implicitly from the presence of `oauth.access-token`;
+`#523` replaced that heuristic with an explicit four-mode setting.
+
+### The four modes
+
+| Mode            | Primary | Fallback | Use when                                                                              |
+| --------------- | ------- | -------- | ------------------------------------------------------------------------------------- |
+| `api-key`       | api-key | none     | Force api-key only, never attempt OAuth (CI determinism, pinned-credential workflows) |
+| `api-key-first` | api-key | OAuth    | Prefer api-key but fall back to OAuth on failure                                      |
+| `oauth`         | OAuth   | none     | Force OAuth only — surface refresh failures loudly instead of silently degrading      |
+| `oauth-first`   | OAuth   | api-key  | **Default.** Prefer OAuth (richer scopes), fall back to api-key on failure            |
+
+The `*-first` modes wire fallback when the secondary credential is configured;
+the no-suffix modes never wire fallback. **Default**: when neither flag, env,
+nor config sets a preference, the effective mode is `oauth-first` —
+preserving the pre-`#523` behavior.
+
+### Resolution precedence
+
+Highest priority wins:
+
+1. `--auth <mode>` CLI flag (Commander `.choices()` validates at parse time —
+   misspellings fail loudly: `qontoctl ... --auth oauth-only` →
+   `error: option '--auth <mode>' argument 'oauth-only' is invalid. Allowed choices are api-key, api-key-first, oauth, oauth-first.`)
+2. `QONTOCTL_AUTH` env var (or its profile-scoped variant `QONTOCTL_<PROFILE>_AUTH`).
+   Invalid values are silently dropped — use the flag for validated input.
+3. `auth.preference` config field (file-level — invalid values produce a
+   `VALIDATION` error from `resolveConfig` because checked-in files deserve
+   strict checking).
+4. Built-in default `oauth-first`.
+
+### Both fallback paths
+
+When the resolved mode wires a fallback, the chain advances on **two** failure
+classes:
+
+- **HTTP 401/403** with auth-related error code from the primary credential
+  (existing behavior — preserved). Non-auth 401s (e.g., `vop_proof_token_missing`
+  on a write) propagate directly without falling back, so legitimate
+  per-endpoint authorization failures are not masked.
+- **Auth-flow failure** during header construction — most commonly an OAuth
+  refresh-token returning `invalid_grant` because the token has expired or
+  been revoked. The HTTP client recognizes the typed `OAuthRefreshError` and
+  advances to the fallback before the request is dispatched. Pre-`#523`
+  builds had no catch for this class — that gap is what `#523` fixes.
+
+### Examples
+
+```yaml
+# .qontoctl.yaml — pin api-key for CI determinism
+api-key:
+    organization-slug: acme
+    secret-key: ...
+auth:
+    preference: api-key
+```
+
+```sh
+# Override per-invocation: try OAuth first this run
+qontoctl --auth oauth-first transaction list
+```
+
+```sh
+# Pin via env var in CI (matches the api-key-only env CI provides)
+export QONTOCTL_AUTH=api-key
+qontoctl account list
+```
+
+### Degraded selection (warning)
+
+When the resolved mode requests a credential that is not configured, the chain
+degrades to whatever IS configured and emits a stderr warning:
+
+```text
+Warning: auth preference "oauth" set but no OAuth credentials configured; using api-key instead
+```
+
+The degrade is **not** a hard error — workflows that share a config across
+machines (one of which lacks OAuth setup) keep working. The warning surfaces
+the divergence so the operator can fix the config when convenient. Set the
+no-fallback modes (`api-key` / `oauth`) to force a single auth path with
+no degrade.
 
 ## `QONTOCTL_CONFIG_FILE` — quick reference
 
