@@ -31,7 +31,7 @@ export function createWebhookCommand(): Command {
     const result = await fetchPaginated<WebhookSubscription>(
       client,
       "/v2/webhook_subscriptions",
-      "webhook_subscriptions",
+      "subscriptions",
       opts,
     );
 

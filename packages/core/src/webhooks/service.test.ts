@@ -6,6 +6,12 @@ import { HttpClient } from "../http-client.js";
 import { jsonResponse } from "../testing/json-response.js";
 import { listWebhooks, getWebhook, createWebhook, updateWebhook, deleteWebhook } from "./service.js";
 
+// Empirically observed (2026-05-10): the Qonto API returns single webhook
+// objects directly (no `webhook_subscription` envelope) and lists them under
+// `subscriptions`. The `description` field is omitted. Mocks here mirror that
+// shape; #452 added the real-API E2E that drove these tests away from their
+// prior aspirational fixtures.
+
 describe("listWebhooks", () => {
   let fetchSpy: ReturnType<typeof vi.fn>;
   let client: HttpClient;
@@ -25,15 +31,14 @@ describe("listWebhooks", () => {
 
   it("lists webhook subscriptions without params", async () => {
     const body = {
-      webhook_subscriptions: [
+      subscriptions: [
         {
           id: "wh-1",
           organization_id: "org-1",
           membership_id: "mem-1",
           callback_url: "https://example.com/hook",
-          types: ["transactions.created"],
-          description: null,
-          secret: null,
+          types: ["v1/transactions"],
+          secret: "whsec_abc",
           created_at: "2026-01-01T00:00:00Z",
           updated_at: "2026-01-01T00:00:00Z",
         },
@@ -43,7 +48,7 @@ describe("listWebhooks", () => {
     fetchSpy.mockReturnValue(jsonResponse(body));
 
     const result = await listWebhooks(client);
-    expect(result.webhook_subscriptions).toHaveLength(1);
+    expect(result.subscriptions).toHaveLength(1);
     expect(result.meta.current_page).toBe(1);
 
     const [url] = fetchSpy.mock.calls[0] as [URL];
@@ -53,7 +58,7 @@ describe("listWebhooks", () => {
 
   it("passes pagination params as query strings", async () => {
     const body = {
-      webhook_subscriptions: [],
+      subscriptions: [],
       meta: { current_page: 2, next_page: null, prev_page: 1, total_pages: 2, total_count: 30, per_page: 25 },
     };
     fetchSpy.mockReturnValue(jsonResponse(body));
@@ -67,7 +72,7 @@ describe("listWebhooks", () => {
 
   it("omits undefined pagination params", async () => {
     const body = {
-      webhook_subscriptions: [],
+      subscriptions: [],
       meta: { current_page: 1, next_page: null, prev_page: null, total_pages: 1, total_count: 0, per_page: 25 },
     };
     fetchSpy.mockReturnValue(jsonResponse(body));
@@ -97,19 +102,18 @@ describe("getWebhook", () => {
     vi.restoreAllMocks();
   });
 
-  it("fetches a webhook subscription by ID", async () => {
+  it("fetches a webhook subscription by ID (response object is unwrapped)", async () => {
     const webhook = {
       id: "wh-1",
       organization_id: "org-1",
       membership_id: "mem-1",
       callback_url: "https://example.com/hook",
-      types: ["transactions.created"],
-      description: null,
-      secret: null,
+      types: ["v1/transactions"],
+      secret: "whsec_abc",
       created_at: "2026-01-01T00:00:00Z",
       updated_at: "2026-01-01T00:00:00Z",
     };
-    fetchSpy.mockReturnValue(jsonResponse({ webhook_subscription: webhook }));
+    fetchSpy.mockReturnValue(jsonResponse(webhook));
 
     const result = await getWebhook(client, "wh-1");
     expect(result).toEqual(webhook);
@@ -124,13 +128,12 @@ describe("getWebhook", () => {
       organization_id: "org-1",
       membership_id: "mem-1",
       callback_url: "https://example.com/hook",
-      types: ["transactions.created"],
-      description: null,
-      secret: null,
+      types: ["v1/transactions"],
+      secret: "whsec_abc",
       created_at: "2026-01-01T00:00:00Z",
       updated_at: "2026-01-01T00:00:00Z",
     };
-    fetchSpy.mockReturnValue(jsonResponse({ webhook_subscription: webhook }));
+    fetchSpy.mockReturnValue(jsonResponse(webhook));
 
     await getWebhook(client, "a/b");
 
@@ -156,23 +159,22 @@ describe("createWebhook", () => {
     vi.restoreAllMocks();
   });
 
-  it("posts to the correct endpoint and returns webhook", async () => {
+  it("posts to the correct endpoint and returns the created webhook (unwrapped)", async () => {
     const webhook = {
       id: "wh-new",
       organization_id: "org-1",
       membership_id: "mem-1",
       callback_url: "https://example.com/hook",
-      types: ["transactions.created", "transactions.updated"],
-      description: null,
+      types: ["v1/transactions", "v1/cards"],
       secret: "whsec_abc",
       created_at: "2026-01-01T00:00:00Z",
       updated_at: "2026-01-01T00:00:00Z",
     };
-    fetchSpy.mockReturnValue(jsonResponse({ webhook_subscription: webhook }));
+    fetchSpy.mockReturnValue(jsonResponse(webhook));
 
     const result = await createWebhook(client, {
       callback_url: "https://example.com/hook",
-      types: ["transactions.created", "transactions.updated"],
+      types: ["v1/transactions", "v1/cards"],
     });
     expect(result).toEqual(webhook);
 
@@ -183,7 +185,7 @@ describe("createWebhook", () => {
     const body = JSON.parse(init.body as string) as Record<string, unknown>;
     expect(body).toEqual({
       callback_url: "https://example.com/hook",
-      types: ["transactions.created", "transactions.updated"],
+      types: ["v1/transactions", "v1/cards"],
     });
   });
 });
@@ -205,19 +207,18 @@ describe("updateWebhook", () => {
     vi.restoreAllMocks();
   });
 
-  it("puts to the correct endpoint and returns updated webhook", async () => {
+  it("puts to the correct endpoint and returns the updated webhook (unwrapped)", async () => {
     const webhook = {
       id: "wh-1",
       organization_id: "org-1",
       membership_id: "mem-1",
       callback_url: "https://example.com/new-hook",
-      types: ["transactions.created"],
-      description: null,
-      secret: null,
+      types: ["v1/transactions"],
+      secret: "whsec_abc",
       created_at: "2026-01-01T00:00:00Z",
       updated_at: "2026-01-02T00:00:00Z",
     };
-    fetchSpy.mockReturnValue(jsonResponse({ webhook_subscription: webhook }));
+    fetchSpy.mockReturnValue(jsonResponse(webhook));
 
     const result = await updateWebhook(client, "wh-1", {
       callback_url: "https://example.com/new-hook",
@@ -238,13 +239,12 @@ describe("updateWebhook", () => {
       organization_id: "org-1",
       membership_id: "mem-1",
       callback_url: "https://example.com/hook",
-      types: ["transactions.created"],
-      description: null,
-      secret: null,
+      types: ["v1/transactions"],
+      secret: "whsec_abc",
       created_at: "2026-01-01T00:00:00Z",
       updated_at: "2026-01-01T00:00:00Z",
     };
-    fetchSpy.mockReturnValue(jsonResponse({ webhook_subscription: webhook }));
+    fetchSpy.mockReturnValue(jsonResponse(webhook));
 
     await updateWebhook(client, "a/b", { callback_url: "https://example.com" });
 
