@@ -128,4 +128,31 @@ describe.skipIf(!hasOAuthCredentials())("card MCP tools (e2e)", () => {
       expect(Array.isArray(parsed)).toBe(true);
     });
   });
+
+  describe("card_iframe_url", () => {
+    it("returns a secure iframe URL for an existing card", async () => {
+      // Pick the first card from list — data_view requires a real card ID.
+      const listResult = await client.callTool({
+        name: "card_list",
+        arguments: { per_page: 1 },
+      });
+      if (listResult.isError === true) return;
+
+      const listParsed = JSON.parse(firstTextFromMcpResult(listResult)) as CardListResponse;
+      const first = listParsed.cards[0];
+      if (first === undefined) return;
+
+      const result = await client.callTool({
+        name: "card_iframe_url",
+        arguments: { id: first.id },
+      });
+
+      expect(result.isError).toBeFalsy();
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as { iframe_url: string };
+      expect(parsed).toHaveProperty("iframe_url");
+      expect(typeof parsed.iframe_url).toBe("string");
+      // The URL must be HTTPS — the iframe carries sensitive PAN/CVV data.
+      expect(parsed.iframe_url).toMatch(/^https:\/\//);
+    });
+  });
 });

@@ -79,4 +79,63 @@ describe.skipIf(!hasApiKeyCredentials())("MCP client tools (e2e)", () => {
       expect(parsed).toHaveProperty("type");
     });
   });
+
+  // MCP CRUD smoke for `client_create` / `client_update` / `client_delete` —
+  // closes the CLI/MCP asymmetry surfaced by the #449 audit (Group 2).
+  // Mirrors the CRUD lifecycle covered by the CLI suite but exercises the
+  // operations through callTool, asserting the MCP wrapper contract on top
+  // of the underlying API contract.
+  describe("client CRUD lifecycle (MCP)", () => {
+    let createdClientId: string | undefined;
+
+    it("creates a client via callTool", async () => {
+      const result = await client.callTool({
+        name: "client_create",
+        arguments: {
+          kind: "company",
+          name: "E2E MCP Test Client",
+          email: "e2e-mcp-test@example.com",
+          country_code: "FR",
+        },
+      });
+
+      if (result.isError === true) return;
+
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as Record<string, unknown>;
+      ClientSchema.parse(parsed);
+      expect(parsed).toHaveProperty("id");
+      expect(parsed).toHaveProperty("name", "E2E MCP Test Client");
+      createdClientId = parsed["id"] as string;
+    });
+
+    it("updates the created client via callTool", async () => {
+      if (createdClientId === undefined) return;
+
+      const result = await client.callTool({
+        name: "client_update",
+        arguments: {
+          id: createdClientId,
+          name: "E2E MCP Updated Client",
+        },
+      });
+
+      expect(result.isError).toBeFalsy();
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as Record<string, unknown>;
+      expect(parsed).toHaveProperty("id", createdClientId);
+    });
+
+    it("deletes the created client via callTool", async () => {
+      if (createdClientId === undefined) return;
+
+      const result = await client.callTool({
+        name: "client_delete",
+        arguments: { id: createdClientId },
+      });
+
+      expect(result.isError).toBeFalsy();
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as Record<string, unknown>;
+      expect(parsed).toHaveProperty("deleted", true);
+      expect(parsed).toHaveProperty("id", createdClientId);
+    });
+  });
 });

@@ -248,6 +248,50 @@ describe("card commands", () => {
     });
   });
 
+  describe("card show", () => {
+    it("shows a card in table format", async () => {
+      const card = makeCard();
+      fetchSpy.mockImplementation(() => jsonResponse({ card }));
+
+      const program = createTestProgram();
+
+      await program.parseAsync(["card", "show", "card-1"], { from: "user" });
+
+      expect(stdoutSpy).toHaveBeenCalled();
+      const output = stdoutSpy.mock.calls[0]?.[0] as string;
+      expect(output).toContain("card-1");
+      expect(output).toContain("My Card");
+      expect(output).toContain("live");
+    });
+
+    it("shows a card in json format", async () => {
+      const card = makeCard();
+      fetchSpy.mockImplementation(() => jsonResponse({ card }));
+
+      const program = createTestProgram();
+
+      await program.parseAsync(["--output", "json", "card", "show", "card-1"], { from: "user" });
+
+      expect(stdoutSpy).toHaveBeenCalled();
+      const output = stdoutSpy.mock.calls[0]?.[0] as string;
+      const parsed = JSON.parse(output) as Card;
+      expect(parsed.id).toBe("card-1");
+      expect(parsed.status).toBe("live");
+    });
+
+    it("calls the correct API endpoint", async () => {
+      const card = makeCard();
+      fetchSpy.mockImplementation(() => jsonResponse({ card }));
+
+      const program = createTestProgram();
+
+      await program.parseAsync(["card", "show", "card-1"], { from: "user" });
+
+      const [url] = fetchSpy.mock.calls[0] as [URL];
+      expect(url.pathname).toBe("/v2/cards/card-1");
+    });
+  });
+
   describe("card create", () => {
     it("creates a card and outputs in table format", async () => {
       const card = makeCard({ status: "pending" });

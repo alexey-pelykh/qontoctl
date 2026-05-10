@@ -9,6 +9,7 @@ import { registerCardIframeUrlCommand } from "./iframe-url.js";
 import { registerCardListCommand } from "./list.js";
 import { registerCardLockCommand, registerCardUnlockCommand } from "./lock.js";
 import { registerCardReportLostCommand, registerCardReportStolenCommand } from "./report.js";
+import { registerCardShowCommand } from "./show.js";
 import { registerCardUpdateLimitsCommand } from "./update-limits.js";
 import { registerCardUpdateNicknameCommand } from "./update-nickname.js";
 import { registerCardUpdateOptionsCommand } from "./update-options.js";
@@ -21,6 +22,7 @@ export function registerCardCommands(program: Command): void {
   const card = program.command("card").description("Manage cards");
 
   registerCardListCommand(card);
+  registerCardShowCommand(card);
   registerCardCreateCommand(card);
   registerCardBulkCreateCommand(card);
   registerCardLockCommand(card);

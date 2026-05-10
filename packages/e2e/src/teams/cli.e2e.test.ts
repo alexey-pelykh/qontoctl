@@ -3,7 +3,7 @@
 
 import { TeamSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
-import { cli, cliJson } from "../helpers.js";
+import { cli, cliJson, SKIP, skipIfQontoStatus } from "../helpers.js";
 import { hasOAuthCredentials, pinAuthPreference } from "../sandbox.js";
 
 interface TeamItem {
@@ -43,6 +43,28 @@ describe.skipIf(!hasOAuthCredentials())("team CLI commands (e2e)", () => {
       expect(lines.length).toBeGreaterThanOrEqual(1);
       const header = lines[0] ?? "";
       expect(header).toContain("id");
+    });
+  });
+
+  describe("team create", () => {
+    // Qonto's API has no DELETE endpoint for teams, so created teams persist
+    // in the sandbox. We use a timestamped sentinel name so created teams are
+    // easily identifiable. The Qonto sandbox is reset periodically, bounding
+    // leakage.
+    //
+    // POST /v2/teams requires OAuth with the appropriate scope per the Qonto
+    // auth table — api-key fallback is rejected with HTTP 401 ("OAuth2
+    // authentication is required here"). When the configured OAuth client
+    // lacks the team-management scope, both auth modes fail and we skip
+    // rather than reporting a spurious failure.
+    it("creates a team with a unique name (skips on OAuth scope gap)", () => {
+      const teamName = `E2E Test Team ${String(Date.now())}`;
+      const stdout = skipIfQontoStatus([401, 403], "--output", "json", "team", "create", "--name", teamName);
+      if (stdout === SKIP) return;
+      const parsed = JSON.parse(stdout) as TeamItem;
+      TeamSchema.parse(parsed);
+      expect(parsed).toHaveProperty("id");
+      expect(parsed).toHaveProperty("name", teamName);
     });
   });
 });

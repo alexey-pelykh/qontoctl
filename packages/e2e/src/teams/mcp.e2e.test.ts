@@ -90,4 +90,29 @@ describe.skipIf(!hasOAuthCredentials())("team MCP tools (e2e)", () => {
       expect(first).toHaveProperty("name");
     });
   });
+
+  // MCP smoke for `team_create` — closes the CLI/MCP asymmetry surfaced by
+  // the #449 audit (Group 2). Qonto's API has no DELETE for teams, so the
+  // created team persists; we use a timestamped sentinel name to keep
+  // sandbox leakage easily identifiable.
+  //
+  // POST /v2/teams requires OAuth with the appropriate scope per the Qonto
+  // auth table; OAuth clients without team-management scope receive an HTTP
+  // 401 surfaced through the MCP wrapper as `result.isError === true`. We
+  // treat that as a skip rather than a spurious failure.
+  describe("team_create", () => {
+    it("creates a team via callTool (skips on OAuth scope gap)", async () => {
+      const teamName = `E2E MCP Test Team ${String(Date.now())}`;
+      const result = await client.callTool({
+        name: "team_create",
+        arguments: { name: teamName },
+      });
+
+      if (result.isError === true) return;
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as TeamItem;
+      TeamSchema.parse(parsed);
+      expect(parsed).toHaveProperty("id");
+      expect(parsed).toHaveProperty("name", teamName);
+    });
+  });
 });
