@@ -4,7 +4,7 @@
 import { TeamSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
 import { cli, cliJson } from "../helpers.js";
-import { hasOAuthCredentials } from "../sandbox.js";
+import { hasOAuthCredentials, pinAuthPreference } from "../sandbox.js";
 
 interface TeamItem {
   readonly id: string;
@@ -12,6 +12,8 @@ interface TeamItem {
 }
 
 describe.skipIf(!hasOAuthCredentials())("team CLI commands (e2e)", () => {
+  pinAuthPreference("oauth-first");
+
   describe("team list", () => {
     it("lists teams with default output", () => {
       const output = cli("team", "list");

@@ -291,8 +291,221 @@ describe("createClient", () => {
     onFallback("GET", "/v2/organizations");
 
     expect(stderrSpy).toHaveBeenCalledWith(
-      "Warning: OAuth authentication failed, falling back to API key for GET /v2/organizations\n",
+      "Warning: primary authentication failed, falling back to api-key for GET /v2/organizations\n",
     );
+  });
+
+  describe("auth preference selection (4 modes × 4 credential states)", () => {
+    const apiKeyCreds = { organizationSlug: "org", secretKey: "key" } as const;
+    const oauthCreds = {
+      clientId: "client-id",
+      clientSecret: "client-secret",
+      accessToken: "access-token",
+      accessTokenExpiresAt: new Date(Date.now() + 3600_000).toISOString(),
+    } as const;
+    const oauthAuthFn = vi.fn().mockResolvedValue("Bearer at");
+
+    type AuthMode = "api-key" | "api-key-first" | "oauth" | "oauth-first";
+    type Setup = "both" | "api-key-only" | "oauth-only" | "none";
+
+    interface Case {
+      mode: AuthMode;
+      setup: Setup;
+      expect:
+        | { kind: "throw" }
+        | {
+            kind: "ok";
+            primary: "api-key" | "oauth";
+            fallback: "api-key" | "oauth" | undefined;
+            warning?: string;
+          };
+    }
+
+    const cases: readonly Case[] = [
+      // api-key mode (no fallback)
+      { mode: "api-key", setup: "both", expect: { kind: "ok", primary: "api-key", fallback: undefined } },
+      { mode: "api-key", setup: "api-key-only", expect: { kind: "ok", primary: "api-key", fallback: undefined } },
+      {
+        mode: "api-key",
+        setup: "oauth-only",
+        expect: { kind: "ok", primary: "oauth", fallback: undefined, warning: "no api-key" },
+      },
+      { mode: "api-key", setup: "none", expect: { kind: "throw" } },
+      // api-key-first mode
+      { mode: "api-key-first", setup: "both", expect: { kind: "ok", primary: "api-key", fallback: "oauth" } },
+      {
+        mode: "api-key-first",
+        setup: "api-key-only",
+        expect: { kind: "ok", primary: "api-key", fallback: undefined },
+      },
+      {
+        mode: "api-key-first",
+        setup: "oauth-only",
+        expect: { kind: "ok", primary: "oauth", fallback: undefined, warning: "no api-key" },
+      },
+      { mode: "api-key-first", setup: "none", expect: { kind: "throw" } },
+      // oauth mode (no fallback)
+      { mode: "oauth", setup: "both", expect: { kind: "ok", primary: "oauth", fallback: undefined } },
+      {
+        mode: "oauth",
+        setup: "api-key-only",
+        expect: { kind: "ok", primary: "api-key", fallback: undefined, warning: "no OAuth" },
+      },
+      { mode: "oauth", setup: "oauth-only", expect: { kind: "ok", primary: "oauth", fallback: undefined } },
+      { mode: "oauth", setup: "none", expect: { kind: "throw" } },
+      // oauth-first mode (default)
+      { mode: "oauth-first", setup: "both", expect: { kind: "ok", primary: "oauth", fallback: "api-key" } },
+      {
+        mode: "oauth-first",
+        setup: "api-key-only",
+        expect: { kind: "ok", primary: "api-key", fallback: undefined, warning: "no OAuth" },
+      },
+      {
+        mode: "oauth-first",
+        setup: "oauth-only",
+        expect: { kind: "ok", primary: "oauth", fallback: undefined },
+      },
+      { mode: "oauth-first", setup: "none", expect: { kind: "throw" } },
+    ];
+
+    for (const c of cases) {
+      it(`mode=${c.mode} setup=${c.setup} -> ${c.expect.kind === "throw" ? "throws" : `primary=${c.expect.primary} fallback=${String(c.expect.fallback)}`}`, async () => {
+        createOAuthAuthorizationMock.mockReturnValue(oauthAuthFn);
+        resolveConfigMock.mockResolvedValue({
+          config: {
+            ...(c.setup === "both" || c.setup === "api-key-only" ? { apiKey: apiKeyCreds } : {}),
+            ...(c.setup === "both" || c.setup === "oauth-only" ? { oauth: oauthCreds } : {}),
+          },
+          endpoint: "https://thirdparty.qonto.com",
+          warnings: [],
+          oauthAccessTokenFromEnv: false,
+        });
+
+        const options: GlobalOptions = { output: "table", auth: c.mode };
+
+        if (c.expect.kind === "throw") {
+          await expect(createClient(options)).rejects.toThrow("No credentials found in configuration");
+          return;
+        }
+
+        await createClient(options);
+
+        const ctorArgs = HttpClientMock.mock.calls[0]?.[0] as HttpClientOptions | undefined;
+
+        // Primary authorization assertion
+        if (c.expect.primary === "oauth") {
+          // OAuth primary: authorization is the mock function returned by createOAuthAuthorization
+          expect(ctorArgs?.authorization).toBe(oauthAuthFn);
+        } else {
+          // api-key primary: authorization is a string of form `org:key`
+          expect(ctorArgs?.authorization).toBe("org:key");
+        }
+
+        // Fallback authorization assertion
+        if (c.expect.fallback === "oauth") {
+          expect(ctorArgs?.fallbackAuthorization).toBe(oauthAuthFn);
+        } else if (c.expect.fallback === "api-key") {
+          expect(ctorArgs?.fallbackAuthorization).toBe("org:key");
+        } else {
+          expect(ctorArgs?.fallbackAuthorization).toBeUndefined();
+        }
+
+        // Warning assertion (degrade cases) — match the specific substring from
+        // the fixture (`"no api-key"` / `"no OAuth"`), not just any warning,
+        // so each case verifies the *correct* degrade message reaches stderr.
+        if (c.expect.warning !== undefined) {
+          const expectedWarning = c.expect.warning;
+          const warningCalls = stderrSpy.mock.calls.map((call: [string]) => call[0]) as string[];
+          const sawWarning = warningCalls.some((msg) => msg.startsWith("Warning:") && msg.includes(expectedWarning));
+          expect(sawWarning).toBe(true);
+        }
+      });
+    }
+  });
+
+  describe("auth preference precedence", () => {
+    it("--auth flag overrides config.auth.preference", async () => {
+      const oauthAuthFn = vi.fn().mockResolvedValue("Bearer at");
+      createOAuthAuthorizationMock.mockReturnValue(oauthAuthFn);
+      resolveConfigMock.mockResolvedValue({
+        config: {
+          oauth: {
+            clientId: "client-id",
+            clientSecret: "client-secret",
+            accessToken: "access-token",
+            accessTokenExpiresAt: new Date(Date.now() + 3600_000).toISOString(),
+          },
+          apiKey: { organizationSlug: "org", secretKey: "key" },
+          auth: { preference: "oauth-first" },
+        },
+        endpoint: "https://thirdparty.qonto.com",
+        warnings: [],
+        oauthAccessTokenFromEnv: false,
+      });
+
+      // Flag picks api-key, overriding config's oauth-first
+      const options: GlobalOptions = { output: "table", auth: "api-key" };
+      await createClient(options);
+
+      const ctorArgs = HttpClientMock.mock.calls[0]?.[0] as HttpClientOptions | undefined;
+      expect(ctorArgs?.authorization).toBe("org:key");
+      expect(ctorArgs?.fallbackAuthorization).toBeUndefined();
+    });
+
+    it("config.auth.preference is honored when no flag is set", async () => {
+      const oauthAuthFn = vi.fn().mockResolvedValue("Bearer at");
+      createOAuthAuthorizationMock.mockReturnValue(oauthAuthFn);
+      resolveConfigMock.mockResolvedValue({
+        config: {
+          oauth: {
+            clientId: "client-id",
+            clientSecret: "client-secret",
+            accessToken: "access-token",
+            accessTokenExpiresAt: new Date(Date.now() + 3600_000).toISOString(),
+          },
+          apiKey: { organizationSlug: "org", secretKey: "key" },
+          auth: { preference: "api-key" },
+        },
+        endpoint: "https://thirdparty.qonto.com",
+        warnings: [],
+        oauthAccessTokenFromEnv: false,
+      });
+
+      const options: GlobalOptions = { output: "table" };
+      await createClient(options);
+
+      const ctorArgs = HttpClientMock.mock.calls[0]?.[0] as HttpClientOptions | undefined;
+      expect(ctorArgs?.authorization).toBe("org:key");
+      expect(ctorArgs?.fallbackAuthorization).toBeUndefined();
+    });
+
+    it("default mode (no flag, no config) is oauth-first when both creds present", async () => {
+      // This covers AC: "Default behavior unchanged: when both creds present and
+      // no preference set, effective mode is oauth-first"
+      const oauthAuthFn = vi.fn().mockResolvedValue("Bearer at");
+      createOAuthAuthorizationMock.mockReturnValue(oauthAuthFn);
+      resolveConfigMock.mockResolvedValue({
+        config: {
+          oauth: {
+            clientId: "client-id",
+            clientSecret: "client-secret",
+            accessToken: "access-token",
+            accessTokenExpiresAt: new Date(Date.now() + 3600_000).toISOString(),
+          },
+          apiKey: { organizationSlug: "org", secretKey: "key" },
+        },
+        endpoint: "https://thirdparty.qonto.com",
+        warnings: [],
+        oauthAccessTokenFromEnv: false,
+      });
+
+      const options: GlobalOptions = { output: "table" };
+      await createClient(options);
+
+      const ctorArgs = HttpClientMock.mock.calls[0]?.[0] as HttpClientOptions | undefined;
+      expect(ctorArgs?.authorization).toBe(oauthAuthFn);
+      expect(ctorArgs?.fallbackAuthorization).toBe("org:key");
+    });
   });
 
   describe("scaMethod plumbing", () => {

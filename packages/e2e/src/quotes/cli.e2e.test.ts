@@ -4,9 +4,11 @@
 import { QuoteSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
 import { cli } from "../helpers.js";
-import { hasOAuthCredentials } from "../sandbox.js";
+import { hasOAuthCredentials, pinAuthPreference } from "../sandbox.js";
 
 describe.skipIf(!hasOAuthCredentials())("quote commands (e2e)", () => {
+  pinAuthPreference("oauth-first");
+
   describe("quote list", () => {
     it("lists quotes", () => {
       const output = cli("quote", "list");

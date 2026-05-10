@@ -4,6 +4,8 @@
 import { randomUUID } from "node:crypto";
 import { createRequire } from "node:module";
 
+import { OAuthRefreshError } from "./auth/oauth-service.js";
+
 const require = createRequire(import.meta.url);
 const packageJson = require("../package.json") as { version: string };
 
@@ -426,7 +428,47 @@ export class HttpClient {
     const idempotencyKey = isWrite ? (options?.idempotencyKey ?? randomUUID()) : undefined;
 
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
-      const headers = await this.buildHeaders(!isFormData && options?.body !== undefined, options?.accept);
+      // Track whether we already advanced to the fallback authorization for THIS
+      // attempt. Two paths feed it:
+      //   1. Auth-flow failure (e.g. OAuth refresh `invalid_grant`): caught
+      //      pre-fetch and retried by re-building headers with the fallback.
+      //   2. HTTP-level 401/403 fallback (existing behavior, gated below by
+      //      `!usingFallback`).
+      //
+      // The flag exists so the 401/403 path does not re-trigger after we have
+      // already used the fallback for this attempt — that would call api-key
+      // a second time on a path-level rejection and swallow the legitimate
+      // error class.
+      let usingFallback = false;
+      let headers: Record<string, string>;
+
+      try {
+        headers = await this.buildHeaders(!isFormData && options?.body !== undefined, options?.accept);
+      } catch (err) {
+        // Auth-flow failures (OAuth refresh-token expiry, network failure during
+        // refresh) are recognized via the typed `OAuthRefreshError` so they can
+        // advance to the fallback authorization the same way an HTTP 401 would.
+        // Without this branch, a refresh failure would short-circuit out of the
+        // request entirely — the bug class #523 was opened to fix.
+        //
+        // Critical: we ONLY catch the typed error class here. A generic
+        // `AuthError` or any other throw still propagates so we never silently
+        // mask a misconfigured api-key (e.g. empty `secret-key` raises
+        // `AuthError` from `buildApiKeyAuthorization` — that is a configuration
+        // problem the user must see, not a fallback trigger).
+        if (err instanceof OAuthRefreshError && this.fallbackAuthorization !== undefined) {
+          this.logVerbose(`OAuth refresh failed (${err.message}); advancing to fallback authorization`);
+          this.onFallback?.(method, path);
+          usingFallback = true;
+          headers = await this.buildHeaders(
+            !isFormData && options?.body !== undefined,
+            options?.accept,
+            this.fallbackAuthorization,
+          );
+        } else {
+          throw err;
+        }
+      }
 
       if (idempotencyKey !== undefined) {
         headers[IDEMPOTENCY_KEY_HEADER] = idempotencyKey;
@@ -440,7 +482,9 @@ export class HttpClient {
         headers[SCA_SESSION_TOKEN_HEADER] = options.scaSessionToken;
       }
 
-      this.logVerbose(`${method} ${url.toString()}${attempt > 0 ? ` (retry ${attempt})` : ""}`);
+      this.logVerbose(
+        `${method} ${url.toString()}${attempt > 0 ? ` (retry ${attempt})` : ""}${usingFallback ? " (fallback)" : ""}`,
+      );
       if (body !== undefined) {
         this.logDebug(isFormData ? "Request body: [FormData]" : `Request body: ${body as string}`);
       }
@@ -472,7 +516,11 @@ export class HttpClient {
         throw this.build428Error(errorBody);
       }
 
-      if ((response.status === 401 || response.status === 403) && this.fallbackAuthorization !== undefined) {
+      if (
+        (response.status === 401 || response.status === 403) &&
+        this.fallbackAuthorization !== undefined &&
+        !usingFallback
+      ) {
         const primaryErrorBody = await this.safeReadJson(response);
         const primaryErrors = this.extractErrors(primaryErrorBody);
 

@@ -5,11 +5,13 @@ import { homedir } from "node:os";
 import { join, resolve as resolvePath } from "node:path";
 import type { Command } from "commander";
 import { Option } from "commander";
+import { AUTH_PREFERENCES } from "@qontoctl/core";
 import type { GlobalOptions } from "./options.js";
 
 /**
- * Adds inheritable global options (--config, --profile, --verbose, --debug) to a command.
- * These mirror the program-level options so users can specify them after the subcommand.
+ * Adds inheritable global options to a command — currently `--config`, `--profile`,
+ * `--verbose`, `--debug`, `--sca-method` (hidden), and `--auth`. These mirror the
+ * program-level options so users can specify them after the subcommand.
  */
 export function addInheritableOptions(cmd: Command): Command {
   return cmd
@@ -19,7 +21,13 @@ export function addInheritableOptions(cmd: Command): Command {
     .addOption(new Option("-p, --profile <name>", "configuration profile to use"))
     .addOption(new Option("--verbose", "enable verbose output"))
     .addOption(new Option("--debug", "enable debug output (implies --verbose)"))
-    .addOption(new Option("--sca-method <value>", "SCA method preference (advanced; for testing)").hideHelp());
+    .addOption(new Option("--sca-method <value>", "SCA method preference (advanced; for testing)").hideHelp())
+    .addOption(
+      new Option(
+        "--auth <mode>",
+        "authentication precedence: api-key (only), api-key-first, oauth (only), or oauth-first",
+      ).choices([...AUTH_PREFERENCES]),
+    );
 }
 
 /**

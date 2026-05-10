@@ -5,6 +5,8 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse as parseYaml } from "yaml";
+import { afterAll, beforeAll } from "vitest";
+import type { AuthPreference } from "@qontoctl/core";
 
 const REPO_ROOT_CONFIG_PATH = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", ".qontoctl.yaml");
 
@@ -183,20 +185,86 @@ export function getCredentials(): ConfigCredentials {
 /**
  * Build an environment for spawning CLI child processes.
  *
- * Injects `QONTOCTL_CONFIG_FILE=<repo-root>/.qontoctl.yaml` so the CLI
- * loads the repo's config file without relying on CWD inspection (which
- * the resolver no longer performs, post #479). Existing env values for
- * the variable are preserved — tests that explicitly set
- * `QONTOCTL_CONFIG_FILE` keep their override.
+ * Injects:
+ *
+ * 1. `QONTOCTL_CONFIG_FILE=<repo-root>/.qontoctl.yaml` so the CLI loads the
+ *    repo's config file without relying on CWD inspection (which the resolver
+ *    no longer performs, post #479).
+ * 2. `QONTOCTL_AUTH` — defaults to **`"api-key"`** so api-key-only
+ *    suites stay deterministic between local (where OAuth is also configured)
+ *    and CI (which has only api-key creds). Without this pin, a local run with
+ *    OAuth in `.qontoctl.yaml` would default to `oauth-first` and exercise a
+ *    different code path than CI's api-key-only run — the exact determinism
+ *    gap that bit during #463 (see #523 for context).
+ *
+ *    OAuth-required suites (those gated on `hasOAuthCredentials()`) MUST opt
+ *    out via `cliEnv({ authPreference: "oauth-first" })` so their endpoints
+ *    actually authenticate against OAuth. The default is api-key because
+ *    most suites are api-key-compatible; only the OAuth-required minority
+ *    explicitly overrides.
+ *
+ * Existing env values for these variables are preserved — tests that
+ * explicitly set `QONTOCTL_CONFIG_FILE` or `QONTOCTL_AUTH` (e.g. via
+ * the spawning shell) keep their override.
  *
  * Existing api-key / oauth env vars (`QONTOCTL_ORGANIZATION_SLUG`, etc.)
  * also continue to take precedence over file values via the env-overlay,
  * so suites that rely on env-only credentials are unaffected.
+ *
+ * @param options.authPreference Override the default `api-key` pin. Pass
+ *   `"oauth-first"` (or another valid `AuthPreference`) for OAuth-required
+ *   suites; pass `undefined` (or omit `options`) to accept the api-key default.
  */
-export function cliEnv(): Record<string, string> {
+export function cliEnv(options: { authPreference?: AuthPreference } = {}): Record<string, string> {
   const env = { ...(process.env as Record<string, string>) };
   if (env["QONTOCTL_CONFIG_FILE"] === undefined || env["QONTOCTL_CONFIG_FILE"] === "") {
     env["QONTOCTL_CONFIG_FILE"] = cliConfigPath();
   }
+  if (env["QONTOCTL_AUTH"] === undefined || env["QONTOCTL_AUTH"] === "") {
+    env["QONTOCTL_AUTH"] = options.authPreference ?? "api-key";
+  }
   return env;
+}
+
+/**
+ * Register `beforeAll`/`afterAll` hooks that pin `QONTOCTL_AUTH` for the
+ * enclosing describe block by mutating `process.env`.
+ *
+ * Why this exists: {@link cliEnv} pins api-key by default for CI determinism
+ * (per #523). OAuth-required suites — those gated on `hasOAuthCredentials()`
+ * — must opt out so their endpoints (cards, quotes, intl-transfers, …)
+ * actually authenticate against OAuth. Mutating `process.env` propagates
+ * through both the direct `cliEnv()` callers (which read it via
+ * `{ ...process.env }`) AND the `cli` / `cliRaw` / `cliJson` helpers in
+ * `helpers.ts` (which call `cliEnv()` internally) — so a single hook
+ * registration covers every CLI spawn in the describe block, regardless of
+ * which helper the test uses.
+ *
+ * Sequential execution (`pnpm test:e2e --concurrency=1`) ensures the
+ * `process.env` mutation does not leak between describe blocks.
+ *
+ * Usage:
+ *
+ * ```ts
+ * import { pinAuthPreference } from "../sandbox.js";
+ *
+ * describe.skipIf(!hasOAuthCredentials())("OAuth-required suite", () => {
+ *   pinAuthPreference("oauth-first");
+ *   // ...
+ * });
+ * ```
+ */
+export function pinAuthPreference(pref: AuthPreference): void {
+  let previous: string | undefined;
+  beforeAll(() => {
+    previous = process.env["QONTOCTL_AUTH"];
+    process.env["QONTOCTL_AUTH"] = pref;
+  });
+  afterAll(() => {
+    if (previous === undefined) {
+      delete process.env["QONTOCTL_AUTH"];
+    } else {
+      process.env["QONTOCTL_AUTH"] = previous;
+    }
+  });
 }

@@ -3,6 +3,7 @@
 
 import { createRequire } from "node:module";
 import { Command, Option } from "commander";
+import { AUTH_PREFERENCES } from "@qontoctl/core";
 import { registerCompletionCommand } from "./completions/index.js";
 import { registerBeneficiaryCommands } from "./commands/beneficiary/index.js";
 import { registerCardCommands } from "./commands/card/index.js";
@@ -45,7 +46,13 @@ export function createProgram(): Command {
     .addOption(new Option("--page <number>", "fetch a specific page of results").argParser(parsePositiveInt))
     .addOption(new Option("--per-page <number>", "number of results per page").argParser(parsePositiveInt))
     .addOption(new Option("--no-paginate", "disable auto-pagination"))
-    .addOption(new Option("--sca-method <value>", "SCA method preference (advanced; for testing)").hideHelp());
+    .addOption(new Option("--sca-method <value>", "SCA method preference (advanced; for testing)").hideHelp())
+    .addOption(
+      new Option(
+        "--auth <mode>",
+        "authentication precedence: api-key (only), api-key-first, oauth (only), or oauth-first",
+      ).choices([...AUTH_PREFERENCES]),
+    );
 
   registerCompletionCommand(program);
   registerBeneficiaryCommands(program);

@@ -35,6 +35,8 @@ export {
 
 export type {
   ApiKeyCredentials,
+  AuthConfig,
+  AuthPreference,
   ConfigErrorCode,
   OAuthCredentials,
   QontoctlConfig,
@@ -51,6 +53,8 @@ export type {
   StaticOAuthFields,
 } from "./config/index.js";
 
+export { AUTH_PREFERENCES, DEFAULT_AUTH_PREFERENCE } from "./config/index.js";
+
 export {
   AuthError,
   buildApiKeyAuthorization,
@@ -61,9 +65,13 @@ export {
   exchangeCode,
   refreshAccessToken,
   revokeToken,
+  OAuthRefreshError,
+  isAuthPreference,
+  resolveAuthPreference,
+  selectAuthChain,
 } from "./auth/index.js";
 
-export type { CreateOAuthAuthorizationOptions, OAuthTokens } from "./auth/index.js";
+export type { AuthChainSelection, AuthSlot, CreateOAuthAuthorizationOptions, OAuthTokens } from "./auth/index.js";
 
 export {
   API_BASE_URL,

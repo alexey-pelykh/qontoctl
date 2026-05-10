@@ -4,7 +4,7 @@
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { cliEnv, hasOAuthCredentials } from "../sandbox.js";
+import { cliEnv, hasOAuthCredentials, pinAuthPreference } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
@@ -23,6 +23,8 @@ function cliJson<T>(...args: string[]): T {
 }
 
 describe.skipIf(!hasOAuthCredentials())("intl-transfer CLI commands (e2e)", () => {
+  pinAuthPreference("oauth-first");
+
   describe("intl-transfer requirements", () => {
     it("returns requirements for a beneficiary", () => {
       // First list intl beneficiaries to get an ID

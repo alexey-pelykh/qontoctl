@@ -8,7 +8,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { TransferSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { cliEnv, hasOAuthCredentials, hasStagingToken } from "../sandbox.js";
+import { cliEnv, hasOAuthCredentials, hasStagingToken, pinAuthPreference } from "../sandbox.js";
 
 const CLI_PATH = resolve(import.meta.dirname, "../../../qontoctl/dist/cli.js");
 
@@ -60,6 +60,8 @@ function firstText(content: unknown): string {
 }
 
 describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("SCA continuation MCP (e2e, sandbox)", () => {
+  pinAuthPreference("oauth-first");
+
   let client: Client;
   let transport: StdioClientTransport;
   let stderrBuffer: string;
