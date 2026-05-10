@@ -8,14 +8,11 @@ import { connectInMemory } from "../testing/mcp-helpers.js";
 
 const sampleInternalTransfer = {
   id: "it-123",
-  debit_iban: "FR7630001007941234567890185",
-  credit_iban: "FR7630001007949876543210142",
-  debit_bank_account_id: "ba-1",
-  credit_bank_account_id: "ba-2",
+  slug: "org-slug-1-transfer-12",
   reference: "Monthly allocation",
   amount: 1000.0,
   amount_cents: 100000,
-  currency: "EUR",
+  amount_currency: "EUR",
   status: "processing",
   created_at: "2026-03-01T10:00:00Z",
 };

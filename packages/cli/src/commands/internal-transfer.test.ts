@@ -14,14 +14,11 @@ import { HttpClient } from "@qontoctl/core";
 
 const sampleInternalTransfer = {
   id: "it-123",
-  debit_iban: "FR7630001007941234567890185",
-  credit_iban: "FR7630001007949876543210142",
-  debit_bank_account_id: "ba-1",
-  credit_bank_account_id: "ba-2",
+  slug: "org-slug-1-transfer-12",
   reference: "Monthly allocation",
   amount: 1000.0,
   amount_cents: 100000,
-  currency: "EUR",
+  amount_currency: "EUR",
   status: "processing",
   created_at: "2026-03-01T10:00:00Z",
 };
@@ -108,11 +105,10 @@ describe("internal-transfer commands", () => {
       const output = stdoutSpy.mock.calls[0]?.[0] as string;
       const parsed = JSON.parse(output) as Record<string, unknown>;
       expect(parsed).toHaveProperty("id", "it-123");
-      expect(parsed).toHaveProperty("debit_iban", "FR7630001007941234567890185");
-      expect(parsed).toHaveProperty("credit_iban", "FR7630001007949876543210142");
+      expect(parsed).toHaveProperty("slug", "org-slug-1-transfer-12");
       expect(parsed).toHaveProperty("reference", "Monthly allocation");
       expect(parsed).toHaveProperty("amount", 1000.0);
-      expect(parsed).toHaveProperty("currency", "EUR");
+      expect(parsed).toHaveProperty("amount_currency", "EUR");
     });
 
     it("sends POST to the correct API endpoint with body", async () => {

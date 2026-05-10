@@ -7,14 +7,11 @@ import { InternalTransferSchema, InternalTransferResponseSchema } from "./schema
 describe("InternalTransferSchema", () => {
   const validInternalTransfer = {
     id: "it-1",
-    debit_iban: "FR7630001007941234567890185",
-    credit_iban: "FR7630001007949876543210185",
-    debit_bank_account_id: "ba-1",
-    credit_bank_account_id: "ba-2",
+    slug: "org-slug-1-transfer-1",
     reference: "Internal transfer",
     amount: 500,
     amount_cents: 50000,
-    currency: "EUR",
+    amount_currency: "EUR",
     status: "completed",
     created_at: "2025-01-01T00:00:00.000Z",
   };
@@ -43,14 +40,11 @@ describe("InternalTransferResponseSchema", () => {
     const response = {
       internal_transfer: {
         id: "it-1",
-        debit_iban: "FR7630001007941234567890185",
-        credit_iban: "FR7630001007949876543210185",
-        debit_bank_account_id: "ba-1",
-        credit_bank_account_id: "ba-2",
+        slug: "org-slug-1-transfer-1",
         reference: "Internal transfer",
         amount: 500,
         amount_cents: 50000,
-        currency: "EUR",
+        amount_currency: "EUR",
         status: "completed",
         created_at: "2025-01-01T00:00:00.000Z",
       },
