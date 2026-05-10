@@ -26,14 +26,11 @@ describe("createInternalTransfer", () => {
   it("creates an internal transfer and returns the result", async () => {
     const internalTransfer = {
       id: "it-1",
-      debit_iban: "FR7630001007941234567890185",
-      credit_iban: "FR7630001007949876543210142",
-      debit_bank_account_id: "ba-1",
-      credit_bank_account_id: "ba-2",
+      slug: "org-slug-1-transfer-1",
       reference: "Monthly allocation",
       amount: 1000.0,
       amount_cents: 100000,
-      currency: "EUR",
+      amount_currency: "EUR",
       status: "processing",
       created_at: "2026-03-01T10:00:00Z",
     };
@@ -69,14 +66,11 @@ describe("createInternalTransfer", () => {
       jsonResponse({
         internal_transfer: {
           id: "it-2",
-          debit_iban: "FR76X",
-          credit_iban: "FR76Y",
-          debit_bank_account_id: "ba-1",
-          credit_bank_account_id: "ba-2",
+          slug: "org-slug-1-transfer-2",
           reference: "Test",
           amount: 50.0,
           amount_cents: 5000,
-          currency: "EUR",
+          amount_currency: "EUR",
           status: "processing",
           created_at: "2026-03-01T10:00:00Z",
         },

@@ -19,10 +19,9 @@ interface InternalTransferCreateOptions extends GlobalOptions, WriteOptions {
 function internalTransferToTableRow(t: InternalTransfer): Record<string, string | number> {
   return {
     id: t.id,
-    debit_iban: t.debit_iban,
-    credit_iban: t.credit_iban,
+    slug: t.slug,
     reference: t.reference,
-    amount: `${t.amount} ${t.currency}`,
+    amount: `${String(t.amount)} ${t.amount_currency}`,
     status: t.status,
     created_at: t.created_at,
   };
