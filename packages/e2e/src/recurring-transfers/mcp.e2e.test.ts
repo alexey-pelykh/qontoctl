@@ -160,14 +160,11 @@ describe.skipIf(!hasOAuthCredentials())("recurring-transfer MCP tools (e2e)", ()
   });
 
   // Cancel exercises both create (write) and cancel (write). Create requires
-  // SCA approval against the sandbox; cancel goes through the MCP tool which
-  // does not currently orchestrate SCA polling (no `executeWithMcpSca`
-  // wrapper, no `wait`/`sca_session_token` schema fields), so a second SCA
-  // mock-decision flow cannot be hooked from the test side without modifying
-  // the MCP tool. If the API requires SCA on cancel, `withClient` formats the
-  // 428 as a structured "SCA required" pending response — the assertion
-  // `cancelText.text !~ /^SCA required/` surfaces that as a separate bug
-  // rather than masking it as a timeout.
+  // SCA approval against the sandbox; cancel now also orchestrates inline SCA
+  // polling via the same `executeWithMcpSca` wrapper (#500), so the test runs
+  // a second mock-decision flow tolerantly: if the sandbox cancel actually
+  // triggers SCA, we approve it; if it doesn't, the token-capture times out
+  // harmlessly while the cancel call resolves successfully on the happy path.
   describe.skipIf(!hasStagingToken())("recurring_transfer_cancel (sandbox SCA)", () => {
     it("creates a recurring transfer with SCA approval and then cancels it", async () => {
       const beneficiaryResult = await client.callTool({
@@ -217,11 +214,37 @@ describe.skipIf(!hasOAuthCredentials())("recurring-transfer MCP tools (e2e)", ()
       const created = JSON.parse(createText) as RecurringTransferItem;
       expect(created).toHaveProperty("id");
 
-      // --- Step 2: cancel (no inline SCA orchestration available). ---
-      const cancelResult = await client.callTool({
+      // --- Step 2: cancel with inline SCA orchestration (#500). ---
+      // Tolerant approval: cancel may or may not require SCA against the
+      // sandbox. If it does, the token appears in stderr and we approve it;
+      // if it doesn't, the timeout is swallowed and the cancel call resolves
+      // on the happy path. Either way, the assertion below requires success.
+      const cancelCallPromise = client.callTool({
         name: "recurring_transfer_cancel",
-        arguments: { id: created.id },
+        arguments: { id: created.id, wait: 10 },
       });
+      const cancelApprovalPromise = (async () => {
+        // Narrow the swallow to the stderr-capture timeout (happy path: no SCA
+        // challenge was raised). Errors from `sca_session_mock_decision` —
+        // e.g. genuine MCP/HTTP failures — are NOT caught and will fail the
+        // test. Matching by error-message prefix keeps the catch tied to the
+        // specific shape produced by `captureScaTokenFromStderr`.
+        let token: string;
+        try {
+          token = await captureScaTokenFromStderr(8_000);
+        } catch (error) {
+          if (error instanceof Error && error.message.startsWith("Timed out")) {
+            return;
+          }
+          throw error;
+        }
+        await new Promise((r) => setTimeout(r, 2_000));
+        await client.callTool({
+          name: "sca_session_mock_decision",
+          arguments: { token, decision: "allow" },
+        });
+      })();
+      const [cancelResult] = await Promise.all([cancelCallPromise, cancelApprovalPromise]);
 
       expect(cancelResult.isError).not.toBe(true);
       const cancelText = firstTextFromMcpResult(cancelResult);

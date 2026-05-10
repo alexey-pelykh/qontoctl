@@ -750,6 +750,150 @@ describe("transfer MCP tools", () => {
       expect(url.pathname).toBe("/v2/sepa/transfers/txfr-cancel-1/cancel");
       expect(init.method).toBe("POST");
     });
+
+    describe("SCA continuation", () => {
+      const SCA_TOKEN = "sca-tok-mcp-transfer-cancel";
+
+      it("returns structured pending response on 428 with wait=0 (pure two-step)", async () => {
+        let postCount = 0;
+        let scaPollCount = 0;
+        fetchSpy.mockImplementation((input: URL, init: RequestInit) => {
+          if (input.pathname === "/v2/sepa/transfers/txfr-cancel-1/cancel" && init.method === "POST") {
+            postCount++;
+            return new Response(JSON.stringify({ sca_session_token: SCA_TOKEN }), {
+              status: 428,
+              headers: { "content-type": "application/json" },
+            });
+          }
+          if (input.pathname.startsWith("/v2/sca/sessions/")) {
+            scaPollCount++;
+          }
+          return jsonResponse({});
+        });
+
+        const result = await mcpClient.callTool({
+          name: "transfer_cancel",
+          arguments: { id: "txfr-cancel-1", wait: 0 },
+        });
+
+        expect(result.isError).toBe(false);
+        const text = (result.content as { type: string; text: string }[])[0]?.text ?? "";
+        expect(text).toContain("SCA required");
+        expect(text).toContain(SCA_TOKEN);
+        expect(text).toContain("sca_session_show");
+        expect(text).toContain("sca_session_token");
+        // The dead-end formatter is NOT used.
+        expect(text).not.toContain("Poll GET");
+        expect(text).not.toContain("/v2/sca/sessions/");
+        // Pure two-step: cancel POST hit once, no SCA polling, no retry.
+        expect(postCount).toBe(1);
+        expect(scaPollCount).toBe(0);
+      });
+
+      it("retries the operation with the supplied sca_session_token (no polling)", async () => {
+        let postCount = 0;
+        let scaPollCount = 0;
+        const observedScaTokens: (string | null)[] = [];
+
+        fetchSpy.mockImplementation((input: URL, init: RequestInit) => {
+          if (input.pathname === "/v2/sepa/transfers/txfr-cancel-1/cancel" && init.method === "POST") {
+            const headers = init.headers as Record<string, string> | undefined;
+            observedScaTokens.push(headers?.["X-Qonto-Sca-Session-Token"] ?? null);
+            postCount++;
+            return new Response(null, { status: 204 });
+          }
+          if (input.pathname.startsWith("/v2/sca/sessions/")) {
+            scaPollCount++;
+          }
+          return jsonResponse({});
+        });
+
+        const result = await mcpClient.callTool({
+          name: "transfer_cancel",
+          arguments: { id: "txfr-cancel-1", sca_session_token: SCA_TOKEN },
+        });
+
+        expect(postCount).toBe(1);
+        // Caller supplied the SCA token directly: no polling round-trip.
+        expect(scaPollCount).toBe(0);
+        expect(observedScaTokens[0]).toBe(SCA_TOKEN);
+
+        const text = (result.content as { type: string; text: string }[])[0]?.text ?? "";
+        const parsed = JSON.parse(text) as { canceled: boolean; id: string };
+        expect(parsed.canceled).toBe(true);
+        expect(parsed.id).toBe("txfr-cancel-1");
+      });
+
+      it("preserves a stable idempotency key across the initial 428 + post-poll retry", async () => {
+        let postCount = 0;
+        const observedIdempotencyKeys: (string | null)[] = [];
+
+        fetchSpy.mockImplementation((input: URL, init: RequestInit) => {
+          const headers = init.headers as Record<string, string> | undefined;
+
+          if (input.pathname === "/v2/sepa/transfers/txfr-cancel-1/cancel" && init.method === "POST") {
+            postCount++;
+            observedIdempotencyKeys.push(headers?.["X-Qonto-Idempotency-Key"] ?? null);
+            if (postCount === 1) {
+              // First attempt: 428 SCA required. Real Qonto API returns top-level fields,
+              // not an `errors[]` array — see docs/security/sca-token-binding.md.
+              return new Response(
+                JSON.stringify({
+                  action_type: "transfer.single.cancel",
+                  code: "sca_required",
+                  message: "SCA required",
+                  sca_session_token: SCA_TOKEN,
+                }),
+                {
+                  status: 428,
+                  headers: { "content-type": "application/json", "X-Qonto-Sca-Session-Token": SCA_TOKEN },
+                },
+              );
+            }
+            return new Response(null, { status: 204 });
+          }
+          if (input.pathname.startsWith("/v2/sca/sessions/")) {
+            return jsonResponse({ sca_session: { status: "allow" } });
+          }
+          return jsonResponse({});
+        });
+
+        const result = await mcpClient.callTool({
+          name: "transfer_cancel",
+          arguments: { id: "txfr-cancel-1", wait: 5 },
+        });
+
+        expect(postCount).toBe(2);
+        expect(observedIdempotencyKeys[0]).toBeTruthy();
+        expect(observedIdempotencyKeys[0]).toBe(observedIdempotencyKeys[1]);
+
+        const text = (result.content as { type: string; text: string }[])[0]?.text ?? "";
+        const parsed = JSON.parse(text) as { canceled: boolean; id: string };
+        expect(parsed.canceled).toBe(true);
+        expect(parsed.id).toBe("txfr-cancel-1");
+      });
+
+      it("accepts wait=false in the input schema (pure two-step)", async () => {
+        fetchSpy.mockImplementation((input: URL, init: RequestInit) => {
+          if (input.pathname === "/v2/sepa/transfers/txfr-cancel-1/cancel" && init.method === "POST") {
+            return new Response(JSON.stringify({ sca_session_token: SCA_TOKEN }), {
+              status: 428,
+              headers: { "content-type": "application/json" },
+            });
+          }
+          return jsonResponse({});
+        });
+
+        const result = await mcpClient.callTool({
+          name: "transfer_cancel",
+          arguments: { id: "txfr-cancel-1", wait: false },
+        });
+
+        expect(result.isError).toBe(false);
+        const text = (result.content as { type: string; text: string }[])[0]?.text ?? "";
+        expect(text).toContain(SCA_TOKEN);
+      });
+    });
   });
 
   describe("transfer_proof", () => {

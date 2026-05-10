@@ -142,18 +142,24 @@ export function registerRecurringTransferTools(server: McpServer, getClient: () 
   server.registerTool(
     "recurring_transfer_cancel",
     {
-      description: "Cancel a recurring transfer",
+      description:
+        "Cancel a recurring transfer. SCA: this operation may require Strong Customer Authentication; the tool polls inline by default (wait=30s) and falls back to a structured pending response so the caller can continue via sca_session_show + sca_session_token.",
       inputSchema: {
         id: z.string().describe("Recurring transfer UUID"),
+        ...scaContinuationSchema,
       },
     },
-    async ({ id }) =>
-      withClient(getClient, async (client) => {
-        await cancelRecurringTransfer(client, id);
-        return {
-          content: [{ type: "text" as const, text: JSON.stringify({ canceled: true, id }, null, 2) }],
-        };
-      }),
+    async (args) =>
+      withClient(getClient, async (client) =>
+        executeWithMcpSca(
+          client,
+          (context) => cancelRecurringTransfer(client, args.id, coreOptionsFromContext(context)),
+          () => ({
+            content: [{ type: "text" as const, text: JSON.stringify({ canceled: true, id: args.id }, null, 2) }],
+          }),
+          scaOptionsFromArgs(args),
+        ),
+      ),
   );
 
   server.registerTool(
