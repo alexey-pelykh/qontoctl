@@ -401,4 +401,87 @@ describe("recurring-transfer create command", () => {
     );
     expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("no match"));
   });
+
+  it("auto-resolves vop_proof_token on not_possible result with warning", async () => {
+    getBeneficiaryMock.mockResolvedValue(sampleBeneficiary);
+    verifyPayeeMock.mockResolvedValue({
+      match_result: "MATCH_RESULT_NOT_POSSIBLE",
+      matched_name: null,
+      proof_token: { token: "tok_auto_not_possible" },
+    });
+    createRecurringTransferMock.mockResolvedValue(sampleRecurringTransfer);
+
+    const program = new Command();
+    program.option("-o, --output <format>", "", "table");
+    registerRecurringTransferCommands(program);
+
+    await program.parseAsync(
+      [
+        "recurring-transfer",
+        "create",
+        "--beneficiary",
+        "ben-1",
+        "--debit-account",
+        "acc-1",
+        "--amount",
+        "100",
+        "--reference",
+        "Test",
+        "--start-date",
+        "2026-04-01",
+        "--schedule",
+        "monthly",
+      ],
+      { from: "user" },
+    );
+
+    expect(createRecurringTransferMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ vop_proof_token: "tok_auto_not_possible" }),
+      expect.anything(),
+    );
+    expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("not possible"));
+  });
+
+  it("auto-resolves vop_proof_token on close_match result with warning including matched name", async () => {
+    getBeneficiaryMock.mockResolvedValue(sampleBeneficiary);
+    verifyPayeeMock.mockResolvedValue({
+      match_result: "MATCH_RESULT_CLOSE_MATCH",
+      matched_name: "Acme Corporation",
+      proof_token: { token: "tok_auto_close_match" },
+    });
+    createRecurringTransferMock.mockResolvedValue(sampleRecurringTransfer);
+
+    const program = new Command();
+    program.option("-o, --output <format>", "", "table");
+    registerRecurringTransferCommands(program);
+
+    await program.parseAsync(
+      [
+        "recurring-transfer",
+        "create",
+        "--beneficiary",
+        "ben-1",
+        "--debit-account",
+        "acc-1",
+        "--amount",
+        "100",
+        "--reference",
+        "Test",
+        "--start-date",
+        "2026-04-01",
+        "--schedule",
+        "monthly",
+      ],
+      { from: "user" },
+    );
+
+    expect(createRecurringTransferMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ vop_proof_token: "tok_auto_close_match" }),
+      expect.anything(),
+    );
+    expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("close match"));
+    expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("matched name: Acme Corporation"));
+  });
 });
