@@ -66,13 +66,18 @@ export interface InsuranceContract {
 }
 
 /**
- * A document attached to an insurance contract, as returned by the upload-document endpoint.
+ * A document attached to an insurance contract, as returned by both the
+ * upload endpoint (`POST /v2/insurance_contracts/{id}/attachments`) and the
+ * contract's `documents[]` array. The Qonto API uses both names — the path
+ * is "/attachments" but the contract field is "documents" — and returns the
+ * same `{ id, name, type }` payload from each.
+ *
+ * Known `type` values (empirically observed): `contract`, `amendment`,
+ * `invoice`, `other`, `policy`, `certificate`. The field is open (no Qonto
+ * docs enum at time of writing), so qontoctl pins it as `string`.
  */
 export interface InsuranceDocument {
   readonly id: string;
-  readonly file_name: string;
-  readonly file_size: string;
-  readonly file_content_type: string;
-  readonly url: string;
-  readonly created_at: string;
+  readonly name: string;
+  readonly type: string;
 }

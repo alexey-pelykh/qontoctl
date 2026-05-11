@@ -3,7 +3,7 @@
 
 import type { HttpClient } from "../http-client.js";
 import { parseResponse } from "../response.js";
-import { InsuranceContractResponseSchema, InsuranceDocumentResponseSchema } from "./schemas.js";
+import { InsuranceContractResponseSchema, InsuranceDocumentSchema } from "./schemas.js";
 import type {
   InsuranceContract,
   InsuranceContractOrigin,
@@ -112,10 +112,17 @@ export async function updateInsuranceContract(
 /**
  * Upload a document to an insurance contract via multipart form-data.
  *
+ * The Qonto endpoint is `/attachments` (not `/documents`, despite the contract
+ * response naming the array `documents`) and the multipart body requires
+ * three fields: `file`, `name`, and `type`. The response is a flat
+ * `{ id, name, type }` payload — NOT wrapped in `insurance_document`.
+ *
  * @param client - The HTTP client to use for the request.
  * @param contractId - The insurance contract UUID.
  * @param file - The file content as a Blob.
- * @param fileName - The file name.
+ * @param fileName - The file name (becomes the `name` multipart field as well).
+ * @param type - Document category. Known values: `contract`, `amendment`,
+ *   `invoice`, `other`, `policy`, `certificate` (open enum — pass through).
  * @param options - Optional idempotency key.
  * @returns The uploaded document details.
  */
@@ -124,14 +131,17 @@ export async function uploadInsuranceDocument(
   contractId: string,
   file: Blob,
   fileName: string,
+  type: string,
   options?: { readonly idempotencyKey?: string },
 ): Promise<InsuranceDocument> {
   const formData = new FormData();
   formData.append("file", file, fileName);
+  formData.append("name", fileName);
+  formData.append("type", type);
 
-  const endpointPath = `/v2/insurance_contracts/${encodeURIComponent(contractId)}/documents`;
+  const endpointPath = `/v2/insurance_contracts/${encodeURIComponent(contractId)}/attachments`;
   const response = await client.postFormData(endpointPath, formData, options);
-  return parseResponse(InsuranceDocumentResponseSchema, response, endpointPath).insurance_document;
+  return parseResponse(InsuranceDocumentSchema, response, endpointPath);
 }
 
 /**
@@ -149,7 +159,7 @@ export async function removeInsuranceDocument(
   options?: { readonly idempotencyKey?: string },
 ): Promise<void> {
   await client.delete(
-    `/v2/insurance_contracts/${encodeURIComponent(contractId)}/documents/${encodeURIComponent(documentId)}`,
+    `/v2/insurance_contracts/${encodeURIComponent(contractId)}/attachments/${encodeURIComponent(documentId)}`,
     options,
   );
 }

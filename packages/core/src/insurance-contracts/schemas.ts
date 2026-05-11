@@ -32,14 +32,17 @@ export const InsuranceContractDocumentRefSchema = z
   })
   .strip();
 
+// The Qonto upload-attachment endpoint (`POST /v2/insurance_contracts/{id}/attachments`)
+// returns a flat `{ id, name, type }` payload — NOT the file_name/file_size/
+// file_content_type/url/created_at shape an earlier draft inferred. Empirically
+// confirmed against the live sandbox during #454. The same shape echoes back
+// in `InsuranceContract.documents[]`, so this and `InsuranceContractDocumentRef`
+// describe the same record under two endpoints.
 export const InsuranceDocumentSchema = z
   .object({
     id: z.string(),
-    file_name: z.string(),
-    file_size: z.coerce.string(),
-    file_content_type: z.string(),
-    url: z.string(),
-    created_at: z.string(),
+    name: z.string(),
+    type: z.string(),
   })
   .strip() satisfies z.ZodType<InsuranceDocument>;
 
@@ -70,11 +73,5 @@ export const InsuranceContractSchema = z
 export const InsuranceContractResponseSchema = z
   .object({
     insurance_contract: InsuranceContractSchema,
-  })
-  .strip();
-
-export const InsuranceDocumentResponseSchema = z
-  .object({
-    insurance_document: InsuranceDocumentSchema,
   })
   .strip();

@@ -29,11 +29,8 @@ const sampleContract = {
 
 const sampleDocument = {
   id: "doc-123",
-  file_name: "policy.pdf",
-  file_size: "54321",
-  file_content_type: "application/pdf",
-  url: "https://example.com/documents/doc-123",
-  created_at: "2026-01-01T10:00:00Z",
+  name: "policy.pdf",
+  type: "contract",
 };
 
 describe("insurance commands", () => {
@@ -278,23 +275,38 @@ describe("insurance commands", () => {
   });
 
   describe("insurance upload-doc", () => {
-    it("uploads a document via multipart form-data", async () => {
-      fetchSpy.mockImplementation(() => jsonResponse({ insurance_document: sampleDocument }));
+    it("uploads a document via multipart form-data with required --type", async () => {
+      fetchSpy.mockImplementation(() => jsonResponse(sampleDocument));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
       program.exitOverride();
 
-      await program.parseAsync(["insurance", "upload-doc", "ic-123", "package.json"], { from: "user" });
+      await program.parseAsync(["insurance", "upload-doc", "ic-123", "package.json", "--type", "contract"], {
+        from: "user",
+      });
 
       expect(stdoutSpy).toHaveBeenCalled();
       const output = stdoutSpy.mock.calls[0]?.[0] as string;
       expect(output).toContain("doc-123");
 
       const [url, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
-      expect(url.pathname).toBe("/v2/insurance_contracts/ic-123/documents");
+      expect(url.pathname).toBe("/v2/insurance_contracts/ic-123/attachments");
       expect(opts.method).toBe("POST");
       expect(opts.body).toBeInstanceOf(FormData);
+      const fd = opts.body as FormData;
+      expect(fd.get("name")).toBe("package.json");
+      expect(fd.get("type")).toBe("contract");
+    });
+
+    it("rejects upload-doc without --type", async () => {
+      const { createProgram } = await import("../program.js");
+      const program = createProgram();
+      program.exitOverride();
+
+      await expect(
+        program.parseAsync(["insurance", "upload-doc", "ic-123", "package.json"], { from: "user" }),
+      ).rejects.toThrow();
     });
   });
 
@@ -327,7 +339,7 @@ describe("insurance commands", () => {
       expect(output).toContain("Document doc-123 removed");
 
       const [url, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
-      expect(url.pathname).toBe("/v2/insurance_contracts/ic-123/documents/doc-123");
+      expect(url.pathname).toBe("/v2/insurance_contracts/ic-123/attachments/doc-123");
       expect(opts.method).toBe("DELETE");
     });
   });

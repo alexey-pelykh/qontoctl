@@ -186,13 +186,16 @@ export function registerInsuranceTools(server: McpServer, getClient: () => Promi
       inputSchema: {
         contract_id: z.string().describe("Insurance contract ID (UUID)"),
         file_path: z.string().describe("Absolute path to the file to upload"),
+        type: z
+          .string()
+          .describe("Document category (e.g. 'contract', 'amendment', 'invoice', 'other', 'policy', 'certificate')"),
       },
     },
-    async ({ contract_id, file_path }) =>
+    async ({ contract_id, file_path, type }) =>
       withClient(getClient, async (client) => {
         const buffer = await readFile(file_path);
         const fileName = basename(file_path);
-        const doc = await uploadInsuranceDocument(client, contract_id, new Blob([buffer]), fileName);
+        const doc = await uploadInsuranceDocument(client, contract_id, new Blob([buffer]), fileName, type);
 
         return {
           content: [
