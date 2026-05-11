@@ -3,7 +3,7 @@
 
 import { describe, it, expect } from "vitest";
 import { z } from "zod";
-import { AttachmentSchema } from "./schemas.js";
+import { AttachmentSchema, UploadedAttachmentSchema } from "./schemas.js";
 
 describe("AttachmentSchema", () => {
   const validAttachment = {
@@ -35,5 +35,27 @@ describe("AttachmentSchema", () => {
   it("coerces numeric file_size to string", () => {
     const result = AttachmentSchema.parse({ ...validAttachment, file_size: 12345 });
     expect(result.file_size).toBe("12345");
+  });
+});
+
+describe("UploadedAttachmentSchema", () => {
+  it("parses the minimal upload response (id only)", () => {
+    const result = UploadedAttachmentSchema.parse({ id: "att-1" });
+    expect(result).toEqual({ id: "att-1" });
+  });
+
+  it("strips additional fields that some endpoints might add later", () => {
+    const result = UploadedAttachmentSchema.parse({
+      id: "att-1",
+      file_name: "invoice.pdf",
+      url: "https://example.com/attachments/att-1",
+    });
+    expect(result).toEqual({ id: "att-1" });
+    expect(result).not.toHaveProperty("file_name");
+    expect(result).not.toHaveProperty("url");
+  });
+
+  it("rejects when id is missing", () => {
+    expect(() => UploadedAttachmentSchema.parse({})).toThrow(z.ZodError);
   });
 });

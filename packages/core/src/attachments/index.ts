@@ -10,6 +10,6 @@ export {
   removeTransactionAttachment,
 } from "./service.js";
 
-export type { Attachment } from "./types.js";
+export type { Attachment, UploadedAttachment } from "./types.js";
 
-export { AttachmentSchema } from "./schemas.js";
+export { AttachmentSchema, UploadedAttachmentSchema } from "./schemas.js";

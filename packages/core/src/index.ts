@@ -453,8 +453,8 @@ export {
   removeTransactionAttachment,
 } from "./attachments/index.js";
 
-export type { Attachment } from "./attachments/index.js";
-export { AttachmentSchema } from "./attachments/index.js";
+export type { Attachment, UploadedAttachment } from "./attachments/index.js";
+export { AttachmentSchema, UploadedAttachmentSchema } from "./attachments/index.js";
 
 export {
   getInsuranceContract,
