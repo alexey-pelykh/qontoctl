@@ -1,10 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import { ClientInvoiceSchema } from "@qontoctl/core";
+import { resolve } from "node:path";
+import { ClientInvoiceSchema, ClientInvoiceUploadSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
 import { cli } from "../helpers.js";
 import { hasApiKeyCredentials } from "../sandbox.js";
+
+/**
+ * Absolute path to the committed PDF fixture used by the upload round-trip.
+ * Shared with attachments/insurance/supplier-invoice E2E.
+ */
+const PDF_FIXTURE_PATH = resolve(import.meta.dirname, "..", "..", "fixtures", "tiny.pdf");
 
 describe.skipIf(!hasApiKeyCredentials())("client-invoice commands (e2e)", () => {
   describe("client-invoice list", () => {
@@ -92,6 +99,48 @@ describe.skipIf(!hasApiKeyCredentials())("client-invoice commands (e2e)", () => 
       const output = cli("--output", "json", "client-invoice", "update", createdInvoiceId, "--body", body);
       const parsed = JSON.parse(output) as Record<string, unknown>;
       expect(parsed).toHaveProperty("id", createdInvoiceId);
+    });
+
+    // Real file upload + retrieval round-trip against the live sandbox — closes
+    // the audit gap from umbrella #449 (Group 4c): client-invoice upload write
+    // paths were fully implemented but uncovered by E2E. Sequential `it` blocks
+    // share `uploadedFileId` via closure on top of the parent CRUD lifecycle's
+    // `createdInvoiceId`, mirroring the attachment/insurance pattern in #453/#454.
+    // The PDF fixture (`packages/e2e/fixtures/tiny.pdf`) landed with #G4A.
+    //
+    // Unlike attachments and insurance, the client-invoice upload endpoint has no
+    // delete pair — uploads are removed implicitly when the parent invoice is
+    // deleted in the final lifecycle step.
+    let uploadedFileId: string | undefined;
+
+    it("uploads a PDF to the created invoice via client-invoice upload", () => {
+      if (createdInvoiceId === undefined) {
+        return;
+      }
+
+      const output = cli("--output", "json", "client-invoice", "upload", createdInvoiceId, PDF_FIXTURE_PATH);
+      const parsed = JSON.parse(output) as Record<string, unknown>;
+      ClientInvoiceUploadSchema.parse(parsed);
+      expect(parsed).toHaveProperty("id");
+      expect(parsed).toHaveProperty("file_name", "tiny.pdf");
+      expect(parsed).toHaveProperty("file_content_type");
+      expect(parsed).toHaveProperty("file_size");
+      uploadedFileId = parsed["id"] as string;
+    });
+
+    it("retrieves the upload via client-invoice upload-show", () => {
+      if (createdInvoiceId === undefined || uploadedFileId === undefined) {
+        return;
+      }
+
+      const output = cli("--output", "json", "client-invoice", "upload-show", createdInvoiceId, uploadedFileId);
+      const parsed = JSON.parse(output) as Record<string, unknown>;
+      ClientInvoiceUploadSchema.parse(parsed);
+      expect(parsed).toHaveProperty("id", uploadedFileId);
+      expect(parsed).toHaveProperty("file_name", "tiny.pdf");
+      expect(parsed).toHaveProperty("file_content_type");
+      expect(parsed).toHaveProperty("url");
+      expect(parsed).toHaveProperty("created_at");
     });
 
     it("deletes the created invoice", () => {
