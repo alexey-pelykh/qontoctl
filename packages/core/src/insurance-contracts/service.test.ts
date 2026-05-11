@@ -28,11 +28,8 @@ const sampleContract = {
 
 const sampleDocument = {
   id: "doc-1",
-  file_name: "policy.pdf",
-  file_size: "54321",
-  file_content_type: "application/pdf",
-  url: "https://example.com/documents/doc-1",
-  created_at: "2026-01-01T10:00:00Z",
+  name: "policy.pdf",
+  type: "contract",
 };
 
 describe("insurance contract service", () => {
@@ -156,25 +153,29 @@ describe("insurance contract service", () => {
   });
 
   describe("uploadInsuranceDocument", () => {
-    it("uploads a document via multipart form-data", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ insurance_document: sampleDocument }));
+    it("uploads a document via multipart form-data to /attachments", async () => {
+      fetchSpy.mockReturnValue(jsonResponse(sampleDocument));
 
       const file = new Blob(["file content"], { type: "application/pdf" });
-      const result = await uploadInsuranceDocument(client, "ic-1", file, "policy.pdf");
+      const result = await uploadInsuranceDocument(client, "ic-1", file, "policy.pdf", "contract");
 
       expect(result).toEqual(sampleDocument);
 
       const [url, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
-      expect(url.pathname).toBe("/v2/insurance_contracts/ic-1/documents");
+      expect(url.pathname).toBe("/v2/insurance_contracts/ic-1/attachments");
       expect(opts.method).toBe("POST");
       expect(opts.body).toBeInstanceOf(FormData);
+      const fd = opts.body as FormData;
+      expect(fd.get("name")).toBe("policy.pdf");
+      expect(fd.get("type")).toBe("contract");
+      expect(fd.get("file")).toBeInstanceOf(Blob);
     });
 
     it("passes idempotency key when provided", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ insurance_document: sampleDocument }));
+      fetchSpy.mockReturnValue(jsonResponse(sampleDocument));
 
       const file = new Blob(["file content"]);
-      await uploadInsuranceDocument(client, "ic-1", file, "policy.pdf", { idempotencyKey: "key-789" });
+      await uploadInsuranceDocument(client, "ic-1", file, "policy.pdf", "contract", { idempotencyKey: "key-789" });
 
       const [, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
       const headers = opts.headers as Record<string, string>;
@@ -189,7 +190,7 @@ describe("insurance contract service", () => {
       await removeInsuranceDocument(client, "ic-1", "doc-1");
 
       const [url, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
-      expect(url.pathname).toBe("/v2/insurance_contracts/ic-1/documents/doc-1");
+      expect(url.pathname).toBe("/v2/insurance_contracts/ic-1/attachments/doc-1");
       expect(opts.method).toBe("DELETE");
     });
 

@@ -214,13 +214,21 @@ export function registerInsuranceCommands(program: Command): void {
   });
 
   // --- upload-doc ---
+  // Known `--type` values (open enum at Qonto's side, so we don't constrain
+  // with .choices(...)): contract, amendment, invoice, other, policy, certificate.
   const uploadDoc = insurance
     .command("upload-doc <id> <file>")
-    .description("Upload a document to an insurance contract");
+    .description("Upload a document to an insurance contract")
+    .addOption(
+      new Option(
+        "--type <type>",
+        "document category (e.g. contract, amendment, invoice, other, policy, certificate)",
+      ).makeOptionMandatory(),
+    );
   addInheritableOptions(uploadDoc);
   addWriteOptions(uploadDoc);
   uploadDoc.action(async (id: string, file: string, _options: unknown, cmd: Command) => {
-    const opts = resolveGlobalOptions<GlobalOptions & WriteOptions>(cmd);
+    const opts = resolveGlobalOptions<GlobalOptions & WriteOptions & { type: string }>(cmd);
     const client = await createClient(opts);
 
     const buffer = await readFile(file);
@@ -231,21 +239,12 @@ export function registerInsuranceCommands(program: Command): void {
       id,
       new Blob([buffer]),
       fileName,
+      opts.type,
       opts.idempotencyKey !== undefined ? { idempotencyKey: opts.idempotencyKey } : undefined,
     );
 
     const data =
-      opts.output === "json" || opts.output === "yaml"
-        ? doc
-        : [
-            {
-              id: doc.id,
-              file_name: doc.file_name,
-              file_size: doc.file_size,
-              file_content_type: doc.file_content_type,
-              created_at: doc.created_at,
-            },
-          ];
+      opts.output === "json" || opts.output === "yaml" ? doc : [{ id: doc.id, name: doc.name, type: doc.type }];
 
     process.stdout.write(formatOutput(data, opts.output) + "\n");
   });

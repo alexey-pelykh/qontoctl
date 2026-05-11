@@ -29,6 +29,5 @@ export {
   InsuranceContractResponseSchema,
   InsuranceContractSchema,
   InsuranceContractStatusSchema,
-  InsuranceDocumentResponseSchema,
   InsuranceDocumentSchema,
 } from "./schemas.js";

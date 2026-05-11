@@ -469,7 +469,6 @@ export {
   InsuranceContractResponseSchema,
   InsuranceContractSchema,
   InsuranceContractStatusSchema,
-  InsuranceDocumentResponseSchema,
   InsuranceDocumentSchema,
 } from "./insurance-contracts/index.js";
 

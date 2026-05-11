@@ -2,21 +2,13 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { describe, it, expect } from "vitest";
-import {
-  InsuranceContractSchema,
-  InsuranceContractResponseSchema,
-  InsuranceDocumentSchema,
-  InsuranceDocumentResponseSchema,
-} from "./schemas.js";
+import { InsuranceContractSchema, InsuranceContractResponseSchema, InsuranceDocumentSchema } from "./schemas.js";
 
 describe("InsuranceDocumentSchema", () => {
   const validDocument = {
     id: "doc-1",
-    file_name: "policy.pdf",
-    file_size: "12345",
-    file_content_type: "application/pdf",
-    url: "https://example.com/policy.pdf",
-    created_at: "2025-06-01T00:00:00.000Z",
+    name: "policy.pdf",
+    type: "contract",
   };
 
   it("accepts a valid document", () => {
@@ -24,32 +16,28 @@ describe("InsuranceDocumentSchema", () => {
     expect(result).toEqual(validDocument);
   });
 
-  it("coerces file_size to string", () => {
-    const result = InsuranceDocumentSchema.parse({ ...validDocument, file_size: 12345 });
-    expect(result.file_size).toBe("12345");
+  it("accepts any string for type (open enum)", () => {
+    for (const type of ["contract", "amendment", "invoice", "other", "policy", "certificate", "future_kind"]) {
+      expect(() => InsuranceDocumentSchema.parse({ ...validDocument, type })).not.toThrow();
+    }
   });
 
   it("rejects missing required fields", () => {
     expect(() => InsuranceDocumentSchema.parse({ ...validDocument, id: undefined })).toThrow();
-    expect(() => InsuranceDocumentSchema.parse({ ...validDocument, file_name: undefined })).toThrow();
-    expect(() => InsuranceDocumentSchema.parse({ ...validDocument, url: undefined })).toThrow();
+    expect(() => InsuranceDocumentSchema.parse({ ...validDocument, name: undefined })).toThrow();
+    expect(() => InsuranceDocumentSchema.parse({ ...validDocument, type: undefined })).toThrow();
   });
-});
 
-describe("InsuranceDocumentResponseSchema", () => {
-  it("validates response wrapper", () => {
-    const response = {
-      insurance_document: {
-        id: "doc-1",
-        file_name: "policy.pdf",
-        file_size: "12345",
-        file_content_type: "application/pdf",
-        url: "https://example.com/policy.pdf",
-        created_at: "2025-06-01T00:00:00.000Z",
-      },
-    };
-    const result = InsuranceDocumentResponseSchema.parse(response);
-    expect(result.insurance_document.id).toBe("doc-1");
+  it("strips unknown fields (e.g. the legacy file_size envelope)", () => {
+    const result = InsuranceDocumentSchema.parse({
+      ...validDocument,
+      file_name: "ignored.pdf",
+      file_size: "12345",
+      url: "https://example.com/ignored",
+    } as unknown);
+    expect(result).not.toHaveProperty("file_name");
+    expect(result).not.toHaveProperty("file_size");
+    expect(result).not.toHaveProperty("url");
   });
 });
 
