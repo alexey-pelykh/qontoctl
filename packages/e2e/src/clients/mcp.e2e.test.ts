@@ -75,8 +75,20 @@ describe.skipIf(!hasApiKeyCredentials())("MCP client tools (e2e)", () => {
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as Record<string, unknown>;
       ClientSchema.parse(parsed);
       expect(parsed).toHaveProperty("id", clientId);
-      expect(parsed).toHaveProperty("name");
       expect(parsed).toHaveProperty("type");
+      expect(parsed).toHaveProperty("kind");
+      // Qonto omits `name` entirely for individual/freelancer clients and returns
+      // `first_name` + `last_name` instead. Assert against the kind-discriminated
+      // contract rather than blanket `toHaveProperty("name")`, which fails when
+      // the sandbox's first client is an individual (#537). Mirrors the schema
+      // shape pinned in `ClientSchema` (`packages/core/src/types/client.schema.ts`).
+      const kind = (parsed as { kind: string }).kind;
+      if (kind === "company") {
+        expect(parsed).toHaveProperty("name");
+      } else {
+        expect(parsed).toHaveProperty("first_name");
+        expect(parsed).toHaveProperty("last_name");
+      }
     });
   });
 
