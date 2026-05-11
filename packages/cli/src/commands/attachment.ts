@@ -4,7 +4,7 @@
 import { readFile } from "node:fs/promises";
 import { basename } from "node:path";
 import { Command } from "commander";
-import { type Attachment, uploadAttachment, getAttachment } from "@qontoctl/core";
+import { type Attachment, type UploadedAttachment, uploadAttachment, getAttachment } from "@qontoctl/core";
 import { createClient } from "../client.js";
 import { formatOutput } from "../formatters/index.js";
 import { addInheritableOptions, addWriteOptions, resolveGlobalOptions } from "../inherited-options.js";
@@ -18,6 +18,10 @@ function attachmentToTableRow(a: Attachment): Record<string, string | number> {
     file_content_type: a.file_content_type,
     created_at: a.created_at,
   };
+}
+
+function uploadedAttachmentToTableRow(a: UploadedAttachment): Record<string, string> {
+  return { id: a.id };
 }
 
 export function createAttachmentCommand(): Command {
@@ -34,6 +38,9 @@ export function createAttachmentCommand(): Command {
     const buffer = await readFile(file);
     const fileName = basename(file);
 
+    // `POST /v2/attachments` returns only the attachment ID — to render anything
+    // more than `{ id }` would require a follow-up `attachment show` by the
+    // user, which is the documented pattern.
     const result = await uploadAttachment(
       client,
       new Blob([buffer]),
@@ -41,7 +48,7 @@ export function createAttachmentCommand(): Command {
       opts.idempotencyKey !== undefined ? { idempotencyKey: opts.idempotencyKey } : undefined,
     );
 
-    const data = opts.output === "json" || opts.output === "yaml" ? result : [attachmentToTableRow(result)];
+    const data = opts.output === "json" || opts.output === "yaml" ? result : [uploadedAttachmentToTableRow(result)];
 
     process.stdout.write(formatOutput(data, opts.output) + "\n");
   });

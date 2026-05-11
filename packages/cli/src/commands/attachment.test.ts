@@ -95,8 +95,13 @@ describe("attachment commands", () => {
   });
 
   describe("attachment upload", () => {
-    it("uploads a file via multipart form-data", async () => {
-      fetchSpy.mockImplementation(() => jsonResponse({ attachment: sampleAttachment }));
+    // The Qonto API's `POST /v2/attachments` returns only the attachment ID —
+    // mock that shape so this test fails if the surface ever regresses to
+    // rendering fields the API does not actually send.
+    const uploadedAttachment = { id: "att-123" };
+
+    it("uploads a file via multipart form-data and renders the id-only response", async () => {
+      fetchSpy.mockImplementation(() => jsonResponse({ attachment: uploadedAttachment }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();
@@ -116,8 +121,24 @@ describe("attachment commands", () => {
       expect(opts.body).toBeInstanceOf(FormData);
     });
 
+    it("emits json containing only the id field", async () => {
+      fetchSpy.mockImplementation(() => jsonResponse({ attachment: uploadedAttachment }));
+
+      const { createProgram } = await import("../program.js");
+      const program = createProgram();
+      program.addCommand(createAttachmentCommand());
+      program.exitOverride();
+
+      await program.parseAsync(["--output", "json", "attachment", "upload", "package.json"], { from: "user" });
+
+      expect(stdoutSpy).toHaveBeenCalled();
+      const output = stdoutSpy.mock.calls[0]?.[0] as string;
+      const parsed = JSON.parse(output) as Record<string, unknown>;
+      expect(parsed).toEqual({ id: "att-123" });
+    });
+
     it("passes idempotency key when provided", async () => {
-      fetchSpy.mockImplementation(() => jsonResponse({ attachment: sampleAttachment }));
+      fetchSpy.mockImplementation(() => jsonResponse({ attachment: uploadedAttachment }));
 
       const { createProgram } = await import("../program.js");
       const program = createProgram();

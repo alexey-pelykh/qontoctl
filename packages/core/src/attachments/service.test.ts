@@ -40,13 +40,18 @@ describe("attachment service", () => {
   });
 
   describe("uploadAttachment", () => {
-    it("uploads a file via multipart form-data and returns the attachment", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ attachment: sampleAttachment }));
+    // The Qonto API's `POST /v2/attachments` returns ONLY the attachment ID —
+    // mock the actual response shape (not the full record), so the test fails
+    // if the schema ever drifts back to expecting fields the API does not send.
+    const uploadedAttachment = { id: "att-1" };
+
+    it("uploads a file via multipart form-data and returns the attachment id", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ attachment: uploadedAttachment }));
 
       const file = new Blob(["file content"], { type: "application/pdf" });
       const result = await uploadAttachment(client, file, "invoice.pdf");
 
-      expect(result).toEqual(sampleAttachment);
+      expect(result).toEqual(uploadedAttachment);
 
       const [url, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
       expect(url.pathname).toBe("/v2/attachments");
@@ -55,7 +60,7 @@ describe("attachment service", () => {
     });
 
     it("passes idempotency key when provided", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ attachment: sampleAttachment }));
+      fetchSpy.mockReturnValue(jsonResponse({ attachment: uploadedAttachment }));
 
       const file = new Blob(["file content"]);
       await uploadAttachment(client, file, "invoice.pdf", { idempotencyKey: "key-123" });
