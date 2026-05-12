@@ -38,7 +38,11 @@ export function registerIntlBeneficiaryRemoveCommand(parent: Command): void {
           idempotencyKey,
           ...(scaSessionToken !== undefined ? { scaSessionToken } : {}),
         }),
-      { verbose: opts.verbose === true || opts.debug === true, idempotencyKey: opts.idempotencyKey },
+      {
+        verbose: opts.verbose === true || opts.debug === true,
+        idempotencyKey: opts.idempotencyKey,
+        scaAutoApprove: opts.scaAutoApprove,
+      },
     );
 
     if (opts.output === "json" || opts.output === "yaml") {

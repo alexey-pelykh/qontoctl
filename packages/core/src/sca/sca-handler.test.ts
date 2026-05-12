@@ -295,4 +295,129 @@ describe("executeWithSca", () => {
     expect(initialHeaders["X-Qonto-Idempotency-Key"]).toBe("supplied-stable-key");
     expect(retryHeaders["X-Qonto-Idempotency-Key"]).toBe("supplied-stable-key");
   });
+
+  it("fires autoApprove mock-decision POST before polling when autoApprove='allow'", async () => {
+    // Sequence:
+    //   1. Operation: 428 SCA Required (token "tok-auto-allow").
+    //   2. autoApprove fires: POST /v2/mocked_sca_sessions/tok-auto-allow/allow
+    //      (status 204; mock-decision API has no body).
+    //   3. Poll: GET sca-session → status "allow".
+    //   4. Operation retry: 200 OK with the SCA token attached.
+    fetchSpy
+      .mockImplementationOnce(() =>
+        Promise.resolve(
+          new Response(JSON.stringify({ sca_session_token: "tok-auto-allow" }), {
+            status: 428,
+            headers: { "Content-Type": "application/json" },
+          }),
+        ),
+      )
+      .mockImplementationOnce(() => Promise.resolve(new Response(null, { status: 204 })))
+      .mockImplementationOnce(() => jsonResponse({ sca_session: { status: "allow" } }))
+      .mockImplementationOnce(() => jsonResponse({ id: "tx-auto" }));
+
+    await executeWithSca(
+      client,
+      async ({ scaSessionToken, idempotencyKey }) =>
+        client.post(
+          "/v2/transfers",
+          { amount: 50 },
+          {
+            idempotencyKey,
+            ...(scaSessionToken !== undefined ? { scaSessionToken } : {}),
+          },
+        ),
+      { autoApprove: "allow", poll: { sleep: noopSleep } },
+    );
+
+    expect(fetchSpy).toHaveBeenCalledTimes(4);
+    // The second wire call MUST be the auto-approve POST — proving auto-approve
+    // fires before polling. If polling fired first, fetch[1] would be the GET.
+    const [autoApproveUrl, autoApproveInit] = fetchSpy.mock.calls[1] as [URL, RequestInit];
+    expect(autoApproveUrl.pathname).toBe("/v2/mocked_sca_sessions/tok-auto-allow/allow");
+    expect((autoApproveInit.method ?? "GET").toUpperCase()).toBe("POST");
+    // And the third is the poll, fourth is the retry.
+    const [pollUrl] = fetchSpy.mock.calls[2] as [URL, RequestInit];
+    expect(pollUrl.pathname).toBe("/v2/sca/sessions/tok-auto-allow");
+  });
+
+  it("fires autoApprove mock-decision POST with 'deny' before polling, then propagates ScaDeniedError", async () => {
+    // autoApprove="deny" still fires the mock-decision (because the caller
+    // wants to exercise the deny path), and then polling observes "deny",
+    // which propagates as ScaDeniedError to the caller. The wrapper must
+    // NOT swallow the deny.
+    fetchSpy
+      .mockImplementationOnce(() =>
+        Promise.resolve(
+          new Response(JSON.stringify({ sca_session_token: "tok-auto-deny" }), {
+            status: 428,
+            headers: { "Content-Type": "application/json" },
+          }),
+        ),
+      )
+      .mockImplementationOnce(() => Promise.resolve(new Response(null, { status: 204 })))
+      .mockImplementationOnce(() => jsonResponse({ sca_session: { status: "deny" } }));
+
+    const caught = await executeWithSca(
+      client,
+      async ({ scaSessionToken, idempotencyKey }) =>
+        client.post(
+          "/v2/transfers",
+          { amount: 50 },
+          {
+            idempotencyKey,
+            ...(scaSessionToken !== undefined ? { scaSessionToken } : {}),
+          },
+        ),
+      { autoApprove: "deny", poll: { sleep: noopSleep } },
+    ).catch((e: unknown) => e);
+
+    expect(caught).toBeInstanceOf(Error);
+    expect((caught as Error).name).toBe("ScaDeniedError");
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
+    // Verify the mock-decision call carried "/deny", not "/allow".
+    const [autoApproveUrl] = fetchSpy.mock.calls[1] as [URL, RequestInit];
+    expect(autoApproveUrl.pathname).toBe("/v2/mocked_sca_sessions/tok-auto-deny/deny");
+  });
+
+  it("skips autoApprove when undefined (existing flow unchanged)", async () => {
+    // Regression guard: when autoApprove is not supplied, the handler must
+    // poll without firing any mock-decision, so existing dual-process flows
+    // and production paths continue to work.
+    fetchSpy
+      .mockImplementationOnce(() =>
+        Promise.resolve(
+          new Response(JSON.stringify({ sca_session_token: "tok-no-auto" }), {
+            status: 428,
+            headers: { "Content-Type": "application/json" },
+          }),
+        ),
+      )
+      .mockImplementationOnce(() => jsonResponse({ sca_session: { status: "allow" } }))
+      .mockImplementationOnce(() => jsonResponse({ id: "tx-no-auto" }));
+
+    await executeWithSca(
+      client,
+      async ({ scaSessionToken, idempotencyKey }) =>
+        client.post(
+          "/v2/transfers",
+          { amount: 50 },
+          {
+            idempotencyKey,
+            ...(scaSessionToken !== undefined ? { scaSessionToken } : {}),
+          },
+        ),
+      { poll: { sleep: noopSleep } },
+    );
+
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
+    // Second call must be the poll, NOT a mock-decision POST.
+    const [pollUrl] = fetchSpy.mock.calls[1] as [URL, RequestInit];
+    expect(pollUrl.pathname).toBe("/v2/sca/sessions/tok-no-auto");
+    // No mock-decision URL should appear anywhere.
+    for (const call of fetchSpy.mock.calls) {
+      const [url] = call as [URL, RequestInit];
+      expect(url.pathname).not.toContain("/mocked_sca_sessions/");
+    }
+  });
 });

@@ -1,12 +1,16 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
+import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { promisify } from "node:util";
 import { TransferSchema } from "@qontoctl/core";
 import { beforeAll, describe, expect, it } from "vitest";
-import { cliJson } from "../helpers.js";
-import { hasOAuthCredentials, hasStagingToken, pinAuthPreference } from "../sandbox.js";
+import { CLI_PATH, cliJson } from "../helpers.js";
+import { cliEnv, hasOAuthCredentials, hasStagingToken, pinAuthPreference } from "../sandbox.js";
 import { approveAndRetryCli, SCA_POLL_URL_RE, triggerScaCli } from "../sca-helpers.js";
+
+const execFileAsync = promisify(execFile);
 
 interface BeneficiaryItem {
   readonly id: string;
@@ -125,6 +129,52 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("SCA continuation 
     expect(exit.stderr).toMatch(SCA_POLL_URL_RE);
 
     const transfer = JSON.parse(exit.stdout) as Record<string, unknown>;
+    TransferSchema.parse(transfer);
+    expect(transfer).toHaveProperty("id");
+    expect(transfer).toHaveProperty("beneficiary_id", beneficiaryId);
+    expect(transfer).toHaveProperty("reference", reference);
+  });
+
+  it("transfer create with --sca-auto-approve allow succeeds in a single CLI invocation (no external mock-decision)", async () => {
+    // AC #5 (#577): exercise the auto-approve path end-to-end without external
+    // orchestration. The CLI must trigger SCA, fire `mock-decision allow`
+    // internally, observe the resolved state on the next poll, retry the
+    // operation, and exit 0 with the transfer JSON in stdout — all in a single
+    // process.
+    const reference = `e2e-sca-auto-${randomUUID().slice(0, 12)}`;
+
+    const { stdout, stderr } = await execFileAsync(
+      "node",
+      [
+        CLI_PATH,
+        "--verbose",
+        "--output",
+        "json",
+        "--sca-auto-approve",
+        "allow",
+        "transfer",
+        "create",
+        "--beneficiary",
+        beneficiaryId,
+        "--debit-account",
+        bankAccountId,
+        "--reference",
+        reference,
+        "--amount",
+        "1.50",
+        "--vop-proof-token",
+        vopProofToken,
+      ],
+      { env: cliEnv({ authPreference: "oauth-first" }), timeout: 30_000 },
+    );
+
+    // The SCA polling URL must still appear in verbose stderr — auto-approve
+    // is layered on top of the existing flow, not a bypass.
+    expect(stderr).toMatch(SCA_POLL_URL_RE);
+    // The mock-decision POST must appear in the wire log too (sandbox-only path).
+    expect(stderr).toMatch(/POST .*\/v2\/mocked_sca_sessions\/[A-Za-z0-9_-]+\/allow/);
+
+    const transfer = JSON.parse(stdout) as Record<string, unknown>;
     TransferSchema.parse(transfer);
     expect(transfer).toHaveProperty("id");
     expect(transfer).toHaveProperty("beneficiary_id", beneficiaryId);

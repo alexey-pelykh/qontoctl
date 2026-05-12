@@ -44,7 +44,11 @@ export function registerRequestApproveCommand(parent: Command): void {
             ...(scaSessionToken !== undefined ? { scaSessionToken } : {}),
           },
         ),
-      { verbose: opts.verbose === true || opts.debug === true, idempotencyKey: opts.idempotencyKey },
+      {
+        verbose: opts.verbose === true || opts.debug === true,
+        idempotencyKey: opts.idempotencyKey,
+        scaAutoApprove: opts.scaAutoApprove,
+      },
     );
 
     if (opts.output === "json" || opts.output === "yaml") {

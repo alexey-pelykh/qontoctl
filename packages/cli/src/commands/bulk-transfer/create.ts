@@ -171,7 +171,11 @@ export function registerBulkTransferCreateCommand(parent: Command): void {
             ...(scaSessionToken !== undefined ? { scaSessionToken } : {}),
           },
         ),
-      { verbose: opts.verbose === true || opts.debug === true, idempotencyKey: opts.idempotencyKey },
+      {
+        verbose: opts.verbose === true || opts.debug === true,
+        idempotencyKey: opts.idempotencyKey,
+        scaAutoApprove: opts.scaAutoApprove,
+      },
     );
 
     const data = opts.output === "json" || opts.output === "yaml" ? bulkTransfer : [toTableRow(bulkTransfer)];

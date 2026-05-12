@@ -4,7 +4,7 @@
 import { randomUUID } from "node:crypto";
 import { QontoScaRequiredError } from "../http-client.js";
 import type { HttpClient } from "../http-client.js";
-import { pollScaSession, type PollScaSessionOptions } from "./sca-service.js";
+import { mockScaDecision, pollScaSession, type PollScaSessionOptions } from "./sca-service.js";
 
 export interface ExecuteWithScaCallbacks {
   /** Called when SCA is required, before polling starts. */
@@ -27,6 +27,19 @@ export interface ExecuteWithScaOptions extends ExecuteWithScaCallbacks {
    * create duplicate pending pre-SCA records on retry.
    */
   readonly idempotencyKey?: string | undefined;
+  /**
+   * Sandbox-only: automatically fire a `mockScaDecision` against the captured
+   * SCA session token before polling begins. When set, the supplied decision
+   * (`"allow"` or `"deny"`) is POSTed to `/v2/mocked_sca_sessions/{token}/{decision}`
+   * immediately after the SCA challenge is created, so the next poll observes
+   * the resolved state without external orchestration.
+   *
+   * Callers are responsible for restricting use to sandbox-routed clients
+   * (i.e. `client.isSandbox === true`). Outside sandbox, the mock-decision
+   * endpoint does not exist and the call will fail with a 404 propagated to
+   * the caller.
+   */
+  readonly autoApprove?: "allow" | "deny" | undefined;
 }
 
 /**
@@ -77,6 +90,10 @@ export async function executeWithSca<T>(
 
     const { scaSessionToken } = error;
     options?.onScaRequired?.(scaSessionToken);
+
+    if (options?.autoApprove !== undefined) {
+      await mockScaDecision(client, scaSessionToken, options.autoApprove);
+    }
 
     await pollScaSession(client, scaSessionToken, {
       ...options?.poll,

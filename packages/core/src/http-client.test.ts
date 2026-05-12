@@ -315,6 +315,54 @@ describe("HttpClient", () => {
       expect(client.isSandbox).toBe(true);
     });
 
+    it("isMockSca is false when no staging token is configured", () => {
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+        scaMethod: "mock",
+      });
+
+      // scaMethod can be set in production for explicit override, but isMockSca
+      // requires sandbox routing — must not engage the sandbox-only mock SCA
+      // path in production.
+      expect(client.isMockSca).toBe(false);
+    });
+
+    it("isMockSca is false when staging token is set but scaMethod is not 'mock'", () => {
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty-sandbox.staging.qonto.co",
+        authorization: "slug:secret",
+        stagingToken: "tok-staging",
+        scaMethod: "paired-device",
+      });
+
+      expect(client.isMockSca).toBe(false);
+    });
+
+    it("isMockSca is false when staging token is set but scaMethod is undefined", () => {
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty-sandbox.staging.qonto.co",
+        authorization: "slug:secret",
+        stagingToken: "tok-staging",
+      });
+
+      // Defensive: sandbox without an explicit scaMethod means the auto-default
+      // hasn't been applied yet (`resolveScaMethod` is the resolver), so the
+      // header-level flag is undefined and isMockSca is false.
+      expect(client.isMockSca).toBe(false);
+    });
+
+    it("isMockSca is true when both staging token and scaMethod='mock' are configured", () => {
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty-sandbox.staging.qonto.co",
+        authorization: "slug:secret",
+        stagingToken: "tok-staging",
+        scaMethod: "mock",
+      });
+
+      expect(client.isMockSca).toBe(true);
+    });
+
     it("sends the staging token header when configured", async () => {
       fetchSpy.mockReturnValue(jsonResponse({}));
       const client = new TestableHttpClient({

@@ -281,6 +281,23 @@ export class HttpClient {
   }
 
   /**
+   * Whether this client is configured for the sandbox mock SCA path.
+   *
+   * True when both:
+   *   - {@link isSandbox} is true (staging token configured), AND
+   *   - The resolved `scaMethod` is `"mock"` (sandbox-only auto-default or
+   *     explicit preference)
+   *
+   * Used by CLI/MCP wrappers to disambiguate spinner copy ("mock-decision"
+   * vs "mobile app") and to gate the sandbox-only `--sca-auto-approve`
+   * auto-default behavior. Production clients always return false here, so
+   * sandbox-only behavior cannot accidentally engage in production.
+   */
+  get isMockSca(): boolean {
+    return this.isSandbox && this.scaMethod === "mock";
+  }
+
+  /**
    * Sends an HTTP request and parses the response as JSON.
    *
    * **Trust boundary**: The parsed JSON is cast to `T` without runtime validation.
