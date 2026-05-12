@@ -242,18 +242,30 @@ describe.skipIf(!hasApiKeyCredentials())("profile test (e2e)", () => {
     if (creds.organizationSlug === undefined || creds.secretKey === undefined) return;
 
     // Use homeEnv() (not `...process.env`) to isolate from the parent shell's
-    // env. Spreading process.env inherits whatever direnv has exported — most
-    // importantly QONTOCTL_CONFIG_FILE, which points at the repo's
-    // .qontoctl.yaml. That file may carry an oauth.staging-token, which the
-    // CLI uses to route ALL requests (including api-key) to the Qonto sandbox.
-    // Sandbox does not accept api-key auth, so the CLI gets a 302 and exits 1.
-    // homeEnv() ships only PATH + HOME/USERPROFILE, matching how the sibling
-    // "invalid credentials" test (and every other test in this file) is wired,
-    // so the CLI uses production URLs and api-key auth uniformly local + CI.
+    // env, then forward the routing-relevant credentials. Sandbox accepts
+    // api-key auth when the X-Qonto-Staging-Token header is sent (#546), so
+    // a sandbox-scoped api-key + staging-token routes to the sandbox host;
+    // a production-scoped api-key with no staging-token (the CI case)
+    // routes to production. The api-key matches the chosen URL in both.
+    //
+    // The env-overlay requires OAuth client creds alongside staging-token
+    // to attach it (see `applyEnvOverlay` in packages/core/src/config/env.ts),
+    // so we forward client-id/secret too AND pin `QONTOCTL_AUTH=api-key` to
+    // keep the actual request using api-key auth regardless of OAuth presence.
+    const sandboxEnv =
+      creds.stagingToken !== undefined && creds.clientId !== undefined && creds.clientSecret !== undefined
+        ? {
+            QONTOCTL_CLIENT_ID: creds.clientId,
+            QONTOCTL_CLIENT_SECRET: creds.clientSecret,
+            QONTOCTL_STAGING_TOKEN: creds.stagingToken,
+            QONTOCTL_AUTH: "api-key",
+          }
+        : {};
     const { stdout, stderr, exitCode } = cli(["profile", "test"], {
       env: homeEnv(tempDir, {
         QONTOCTL_ORGANIZATION_SLUG: creds.organizationSlug,
         QONTOCTL_SECRET_KEY: creds.secretKey,
+        ...sandboxEnv,
       }),
     });
     // Surface stderr in assertion messages so a CLI failure is diagnosable

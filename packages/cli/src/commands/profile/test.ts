@@ -69,10 +69,16 @@ async function testProfile(options: GlobalOptions): Promise<void> {
 
     const authorization = buildApiKeyAuthorization(config.apiKey);
 
+    // Forward the staging-token so api-key requests routed to sandbox carry
+    // the X-Qonto-Staging-Token header. Without it, sandbox returns 302
+    // (login redirect) even on api-key URLs — see #546. Endpoint resolution
+    // already routes to SANDBOX_BASE_URL when staging-token is configured;
+    // this just keeps the request authentication and routing consistent.
     const client = new HttpClient({
       baseUrl: endpoint,
       authorization,
       logger,
+      ...(config.oauth?.stagingToken !== undefined ? { stagingToken: config.oauth.stagingToken } : {}),
     });
 
     const response = await client.get<OrganizationResponse>("/v2/organization");
