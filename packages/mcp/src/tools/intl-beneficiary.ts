@@ -12,6 +12,7 @@ import {
   removeIntlBeneficiary,
 } from "@qontoctl/core";
 import { withClient } from "../errors.js";
+import { coreOptionsFromContext, executeWithMcpSca, scaContinuationSchema, scaOptionsFromArgs } from "../sca.js";
 
 export function registerIntlBeneficiaryTools(server: McpServer, getClient: () => Promise<HttpClient>): void {
   server.registerTool(
@@ -73,7 +74,8 @@ export function registerIntlBeneficiaryTools(server: McpServer, getClient: () =>
   server.registerTool(
     "intl_beneficiary_add",
     {
-      description: "Create a new international beneficiary",
+      description:
+        "Create a new international beneficiary. SCA: this operation may require Strong Customer Authentication; the tool polls inline by default (wait=30s) and falls back to a structured pending response so the caller can continue via sca_session_show + sca_session_token.",
       inputSchema: {
         country: z.string().describe("Country code (ISO 3166-1 alpha-2)"),
         currency: z.string().describe("Currency code (ISO 4217)"),
@@ -81,6 +83,7 @@ export function registerIntlBeneficiaryTools(server: McpServer, getClient: () =>
           .record(z.string(), z.unknown())
           .optional()
           .describe("Additional beneficiary fields as key-value pairs"),
+        ...scaContinuationSchema,
       },
     },
     async (args) =>
@@ -91,65 +94,63 @@ export function registerIntlBeneficiaryTools(server: McpServer, getClient: () =>
           ...(args.fields !== undefined ? args.fields : {}),
         };
 
-        const beneficiary = await createIntlBeneficiary(client, params);
-
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify(beneficiary, null, 2),
-            },
-          ],
-        };
+        return executeWithMcpSca(
+          client,
+          (context) => createIntlBeneficiary(client, params, coreOptionsFromContext(context)),
+          (beneficiary) => ({
+            content: [{ type: "text" as const, text: JSON.stringify(beneficiary, null, 2) }],
+          }),
+          scaOptionsFromArgs(args),
+        );
       }),
   );
 
   server.registerTool(
     "intl_beneficiary_update",
     {
-      description: "Update an international beneficiary",
+      description:
+        "Update an international beneficiary. SCA: this operation may require Strong Customer Authentication; the tool polls inline by default (wait=30s) and falls back to a structured pending response so the caller can continue via sca_session_show + sca_session_token.",
       inputSchema: {
         id: z.string().describe("International beneficiary ID (UUID)"),
         fields: z.record(z.string(), z.unknown()).describe("Fields to update as key-value pairs"),
+        ...scaContinuationSchema,
       },
     },
-    async ({ id, fields }) =>
+    async (args) =>
       withClient(getClient, async (client) => {
-        const params: UpdateIntlBeneficiaryParams = { ...fields };
+        const params: UpdateIntlBeneficiaryParams = { ...args.fields };
 
-        const beneficiary = await updateIntlBeneficiary(client, id, params);
-
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify(beneficiary, null, 2),
-            },
-          ],
-        };
+        return executeWithMcpSca(
+          client,
+          (context) => updateIntlBeneficiary(client, args.id, params, coreOptionsFromContext(context)),
+          (beneficiary) => ({
+            content: [{ type: "text" as const, text: JSON.stringify(beneficiary, null, 2) }],
+          }),
+          scaOptionsFromArgs(args),
+        );
       }),
   );
 
   server.registerTool(
     "intl_beneficiary_remove",
     {
-      description: "Remove an international beneficiary",
+      description:
+        "Remove an international beneficiary. SCA: this operation may require Strong Customer Authentication; the tool polls inline by default (wait=30s) and falls back to a structured pending response so the caller can continue via sca_session_show + sca_session_token.",
       inputSchema: {
         id: z.string().describe("International beneficiary ID (UUID)"),
+        ...scaContinuationSchema,
       },
     },
-    async ({ id }) =>
-      withClient(getClient, async (client) => {
-        await removeIntlBeneficiary(client, id);
-
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify({ removed: true, id }, null, 2),
-            },
-          ],
-        };
-      }),
+    async (args) =>
+      withClient(getClient, async (client) =>
+        executeWithMcpSca(
+          client,
+          (context) => removeIntlBeneficiary(client, args.id, coreOptionsFromContext(context)),
+          () => ({
+            content: [{ type: "text" as const, text: JSON.stringify({ removed: true, id: args.id }, null, 2) }],
+          }),
+          scaOptionsFromArgs(args),
+        ),
+      ),
   );
 }
