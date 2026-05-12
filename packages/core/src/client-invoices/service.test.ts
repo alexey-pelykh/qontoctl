@@ -28,9 +28,9 @@ describe("buildClientInvoiceQueryParams", () => {
   });
 
   it("maps status array to filter[status]", () => {
-    const params: ListClientInvoicesParams = { status: ["draft", "pending"] };
+    const params: ListClientInvoicesParams = { status: ["draft", "unpaid"] };
     const result = buildClientInvoiceQueryParams(params);
-    expect(result).toEqual({ "filter[status]": ["draft", "pending"] });
+    expect(result).toEqual({ "filter[status]": ["draft", "unpaid"] });
   });
 
   it("maps date filter params", () => {

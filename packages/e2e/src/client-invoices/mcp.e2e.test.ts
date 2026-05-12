@@ -54,6 +54,28 @@ describe.skipIf(!hasApiKeyCredentials())("MCP client invoice tools (e2e)", () =>
       expect(parsed).toHaveProperty("meta");
       expect(Array.isArray(parsed.client_invoices)).toBe(true);
     });
+
+    // Guard for #544: the canonical Qonto status enum is
+    // ["draft", "unpaid", "paid", "canceled"] — not ["draft", "pending", "paid",
+    // "cancelled"]. Pre-#544 the MCP Zod enum rejected `unpaid` (the canonical
+    // value Qonto actually returns) and accepted `pending` (which Qonto's API
+    // silently treats as no-match). This asserts the canonical value passes the
+    // tool's input schema AND the API accepts it.
+    it("supports status: 'unpaid' (canonical Qonto value)", async () => {
+      const result = await client.callTool({
+        name: "client_invoice_list",
+        arguments: { status: "unpaid" },
+      });
+
+      if (result.isError === true) return;
+
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as {
+        client_invoices: unknown[];
+        meta: Record<string, unknown>;
+      };
+      ClientInvoiceListResponseSchema.parse(parsed);
+      expect(Array.isArray(parsed.client_invoices)).toBe(true);
+    });
   });
 
   describe("client_invoice_show", () => {

@@ -28,7 +28,7 @@ export function registerClientInvoiceTools(server: McpServer, getClient: () => P
     {
       description: "List client invoices with optional filters",
       inputSchema: {
-        status: z.enum(["draft", "pending", "paid", "cancelled"]).optional().describe("Filter by status"),
+        status: z.enum(["draft", "unpaid", "paid", "canceled"]).optional().describe("Filter by status"),
         created_at_from: z.string().optional().describe("Filter by creation date (from, ISO 8601)"),
         created_at_to: z.string().optional().describe("Filter by creation date (to, ISO 8601)"),
         updated_at_from: z.string().optional().describe("Filter by last update date (from, ISO 8601)"),
@@ -245,7 +245,7 @@ export function registerClientInvoiceTools(server: McpServer, getClient: () => P
   server.registerTool(
     "client_invoice_finalize",
     {
-      description: "Finalize a client invoice (assign number, transition from draft to pending)",
+      description: "Finalize a client invoice (assign number, transition from draft to unpaid)",
       inputSchema: {
         id: z.string().describe("Client invoice ID (UUID)"),
       },
@@ -314,7 +314,7 @@ export function registerClientInvoiceTools(server: McpServer, getClient: () => P
   server.registerTool(
     "client_invoice_unmark_paid",
     {
-      description: "Unmark a client invoice paid status (transition back to pending)",
+      description: "Unmark a client invoice paid status (transition back to unpaid)",
       inputSchema: {
         id: z.string().describe("Client invoice ID (UUID)"),
       },
