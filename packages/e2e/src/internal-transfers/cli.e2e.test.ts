@@ -216,11 +216,10 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())(
           const match = line.match(SCA_POLL_URL_RE);
           if (match !== null && match[1] !== undefined) {
             scaToken = match[1];
-            approvePromise = execFileAsync(
-              "node",
-              [CLI_PATH, "sca-session", "mock-decision", scaToken, "allow"],
-              { env: cliEnv(), timeout: 25_000 },
-            );
+            approvePromise = execFileAsync("node", [CLI_PATH, "sca-session", "mock-decision", scaToken, "allow"], {
+              env: cliEnv(),
+              timeout: 25_000,
+            });
           }
         }
       });
