@@ -562,6 +562,16 @@ export {
 
 export type { CreateTerminalPaymentParams, Terminal, TerminalAmount, TerminalPayment } from "./terminals/index.js";
 
+export {
+  listProducts,
+  ProductUnitPriceSchema,
+  ProductLinkSchema,
+  ProductSchema,
+  ProductListResponseSchema,
+} from "./products/index.js";
+
+export type { ListProductsParams, Product, ProductLink, ProductUnitPrice } from "./products/index.js";
+
 export type {
   ScaMethod,
   ScaSession,

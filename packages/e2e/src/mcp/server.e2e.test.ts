@@ -92,6 +92,7 @@ const EXPECTED_TOOLS = [
   "sca_session_mock_decision",
   "terminal_list",
   "terminal_payment_create",
+  "product_list",
   "supplier_invoice_list",
   "supplier_invoice_show",
   "supplier_invoice_bulk_create",

@@ -245,6 +245,11 @@
       "tests": [],
       "notes": ""
     },
+    "cli:packages/cli/src/commands/product.ts": {
+      "status": "covered",
+      "tests": ["packages/e2e/src/products/cli.e2e.test.ts"],
+      "notes": "List-only; CRUD endpoints not yet published by Qonto."
+    },
     "cli:packages/cli/src/commands/quote.ts": {
       "status": "pending",
       "tests": [],
@@ -714,6 +719,11 @@
       "status": "pending",
       "tests": [],
       "notes": ""
+    },
+    "core:packages/core/src/products/service.ts#listProducts": {
+      "status": "covered",
+      "tests": ["packages/e2e/src/products/cli.e2e.test.ts", "packages/e2e/src/products/mcp.e2e.test.ts"],
+      "notes": "E2E exercises GET /v2/products via CLI and MCP. Sandbox tenants without products surface an empty list; tests assert shape only when empty."
     },
     "core:packages/core/src/recurring-transfers/service.ts#cancelRecurringTransfer": {
       "status": "pending",
@@ -1309,6 +1319,11 @@
       "status": "pending",
       "tests": [],
       "notes": ""
+    },
+    "mcp:product_list": {
+      "status": "covered",
+      "tests": ["packages/e2e/src/products/mcp.e2e.test.ts"],
+      "notes": "E2E exercises product_list (list products) via the MCP stdio harness; api-key gated so CI runs too."
     },
     "mcp:quote_create": {
       "status": "pending",

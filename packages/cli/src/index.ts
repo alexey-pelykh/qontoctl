@@ -35,6 +35,7 @@ export {
   createInternalTransferCommand,
   createLabelCommand,
   createMembershipCommand,
+  createProductCommand,
   createQuoteCommand,
   createTerminalCommand,
   createWebhookCommand,

@@ -13,6 +13,7 @@ import {
   createProgram,
   createLabelCommand,
   createMembershipCommand,
+  createProductCommand,
   createQuoteCommand,
   createTerminalCommand,
   createWebhookCommand,
@@ -33,6 +34,7 @@ program.addCommand(createCreditNoteCommand());
 program.addCommand(createInternalTransferCommand());
 program.addCommand(createLabelCommand());
 program.addCommand(createMembershipCommand());
+program.addCommand(createProductCommand());
 program.addCommand(createQuoteCommand());
 program.addCommand(createTerminalCommand());
 program.addCommand(createWebhookCommand());

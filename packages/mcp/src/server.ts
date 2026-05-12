@@ -23,6 +23,7 @@ import {
   registerMembershipTools,
   registerOrgTools,
   registerPaymentLinkTools,
+  registerProductTools,
   registerQuoteTools,
   registerRecurringTransferTools,
   registerRequestTools,
@@ -73,6 +74,7 @@ export function createServer(options?: CreateServerOptions): McpServer {
   registerMembershipTools(server, getClient);
   registerOrgTools(server, getClient);
   registerPaymentLinkTools(server, getClient);
+  registerProductTools(server, getClient);
   registerQuoteTools(server, getClient);
   registerRecurringTransferTools(server, getClient);
   registerRequestTools(server, getClient);

@@ -56,10 +56,10 @@ export const SCOPE_CATEGORIES: ReadonlyArray<{ readonly name: string; readonly s
   },
   { name: "Memberships & Teams", scopes: ["membership.read", "membership.write", "team.read", "team.write"] },
   { name: "Suppliers", scopes: ["supplier_invoice.read", "supplier_invoice.write"] },
-  // `product.read` / `product.write` are listed in Qonto's official scope catalog but
-  // qontoctl does not yet expose product commands (no CLI/MCP wiring). Included here
-  // forward-looking so users with downstream tooling can authorize them; remove if
-  // products are explicitly out of scope for qontoctl.
+  // `product.read` covers `GET /v2/products` (`product list` / `product_list`).
+  // `product.write` is listed in Qonto's OpenAPI security schemes for CRUD product
+  // endpoints, but those routes are not yet published in the public API reference —
+  // qontoctl exposes no write surface for it yet (forward-looking).
   { name: "Products", scopes: ["product.read", "product.write"] },
   // `terminal.read` / `terminal.write` cover Qonto Terminal (POS) endpoints
   // (GET /v2/terminals, POST /v2/terminals/{id}/payment). Verified via per-endpoint
@@ -158,8 +158,8 @@ export const SCOPE_DESCRIPTIONS: Record<string, string> = {
   "supplier_invoice.write": "Supplier invoice creation",
   "insurance_contract.read": "Insurance contract retrieval",
   "insurance_contract.write": "Insurance contract creation",
-  "product.read": "Product catalog listing and details (no qontoctl command yet — forward-looking)",
-  "product.write": "Product catalog create/update/delete (no qontoctl command yet — forward-looking)",
+  "product.read": "Product catalogue listing",
+  "product.write": "Product catalogue create/update/delete (no qontoctl command yet — forward-looking)",
   "terminal.read": "Qonto Terminal (POS) listing and webhook events",
   "terminal.write": "Qonto Terminal (POS) payment creation",
   "international_transfer.write": "International (SWIFT) transfer creation",
