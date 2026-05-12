@@ -156,6 +156,22 @@ export async function unmarkClientInvoicePaid(client: HttpClient, id: string): P
 
 /**
  * Cancel a finalized client invoice.
+ *
+ * Transitions invoice status from `unpaid` to `canceled` — a billing-state
+ * change, not a payment-initiation operation. SCA not required by the Qonto
+ * API as of 2026-05-12; verified against the official endpoint documentation
+ * (`POST /v2/client_invoices/{id}/mark_as_canceled` declares responses
+ * `200`/`400`/`401`/`403`/`422`/`500` — no `428 Precondition Required`, which
+ * is the SCA-required signal per the Qonto SCA flow docs). The OAuth scope
+ * (`client_invoice.write`) is a billing scope, distinct from payment-write
+ * scopes that gate PSD2 dynamic-linking SCA flows. The signature intentionally
+ * omits an `options` parameter (no `idempotencyKey`/`scaSessionToken`) — the
+ * absence is structural: no SCA continuation surface exists on this endpoint.
+ *
+ * If this assumption ever needs re-verification:
+ * - Source: https://docs.qonto.com/api-reference/business-api/expense-management/client-quotes-notes/client-invoices/mark-a-client-invoice-as-canceled.md
+ * - SCA contract: https://docs.qonto.com/api-reference/business-api/authentication/sca/sca-flows.md
+ * - Re-audit ticket: #528 (closed) — repeat the response-code check
  */
 export async function cancelClientInvoice(client: HttpClient, id: string): Promise<ClientInvoice> {
   const endpointPath = `/v2/client_invoices/${encodeURIComponent(id)}/mark_as_canceled`;
