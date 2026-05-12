@@ -485,6 +485,7 @@ export class HttpClient {
       this.logVerbose(
         `${method} ${url.toString()}${attempt > 0 ? ` (retry ${attempt})` : ""}${usingFallback ? " (fallback)" : ""}`,
       );
+      this.logDebug(`Request headers: ${JSON.stringify(redactSensitiveFields(headers))}`);
       if (body !== undefined) {
         this.logDebug(isFormData ? "Request body: [FormData]" : `Request body: ${body as string}`);
       }
@@ -553,6 +554,7 @@ export class HttpClient {
         }
 
         this.logVerbose(`${method} ${url.toString()} (fallback)`);
+        this.logDebug(`Request headers: ${JSON.stringify(redactSensitiveFields(fallbackHeaders))}`);
 
         const fallbackStart = performance.now();
         const fallbackResponse = await fetch(
@@ -638,8 +640,6 @@ export class HttpClient {
     if (this.stagingToken !== undefined) {
       headers[STAGING_TOKEN_HEADER] = this.stagingToken;
     }
-
-    this.logDebug(`Request headers: ${JSON.stringify(redactSensitiveFields(headers))}`);
 
     return headers;
   }
