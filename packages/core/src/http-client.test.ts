@@ -1016,14 +1016,69 @@ describe("HttpClient", () => {
       const headerLogCalls = logger.debug.mock.calls.filter(
         (call: string[]) => typeof call[0] === "string" && call[0].includes("Request headers"),
       );
-      // The header log is emitted from buildHeaders before the SCA token is added in
-      // fetchWithRetry, so the SCA token isn't currently present in the captured log.
-      // The redaction map nonetheless covers the header name as defense-in-depth: any
-      // future log path that captures the assembled headers will redact it.
-      for (const call of headerLogCalls) {
-        const headerLog = call[0] as string;
-        expect(headerLog).not.toContain("retry-token-secret-ABC");
-      }
+      expect(headerLogCalls.length).toBeGreaterThan(0);
+      const headerLog = headerLogCalls[0]?.[0] as string;
+      expect(headerLog).not.toContain("retry-token-secret-ABC");
+      expect(headerLog).toContain('"X-Qonto-Sca-Session-Token":"[REDACTED]"');
+    });
+
+    it("includes X-Qonto-2fa-Preference in Request headers debug log on writes when scaMethod is set (#576)", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ id: "123" }, { status: 201 }));
+      const logger = createMockLogger();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+        scaMethod: "paired-device",
+        logger,
+      });
+
+      await client.post("/v2/transfers", { amount: 100 });
+
+      const headerLogCalls = logger.debug.mock.calls.filter(
+        (call: string[]) => typeof call[0] === "string" && call[0].includes("Request headers"),
+      );
+      expect(headerLogCalls.length).toBeGreaterThan(0);
+      const headerLog = headerLogCalls[0]?.[0] as string;
+      expect(headerLog).toContain('"X-Qonto-2fa-Preference":"paired-device"');
+    });
+
+    it("includes X-Qonto-Idempotency-Key in Request headers debug log on writes (#576)", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ id: "123" }, { status: 201 }));
+      const logger = createMockLogger();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+        logger,
+      });
+
+      await client.post("/v2/transfers", { amount: 100 }, { idempotencyKey: "00000000-0000-0000-0000-000000000001" });
+
+      const headerLogCalls = logger.debug.mock.calls.filter(
+        (call: string[]) => typeof call[0] === "string" && call[0].includes("Request headers"),
+      );
+      expect(headerLogCalls.length).toBeGreaterThan(0);
+      const headerLog = headerLogCalls[0]?.[0] as string;
+      expect(headerLog).toContain('"X-Qonto-Idempotency-Key":"00000000-0000-0000-0000-000000000001"');
+    });
+
+    it("does not include X-Qonto-2fa-Preference in Request headers debug log on GETs (#576)", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ data: "ok" }));
+      const logger = createMockLogger();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+        scaMethod: "paired-device",
+        logger,
+      });
+
+      await client.get("/v2/organizations");
+
+      const headerLogCalls = logger.debug.mock.calls.filter(
+        (call: string[]) => typeof call[0] === "string" && call[0].includes("Request headers"),
+      );
+      expect(headerLogCalls.length).toBeGreaterThan(0);
+      const headerLog = headerLogCalls[0]?.[0] as string;
+      expect(headerLog).not.toContain("X-Qonto-2fa-Preference");
     });
 
     it("does not throw when logger is not provided", async () => {
@@ -1515,6 +1570,46 @@ describe("HttpClient", () => {
       const key2 = (calls[1]?.[1]?.headers as Record<string, string>)["X-Qonto-Idempotency-Key"];
       expect(key1).toBeDefined();
       expect(key1).toBe(key2);
+    });
+
+    it("preserves X-Qonto-2fa-Preference during fallback retry on write request and logs it (#576)", async () => {
+      fetchSpy
+        .mockReturnValueOnce(
+          jsonResponse({ errors: [{ code: "unauthorized", detail: "Unauthorized" }] }, { status: 401 }),
+        )
+        .mockReturnValue(jsonResponse({ id: "123" }, { status: 201 }));
+
+      const logger = createMockLogger();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        // Function form mirrors the real OAuth bearer source (auto-refresh
+        // resolves it lazily). Exercising the function branch in `buildHeaders`
+        // alongside the string fallback gives this test coverage over the
+        // OAuth-routed path.
+        authorization: () => "Bearer oauth-token",
+        fallbackAuthorization: "slug:key",
+        scaMethod: "passkey",
+        logger,
+      });
+
+      await client.post("/v2/transfers", { amount: 100 });
+
+      // Transport: both attempts carry the SCA preference header.
+      const calls = fetchSpy.mock.calls as [URL, RequestInit][];
+      const primary = (calls[0]?.[1]?.headers as Record<string, string>)["X-Qonto-2fa-Preference"];
+      const fallback = (calls[1]?.[1]?.headers as Record<string, string>)["X-Qonto-2fa-Preference"];
+      expect(primary).toBe("passkey");
+      expect(fallback).toBe("passkey");
+
+      // Debug log: the SCA preference appears in BOTH Request headers entries
+      // (initial + fallback). Pre-#576 the log was emitted from buildHeaders
+      // before the per-request headers were added, so it was absent.
+      const headerLogCalls = logger.debug.mock.calls.filter(
+        (call: string[]) => typeof call[0] === "string" && call[0].includes("Request headers"),
+      );
+      expect(headerLogCalls.length).toBe(2);
+      expect(headerLogCalls[0]?.[0] as string).toContain('"X-Qonto-2fa-Preference":"passkey"');
+      expect(headerLogCalls[1]?.[0] as string).toContain('"X-Qonto-2fa-Preference":"passkey"');
     });
 
     it("logs primary error body in debug mode before fallback", async () => {
