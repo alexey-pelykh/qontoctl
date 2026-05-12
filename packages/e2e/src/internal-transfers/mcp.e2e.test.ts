@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
+import { randomUUID } from "node:crypto";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { InternalTransferSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { CLI_PATH, firstTextFromMcpResult } from "../helpers.js";
-import { cliEnv, hasApiKeyCredentials } from "../sandbox.js";
+import { cliEnv, hasApiKeyCredentials, hasOAuthCredentials, hasStagingToken, pinAuthPreference } from "../sandbox.js";
+import { SCA_PENDING_TOKEN_RE } from "../sca-helpers.js";
 
 interface OrgBankAccount {
   readonly id: string;
@@ -69,11 +72,10 @@ describe.skipIf(!hasApiKeyCredentials())("internal-transfer MCP tools (e2e)", ()
     // production api-key endpoint): internal-transfer create succeeds without
     // triggering SCA at amount=1 EUR. #438's probe confirmed the same at
     // amount=1.50, and the prior local probe at amount=0.01 also succeeded.
-    // If a future test run starts returning the `executeWithMcpSca`
-    // SCA-pending fallback (a structured text response instead of the
-    // InternalTransfer JSON), coordinate with #449 Group 6 and adapt this
-    // test to the inline mock-decision orchestration pattern used by
-    // `bulk-transfers/mcp.e2e.test.ts`.
+    // The OAuth+sandbox path is now empirically probed by the
+    // `(OAuth+sandbox SCA probe)` describe block below — if a future run
+    // flips SCA enforcement on either path, that block surfaces the change
+    // explicitly without breaking the api-key happy path here.
     //
     // Precondition: the test organization must have ≥2 active internal
     // (Qonto-owned, non-aggregated) bank accounts. See cli.e2e.test.ts for
@@ -133,3 +135,134 @@ describe.skipIf(!hasApiKeyCredentials())("internal-transfer MCP tools (e2e)", ()
     });
   });
 });
+
+// OAuth+sandbox SCA probe — local-only (requires OAuth credentials AND a
+// staging token). Conditionally exercises the SCA round-trip via two-step
+// orchestration:
+//   - call `internal_transfer_create` with `wait: false`
+//   - if response is "SCA required" → mock-approve via `sca_session_mock_decision`,
+//     retry with `sca_session_token` set
+//   - if response is the InternalTransfer JSON directly → SCA was not required;
+//     assert that and document the observation
+// Documents the empirical truth via console.log; the pass/fail decision is on
+// the final InternalTransfer object.
+describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())(
+  "internal_transfer_create (OAuth+sandbox SCA probe)",
+  () => {
+    pinAuthPreference("oauth-first");
+
+    let probeClient: Client;
+    let probeTransport: StdioClientTransport;
+
+    beforeAll(async () => {
+      probeTransport = new StdioClientTransport({
+        command: "node",
+        args: [CLI_PATH, "mcp"],
+        env: cliEnv(),
+        stderr: "pipe",
+      });
+      probeClient = new Client({ name: "e2e-internal-sca-probe", version: "0.0.0" });
+      await probeClient.connect(probeTransport);
+    });
+
+    afterAll(async () => {
+      await probeClient.close();
+    });
+
+    // Local mirror of the api-key describe's helper; bound to `probeClient`
+    // (different MCP transport/scope than the outer block's `client`).
+    async function discoverInternalAccountsViaProbe(): Promise<readonly OrgBankAccount[]> {
+      const result = await probeClient.callTool({ name: "org_show", arguments: {} });
+      expect(result.isError).not.toBe(true);
+      const text = firstTextFromMcpResult(result);
+      const org = JSON.parse(text) as Organization;
+      return org.bank_accounts.filter((a) => !a.is_external_account && a.status === "active");
+    }
+
+    it("triggers SCA round-trip OR returns transfer directly in OAuth+sandbox", async () => {
+      const accounts = await discoverInternalAccountsViaProbe();
+      const TRANSFER_AMOUNT_EUR = 1;
+      const debit = accounts.find((a) => a.balance > TRANSFER_AMOUNT_EUR);
+      const credit = accounts.find((a) => a.id !== debit?.id);
+      if (debit === undefined || credit === undefined) {
+        console.warn(
+          `[e2e] internal_transfer_create SCA probe: skipping — requires ≥2 active internal Qonto bank ` +
+            `accounts with at least one funded above ${String(TRANSFER_AMOUNT_EUR)} EUR. ` +
+            `Found ${String(accounts.length)} internal account(s).`,
+        );
+        return;
+      }
+
+      const reference = `e2e-sca-mcp-${randomUUID().slice(0, 12)}`;
+      const baseArgs = {
+        debit_iban: debit.iban,
+        credit_iban: credit.iban,
+        reference,
+        amount: TRANSFER_AMOUNT_EUR,
+        currency: "EUR",
+      };
+
+      // wait: false → server returns SCA-pending immediately on 428, no inline
+      // polling. This is the canonical two-step pattern, mirroring
+      // `sca-continuation/mcp.e2e.test.ts:235`. PSD2 dynamic-linking requires
+      // the retry call to use identical args plus the captured token.
+      const firstResult = (await probeClient.callTool({
+        name: "internal_transfer_create",
+        arguments: { ...baseArgs, wait: false },
+      })) as CallToolResult;
+      const firstText = firstTextFromMcpResult(firstResult);
+
+      if (/^SCA required/.test(firstText)) {
+        // SCA-trigger path — exercise the round-trip.
+        console.log(
+          `[internal_transfer_create SCA probe] SCA triggered in OAuth+sandbox; round-trip exercised. ` +
+            `This diverges from #463's api-key+production observation; sandbox SCA enforcement ` +
+            `for internal-transfer is endpoint-inconsistent (see audit Notable Finding #2 in #449).`,
+        );
+        const tokenMatch = firstText.match(SCA_PENDING_TOKEN_RE);
+        if (tokenMatch === null || tokenMatch[1] === undefined) {
+          throw new Error(`No "Session token: ..." line in SCA-pending response:\n${firstText}`);
+        }
+        const token = tokenMatch[1];
+        expect(token).not.toBe("unknown");
+        expect(token).toMatch(/^[A-Za-z0-9_-]+$/);
+
+        const approveResult = (await probeClient.callTool({
+          name: "sca_session_mock_decision",
+          arguments: { token, decision: "allow" },
+        })) as CallToolResult;
+        if (approveResult.isError === true) {
+          throw new Error(`sca_session_mock_decision failed:\n${JSON.stringify(approveResult, null, 2)}`);
+        }
+
+        const retryResult = (await probeClient.callTool({
+          name: "internal_transfer_create",
+          arguments: { ...baseArgs, sca_session_token: token },
+        })) as CallToolResult;
+        expect(retryResult.isError).not.toBe(true);
+        const retryText = firstTextFromMcpResult(retryResult);
+        expect(retryText).not.toMatch(/^SCA required/);
+        const transfer = InternalTransferSchema.parse(JSON.parse(retryText));
+        expect(transfer.id.length).toBeGreaterThan(0);
+        expect(transfer.reference).toBe(reference);
+        expect(transfer.amount).toBe(TRANSFER_AMOUNT_EUR);
+        expect(transfer.amount_currency).toBe("EUR");
+        expect(transfer.amount_cents).toBe(TRANSFER_AMOUNT_EUR * 100);
+      } else {
+        // No-SCA path — the first call returned the transfer directly.
+        console.log(
+          `[internal_transfer_create SCA probe] NO SCA in OAuth+sandbox at amount=${String(TRANSFER_AMOUNT_EUR)} EUR ` +
+            `(consistent with #463's api-key+production observation at the same amount). ` +
+            `The SCA round-trip primitives stay exercised by sca-continuation/ for transfer_create.`,
+        );
+        expect(firstResult.isError).not.toBe(true);
+        const transfer = InternalTransferSchema.parse(JSON.parse(firstText));
+        expect(transfer.id.length).toBeGreaterThan(0);
+        expect(transfer.reference).toBe(reference);
+        expect(transfer.amount).toBe(TRANSFER_AMOUNT_EUR);
+        expect(transfer.amount_currency).toBe("EUR");
+        expect(transfer.amount_cents).toBe(TRANSFER_AMOUNT_EUR * 100);
+      }
+    });
+  },
+);
