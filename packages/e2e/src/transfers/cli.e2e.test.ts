@@ -319,118 +319,113 @@ async function runWithConditionalSca(args: readonly string[]): Promise<SpawnedCl
   };
 }
 
-describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())(
-  "transfer CLI commands (e2e, SCA write paths)",
-  () => {
-    pinAuthPreference("oauth-first");
+describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("transfer CLI commands (e2e, SCA write paths)", () => {
+  pinAuthPreference("oauth-first");
 
-    it("transfer cancel: create + cancel lifecycle (cancel conditionally SCA-gated)", async () => {
-      const beneficiaries = cliJson<BeneficiaryListItem[]>("beneficiary", "list");
-      // PSD2 Article 13(b) trusted-beneficiary exemption — pick a non-trusted
-      // beneficiary so the create call actually triggers SCA. Prefer
-      // `validated && !trusted`; fall back to any non-trusted entry (typically
-      // `pending`, whose first-use validation challenge exercises the same
-      // client polling/retry code path). Same rationale as
-      // `sca-continuation/cli.e2e.test.ts`.
-      const beneficiary =
-        beneficiaries.find((b) => b.status === "validated" && !b.trusted) ??
-        beneficiaries.find((b) => !b.trusted);
-      if (beneficiary === undefined) {
-        throw new Error(
-          "E2E setup: no non-trusted beneficiaries available; need at least one untrusted beneficiary to trigger SCA on transfer create",
-        );
-      }
-
-      const accounts = cliJson<BankAccountItem[]>("account", "list");
-      // `main: true` account avoids `400 insufficient_funds` on the post-SCA
-      // retry; fall back to highest-balance for defensive sandbox-config drift.
-      const account =
-        accounts.find((a) => a.main) ?? [...accounts].sort((a, b) => b.balance_cents - a.balance_cents)[0];
-      if (account === undefined) {
-        throw new Error("E2E setup: no bank accounts in sandbox");
-      }
-
-      // Pre-resolve VoP outside the SCA flow so the per-test budget isn't
-      // burned on a separate verify-payee call inside the SCA polling window.
-      const vop = cliJson<VopResultLite>(
-        "transfer",
-        "verify-payee",
-        "--iban",
-        beneficiary.iban,
-        "--name",
-        beneficiary.name,
+  it("transfer cancel: create + cancel lifecycle (cancel conditionally SCA-gated)", async () => {
+    const beneficiaries = cliJson<BeneficiaryListItem[]>("beneficiary", "list");
+    // PSD2 Article 13(b) trusted-beneficiary exemption — pick a non-trusted
+    // beneficiary so the create call actually triggers SCA. Prefer
+    // `validated && !trusted`; fall back to any non-trusted entry (typically
+    // `pending`, whose first-use validation challenge exercises the same
+    // client polling/retry code path). Same rationale as
+    // `sca-continuation/cli.e2e.test.ts`.
+    const beneficiary =
+      beneficiaries.find((b) => b.status === "validated" && !b.trusted) ?? beneficiaries.find((b) => !b.trusted);
+    if (beneficiary === undefined) {
+      throw new Error(
+        "E2E setup: no non-trusted beneficiaries available; need at least one untrusted beneficiary to trigger SCA on transfer create",
       );
-      const vopProofToken = vop.proof_token.token;
+    }
 
-      // Schedule the transfer ~3 days into the future so it stays in
-      // `pending` status and is cancellable. Without this, the sandbox
-      // moves a freshly-created same-day transfer past the `pending` state
-      // before the cancel SCA round-trip completes, and cancel returns
-      // `400 cannot_cancel`. The 3-day buffer is generous against any
-      // weekend / sandbox clock-skew.
-      const scheduledDate = new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10);
+    const accounts = cliJson<BankAccountItem[]>("account", "list");
+    // `main: true` account avoids `400 insufficient_funds` on the post-SCA
+    // retry; fall back to highest-balance for defensive sandbox-config drift.
+    const account = accounts.find((a) => a.main) ?? [...accounts].sort((a, b) => b.balance_cents - a.balance_cents)[0];
+    if (account === undefined) {
+      throw new Error("E2E setup: no bank accounts in sandbox");
+    }
 
-      // ---- Round-trip #1: create the transfer to cancel -------------------
-      const reference = `e2e-sca-cancel-${randomUUID().slice(0, 12)}`;
-      const createTrigger = await triggerScaCli([
-        "--output",
-        "json",
-        "transfer",
-        "create",
-        "--beneficiary",
-        beneficiary.id,
-        "--debit-account",
-        account.id,
-        "--reference",
-        reference,
-        "--amount",
-        "1.50",
-        "--scheduled-date",
-        scheduledDate,
-        "--vop-proof-token",
-        vopProofToken,
-      ]);
-      expect(createTrigger.scaSessionToken).not.toBe("unknown");
-      expect(createTrigger.scaSessionToken).toMatch(/^[A-Za-z0-9_-]+$/);
-      const createExit = await approveAndRetryCli(createTrigger, "allow");
-      if (createExit.exitCode !== 0) {
-        throw new Error(
-          `transfer create exited ${String(createExit.exitCode)}\n--- stderr ---\n${createExit.stderr}\n--- stdout ---\n${createExit.stdout}`,
-        );
-      }
-      const transfer = JSON.parse(createExit.stdout) as { readonly id: string };
-      expect(transfer.id.length).toBeGreaterThan(0);
+    // Pre-resolve VoP outside the SCA flow so the per-test budget isn't
+    // burned on a separate verify-payee call inside the SCA polling window.
+    const vop = cliJson<VopResultLite>(
+      "transfer",
+      "verify-payee",
+      "--iban",
+      beneficiary.iban,
+      "--name",
+      beneficiary.name,
+    );
+    const vopProofToken = vop.proof_token.token;
 
-      // ---- Round-trip #2 (conditional): cancel the transfer ---------------
-      // Cancel MAY trigger SCA (audit assumption) or MAY return 204 directly
-      // (empirical sandbox behavior, 2026-05-12). The conditional helper
-      // mock-approves if SCA fires and lets the command exit otherwise.
-      const cancelResult = await runWithConditionalSca(["transfer", "cancel", transfer.id, "--yes"]);
+    // Schedule the transfer ~3 days into the future so it stays in
+    // `pending` status and is cancellable. Without this, the sandbox
+    // moves a freshly-created same-day transfer past the `pending` state
+    // before the cancel SCA round-trip completes, and cancel returns
+    // `400 cannot_cancel`. The 3-day buffer is generous against any
+    // weekend / sandbox clock-skew.
+    const scheduledDate = new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10);
 
-      if (cancelResult.scaTriggered) {
-        console.log(`[transfer cancel SCA probe] SCA triggered in OAuth+sandbox; round-trip exercised.`);
-        expect(cancelResult.stderr).toMatch(SCA_POLL_URL_RE);
-      } else {
-        console.log(`[transfer cancel SCA probe] NO SCA in OAuth+sandbox for transfer cancel.`);
-        expect(cancelResult.stderr).not.toMatch(SCA_POLL_URL_RE);
-      }
+    // ---- Round-trip #1: create the transfer to cancel -------------------
+    const reference = `e2e-sca-cancel-${randomUUID().slice(0, 12)}`;
+    const createTrigger = await triggerScaCli([
+      "--output",
+      "json",
+      "transfer",
+      "create",
+      "--beneficiary",
+      beneficiary.id,
+      "--debit-account",
+      account.id,
+      "--reference",
+      reference,
+      "--amount",
+      "1.50",
+      "--scheduled-date",
+      scheduledDate,
+      "--vop-proof-token",
+      vopProofToken,
+    ]);
+    expect(createTrigger.scaSessionToken).not.toBe("unknown");
+    expect(createTrigger.scaSessionToken).toMatch(/^[A-Za-z0-9_-]+$/);
+    const createExit = await approveAndRetryCli(createTrigger, "allow");
+    if (createExit.exitCode !== 0) {
+      throw new Error(
+        `transfer create exited ${String(createExit.exitCode)}\n--- stderr ---\n${createExit.stderr}\n--- stdout ---\n${createExit.stdout}`,
+      );
+    }
+    const transfer = JSON.parse(createExit.stdout) as { readonly id: string };
+    expect(transfer.id.length).toBeGreaterThan(0);
 
-      if (cancelResult.exitCode !== 0) {
-        throw new Error(
-          `transfer cancel exited ${String(cancelResult.exitCode)}\n--- stderr ---\n${cancelResult.stderr}\n--- stdout ---\n${cancelResult.stdout}`,
-        );
-      }
-      // Wire-log evidence the cancel POST landed regardless of SCA path.
-      expect(cancelResult.stderr).toMatch(/POST .*\/v2\/sepa\/transfers\/[^/]+\/cancel/);
-      const cancelJson = JSON.parse(cancelResult.stdout) as {
-        readonly canceled?: boolean;
-        readonly id?: string;
-      };
-      expect(cancelJson.canceled).toBe(true);
-      expect(cancelJson.id).toBe(transfer.id);
-    });
-  },
-);
+    // ---- Round-trip #2 (conditional): cancel the transfer ---------------
+    // Cancel MAY trigger SCA (audit assumption) or MAY return 204 directly
+    // (empirical sandbox behavior, 2026-05-12). The conditional helper
+    // mock-approves if SCA fires and lets the command exit otherwise.
+    const cancelResult = await runWithConditionalSca(["transfer", "cancel", transfer.id, "--yes"]);
+
+    if (cancelResult.scaTriggered) {
+      console.log(`[transfer cancel SCA probe] SCA triggered in OAuth+sandbox; round-trip exercised.`);
+      expect(cancelResult.stderr).toMatch(SCA_POLL_URL_RE);
+    } else {
+      console.log(`[transfer cancel SCA probe] NO SCA in OAuth+sandbox for transfer cancel.`);
+      expect(cancelResult.stderr).not.toMatch(SCA_POLL_URL_RE);
+    }
+
+    if (cancelResult.exitCode !== 0) {
+      throw new Error(
+        `transfer cancel exited ${String(cancelResult.exitCode)}\n--- stderr ---\n${cancelResult.stderr}\n--- stdout ---\n${cancelResult.stdout}`,
+      );
+    }
+    // Wire-log evidence the cancel POST landed regardless of SCA path.
+    expect(cancelResult.stderr).toMatch(/POST .*\/v2\/sepa\/transfers\/[^/]+\/cancel/);
+    const cancelJson = JSON.parse(cancelResult.stdout) as {
+      readonly canceled?: boolean;
+      readonly id?: string;
+    };
+    expect(cancelJson.canceled).toBe(true);
+    expect(cancelJson.id).toBe(transfer.id);
+  });
+});
 
 // NOTE: `getTransferProof` (CLI: `transfer proof`, MCP: `transfer_proof`)
 // E2E coverage is deferred. Empirical probe against Qonto sandbox org
