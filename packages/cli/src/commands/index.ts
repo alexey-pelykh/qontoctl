@@ -10,6 +10,7 @@ export { createInternalTransferCommand } from "./internal-transfer.js";
 export { createLabelCommand } from "./label.js";
 export { createMembershipCommand } from "./membership.js";
 export { createPaymentLinkCommand } from "./payment-link.js";
+export { createProductCommand } from "./product.js";
 export { createQuoteCommand } from "./quote.js";
 export { registerRequestCommands } from "./request/index.js";
 export { registerScaSessionCommands } from "./sca-session/index.js";

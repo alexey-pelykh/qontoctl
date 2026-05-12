@@ -86,12 +86,12 @@ The full catalog is grouped by feature area. Scopes marked **(recommended)** are
 
 ### Products
 
-| Scope           | Recommended | Enables                                                        |
-| --------------- | :---------: | -------------------------------------------------------------- |
-| `product.read`  |             | Product catalog listing and details (no qontoctl command yet)  |
-| `product.write` |             | Product catalog create/update/delete (no qontoctl command yet) |
+| Scope           | Recommended | Enables                                                                                         |
+| --------------- | :---------: | ----------------------------------------------------------------------------------------------- |
+| `product.read`  |             | Product catalogue listing (`product list` / `product_list`)                                     |
+| `product.write` |             | Product catalogue create/update/delete (no qontoctl command yet — Qonto has not published CRUD) |
 
-> **Note**: Product scopes are listed in Qonto's official catalog but qontoctl does not yet expose product commands. Authorize them only if you plan to use qontoctl alongside other tooling that does.
+> **Note**: `product.read` is wired. `product.write` is listed in Qonto's OpenAPI security schemes but the underlying CRUD routes are not yet published in the public API reference — authorize it only if you plan to use qontoctl alongside other tooling that calls them.
 
 ### Terminals (POS)
 

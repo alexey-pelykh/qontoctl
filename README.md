@@ -27,6 +27,7 @@ QontoCtl lets AI assistants (Claude, etc.) interact with Qonto through the [Mode
 - **Bulk Transfers** — list and view bulk transfer batches
 - **Recurring Transfers** — list and view recurring transfers
 - **Terminals (POS)** — list Qonto Terminals and initiate terminal payments
+- **Products** — list catalogue products
 - **Clients** — list, create, update, delete clients
 - **Client Invoices** — full lifecycle: create, update, finalize, send, mark paid, cancel, upload files
 - **Quotes** — create, update, delete, send quotes
@@ -220,6 +221,8 @@ The path is captured at server startup. See [`docs/configuration.md`](docs/confi
 | **Terminals (POS)**             |                                                                       |
 | `terminal_list`                 | List Qonto Terminals linked to the organization                       |
 | `terminal_payment_create`       | Initiate a payment on a terminal (returns 202 Accepted)               |
+| **Products**                    |                                                                       |
+| `product_list`                  | List catalogue products with optional pagination and sort             |
 | **Clients**                     |                                                                       |
 | `client_list`                   | List clients with optional pagination                                 |
 | `client_show`                   | Show details of a specific client                                     |
@@ -387,6 +390,7 @@ The pending response's textual format is stable, so callers that need to extract
 | `recurring-transfer show <id>`                | Show recurring transfer details           |
 | `terminal list`                               | List Qonto Terminals (POS)                |
 | `terminal payment create <id>`                | Initiate a payment on a terminal          |
+| `product list`                                | List catalogue products                   |
 | `client list`                                 | List clients                              |
 | `client show <id>`                            | Show client details                       |
 | `client create`                               | Create a new client                       |

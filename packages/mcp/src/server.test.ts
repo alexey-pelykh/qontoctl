@@ -142,7 +142,8 @@ describe("createServer", () => {
       expect(toolNames).toContain("sca_session_mock_decision");
       expect(toolNames).toContain("terminal_list");
       expect(toolNames).toContain("terminal_payment_create");
-      expect(tools).toHaveLength(126);
+      expect(toolNames).toContain("product_list");
+      expect(tools).toHaveLength(127);
     });
 
     it("tools have descriptions", async () => {
