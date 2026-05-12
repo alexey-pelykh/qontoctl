@@ -2,11 +2,12 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { Command, Option } from "commander";
-import type { InternalTransfer } from "@qontoctl/core";
+import { createInternalTransfer, type InternalTransfer } from "@qontoctl/core";
 import { createClient } from "../client.js";
 import { formatOutput } from "../formatters/index.js";
 import { addInheritableOptions, addWriteOptions, resolveGlobalOptions } from "../inherited-options.js";
 import type { GlobalOptions, WriteOptions } from "../options.js";
+import { executeWithCliSca } from "../sca.js";
 
 interface InternalTransferCreateOptions extends GlobalOptions, WriteOptions {
   readonly debitIban: string;
@@ -45,20 +46,25 @@ export function createInternalTransferCommand(): Command {
     const opts = resolveGlobalOptions<InternalTransferCreateOptions>(cmd);
     const client = await createClient(opts);
 
-    const response = await client.post<{ internal_transfer: InternalTransfer }>(
-      "/v2/internal_transfers",
-      {
-        internal_transfer: {
-          debit_iban: opts.debitIban,
-          credit_iban: opts.creditIban,
-          reference: opts.reference,
-          amount: opts.amount,
-          currency: opts.currency,
-        },
-      },
-      opts.idempotencyKey !== undefined ? { idempotencyKey: opts.idempotencyKey } : undefined,
+    const t = await executeWithCliSca(
+      client,
+      async ({ scaSessionToken, idempotencyKey }) =>
+        createInternalTransfer(
+          client,
+          {
+            debit_iban: opts.debitIban,
+            credit_iban: opts.creditIban,
+            reference: opts.reference,
+            amount: opts.amount,
+            currency: opts.currency,
+          },
+          {
+            idempotencyKey,
+            ...(scaSessionToken !== undefined ? { scaSessionToken } : {}),
+          },
+        ),
+      { verbose: opts.verbose === true || opts.debug === true, idempotencyKey: opts.idempotencyKey },
     );
-    const t = response.internal_transfer;
 
     const data = opts.output === "json" || opts.output === "yaml" ? t : [internalTransferToTableRow(t)];
 
