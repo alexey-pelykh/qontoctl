@@ -302,128 +302,124 @@ async function callWithConditionalSca(
   return { result: firstResult, scaTriggered: false };
 }
 
-describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())(
-  "transfer MCP tools (e2e, SCA write paths)",
-  () => {
-    pinAuthPreference("oauth-first");
+describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("transfer MCP tools (e2e, SCA write paths)", () => {
+  pinAuthPreference("oauth-first");
 
-    let client: Client;
-    let transport: StdioClientTransport;
-    let beneficiaryId: string;
-    let bankAccountId: string;
-    let vopProofToken: string;
+  let client: Client;
+  let transport: StdioClientTransport;
+  let beneficiaryId: string;
+  let bankAccountId: string;
+  let vopProofToken: string;
 
-    beforeAll(async () => {
-      transport = new StdioClientTransport({
-        command: "node",
-        args: [CLI_PATH, "mcp"],
-        env: cliEnv({ authPreference: "oauth-first" }),
-        stderr: "pipe",
-      });
-      client = new Client({ name: "e2e-transfer-sca", version: "0.0.0" });
-      await client.connect(transport);
-
-      // Pick a non-trusted beneficiary so create actually triggers SCA
-      // (PSD2 Art. 13(b) trusted-beneficiary exemption). Pick `main: true`
-      // account to avoid `400 insufficient_funds` on post-SCA retry. Both
-      // selections follow `sca-continuation/mcp.e2e.test.ts`.
-      const benResult = await client.callTool({
-        name: "beneficiary_list",
-        arguments: {},
-      });
-      const benList = JSON.parse(firstTextFromMcpResult(benResult)) as { beneficiaries: BeneficiaryListItem[] };
-      const beneficiary =
-        benList.beneficiaries.find((b) => b.status === "validated" && !b.trusted) ??
-        benList.beneficiaries.find((b) => !b.trusted);
-      if (beneficiary === undefined) {
-        throw new Error(
-          "E2E setup: no non-trusted beneficiaries available; need at least one untrusted beneficiary to trigger SCA",
-        );
-      }
-      beneficiaryId = beneficiary.id;
-
-      const accountsResult = await client.callTool({
-        name: "account_list",
-        arguments: {},
-      });
-      const accounts = JSON.parse(firstTextFromMcpResult(accountsResult)) as BankAccountItem[];
-      const account =
-        accounts.find((a) => a.main) ?? [...accounts].sort((a, b) => b.balance_cents - a.balance_cents)[0];
-      if (account === undefined) {
-        throw new Error("E2E setup: no bank accounts in sandbox");
-      }
-      bankAccountId = account.id;
-
-      const vopResult = await client.callTool({
-        name: "transfer_verify_payee",
-        arguments: { iban: beneficiary.iban, name: beneficiary.name },
-      });
-      const vop = JSON.parse(firstTextFromMcpResult(vopResult)) as VopResultLite;
-      vopProofToken = vop.proof_token.token;
+  beforeAll(async () => {
+    transport = new StdioClientTransport({
+      command: "node",
+      args: [CLI_PATH, "mcp"],
+      env: cliEnv({ authPreference: "oauth-first" }),
+      stderr: "pipe",
     });
+    client = new Client({ name: "e2e-transfer-sca", version: "0.0.0" });
+    await client.connect(transport);
 
-    afterAll(async () => {
-      await client.close();
+    // Pick a non-trusted beneficiary so create actually triggers SCA
+    // (PSD2 Art. 13(b) trusted-beneficiary exemption). Pick `main: true`
+    // account to avoid `400 insufficient_funds` on post-SCA retry. Both
+    // selections follow `sca-continuation/mcp.e2e.test.ts`.
+    const benResult = await client.callTool({
+      name: "beneficiary_list",
+      arguments: {},
     });
-
-    it("transfer_cancel: create + cancel lifecycle (cancel conditionally SCA-gated)", async () => {
-      // Schedule the transfer ~3 days into the future so it stays in
-      // `pending` status long enough for the cancel SCA round-trip to land.
-      // Without this, the sandbox moves a same-day transfer past `pending`
-      // and cancel returns `400 cannot_cancel`. See CLI counterpart for
-      // the canonical rationale.
-      const scheduledDate = new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10);
-
-      // ---- Round-trip #1: create the transfer to cancel ------------------
-      const reference = `e2e-sca-cancel-${randomUUID().slice(0, 12)}`;
-      const createArgs = {
-        beneficiary_id: beneficiaryId,
-        bank_account_id: bankAccountId,
-        reference,
-        amount: 1.5,
-        scheduled_date: scheduledDate,
-        vop_proof_token: vopProofToken,
-      };
-
-      const createTrigger = await triggerScaMcp(client, "transfer_create", createArgs);
-      expect(createTrigger.scaSessionToken).not.toBe("unknown");
-      expect(createTrigger.scaSessionToken).toMatch(/^[A-Za-z0-9_-]+$/);
-      expect(createTrigger.pendingText).toContain("sca_session_show");
-      expect(createTrigger.pendingText).toContain("sca_session_token");
-
-      const createRetry = await approveAndRetryMcp(createTrigger, "allow");
-      expect(createRetry.isError).not.toBe(true);
-      const createText = firstTextFromMcpResult(createRetry);
-      expect(createText).not.toMatch(/^SCA required/);
-      const transfer = JSON.parse(createText) as { readonly id: string };
-      TransferSchema.parse(JSON.parse(createText));
-      expect(transfer.id.length).toBeGreaterThan(0);
-
-      // ---- Round-trip #2 (conditional): cancel the transfer --------------
-      // The cancel endpoint is empirically NOT SCA-gated in sandbox — the
-      // helper handles both paths so the test remains correct if Qonto
-      // shifts behavior to start enforcing SCA on cancel.
-      const { result: cancelRetry, scaTriggered: cancelScaTriggered } = await callWithConditionalSca(
-        client,
-        "transfer_cancel",
-        { id: transfer.id },
+    const benList = JSON.parse(firstTextFromMcpResult(benResult)) as { beneficiaries: BeneficiaryListItem[] };
+    const beneficiary =
+      benList.beneficiaries.find((b) => b.status === "validated" && !b.trusted) ??
+      benList.beneficiaries.find((b) => !b.trusted);
+    if (beneficiary === undefined) {
+      throw new Error(
+        "E2E setup: no non-trusted beneficiaries available; need at least one untrusted beneficiary to trigger SCA",
       );
+    }
+    beneficiaryId = beneficiary.id;
 
-      if (cancelScaTriggered) {
-        console.log(`[transfer_cancel SCA probe] SCA triggered in OAuth+sandbox; round-trip exercised.`);
-      } else {
-        console.log(`[transfer_cancel SCA probe] NO SCA in OAuth+sandbox for transfer_cancel.`);
-      }
-
-      expect(cancelRetry.isError).not.toBe(true);
-      const cancelText = firstTextFromMcpResult(cancelRetry);
-      expect(cancelText).not.toMatch(/^SCA required/);
-      const cancelResult = JSON.parse(cancelText) as { readonly canceled?: boolean; readonly id?: string };
-      expect(cancelResult.canceled).toBe(true);
-      expect(cancelResult.id).toBe(transfer.id);
+    const accountsResult = await client.callTool({
+      name: "account_list",
+      arguments: {},
     });
-  },
-);
+    const accounts = JSON.parse(firstTextFromMcpResult(accountsResult)) as BankAccountItem[];
+    const account = accounts.find((a) => a.main) ?? [...accounts].sort((a, b) => b.balance_cents - a.balance_cents)[0];
+    if (account === undefined) {
+      throw new Error("E2E setup: no bank accounts in sandbox");
+    }
+    bankAccountId = account.id;
+
+    const vopResult = await client.callTool({
+      name: "transfer_verify_payee",
+      arguments: { iban: beneficiary.iban, name: beneficiary.name },
+    });
+    const vop = JSON.parse(firstTextFromMcpResult(vopResult)) as VopResultLite;
+    vopProofToken = vop.proof_token.token;
+  });
+
+  afterAll(async () => {
+    await client.close();
+  });
+
+  it("transfer_cancel: create + cancel lifecycle (cancel conditionally SCA-gated)", async () => {
+    // Schedule the transfer ~3 days into the future so it stays in
+    // `pending` status long enough for the cancel SCA round-trip to land.
+    // Without this, the sandbox moves a same-day transfer past `pending`
+    // and cancel returns `400 cannot_cancel`. See CLI counterpart for
+    // the canonical rationale.
+    const scheduledDate = new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10);
+
+    // ---- Round-trip #1: create the transfer to cancel ------------------
+    const reference = `e2e-sca-cancel-${randomUUID().slice(0, 12)}`;
+    const createArgs = {
+      beneficiary_id: beneficiaryId,
+      bank_account_id: bankAccountId,
+      reference,
+      amount: 1.5,
+      scheduled_date: scheduledDate,
+      vop_proof_token: vopProofToken,
+    };
+
+    const createTrigger = await triggerScaMcp(client, "transfer_create", createArgs);
+    expect(createTrigger.scaSessionToken).not.toBe("unknown");
+    expect(createTrigger.scaSessionToken).toMatch(/^[A-Za-z0-9_-]+$/);
+    expect(createTrigger.pendingText).toContain("sca_session_show");
+    expect(createTrigger.pendingText).toContain("sca_session_token");
+
+    const createRetry = await approveAndRetryMcp(createTrigger, "allow");
+    expect(createRetry.isError).not.toBe(true);
+    const createText = firstTextFromMcpResult(createRetry);
+    expect(createText).not.toMatch(/^SCA required/);
+    const transfer = JSON.parse(createText) as { readonly id: string };
+    TransferSchema.parse(JSON.parse(createText));
+    expect(transfer.id.length).toBeGreaterThan(0);
+
+    // ---- Round-trip #2 (conditional): cancel the transfer --------------
+    // The cancel endpoint is empirically NOT SCA-gated in sandbox — the
+    // helper handles both paths so the test remains correct if Qonto
+    // shifts behavior to start enforcing SCA on cancel.
+    const { result: cancelRetry, scaTriggered: cancelScaTriggered } = await callWithConditionalSca(
+      client,
+      "transfer_cancel",
+      { id: transfer.id },
+    );
+
+    if (cancelScaTriggered) {
+      console.log(`[transfer_cancel SCA probe] SCA triggered in OAuth+sandbox; round-trip exercised.`);
+    } else {
+      console.log(`[transfer_cancel SCA probe] NO SCA in OAuth+sandbox for transfer_cancel.`);
+    }
+
+    expect(cancelRetry.isError).not.toBe(true);
+    const cancelText = firstTextFromMcpResult(cancelRetry);
+    expect(cancelText).not.toMatch(/^SCA required/);
+    const cancelResult = JSON.parse(cancelText) as { readonly canceled?: boolean; readonly id?: string };
+    expect(cancelResult.canceled).toBe(true);
+    expect(cancelResult.id).toBe(transfer.id);
+  });
+});
 
 // NOTE: `transfer_proof` E2E coverage is deferred — same blocker as the CLI
 // counterpart. Qonto sandbox `0909-future-club-2702` returns `404 not_found`
