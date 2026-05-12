@@ -14,6 +14,7 @@ import {
   createLabelCommand,
   createMembershipCommand,
   createQuoteCommand,
+  createTerminalCommand,
   createWebhookCommand,
   handleCliError,
   registerRequestCommands,
@@ -33,6 +34,7 @@ program.addCommand(createInternalTransferCommand());
 program.addCommand(createLabelCommand());
 program.addCommand(createMembershipCommand());
 program.addCommand(createQuoteCommand());
+program.addCommand(createTerminalCommand());
 program.addCommand(createWebhookCommand());
 registerRequestCommands(program);
 registerStatementCommands(program);

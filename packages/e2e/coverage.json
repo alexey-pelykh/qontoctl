@@ -335,6 +335,11 @@
       "tests": [],
       "notes": ""
     },
+    "cli:packages/cli/src/commands/terminal.ts": {
+      "status": "covered",
+      "tests": ["packages/e2e/src/terminals/cli.e2e.test.ts"],
+      "notes": ""
+    },
     "cli:packages/cli/src/commands/transaction/attachment.ts": {
       "status": "pending",
       "tests": [],
@@ -803,6 +808,16 @@
     "core:packages/core/src/supplier-invoices/service.ts#listSupplierInvoices": {
       "status": "pending",
       "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/terminals/service.ts#createTerminalPayment": {
+      "status": "covered",
+      "tests": ["packages/e2e/src/terminals/cli.e2e.test.ts", "packages/e2e/src/terminals/mcp.e2e.test.ts"],
+      "notes": "E2E exercises the create-payment path against any provisioned terminal; tenants without terminals skip the call. Sandbox feature gating (4xx) is also accepted as a known skip."
+    },
+    "core:packages/core/src/terminals/service.ts#listTerminals": {
+      "status": "covered",
+      "tests": ["packages/e2e/src/terminals/cli.e2e.test.ts", "packages/e2e/src/terminals/mcp.e2e.test.ts"],
       "notes": ""
     },
     "core:packages/core/src/transactions/service.ts#buildTransactionQueryParams": {
@@ -1419,6 +1434,16 @@
       "status": "pending",
       "tests": [],
       "notes": ""
+    },
+    "mcp:terminal_list": {
+      "status": "covered",
+      "tests": ["packages/e2e/src/terminals/mcp.e2e.test.ts"],
+      "notes": ""
+    },
+    "mcp:terminal_payment_create": {
+      "status": "covered",
+      "tests": ["packages/e2e/src/terminals/mcp.e2e.test.ts"],
+      "notes": "E2E exercises the create-payment path against any provisioned terminal; tenants without terminals skip the call. Sandbox feature gating (4xx) is also accepted as a known skip."
     },
     "mcp:transaction_attachment_add": {
       "status": "pending",

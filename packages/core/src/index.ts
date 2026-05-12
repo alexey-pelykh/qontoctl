@@ -550,6 +550,18 @@ export {
   executeWithSca,
 } from "./sca/index.js";
 
+export {
+  listTerminals,
+  createTerminalPayment,
+  TerminalAmountSchema,
+  TerminalSchema,
+  TerminalListResponseSchema,
+  TerminalPaymentSchema,
+  TerminalPaymentResponseSchema,
+} from "./terminals/index.js";
+
+export type { CreateTerminalPaymentParams, Terminal, TerminalAmount, TerminalPayment } from "./terminals/index.js";
+
 export type {
   ScaMethod,
   ScaSession,

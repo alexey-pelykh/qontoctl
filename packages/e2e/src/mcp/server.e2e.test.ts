@@ -90,6 +90,8 @@ const EXPECTED_TOOLS = [
   "request_create_multi_transfer",
   "sca_session_show",
   "sca_session_mock_decision",
+  "terminal_list",
+  "terminal_payment_create",
   "supplier_invoice_list",
   "supplier_invoice_show",
   "supplier_invoice_bulk_create",
