@@ -2,6 +2,8 @@
 
 Notes for exercising QontoCtl against the [Qonto sandbox](https://docs.qonto.com/api-reference/business-api/authentication/sca/sca-flows). Production users do not need to read this — the sandbox-only behavior described here is gated behind a staging token and never auto-engages on production traffic.
 
+> Sandbox accepts **both OAuth and api-key authentication** when the staging token is set — sandbox routing is determined by the `X-Qonto-Staging-Token` header, not by auth type. The examples below focus on OAuth (the primary sandbox dev/test flow), but the same staging-token mechanism routes api-key requests to the sandbox host.
+
 ## Why this guide exists
 
 Sandbox accounts cannot enroll a real paired device. Without an enrollment, every "write" request to Qonto (create transfer, update card, …) returns `428 sca_not_enrolled` regardless of credentials. The Qonto sandbox provides a `mock` SCA flow for this, but it is opt-in via the `X-Qonto-2fa-Preference` HTTP header. QontoCtl exposes that header through:
