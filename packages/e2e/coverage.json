@@ -216,9 +216,9 @@
       "notes": ""
     },
     "cli:packages/cli/src/commands/payment-link.ts": {
-      "status": "pending",
-      "tests": [],
-      "notes": ""
+      "status": "covered",
+      "tests": ["packages/e2e/src/commands/payment-link.e2e.test.ts"],
+      "notes": "E2E exercises read-only paths (list/show/payments/methods/connection-status) plus the full write-path lifecycle (connect → create → deactivate); OAuth-gated so CI skips, runs locally against the live sandbox. Tenants without the Payment Links subscription (#490) skip the lifecycle gracefully."
     },
     "cli:packages/cli/src/commands/profile/add.ts": {
       "status": "pending",
@@ -1281,44 +1281,44 @@
       "notes": ""
     },
     "mcp:payment_link_connect": {
-      "status": "pending",
-      "tests": [],
-      "notes": ""
+      "status": "covered",
+      "tests": ["packages/e2e/src/commands/mcp-payment-links.e2e.test.ts"],
+      "notes": "E2E exercises payment_link_connect as part of the idempotent setup step in the CRUD lifecycle; sandbox-feature gating (4xx) and already-connected state are absorbed as soft skips."
     },
     "mcp:payment_link_connection_status": {
-      "status": "pending",
-      "tests": [],
-      "notes": ""
+      "status": "covered",
+      "tests": ["packages/e2e/src/commands/mcp-payment-links.e2e.test.ts"],
+      "notes": "E2E exercises payment_link_connection_status standalone and as the idempotency probe in the CRUD lifecycle; sandbox-feature gating (4xx) is treated as a soft skip."
     },
     "mcp:payment_link_create": {
-      "status": "pending",
-      "tests": [],
-      "notes": ""
+      "status": "covered",
+      "tests": ["packages/e2e/src/commands/mcp-payment-links.e2e.test.ts"],
+      "notes": "E2E exercises payment_link_create with a basket-type payload as part of the CRUD lifecycle; downstream deactivate cleans up the created link."
     },
     "mcp:payment_link_deactivate": {
-      "status": "pending",
-      "tests": [],
-      "notes": ""
+      "status": "covered",
+      "tests": ["packages/e2e/src/commands/mcp-payment-links.e2e.test.ts"],
+      "notes": "E2E exercises payment_link_deactivate as the cleanup step of the CRUD lifecycle and asserts the post-deactivation status flips away from `open`."
     },
     "mcp:payment_link_list": {
-      "status": "pending",
-      "tests": [],
-      "notes": ""
+      "status": "covered",
+      "tests": ["packages/e2e/src/commands/mcp-payment-links.e2e.test.ts"],
+      "notes": "E2E exercises payment_link_list against the live sandbox; sandbox-feature gating (4xx) is treated as a soft skip."
     },
     "mcp:payment_link_methods": {
-      "status": "pending",
-      "tests": [],
-      "notes": ""
+      "status": "covered",
+      "tests": ["packages/e2e/src/commands/mcp-payment-links.e2e.test.ts"],
+      "notes": "E2E exercises payment_link_methods against the live sandbox and is reused by the CRUD lifecycle to discover an enabled method."
     },
     "mcp:payment_link_payments": {
-      "status": "pending",
-      "tests": [],
-      "notes": ""
+      "status": "covered",
+      "tests": ["packages/e2e/src/commands/mcp-payment-links.e2e.test.ts"],
+      "notes": "E2E exercises payment_link_payments against the live sandbox; empty payment lists are accepted."
     },
     "mcp:payment_link_show": {
-      "status": "pending",
-      "tests": [],
-      "notes": ""
+      "status": "covered",
+      "tests": ["packages/e2e/src/commands/mcp-payment-links.e2e.test.ts"],
+      "notes": "E2E exercises payment_link_show against the live sandbox by listing first and showing the first available link; empty list skips gracefully."
     },
     "mcp:product_list": {
       "status": "covered",
