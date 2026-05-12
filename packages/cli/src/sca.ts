@@ -89,8 +89,7 @@ export async function executeWithCliSca<T>(
   //   3. Otherwise: undefined (no auto-approve, normal polling for the
   //      user's mobile-app approval).
   const isMockSca = client.isMockSca;
-  const autoApprove: "allow" | "deny" | undefined =
-    options?.scaAutoApprove ?? (isMockSca ? "allow" : undefined);
+  const autoApprove: "allow" | "deny" | undefined = options?.scaAutoApprove ?? (isMockSca ? "allow" : undefined);
 
   // Disambiguate spinner copy (AC #4). The mock path runs against the
   // sandbox `mocked_sca_sessions` endpoint, not the user's mobile app —

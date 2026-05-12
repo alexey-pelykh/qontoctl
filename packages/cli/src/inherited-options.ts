@@ -24,10 +24,7 @@ export function addInheritableOptions(cmd: Command): Command {
     .addOption(new Option("--debug", "enable debug output (implies --verbose)"))
     .addOption(new Option("--sca-method <value>", "SCA method preference (advanced; for testing)").hideHelp())
     .addOption(
-      new Option(
-        "--sca-auto-approve <decision>",
-        "auto-fire SCA mock-decision in sandbox (testing only)",
-      )
+      new Option("--sca-auto-approve <decision>", "auto-fire SCA mock-decision in sandbox (testing only)")
         .choices(["allow", "deny"])
         .hideHelp(),
     )
