@@ -1,0 +1,1509 @@
+{
+  "surfaces": {
+    "cli:packages/cli/src/commands/account.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/attachment.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/auth.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/beneficiary/add.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/beneficiary/list.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/beneficiary/show.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/beneficiary/trust.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/beneficiary/untrust.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/beneficiary/update.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/bulk-transfer/create.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/bulk-transfer/list.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/bulk-transfer/show.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/card/appearances.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/card/create.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/card/discard.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/card/iframe-url.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/card/list.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/card/lock.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/card/report.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/card/show.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/card/update-limits.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/card/update-nickname.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/card/update-options.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/card/update-restrictions.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/client-invoice.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/client.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/credit-note.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/einvoicing.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/insurance.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/internal-transfer.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/intl-beneficiary/add.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/intl-beneficiary/list.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/intl-beneficiary/remove.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/intl-beneficiary/requirements.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/intl-beneficiary/update.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/intl-currencies.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/intl-eligibility.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/intl-quote/create.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/intl-transfer/create.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/intl-transfer/requirements.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/label.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/membership.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/org.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/payment-link.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/profile/add.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/profile/list.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/profile/remove.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/profile/show.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/profile/test.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/quote.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/recurring-transfer/cancel.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/recurring-transfer/create.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/recurring-transfer/list.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/recurring-transfer/show.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/request/approve.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/request/create-flash-card.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/request/create-multi-transfer.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/request/create-virtual-card.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/request/decline.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/request/list.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/sca-session/mock-decision.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/sca-session/show.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/statement.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/supplier-invoice/bulk-create.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/supplier-invoice/list.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/supplier-invoice/show.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/team.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/transaction/attachment.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/transaction/list.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/transaction/show.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/transfer/bulk-verify-payee.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/transfer/cancel.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/transfer/create.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/transfer/list.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/transfer/proof.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/transfer/show.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/transfer/verify-payee.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "cli:packages/cli/src/commands/webhook.ts": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/attachments/service.ts#addTransactionAttachment": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/attachments/service.ts#getAttachment": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/attachments/service.ts#listTransactionAttachments": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/attachments/service.ts#removeAllTransactionAttachments": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/attachments/service.ts#removeTransactionAttachment": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/attachments/service.ts#uploadAttachment": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/auth/oauth-service.ts#exchangeCode": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/auth/oauth-service.ts#refreshAccessToken": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/auth/oauth-service.ts#revokeToken": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/beneficiaries/service.ts#buildBeneficiaryQueryParams": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/beneficiaries/service.ts#createBeneficiary": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/beneficiaries/service.ts#getBeneficiary": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/beneficiaries/service.ts#listBeneficiaries": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/beneficiaries/service.ts#trustBeneficiaries": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/beneficiaries/service.ts#untrustBeneficiaries": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/beneficiaries/service.ts#updateBeneficiary": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/bulk-transfers/service.ts#createBulkTransfer": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/bulk-transfers/service.ts#getBulkTransfer": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/bulk-transfers/service.ts#listBulkTransfers": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/cards/service.ts#buildCardQueryParams": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/cards/service.ts#bulkCreateCards": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/cards/service.ts#createCard": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/cards/service.ts#discardCard": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/cards/service.ts#getCard": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/cards/service.ts#getCardIframeUrl": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/cards/service.ts#listCardAppearances": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/cards/service.ts#listCards": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/cards/service.ts#lockCard": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/cards/service.ts#reportCardLost": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/cards/service.ts#reportCardStolen": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/cards/service.ts#unlockCard": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/cards/service.ts#updateCardLimits": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/cards/service.ts#updateCardNickname": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/cards/service.ts#updateCardOptions": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/cards/service.ts#updateCardRestrictions": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/client-invoices/service.ts#buildClientInvoiceQueryParams": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/client-invoices/service.ts#cancelClientInvoice": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/client-invoices/service.ts#createClientInvoice": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/client-invoices/service.ts#deleteClientInvoice": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/client-invoices/service.ts#finalizeClientInvoice": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/client-invoices/service.ts#getClientInvoice": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/client-invoices/service.ts#getClientInvoiceUpload": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/client-invoices/service.ts#listClientInvoices": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/client-invoices/service.ts#markClientInvoicePaid": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/client-invoices/service.ts#sendClientInvoice": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/client-invoices/service.ts#unmarkClientInvoicePaid": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/client-invoices/service.ts#updateClientInvoice": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/client-invoices/service.ts#uploadClientInvoiceFile": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/insurance-contracts/service.ts#createInsuranceContract": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/insurance-contracts/service.ts#getInsuranceContract": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/insurance-contracts/service.ts#removeInsuranceDocument": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/insurance-contracts/service.ts#updateInsuranceContract": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/insurance-contracts/service.ts#uploadInsuranceDocument": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/internal-transfers/service.ts#createInternalTransfer": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/international-beneficiaries/service.ts#createIntlBeneficiary": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/international-beneficiaries/service.ts#getIntlBeneficiaryRequirements": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/international-beneficiaries/service.ts#listIntlBeneficiaries": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/international-beneficiaries/service.ts#removeIntlBeneficiary": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/international-beneficiaries/service.ts#updateIntlBeneficiary": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/international-transfers/service.ts#createIntlTransfer": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/international-transfers/service.ts#getIntlTransferRequirements": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/international/service.ts#createIntlQuote": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/international/service.ts#getIntlEligibility": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/international/service.ts#listIntlCurrencies": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/recurring-transfers/service.ts#cancelRecurringTransfer": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/recurring-transfers/service.ts#createRecurringTransfer": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/recurring-transfers/service.ts#getRecurringTransfer": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/recurring-transfers/service.ts#listRecurringTransfers": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/requests/service.ts#approveRequest": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/requests/service.ts#createFlashCardRequest": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/requests/service.ts#createMultiTransferRequest": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/requests/service.ts#createVirtualCardRequest": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/requests/service.ts#declineRequest": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/sca/sca-service.ts#getScaSession": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/sca/sca-service.ts#mockScaDecision": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/sca/sca-service.ts#pollScaSession": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/statements/service.ts#buildStatementQueryParams": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/statements/service.ts#getStatement": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/statements/service.ts#listStatements": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/supplier-invoices/service.ts#buildSupplierInvoiceQueryParams": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/supplier-invoices/service.ts#bulkCreateSupplierInvoices": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/supplier-invoices/service.ts#getSupplierInvoice": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/supplier-invoices/service.ts#listSupplierInvoices": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/transactions/service.ts#buildTransactionQueryParams": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/transactions/service.ts#getTransaction": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/transactions/service.ts#listTransactions": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/transfers/service.ts#buildTransferQueryParams": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/transfers/service.ts#bulkVerifyPayee": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/transfers/service.ts#cancelTransfer": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/transfers/service.ts#createTransfer": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/transfers/service.ts#getTransfer": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/transfers/service.ts#getTransferProof": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/transfers/service.ts#listTransfers": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/transfers/service.ts#verifyPayee": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/webhooks/service.ts#createWebhook": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/webhooks/service.ts#deleteWebhook": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/webhooks/service.ts#getWebhook": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/webhooks/service.ts#listWebhooks": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "core:packages/core/src/webhooks/service.ts#updateWebhook": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:account_close": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:account_create": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:account_iban_certificate": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:account_list": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:account_show": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:account_update": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:attachment_show": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:attachment_upload": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:beneficiary_add": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:beneficiary_list": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:beneficiary_show": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:beneficiary_trust": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:beneficiary_untrust": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:beneficiary_update": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:bulk_transfer_create": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:bulk_transfer_list": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:bulk_transfer_show": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:card_appearances": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:card_bulk_create": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:card_create": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:card_discard": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:card_iframe_url": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:card_list": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:card_lock": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:card_report_lost": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:card_report_stolen": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:card_show": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:card_unlock": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:card_update_limits": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:card_update_nickname": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:card_update_options": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:card_update_restrictions": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:client_create": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:client_delete": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:client_invoice_cancel": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:client_invoice_create": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:client_invoice_delete": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:client_invoice_finalize": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:client_invoice_list": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:client_invoice_mark_paid": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:client_invoice_send": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:client_invoice_show": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:client_invoice_unmark_paid": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:client_invoice_update": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:client_invoice_upload": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:client_invoice_upload_show": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:client_list": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:client_show": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:client_update": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:credit_note_list": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:credit_note_show": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:einvoicing_settings": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:insurance_create": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:insurance_remove_document": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:insurance_show": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:insurance_update": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:insurance_upload_document": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:internal_transfer_create": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:intl_beneficiary_add": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:intl_beneficiary_list": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:intl_beneficiary_remove": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:intl_beneficiary_requirements": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:intl_beneficiary_update": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:intl_currencies": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:intl_eligibility": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:intl_quote_create": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:intl_transfer_create": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:intl_transfer_requirements": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:label_list": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:label_show": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:membership_invite": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:membership_list": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:membership_show": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:org_show": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:payment_link_connect": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:payment_link_connection_status": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:payment_link_create": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:payment_link_deactivate": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:payment_link_list": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:payment_link_methods": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:payment_link_payments": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:payment_link_show": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:quote_create": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:quote_delete": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:quote_list": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:quote_send": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:quote_show": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:quote_update": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:recurring_transfer_cancel": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:recurring_transfer_create": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:recurring_transfer_list": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:recurring_transfer_show": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:request_approve": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:request_create_flash_card": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:request_create_multi_transfer": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:request_create_virtual_card": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:request_decline": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:request_list": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:sca_session_mock_decision": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:sca_session_show": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:statement_list": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:statement_show": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:supplier_invoice_bulk_create": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:supplier_invoice_list": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:supplier_invoice_show": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:team_create": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:team_list": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:transaction_attachment_add": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:transaction_attachment_list": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:transaction_attachment_remove": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:transaction_list": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:transaction_show": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:transfer_bulk_verify_payee": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:transfer_cancel": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:transfer_create": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:transfer_list": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:transfer_proof": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:transfer_show": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:transfer_verify_payee": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:webhook_create": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:webhook_delete": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:webhook_list": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:webhook_show": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    },
+    "mcp:webhook_update": {
+      "status": "pending",
+      "tests": [],
+      "notes": ""
+    }
+  }
+}

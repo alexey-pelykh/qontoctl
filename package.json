@@ -18,6 +18,7 @@
     "lint": "turbo run lint",
     "license-check": "node scripts/check-licenses.js",
     "publish-check": "node scripts/check-publish-manifest.js",
+    "coverage-drift-check": "node scripts/check-coverage-drift.js",
     "dev": "turbo run dev"
   },
   "devDependencies": {
