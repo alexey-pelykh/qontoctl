@@ -95,12 +95,12 @@ The full catalog is grouped by feature area. Scopes marked **(recommended)** are
 
 ### Terminals (POS)
 
-| Scope            | Recommended | Enables                                                             |
-| ---------------- | :---------: | ------------------------------------------------------------------- |
-| `terminal.read`  |             | Qonto Terminal listing and webhook events (no qontoctl command yet) |
-| `terminal.write` |             | Qonto Terminal payment creation (no qontoctl command yet)           |
+| Scope            | Recommended | Enables                                                                     |
+| ---------------- | :---------: | --------------------------------------------------------------------------- |
+| `terminal.read`  |             | Qonto Terminal listing (`terminal list`) and `v1/terminal-payments` webhook |
+| `terminal.write` |             | Qonto Terminal payment creation (`terminal payment create`)                 |
 
-> **Note**: Terminal scopes are verified via per-endpoint docs but absent from Qonto's official catalog page (incomplete). No qontoctl command yet — forward-looking.
+> **Note**: Terminal scopes are verified via per-endpoint docs but absent from Qonto's official catalog page (incomplete).
 
 ### SEPA Direct Debit
 

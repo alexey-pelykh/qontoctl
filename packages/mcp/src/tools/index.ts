@@ -27,5 +27,6 @@ export { registerStatementTools } from "./statement.js";
 export { registerSupplierInvoiceTools } from "./supplier-invoice.js";
 export { registerTransactionTools } from "./transactions.js";
 export { registerTeamTools } from "./team.js";
+export { registerTerminalTools } from "./terminal.js";
 export { registerTransferTools } from "./transfer.js";
 export { registerWebhookTools } from "./webhook.js";

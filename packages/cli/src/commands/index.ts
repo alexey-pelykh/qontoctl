@@ -22,4 +22,5 @@ export { createTeamCommand } from "./team.js";
 export { registerIntlCurrenciesCommand } from "./intl-currencies.js";
 export { registerIntlEligibilityCommand } from "./intl-eligibility.js";
 export { registerIntlQuoteCommands } from "./intl-quote/index.js";
+export { createTerminalCommand } from "./terminal.js";
 export { createWebhookCommand } from "./webhook.js";

@@ -30,6 +30,7 @@ import {
   registerStatementTools,
   registerSupplierInvoiceTools,
   registerTeamTools,
+  registerTerminalTools,
   registerTransactionTools,
   registerTransferTools,
   registerWebhookTools,
@@ -79,6 +80,7 @@ export function createServer(options?: CreateServerOptions): McpServer {
   registerStatementTools(server, getClient);
   registerSupplierInvoiceTools(server, getClient);
   registerTeamTools(server, getClient);
+  registerTerminalTools(server, getClient);
   registerTransactionTools(server, getClient);
   registerTransferTools(server, getClient);
   registerWebhookTools(server, getClient);

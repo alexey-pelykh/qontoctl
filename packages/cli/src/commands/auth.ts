@@ -62,9 +62,10 @@ export const SCOPE_CATEGORIES: ReadonlyArray<{ readonly name: string; readonly s
   // products are explicitly out of scope for qontoctl.
   { name: "Products", scopes: ["product.read", "product.write"] },
   // `terminal.read` / `terminal.write` cover Qonto Terminal (POS) endpoints
-  // (GET /v2/terminals, POST /v2/terminals/payments). Verified via per-endpoint
+  // (GET /v2/terminals, POST /v2/terminals/{id}/payment). Verified via per-endpoint
   // docs; absent from the official scope catalog page (which is incomplete).
-  // No qontoctl command yet — included forward-looking, same rationale as products.
+  // Empirically OAuth-only despite per-endpoint docs claiming api-key works:
+  // api-key returns HTTP 401 "OAuth2 authentication is required here" (2026-05).
   { name: "Terminals (POS)", scopes: ["terminal.read", "terminal.write"] },
   { name: "Insurance", scopes: ["insurance_contract.read", "insurance_contract.write"] },
   { name: "International", scopes: ["international_transfer.write"] },
@@ -159,8 +160,8 @@ export const SCOPE_DESCRIPTIONS: Record<string, string> = {
   "insurance_contract.write": "Insurance contract creation",
   "product.read": "Product catalog listing and details (no qontoctl command yet — forward-looking)",
   "product.write": "Product catalog create/update/delete (no qontoctl command yet — forward-looking)",
-  "terminal.read": "Qonto Terminal (POS) listing and webhook events (no qontoctl command yet — forward-looking)",
-  "terminal.write": "Qonto Terminal (POS) payment creation (no qontoctl command yet — forward-looking)",
+  "terminal.read": "Qonto Terminal (POS) listing and webhook events",
+  "terminal.write": "Qonto Terminal (POS) payment creation",
   "international_transfer.write": "International (SWIFT) transfer creation",
   "payment_link.read": "Payment link listing and details",
   "payment_link.write": "Payment link creation",

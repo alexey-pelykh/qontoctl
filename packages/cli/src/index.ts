@@ -36,6 +36,7 @@ export {
   createLabelCommand,
   createMembershipCommand,
   createQuoteCommand,
+  createTerminalCommand,
   createWebhookCommand,
 } from "./commands/index.js";
 
