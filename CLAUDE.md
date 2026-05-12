@@ -147,6 +147,38 @@ pnpm test:e2e                       # Full E2E suite
 
 **What's covered:** Each domain has its own directory under `packages/e2e/src/` with CLI and MCP test files. Check the directory structure for current coverage — do not rely on a hardcoded list.
 
+### Coverage Drift Policy
+
+**Policy:** Every Qonto API endpoint qontoctl ships must be reachable from at least one E2E test exercising the live sandbox, OR carry an explicit `accepted_gap` justification. New core service functions, CLI command files, and MCP tools must be reflected in the coverage manifest in the same PR that introduces them.
+
+**Manifest:** [`packages/e2e/coverage.json`](packages/e2e/coverage.json). One entry per surface, keyed by:
+
+- `mcp:<tool_name>` — each `server.registerTool("...")` in `packages/mcp/src/tools/`
+- `cli:<relative-file-path>` — each non-`index.ts` source file in `packages/cli/src/commands/`
+- `core:<relative-file-path>#<function-name>` — each `export function` in `packages/core/src/**/service.ts`
+
+Each entry has `status`, `tests`, and `notes`:
+
+- **`covered`** — `tests` must list at least one existing E2E test file.
+- **`pending`** — known gap, tracked separately. `tests` and `notes` may be empty. Non-blocking; intended as a transient state while gaps are being closed (e.g., #449 sub-items).
+- **`accepted_gap`** — surface cannot be E2E tested (e.g., Embed-partner-only endpoints). `notes` is required and must explain why.
+
+**Enforcement:** `pnpm coverage-drift-check` runs in CI on every PR. It fails when:
+
+1. A surface exists in code but has no manifest entry (NEW).
+2. A manifest entry references a surface that no longer exists in code (STALE).
+3. A `covered` entry points to a missing test file or has an empty `tests` array (BROKEN_REF).
+4. An `accepted_gap` entry has an empty `notes` field (MISSING_NOTE).
+
+**Workflow when adding a new surface:**
+
+1. Add the code (new tool, command file, or core function).
+2. Run `pnpm coverage-drift-check` locally — it will fail with `[NEW]` findings.
+3. Either add the corresponding E2E test now and update the manifest with `status: "covered"`, or add the entry with `status: "pending"` (with an issue link in `notes`) for follow-up, or mark `status: "accepted_gap"` with a justification.
+4. Re-run `pnpm coverage-drift-check` — it should pass.
+
+**Bootstrapping new entries:** `node scripts/check-coverage-drift.js --bootstrap` adds any missing surface as `pending` (preserves existing entries). Use `--prune` to remove stale entries after a rename or removal.
+
 ### TypeScript
 
 - Strict mode with `exactOptionalPropertyTypes` and `noUncheckedIndexedAccess`
