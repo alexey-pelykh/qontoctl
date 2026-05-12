@@ -119,7 +119,12 @@ export const ClientInvoiceSchema = z
     header: z.string().nullable(),
     footer: z.string().nullable(),
     discount: ClientInvoiceDiscountSchema.nullable().optional(),
-    items: z.array(ClientInvoiceItemSchema),
+    // Qonto returns `items: null` for drafts with no line items (not `[]`).
+    // Normalize at the schema boundary so consumers always see `ClientInvoiceItem[]`.
+    items: z
+      .array(ClientInvoiceItemSchema)
+      .nullable()
+      .transform((v) => v ?? []),
     client: ClientInvoiceClientSchema,
   })
   .strip() satisfies z.ZodType<ClientInvoice>;
