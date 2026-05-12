@@ -6,7 +6,7 @@ import { Command, Option } from "commander";
 import { addInheritableOptions, buildResolveOptions, resolveGlobalOptions } from "./inherited-options.js";
 
 describe("addInheritableOptions", () => {
-  it("adds --config, --profile, --verbose, --debug, and --sca-method to a command", () => {
+  it("adds --config, --profile, --verbose, --debug, --sca-method, and --sca-auto-approve to a command", () => {
     const cmd = new Command("test");
     addInheritableOptions(cmd);
 
@@ -16,6 +16,7 @@ describe("addInheritableOptions", () => {
     expect(optionNames).toContain("--verbose");
     expect(optionNames).toContain("--debug");
     expect(optionNames).toContain("--sca-method");
+    expect(optionNames).toContain("--sca-auto-approve");
   });
 
   it("adds -p as shorthand for --profile", () => {
@@ -32,6 +33,22 @@ describe("addInheritableOptions", () => {
 
     const scaOption = cmd.options.find((o) => o.long === "--sca-method");
     expect(scaOption?.hidden).toBe(true);
+  });
+
+  it("hides --sca-auto-approve from help", () => {
+    const cmd = new Command("test");
+    addInheritableOptions(cmd);
+
+    const scaAutoApproveOption = cmd.options.find((o) => o.long === "--sca-auto-approve");
+    expect(scaAutoApproveOption?.hidden).toBe(true);
+  });
+
+  it("restricts --sca-auto-approve to 'allow' or 'deny' via choices", () => {
+    const cmd = new Command("test");
+    addInheritableOptions(cmd);
+
+    const scaAutoApproveOption = cmd.options.find((o) => o.long === "--sca-auto-approve");
+    expect(scaAutoApproveOption?.argChoices).toEqual(["allow", "deny"]);
   });
 
   it("does NOT hide --config from help (visible flag)", () => {

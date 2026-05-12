@@ -334,6 +334,30 @@ describe("createProgram", () => {
       const helpText = program.helpInformation();
       expect(helpText).not.toContain("--sca-method");
     });
+
+    it("parses --sca-auto-approve option with 'allow'", () => {
+      const program = parseGlobalOptions(["--sca-auto-approve", "allow"]);
+      expect(program.opts()["scaAutoApprove"]).toBe("allow");
+    });
+
+    it("parses --sca-auto-approve option with 'deny'", () => {
+      const program = parseGlobalOptions(["--sca-auto-approve", "deny"]);
+      expect(program.opts()["scaAutoApprove"]).toBe("deny");
+    });
+
+    it("rejects --sca-auto-approve with invalid value at parse time", () => {
+      // Commander's .choices() enforces the enum at parse time so the runtime
+      // value is guaranteed to be "allow" | "deny" | undefined.
+      const program = createProgram();
+      program.exitOverride();
+      expect(() => program.parse(["--sca-auto-approve", "maybe"], { from: "user" })).toThrow();
+    });
+
+    it("does not include --sca-auto-approve in help output (hidden)", () => {
+      const program = createProgram();
+      const helpText = program.helpInformation();
+      expect(helpText).not.toContain("--sca-auto-approve");
+    });
   });
 
   describe("pagination options", () => {

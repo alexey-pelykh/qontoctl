@@ -49,6 +49,14 @@ export function createProgram(): Command {
     .addOption(new Option("--sca-method <value>", "SCA method preference (advanced; for testing)").hideHelp())
     .addOption(
       new Option(
+        "--sca-auto-approve <decision>",
+        "auto-fire SCA mock-decision in sandbox (testing only)",
+      )
+        .choices(["allow", "deny"])
+        .hideHelp(),
+    )
+    .addOption(
+      new Option(
         "--auth <mode>",
         "authentication precedence: api-key (only), api-key-first, oauth (only), or oauth-first",
       ).choices([...AUTH_PREFERENCES]),

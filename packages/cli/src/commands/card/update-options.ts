@@ -49,7 +49,11 @@ export function registerCardUpdateOptionsCommand(parent: Command): void {
           idempotencyKey,
           ...(scaSessionToken !== undefined ? { scaSessionToken } : {}),
         }),
-      { verbose: opts.verbose === true || opts.debug === true, idempotencyKey: opts.idempotencyKey },
+      {
+        verbose: opts.verbose === true || opts.debug === true,
+        idempotencyKey: opts.idempotencyKey,
+        scaAutoApprove: opts.scaAutoApprove,
+      },
     );
 
     const data: unknown =

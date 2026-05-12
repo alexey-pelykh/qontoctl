@@ -110,6 +110,45 @@ qontoctl sca-session mock-decision <token> allow
 
 The corresponding MCP tool is `sca_session_mock_decision`. Both are sandbox-only and refuse to run when no staging token is configured.
 
+### Auto-approving in a single CLI invocation
+
+The `--sca-auto-approve <decision>` flag (sandbox-only) tells the CLI to fire `mock-decision` against the captured SCA session token **before** polling begins, so SCA-gated writes complete in a single CLI invocation without external orchestration.
+
+```sh
+# Explicit:
+qontoctl --sca-auto-approve allow transfer create --beneficiary ben_… …
+qontoctl --sca-auto-approve deny  transfer create --beneficiary ben_… …  # tests the deny path
+```
+
+Behavior:
+
+- Values: `allow` (approves the challenge) or `deny` (rejects it). Commander enforces the enum at parse time.
+- **Auto-defaults to `allow`** when both conditions are true:
+  - A staging token is configured (`oauth.staging-token` or `QONTOCTL_STAGING_TOKEN`).
+  - The resolved `sca.method` is `"mock"` (the sandbox auto-default or an explicit setting).
+
+  Users who want to test the deny path opt in explicitly via `--sca-auto-approve deny`.
+- **Rejected against production paths.** Without a staging token, the flag throws up-front:
+
+  ```text
+  --sca-auto-approve is only available in the Qonto sandbox environment.
+  Configure `oauth.staging-token` in your config or set `QONTOCTL_STAGING_TOKEN`.
+  ```
+
+  This guarantees the flag cannot accidentally engage in production, where the `mocked_sca_sessions` endpoint does not exist.
+- **Hidden from `--help`** because end users in production should never need it; sandbox users get the auto-default behavior automatically.
+- **Not exposed via MCP** — like `--sca-method`, choosing the SCA outcome on a write is a threat-model risk in production and is intentionally not surfaced as a tool input.
+
+When the sandbox mock path is active, the CLI spinner copy switches from `"Waiting for SCA approval on your Qonto mobile app..."` to `"Waiting for SCA mock-decision..."` to disambiguate the flow from a real-device challenge.
+
+### Precedence
+
+Highest wins:
+
+1. `--sca-auto-approve <decision>` CLI flag
+2. Sandbox auto-default `"allow"` (only when a staging token is configured **and** the resolved `sca.method` is `"mock"`)
+3. Otherwise: no auto-approve — the CLI polls until the session is resolved externally (e.g., via `qontoctl sca-session mock-decision <token> allow` in another terminal).
+
 ## See also
 
 - [`oauth-setup.md`](./oauth-setup.md) — OAuth app registration, including sandbox setup

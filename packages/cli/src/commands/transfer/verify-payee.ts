@@ -45,7 +45,11 @@ export function registerTransferVerifyPayeeCommand(parent: Command): void {
             ...(scaSessionToken !== undefined ? { scaSessionToken } : {}),
           },
         ),
-      { verbose: opts.verbose === true || opts.debug === true, idempotencyKey: opts.idempotencyKey },
+      {
+        verbose: opts.verbose === true || opts.debug === true,
+        idempotencyKey: opts.idempotencyKey,
+        scaAutoApprove: opts.scaAutoApprove,
+      },
     );
 
     const data = opts.output === "json" || opts.output === "yaml" ? result : [toTableRow(result)];

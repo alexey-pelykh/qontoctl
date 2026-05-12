@@ -29,7 +29,11 @@ export function registerCardLockCommand(parent: Command): void {
           idempotencyKey,
           ...(scaSessionToken !== undefined ? { scaSessionToken } : {}),
         }),
-      { verbose: opts.verbose === true || opts.debug === true, idempotencyKey: opts.idempotencyKey },
+      {
+        verbose: opts.verbose === true || opts.debug === true,
+        idempotencyKey: opts.idempotencyKey,
+        scaAutoApprove: opts.scaAutoApprove,
+      },
     );
 
     process.stdout.write(formatOutput(formatCard(card, opts.output), opts.output) + "\n");
@@ -51,7 +55,11 @@ export function registerCardUnlockCommand(parent: Command): void {
           idempotencyKey,
           ...(scaSessionToken !== undefined ? { scaSessionToken } : {}),
         }),
-      { verbose: opts.verbose === true || opts.debug === true, idempotencyKey: opts.idempotencyKey },
+      {
+        verbose: opts.verbose === true || opts.debug === true,
+        idempotencyKey: opts.idempotencyKey,
+        scaAutoApprove: opts.scaAutoApprove,
+      },
     );
 
     process.stdout.write(formatOutput(formatCard(card, opts.output), opts.output) + "\n");

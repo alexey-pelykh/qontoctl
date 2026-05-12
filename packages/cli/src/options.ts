@@ -38,6 +38,17 @@ export interface GlobalOptions {
    */
   readonly scaMethod?: string | undefined;
   /**
+   * Sandbox-only auto-approve preference for SCA mock-decision. Values:
+   * `"allow"` | `"deny"`. Hidden flag for sandbox testing — rejected in
+   * production paths (no staging-token). When unset and the sandbox mock SCA
+   * path is active (staging-token + resolved `sca.method === "mock"`),
+   * auto-defaults to `"allow"` so sandbox writes complete in a single CLI
+   * invocation without external `sca-session mock-decision` orchestration.
+   * Commander's `.choices(["allow", "deny"])` validates input at parse time.
+   * See `docs/sandbox-testing.md`.
+   */
+  readonly scaAutoApprove?: "allow" | "deny" | undefined;
+  /**
    * Auth precedence preference (`--auth` flag), one of `api-key`,
    * `api-key-first`, `oauth`, `oauth-first`. Highest-priority preference input —
    * overrides `QONTOCTL_AUTH` env var and `auth.preference` config field. When

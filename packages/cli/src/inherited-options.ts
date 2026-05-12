@@ -10,8 +10,9 @@ import type { GlobalOptions } from "./options.js";
 
 /**
  * Adds inheritable global options to a command — currently `--config`, `--profile`,
- * `--verbose`, `--debug`, `--sca-method` (hidden), and `--auth`. These mirror the
- * program-level options so users can specify them after the subcommand.
+ * `--verbose`, `--debug`, `--sca-method` (hidden), `--sca-auto-approve` (hidden),
+ * and `--auth`. These mirror the program-level options so users can specify them
+ * after the subcommand.
  */
 export function addInheritableOptions(cmd: Command): Command {
   return cmd
@@ -22,6 +23,14 @@ export function addInheritableOptions(cmd: Command): Command {
     .addOption(new Option("--verbose", "enable verbose output"))
     .addOption(new Option("--debug", "enable debug output (implies --verbose)"))
     .addOption(new Option("--sca-method <value>", "SCA method preference (advanced; for testing)").hideHelp())
+    .addOption(
+      new Option(
+        "--sca-auto-approve <decision>",
+        "auto-fire SCA mock-decision in sandbox (testing only)",
+      )
+        .choices(["allow", "deny"])
+        .hideHelp(),
+    )
     .addOption(
       new Option(
         "--auth <mode>",

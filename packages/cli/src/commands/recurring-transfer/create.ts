@@ -117,7 +117,11 @@ export function registerRecurringTransferCreateCommand(parent: Command): void {
           idempotencyKey,
           ...(scaSessionToken !== undefined ? { scaSessionToken } : {}),
         }),
-      { verbose: opts.verbose === true || opts.debug === true, idempotencyKey: opts.idempotencyKey },
+      {
+        verbose: opts.verbose === true || opts.debug === true,
+        idempotencyKey: opts.idempotencyKey,
+        scaAutoApprove: opts.scaAutoApprove,
+      },
     );
 
     const data = opts.output === "json" || opts.output === "yaml" ? recurringTransfer : [toTableRow(recurringTransfer)];
