@@ -196,4 +196,69 @@ describe.skipIf(!hasApiKeyCredentials())("client-invoice commands (e2e)", () => 
       }
     });
   });
+
+  // Regression for #575: Qonto returns `items: null` for drafts with no line
+  // items. Pre-fix, `client-invoice show` blew up with a Zod validation error
+  // on any such draft. This test creates an empty-items draft and shows it,
+  // exercising the schema-boundary normalization end-to-end through the CLI.
+  describe("client-invoice show empty-items draft (regression: #575)", () => {
+    let emptyDraftId: string | undefined;
+
+    it("creates a draft with no line items", () => {
+      // Get a client ID from existing clients
+      const clientListOutput = cli("--output", "json", "client", "list");
+      const clients = JSON.parse(clientListOutput) as { id: string }[];
+      if (clients.length === 0) {
+        return;
+      }
+
+      const clientId = (clients[0] as { id: string }).id;
+      const today = new Date().toISOString().split("T")[0] as string;
+      const dueDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] as string;
+
+      const body = JSON.stringify({
+        client_id: clientId,
+        issue_date: today,
+        due_date: dueDate,
+        currency: "EUR",
+        terms_and_conditions: "E2E #575 empty-items draft — safe to delete",
+        items: [],
+      });
+
+      try {
+        const output = cli("--output", "json", "client-invoice", "create", "--body", body);
+        const parsed = JSON.parse(output) as Record<string, unknown>;
+        expect(parsed).toHaveProperty("id");
+        expect(parsed).toHaveProperty("status", "draft");
+        emptyDraftId = parsed["id"] as string;
+      } catch {
+        // Sandbox/prod organizations may reject empty-items drafts (IBAN
+        // setup, business-rule constraints). Skip the show round-trip.
+      }
+    });
+
+    it("shows the empty-items draft and round-trips items as []", () => {
+      if (emptyDraftId === undefined) {
+        return;
+      }
+
+      const output = cli("--output", "json", "client-invoice", "show", emptyDraftId);
+      const parsed = JSON.parse(output) as Record<string, unknown>;
+      // Round-trip via the full schema — this is what blew up pre-#575.
+      const invoice = ClientInvoiceSchema.parse(parsed);
+      expect(invoice.id).toBe(emptyDraftId);
+      // Post-transform: API `null` is exposed to consumers as `[]`.
+      expect(invoice.items).toEqual([]);
+    });
+
+    it("cleans up the empty-items draft", () => {
+      if (emptyDraftId === undefined) {
+        return;
+      }
+
+      const output = cli("--output", "json", "client-invoice", "delete", emptyDraftId, "--yes");
+      const parsed = JSON.parse(output) as Record<string, unknown>;
+      expect(parsed).toHaveProperty("deleted", true);
+    });
+  });
 });

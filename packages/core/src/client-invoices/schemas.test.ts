@@ -350,4 +350,24 @@ describe("ClientInvoiceSchema", () => {
     expect(result).not.toHaveProperty("extra_field");
     expect(result.client).not.toHaveProperty("unknown_field");
   });
+
+  // Regression for #575: Qonto returns `items: null` for drafts with no line
+  // items (not `[]`). The schema must accept both shapes and expose `[]` to
+  // consumers, so downstream code can always treat `items` as `Item[]`.
+  it("normalizes items: null to [] (regression: #575)", () => {
+    const result = ClientInvoiceSchema.parse({ ...validInvoice, items: null });
+    expect(result.items).toEqual([]);
+  });
+
+  it("accepts items: [] and exposes it as-is (regression: #575)", () => {
+    const result = ClientInvoiceSchema.parse({ ...validInvoice, items: [] });
+    expect(result.items).toEqual([]);
+  });
+
+  it("accepts items: null through parseResponse wrapper (regression: #575)", () => {
+    const wrapped = { client_invoice: { ...validInvoice, items: null } };
+    const wrapperSchema = z.object({ client_invoice: ClientInvoiceSchema });
+    const result = parseResponse(wrapperSchema, wrapped, "/v2/client_invoices/inv-1");
+    expect(result.client_invoice.items).toEqual([]);
+  });
 });
