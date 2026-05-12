@@ -13,6 +13,7 @@ import {
   closeBankAccount,
 } from "@qontoctl/core";
 import { withClient } from "../errors.js";
+import { coreOptionsFromContext, executeWithMcpSca, scaContinuationSchema, scaOptionsFromArgs } from "../sca.js";
 
 export function registerAccountTools(server: McpServer, getClient: () => Promise<HttpClient>): void {
   server.registerTool("account_list", { description: "List all bank accounts for the organization" }, async () =>
@@ -70,59 +71,73 @@ export function registerAccountTools(server: McpServer, getClient: () => Promise
   server.registerTool(
     "account_create",
     {
-      description: "Create a new bank account",
+      description:
+        "Create a new bank account. SCA: this operation may require Strong Customer Authentication; the tool polls inline by default (wait=30s) and falls back to a structured pending response so the caller can continue via sca_session_show + sca_session_token.",
       inputSchema: {
         name: z.string().describe("Account name"),
+        ...scaContinuationSchema,
       },
     },
-    async ({ name }) =>
-      withClient(getClient, async (client) => {
-        const bankAccount = await createBankAccount(client, { name });
-        return {
-          content: [{ type: "text" as const, text: JSON.stringify(bankAccount, null, 2) }],
-        };
-      }),
+    async (args) =>
+      withClient(getClient, async (client) =>
+        executeWithMcpSca(
+          client,
+          (context) => createBankAccount(client, { name: args.name }, coreOptionsFromContext(context)),
+          (bankAccount) => ({
+            content: [{ type: "text" as const, text: JSON.stringify(bankAccount, null, 2) }],
+          }),
+          scaOptionsFromArgs(args),
+        ),
+      ),
   );
 
   server.registerTool(
     "account_update",
     {
-      description: "Update an existing bank account",
+      description:
+        "Update an existing bank account. SCA: this operation may require Strong Customer Authentication; the tool polls inline by default (wait=30s) and falls back to a structured pending response so the caller can continue via sca_session_show + sca_session_token.",
       inputSchema: {
         id: z.string().describe("Bank account UUID"),
         name: z.string().optional().describe("New account name"),
+        ...scaContinuationSchema,
       },
     },
-    async ({ id, ...fields }) =>
+    async (args) =>
       withClient(getClient, async (client) => {
         const body: Record<string, unknown> = {};
-        for (const [key, value] of Object.entries(fields)) {
-          if (value !== undefined) {
-            body[key] = value;
-          }
-        }
+        if (args.name !== undefined) body["name"] = args.name;
 
-        const bankAccount = await updateBankAccount(client, id, body);
-        return {
-          content: [{ type: "text" as const, text: JSON.stringify(bankAccount, null, 2) }],
-        };
+        return executeWithMcpSca(
+          client,
+          (context) => updateBankAccount(client, args.id, body, coreOptionsFromContext(context)),
+          (bankAccount) => ({
+            content: [{ type: "text" as const, text: JSON.stringify(bankAccount, null, 2) }],
+          }),
+          scaOptionsFromArgs(args),
+        );
       }),
   );
 
   server.registerTool(
     "account_close",
     {
-      description: "Close a bank account",
+      description:
+        "Close a bank account. SCA: this operation may require Strong Customer Authentication; the tool polls inline by default (wait=30s) and falls back to a structured pending response so the caller can continue via sca_session_show + sca_session_token.",
       inputSchema: {
         id: z.string().describe("Bank account UUID"),
+        ...scaContinuationSchema,
       },
     },
-    async ({ id }) =>
-      withClient(getClient, async (client) => {
-        await closeBankAccount(client, id);
-        return {
-          content: [{ type: "text" as const, text: JSON.stringify({ closed: true, id }, null, 2) }],
-        };
-      }),
+    async (args) =>
+      withClient(getClient, async (client) =>
+        executeWithMcpSca(
+          client,
+          (context) => closeBankAccount(client, args.id, coreOptionsFromContext(context)),
+          () => ({
+            content: [{ type: "text" as const, text: JSON.stringify({ closed: true, id: args.id }, null, 2) }],
+          }),
+          scaOptionsFromArgs(args),
+        ),
+      ),
   );
 }
