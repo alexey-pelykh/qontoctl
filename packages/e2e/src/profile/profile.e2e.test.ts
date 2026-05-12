@@ -241,17 +241,28 @@ describe.skipIf(!hasApiKeyCredentials())("profile test (e2e)", () => {
     // Skip if API key credentials are not available (e.g. OAuth-only sandbox)
     if (creds.organizationSlug === undefined || creds.secretKey === undefined) return;
 
-    const { stdout, exitCode } = cli(["profile", "test"], {
-      env: {
-        ...(process.env as Record<string, string>),
-        HOME: tempDir,
-        USERPROFILE: tempDir,
+    // Use homeEnv() (not `...process.env`) to isolate from the parent shell's
+    // env. Spreading process.env inherits whatever direnv has exported — most
+    // importantly QONTOCTL_CONFIG_FILE, which points at the repo's
+    // .qontoctl.yaml. That file may carry an oauth.staging-token, which the
+    // CLI uses to route ALL requests (including api-key) to the Qonto sandbox.
+    // Sandbox does not accept api-key auth, so the CLI gets a 302 and exits 1.
+    // homeEnv() ships only PATH + HOME/USERPROFILE, matching how the sibling
+    // "invalid credentials" test (and every other test in this file) is wired,
+    // so the CLI uses production URLs and api-key auth uniformly local + CI.
+    const { stdout, stderr, exitCode } = cli(["profile", "test"], {
+      env: homeEnv(tempDir, {
         QONTOCTL_ORGANIZATION_SLUG: creds.organizationSlug,
         QONTOCTL_SECRET_KEY: creds.secretKey,
-      },
+      }),
     });
-    expect(exitCode).toBe(0);
-    expect(stdout).toContain("Success: connected to organization");
+    // Surface stderr in assertion messages so a CLI failure is diagnosable
+    // from the test report alone — without it, the report only shows the
+    // exit-code mismatch and hides the actual "API error (…)" line.
+    expect(exitCode, `expected exit 0 but got ${String(exitCode)}; stderr: ${stderr}`).toBe(0);
+    expect(stdout, `stdout did not contain success line; stderr: ${stderr}`).toContain(
+      "Success: connected to organization",
+    );
   });
 
   // AC: Given invalid credentials,
