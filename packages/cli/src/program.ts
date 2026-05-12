@@ -48,10 +48,7 @@ export function createProgram(): Command {
     .addOption(new Option("--no-paginate", "disable auto-pagination"))
     .addOption(new Option("--sca-method <value>", "SCA method preference (advanced; for testing)").hideHelp())
     .addOption(
-      new Option(
-        "--sca-auto-approve <decision>",
-        "auto-fire SCA mock-decision in sandbox (testing only)",
-      )
+      new Option("--sca-auto-approve <decision>", "auto-fire SCA mock-decision in sandbox (testing only)")
         .choices(["allow", "deny"])
         .hideHelp(),
     )
