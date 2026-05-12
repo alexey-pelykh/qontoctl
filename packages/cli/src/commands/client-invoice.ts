@@ -120,7 +120,7 @@ export function createClientInvoiceCommand(): Command {
   const list = invoice
     .command("list")
     .description("List client invoices")
-    .addOption(new Option("--status <status>", "filter by status").choices(["draft", "pending", "paid", "cancelled"]))
+    .addOption(new Option("--status <status>", "filter by status").choices(["draft", "unpaid", "paid", "canceled"]))
     .addOption(new Option("--created-at-from <date>", "filter by creation date (from, ISO 8601)"))
     .addOption(new Option("--created-at-to <date>", "filter by creation date (to, ISO 8601)"))
     .addOption(new Option("--updated-at-from <date>", "filter by last update date (from, ISO 8601)"))

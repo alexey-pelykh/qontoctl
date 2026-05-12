@@ -314,7 +314,7 @@ describe("client-invoice MCP tools", () => {
 
   describe("client_invoice_finalize", () => {
     it("finalizes a client invoice and returns the result", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ client_invoice: { ...sampleClientInvoice, status: "pending" } }));
+      fetchSpy.mockReturnValue(jsonResponse({ client_invoice: { ...sampleClientInvoice, status: "unpaid" } }));
 
       const result = await mcpClient.callTool({
         name: "client_invoice_finalize",
@@ -326,11 +326,11 @@ describe("client-invoice MCP tools", () => {
       const first = content[0] as { type: string; text: string };
       const parsed = JSON.parse(first.text) as { id: string; status: string };
       expect(parsed.id).toBe("ci-123");
-      expect(parsed.status).toBe("pending");
+      expect(parsed.status).toBe("unpaid");
     });
 
     it("sends POST to the correct endpoint", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ client_invoice: { ...sampleClientInvoice, status: "pending" } }));
+      fetchSpy.mockReturnValue(jsonResponse({ client_invoice: { ...sampleClientInvoice, status: "unpaid" } }));
 
       await mcpClient.callTool({
         name: "client_invoice_finalize",
@@ -407,7 +407,7 @@ describe("client-invoice MCP tools", () => {
 
   describe("client_invoice_unmark_paid", () => {
     it("unmarks a client invoice paid status and returns the result", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ client_invoice: { ...sampleClientInvoice, status: "pending" } }));
+      fetchSpy.mockReturnValue(jsonResponse({ client_invoice: { ...sampleClientInvoice, status: "unpaid" } }));
 
       const result = await mcpClient.callTool({
         name: "client_invoice_unmark_paid",
@@ -419,11 +419,11 @@ describe("client-invoice MCP tools", () => {
       const first = content[0] as { type: string; text: string };
       const parsed = JSON.parse(first.text) as { id: string; status: string };
       expect(parsed.id).toBe("ci-123");
-      expect(parsed.status).toBe("pending");
+      expect(parsed.status).toBe("unpaid");
     });
 
     it("sends POST to the correct endpoint", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ client_invoice: { ...sampleClientInvoice, status: "pending" } }));
+      fetchSpy.mockReturnValue(jsonResponse({ client_invoice: { ...sampleClientInvoice, status: "unpaid" } }));
 
       await mcpClient.callTool({
         name: "client_invoice_unmark_paid",
@@ -438,7 +438,7 @@ describe("client-invoice MCP tools", () => {
 
   describe("client_invoice_cancel", () => {
     it("cancels a client invoice and returns the result", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ client_invoice: { ...sampleClientInvoice, status: "cancelled" } }));
+      fetchSpy.mockReturnValue(jsonResponse({ client_invoice: { ...sampleClientInvoice, status: "canceled" } }));
 
       const result = await mcpClient.callTool({
         name: "client_invoice_cancel",
@@ -450,11 +450,11 @@ describe("client-invoice MCP tools", () => {
       const first = content[0] as { type: string; text: string };
       const parsed = JSON.parse(first.text) as { id: string; status: string };
       expect(parsed.id).toBe("ci-123");
-      expect(parsed.status).toBe("cancelled");
+      expect(parsed.status).toBe("canceled");
     });
 
     it("sends POST to the correct endpoint", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ client_invoice: { ...sampleClientInvoice, status: "cancelled" } }));
+      fetchSpy.mockReturnValue(jsonResponse({ client_invoice: { ...sampleClientInvoice, status: "canceled" } }));
 
       await mcpClient.callTool({
         name: "client_invoice_cancel",

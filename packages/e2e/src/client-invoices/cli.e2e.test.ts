@@ -31,6 +31,18 @@ describe.skipIf(!hasApiKeyCredentials())("client-invoice commands (e2e)", () => 
       const parsed = JSON.parse(output) as unknown[];
       expect(Array.isArray(parsed)).toBe(true);
     });
+
+    // Guard for #544: the canonical Qonto status enum is
+    // ["draft", "unpaid", "paid", "canceled"] — not ["draft", "pending", "paid",
+    // "cancelled"]. Pre-#544 the CLI rejected `unpaid` at the commander layer
+    // and accepted `pending` (which the API silently treats as no-match,
+    // returning an empty page). This test asserts the canonical value passes
+    // CLI validation AND the API accepts it.
+    it("supports --status unpaid (canonical Qonto value)", () => {
+      const output = cli("--output", "json", "client-invoice", "list", "--status", "unpaid");
+      const parsed = JSON.parse(output) as unknown[];
+      expect(Array.isArray(parsed)).toBe(true);
+    });
   });
 
   describe("client-invoice CRUD lifecycle", () => {

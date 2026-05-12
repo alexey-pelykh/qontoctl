@@ -326,7 +326,7 @@ describe("client-invoice commands", () => {
 
   describe("client-invoice finalize", () => {
     it("finalizes an invoice in json format", async () => {
-      const finalized = { ...sampleInvoice, status: "pending", invoice_number: "INV-001" };
+      const finalized = { ...sampleInvoice, status: "unpaid", invoice_number: "INV-001" };
       fetchSpy.mockImplementation(() => jsonResponse({ client_invoice: finalized }));
 
       const program = createTestProgram();
@@ -336,7 +336,7 @@ describe("client-invoice commands", () => {
       expect(stdoutSpy).toHaveBeenCalled();
       const output = stdoutSpy.mock.calls[0]?.[0] as string;
       const parsed = JSON.parse(output) as Record<string, unknown>;
-      expect(parsed).toHaveProperty("status", "pending");
+      expect(parsed).toHaveProperty("status", "unpaid");
     });
 
     it("calls the correct API endpoint", async () => {
@@ -409,8 +409,8 @@ describe("client-invoice commands", () => {
 
   describe("client-invoice unmark-paid", () => {
     it("unmarks a paid invoice in json format", async () => {
-      const pending = { ...sampleInvoice, status: "pending" };
-      fetchSpy.mockImplementation(() => jsonResponse({ client_invoice: pending }));
+      const unpaid = { ...sampleInvoice, status: "unpaid" };
+      fetchSpy.mockImplementation(() => jsonResponse({ client_invoice: unpaid }));
 
       const program = createTestProgram();
 
@@ -419,7 +419,7 @@ describe("client-invoice commands", () => {
       expect(stdoutSpy).toHaveBeenCalled();
       const output = stdoutSpy.mock.calls[0]?.[0] as string;
       const parsed = JSON.parse(output) as Record<string, unknown>;
-      expect(parsed).toHaveProperty("status", "pending");
+      expect(parsed).toHaveProperty("status", "unpaid");
     });
 
     it("calls the correct API endpoint", async () => {
@@ -437,8 +437,8 @@ describe("client-invoice commands", () => {
 
   describe("client-invoice cancel", () => {
     it("cancels an invoice in json format", async () => {
-      const cancelled = { ...sampleInvoice, status: "cancelled" };
-      fetchSpy.mockImplementation(() => jsonResponse({ client_invoice: cancelled }));
+      const canceled = { ...sampleInvoice, status: "canceled" };
+      fetchSpy.mockImplementation(() => jsonResponse({ client_invoice: canceled }));
 
       const program = createTestProgram();
 
@@ -447,7 +447,7 @@ describe("client-invoice commands", () => {
       expect(stdoutSpy).toHaveBeenCalled();
       const output = stdoutSpy.mock.calls[0]?.[0] as string;
       const parsed = JSON.parse(output) as Record<string, unknown>;
-      expect(parsed).toHaveProperty("status", "cancelled");
+      expect(parsed).toHaveProperty("status", "canceled");
     });
 
     it("calls the correct API endpoint", async () => {

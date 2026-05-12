@@ -121,7 +121,7 @@ export async function deleteClientInvoice(
 }
 
 /**
- * Finalize a client invoice (assign number, transition from draft to pending).
+ * Finalize a client invoice (assign number, transition from draft to unpaid).
  */
 export async function finalizeClientInvoice(client: HttpClient, id: string): Promise<ClientInvoice> {
   const endpointPath = `/v2/client_invoices/${encodeURIComponent(id)}/finalize`;
@@ -146,7 +146,7 @@ export async function markClientInvoicePaid(client: HttpClient, id: string): Pro
 }
 
 /**
- * Unmark a client invoice as paid (transition back to pending).
+ * Unmark a client invoice as paid (transition back to unpaid).
  */
 export async function unmarkClientInvoicePaid(client: HttpClient, id: string): Promise<ClientInvoice> {
   const endpointPath = `/v2/client_invoices/${encodeURIComponent(id)}/unmark_as_paid`;
