@@ -4,7 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-The next release is a coordinated bump across all four packages — `@qontoctl/core`, `@qontoctl/cli`, `@qontoctl/mcp`, and `qontoctl` (umbrella). This is a **MAJOR** release driven by multiple BREAKING changes (see § Changed): `@qontoctl/mcp` SCA-required response shape (8 write-tool families); `@qontoctl/core` + `@qontoctl/cli` env-overlay scope tightening; `@qontoctl/core` bulk-transfer + recurring-transfer request shapes; `@qontoctl/core` deterministic config path resolution (CWD auto-discovery removed); `@qontoctl/core` bank-account update HTTP method (PUT → PATCH). **`qontoctl` (umbrella) inherits MAJOR**. See [`docs/release-runbook.md`](docs/release-runbook.md) for the semver decision framework and [§ Migration from v1.x](#migration-from-v1x) below for upgrade guidance.
+## [2.0.0] — 2026-05-13
+
+Coordinated bump across all four packages — `@qontoctl/core`, `@qontoctl/cli`, `@qontoctl/mcp`, and `qontoctl` (umbrella). This is a **MAJOR** release driven by multiple BREAKING changes (see § Changed): `@qontoctl/mcp` SCA-required response shape (8 write-tool families); `@qontoctl/core` + `@qontoctl/cli` env-overlay scope tightening; `@qontoctl/core` bulk-transfer + recurring-transfer request shapes; `@qontoctl/core` deterministic config path resolution (CWD auto-discovery removed); `@qontoctl/core` bank-account update HTTP method (PUT → PATCH). **`qontoctl` (umbrella) inherits MAJOR**. See [`docs/release-runbook.md`](docs/release-runbook.md) for the semver decision framework and [§ Migration from v1.x](#migration-from-v1x) below for upgrade guidance.
 
 ### Added
 
