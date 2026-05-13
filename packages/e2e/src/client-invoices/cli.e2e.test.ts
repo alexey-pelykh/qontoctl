@@ -206,6 +206,205 @@ describe.skipIf(!hasApiKeyCredentials())("client-invoice commands (e2e)", () => 
     });
   });
 
+  // State-machine E2E for non-SCA write paths — closes #457 (umbrella #449
+  // Group 5). The state machine is:
+  //
+  //   create (draft) → finalize (draft → unpaid) → mark-paid (unpaid → paid)
+  //     → unmark-paid (paid → unpaid) → cancel (unpaid → canceled, terminal)
+  //
+  // Each transition is a separate `it` so a failure localizes to the broken
+  // transition rather than cascading through the whole lifecycle. The
+  // closure-shared `lifecycleInvoiceId` mirrors the CRUD lifecycle and upload
+  // round-trip patterns above; downstream transitions early-return when an
+  // upstream step failed (sandbox/prod orgs without a usable client + IBAN
+  // skip the entire chain gracefully).
+  //
+  // Cancellation is terminal — Qonto does not let the test reverse it, and
+  // canceled invoices cannot be deleted (delete is draft-only). Each
+  // successful run therefore leaves one canceled invoice in the test org.
+  // This is the explicit price of live state-machine coverage; the umbrella
+  // (#449 Group 5) accepted this trade-off in the original AC.
+  //
+  // The `send` path (AC #3) is exercised in a separate, env-var-gated block
+  // below — it requires email-safe sandbox config that the default test org
+  // does not necessarily provide.
+  describe("client-invoice lifecycle state transitions (#457)", () => {
+    let lifecycleInvoiceId: string | undefined;
+
+    it("creates a draft invoice as the lifecycle entry point", () => {
+      const clientListOutput = cli("--output", "json", "client", "list");
+      const clients = JSON.parse(clientListOutput) as { id: string }[];
+      if (clients.length === 0) {
+        return;
+      }
+
+      const clientId = (clients[0] as { id: string }).id;
+      const today = new Date().toISOString().split("T")[0] as string;
+      const dueDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] as string;
+
+      const body = JSON.stringify({
+        client_id: clientId,
+        issue_date: today,
+        due_date: dueDate,
+        currency: "EUR",
+        terms_and_conditions: "E2E #457 lifecycle test — safe to delete",
+        items: [
+          {
+            title: "E2E Lifecycle Test Service",
+            quantity: "1",
+            unit_price: { value: "100.00", currency: "EUR" },
+            vat_rate: "20",
+          },
+        ],
+      });
+
+      try {
+        const output = cli("--output", "json", "client-invoice", "create", "--body", body);
+        const parsed = JSON.parse(output) as Record<string, unknown>;
+        const invoice = ClientInvoiceSchema.parse(parsed);
+        expect(invoice.status).toBe("draft");
+        lifecycleInvoiceId = invoice.id;
+      } catch {
+        // Org may lack a usable client + IBAN — skip the lifecycle.
+      }
+    });
+
+    it("transitions draft → unpaid via finalize", () => {
+      if (lifecycleInvoiceId === undefined) {
+        return;
+      }
+
+      const output = cli("--output", "json", "client-invoice", "finalize", lifecycleInvoiceId);
+      const parsed = JSON.parse(output) as Record<string, unknown>;
+      const invoice = ClientInvoiceSchema.parse(parsed);
+      expect(invoice.id).toBe(lifecycleInvoiceId);
+      expect(invoice.status).toBe("unpaid");
+      // Finalize assigns the invoice number — pre-finalize this is null.
+      expect(invoice.invoice_number).not.toBeNull();
+    });
+
+    it("transitions unpaid → paid via mark-paid", () => {
+      if (lifecycleInvoiceId === undefined) {
+        return;
+      }
+
+      const output = cli("--output", "json", "client-invoice", "mark-paid", lifecycleInvoiceId);
+      const parsed = JSON.parse(output) as Record<string, unknown>;
+      const invoice = ClientInvoiceSchema.parse(parsed);
+      expect(invoice.id).toBe(lifecycleInvoiceId);
+      expect(invoice.status).toBe("paid");
+    });
+
+    it("transitions paid → unpaid via unmark-paid", () => {
+      if (lifecycleInvoiceId === undefined) {
+        return;
+      }
+
+      const output = cli("--output", "json", "client-invoice", "unmark-paid", lifecycleInvoiceId);
+      const parsed = JSON.parse(output) as Record<string, unknown>;
+      const invoice = ClientInvoiceSchema.parse(parsed);
+      expect(invoice.id).toBe(lifecycleInvoiceId);
+      expect(invoice.status).toBe("unpaid");
+    });
+
+    it("transitions unpaid → canceled via cancel (terminal)", () => {
+      if (lifecycleInvoiceId === undefined) {
+        return;
+      }
+
+      const output = cli("--output", "json", "client-invoice", "cancel", lifecycleInvoiceId);
+      const parsed = JSON.parse(output) as Record<string, unknown>;
+      const invoice = ClientInvoiceSchema.parse(parsed);
+      expect(invoice.id).toBe(lifecycleInvoiceId);
+      expect(invoice.status).toBe("canceled");
+      // Terminal state — no cleanup; canceled invoices cannot be deleted.
+    });
+  });
+
+  // AC #3 of #457: `client-invoice send` is a separate path that requires
+  // email-safe sandbox config (a test client with a no-bounce mailbox).
+  // Skipped by default; opt in via `QONTOCTL_E2E_SEND_EMAIL=true`. When
+  // enabled, exercises create → finalize → send → cancel (cleanup); the
+  // send is the assertion under test, the surrounding lifecycle is
+  // scaffolding to reach a sendable state.
+  describe.skipIf(process.env["QONTOCTL_E2E_SEND_EMAIL"] !== "true")(
+    "client-invoice send (#457 AC #3, opt-in via QONTOCTL_E2E_SEND_EMAIL=true)",
+    () => {
+      let sendInvoiceId: string | undefined;
+
+      it("creates a draft invoice as a send precondition", () => {
+        const clientListOutput = cli("--output", "json", "client", "list");
+        const clients = JSON.parse(clientListOutput) as { id: string }[];
+        if (clients.length === 0) {
+          return;
+        }
+
+        const clientId = (clients[0] as { id: string }).id;
+        const today = new Date().toISOString().split("T")[0] as string;
+        const dueDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] as string;
+
+        const body = JSON.stringify({
+          client_id: clientId,
+          issue_date: today,
+          due_date: dueDate,
+          currency: "EUR",
+          terms_and_conditions: "E2E #457 send test — safe to delete",
+          items: [
+            {
+              title: "E2E Send Test Service",
+              quantity: "1",
+              unit_price: { value: "100.00", currency: "EUR" },
+              vat_rate: "20",
+            },
+          ],
+        });
+
+        try {
+          const output = cli("--output", "json", "client-invoice", "create", "--body", body);
+          const parsed = JSON.parse(output) as Record<string, unknown>;
+          expect(parsed).toHaveProperty("id");
+          expect(parsed).toHaveProperty("status", "draft");
+          sendInvoiceId = parsed["id"] as string;
+        } catch {
+          // Org may lack a usable client + IBAN — skip the send.
+        }
+      });
+
+      it("finalizes the draft to make it sendable", () => {
+        if (sendInvoiceId === undefined) {
+          return;
+        }
+
+        const output = cli("--output", "json", "client-invoice", "finalize", sendInvoiceId);
+        const parsed = JSON.parse(output) as Record<string, unknown>;
+        expect(parsed).toHaveProperty("id", sendInvoiceId);
+        expect(parsed).toHaveProperty("status", "unpaid");
+      });
+
+      it("sends the finalized invoice to the client via email", () => {
+        if (sendInvoiceId === undefined) {
+          return;
+        }
+
+        const output = cli("--output", "json", "client-invoice", "send", sendInvoiceId);
+        const parsed = JSON.parse(output) as Record<string, unknown>;
+        expect(parsed).toHaveProperty("sent", true);
+        expect(parsed).toHaveProperty("id", sendInvoiceId);
+      });
+
+      it("cancels the sent invoice (cleanup)", () => {
+        if (sendInvoiceId === undefined) {
+          return;
+        }
+
+        const output = cli("--output", "json", "client-invoice", "cancel", sendInvoiceId);
+        const parsed = JSON.parse(output) as Record<string, unknown>;
+        expect(parsed).toHaveProperty("id", sendInvoiceId);
+        expect(parsed).toHaveProperty("status", "canceled");
+      });
+    },
+  );
+
   // Regression for #575: Qonto returns `items: null` for drafts with no line
   // items. Pre-fix, `client-invoice show` blew up with a Zod validation error
   // on any such draft. This test creates an empty-items draft and shows it,

@@ -218,4 +218,232 @@ describe.skipIf(!hasApiKeyCredentials())("MCP client invoice tools (e2e)", () =>
       expect(result.isError).toBeFalsy();
     });
   });
+
+  // State-machine E2E for non-SCA write paths via MCP — mirrors the CLI
+  // suite's lifecycle block for #457. The state machine is:
+  //
+  //   client_invoice_create (draft) → client_invoice_finalize (draft → unpaid)
+  //     → client_invoice_mark_paid (unpaid → paid)
+  //     → client_invoice_unmark_paid (paid → unpaid)
+  //     → client_invoice_cancel (unpaid → canceled, terminal)
+  //
+  // Each transition is a separate `it` so a failure localizes to the broken
+  // transition. The closure-shared `lifecycleInvoiceId` mirrors the upload
+  // round-trip block above. Cancellation is terminal — canceled invoices
+  // cannot be deleted (delete is draft-only), so each successful run leaks
+  // one canceled invoice into the test org (accepted trade-off per #449
+  // Group 5).
+  describe("client_invoice lifecycle state transitions (#457, MCP)", () => {
+    let lifecycleInvoiceId: string | undefined;
+
+    it("creates a draft invoice as the lifecycle entry point", async () => {
+      const clientListResult = await client.callTool({
+        name: "client_list",
+        arguments: {},
+      });
+      if (clientListResult.isError === true) return;
+
+      const clientsParsed = JSON.parse(firstTextFromMcpResult(clientListResult)) as {
+        clients: { id: string }[];
+      };
+      if (clientsParsed.clients.length === 0) {
+        return;
+      }
+
+      const clientId = (clientsParsed.clients[0] as { id: string }).id;
+      const today = new Date().toISOString().split("T")[0] as string;
+      const dueDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] as string;
+
+      const createResult = await client.callTool({
+        name: "client_invoice_create",
+        arguments: {
+          client_id: clientId,
+          issue_date: today,
+          due_date: dueDate,
+          currency: "EUR",
+          terms_and_conditions: "E2E #457 lifecycle test (MCP) — safe to delete",
+          items: [
+            {
+              title: "E2E Lifecycle Test Service (MCP)",
+              quantity: "1",
+              unit_price: { value: "100.00", currency: "EUR" },
+              vat_rate: "20",
+            },
+          ],
+        },
+      });
+
+      // Invoice creation may fail if the organization lacks required setup
+      // (e.g., IBAN not configured) — skip downstream lifecycle when it does.
+      if (createResult.isError === true) return;
+
+      const parsed = JSON.parse(firstTextFromMcpResult(createResult)) as Record<string, unknown>;
+      const invoice = ClientInvoiceSchema.parse(parsed);
+      expect(invoice.status).toBe("draft");
+      lifecycleInvoiceId = invoice.id;
+    });
+
+    it("transitions draft → unpaid via client_invoice_finalize", async () => {
+      if (lifecycleInvoiceId === undefined) return;
+
+      const result = await client.callTool({
+        name: "client_invoice_finalize",
+        arguments: { id: lifecycleInvoiceId },
+      });
+
+      expect(result.isError).toBeFalsy();
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as Record<string, unknown>;
+      const invoice = ClientInvoiceSchema.parse(parsed);
+      expect(invoice.id).toBe(lifecycleInvoiceId);
+      expect(invoice.status).toBe("unpaid");
+      // Finalize assigns the invoice number — pre-finalize this is null.
+      expect(invoice.invoice_number).not.toBeNull();
+    });
+
+    it("transitions unpaid → paid via client_invoice_mark_paid", async () => {
+      if (lifecycleInvoiceId === undefined) return;
+
+      const result = await client.callTool({
+        name: "client_invoice_mark_paid",
+        arguments: { id: lifecycleInvoiceId },
+      });
+
+      expect(result.isError).toBeFalsy();
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as Record<string, unknown>;
+      const invoice = ClientInvoiceSchema.parse(parsed);
+      expect(invoice.id).toBe(lifecycleInvoiceId);
+      expect(invoice.status).toBe("paid");
+    });
+
+    it("transitions paid → unpaid via client_invoice_unmark_paid", async () => {
+      if (lifecycleInvoiceId === undefined) return;
+
+      const result = await client.callTool({
+        name: "client_invoice_unmark_paid",
+        arguments: { id: lifecycleInvoiceId },
+      });
+
+      expect(result.isError).toBeFalsy();
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as Record<string, unknown>;
+      const invoice = ClientInvoiceSchema.parse(parsed);
+      expect(invoice.id).toBe(lifecycleInvoiceId);
+      expect(invoice.status).toBe("unpaid");
+    });
+
+    it("transitions unpaid → canceled via client_invoice_cancel (terminal)", async () => {
+      if (lifecycleInvoiceId === undefined) return;
+
+      const result = await client.callTool({
+        name: "client_invoice_cancel",
+        arguments: { id: lifecycleInvoiceId },
+      });
+
+      expect(result.isError).toBeFalsy();
+      const parsed = JSON.parse(firstTextFromMcpResult(result)) as Record<string, unknown>;
+      const invoice = ClientInvoiceSchema.parse(parsed);
+      expect(invoice.id).toBe(lifecycleInvoiceId);
+      expect(invoice.status).toBe("canceled");
+      // Terminal state — no cleanup; canceled invoices cannot be deleted.
+    });
+  });
+
+  // AC #3 of #457 (MCP mirror): `client_invoice_send` is a separate path
+  // that requires email-safe sandbox config (a test client with a no-bounce
+  // mailbox). Skipped by default; opt in via `QONTOCTL_E2E_SEND_EMAIL=true`.
+  // When enabled, exercises create → finalize → send → cancel (cleanup);
+  // the send is the assertion under test, the surrounding lifecycle is
+  // scaffolding to reach a sendable state.
+  describe.skipIf(process.env["QONTOCTL_E2E_SEND_EMAIL"] !== "true")(
+    "client_invoice_send (#457 AC #3, MCP, opt-in via QONTOCTL_E2E_SEND_EMAIL=true)",
+    () => {
+      let sendInvoiceId: string | undefined;
+
+      it("creates a draft invoice as a send precondition", async () => {
+        const clientListResult = await client.callTool({
+          name: "client_list",
+          arguments: {},
+        });
+        if (clientListResult.isError === true) return;
+
+        const clientsParsed = JSON.parse(firstTextFromMcpResult(clientListResult)) as {
+          clients: { id: string }[];
+        };
+        if (clientsParsed.clients.length === 0) {
+          return;
+        }
+
+        const clientId = (clientsParsed.clients[0] as { id: string }).id;
+        const today = new Date().toISOString().split("T")[0] as string;
+        const dueDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] as string;
+
+        const createResult = await client.callTool({
+          name: "client_invoice_create",
+          arguments: {
+            client_id: clientId,
+            issue_date: today,
+            due_date: dueDate,
+            currency: "EUR",
+            terms_and_conditions: "E2E #457 send test (MCP) — safe to delete",
+            items: [
+              {
+                title: "E2E Send Test Service (MCP)",
+                quantity: "1",
+                unit_price: { value: "100.00", currency: "EUR" },
+                vat_rate: "20",
+              },
+            ],
+          },
+        });
+
+        if (createResult.isError === true) return;
+
+        const parsed = JSON.parse(firstTextFromMcpResult(createResult)) as Record<string, unknown>;
+        expect(parsed).toHaveProperty("id");
+        expect(parsed).toHaveProperty("status", "draft");
+        sendInvoiceId = parsed["id"] as string;
+      });
+
+      it("finalizes the draft to make it sendable", async () => {
+        if (sendInvoiceId === undefined) return;
+
+        const result = await client.callTool({
+          name: "client_invoice_finalize",
+          arguments: { id: sendInvoiceId },
+        });
+
+        expect(result.isError).toBeFalsy();
+        const parsed = JSON.parse(firstTextFromMcpResult(result)) as Record<string, unknown>;
+        expect(parsed).toHaveProperty("id", sendInvoiceId);
+        expect(parsed).toHaveProperty("status", "unpaid");
+      });
+
+      it("sends the finalized invoice to the client via email", async () => {
+        if (sendInvoiceId === undefined) return;
+
+        const result = await client.callTool({
+          name: "client_invoice_send",
+          arguments: { id: sendInvoiceId },
+        });
+
+        expect(result.isError).toBeFalsy();
+        const parsed = JSON.parse(firstTextFromMcpResult(result)) as Record<string, unknown>;
+        expect(parsed).toHaveProperty("sent", true);
+        expect(parsed).toHaveProperty("id", sendInvoiceId);
+      });
+
+      it("cancels the sent invoice (cleanup)", async () => {
+        if (sendInvoiceId === undefined) return;
+
+        const result = await client.callTool({
+          name: "client_invoice_cancel",
+          arguments: { id: sendInvoiceId },
+        });
+
+        expect(result.isError).toBeFalsy();
+        const parsed = JSON.parse(firstTextFromMcpResult(result)) as Record<string, unknown>;
+        expect(parsed).toHaveProperty("id", sendInvoiceId);
+        expect(parsed).toHaveProperty("status", "canceled");
+      });
+    },
+  );
 });

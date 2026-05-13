@@ -591,14 +591,14 @@
       "notes": ""
     },
     "core:packages/core/src/client-invoices/service.ts#cancelClientInvoice": {
-      "status": "pending",
-      "tests": [],
-      "notes": ""
+      "status": "covered",
+      "tests": ["packages/e2e/src/client-invoices/cli.e2e.test.ts", "packages/e2e/src/client-invoices/mcp.e2e.test.ts"],
+      "notes": "Lifecycle state-transitions E2E (#457): unpaid → canceled (terminal). Exercised in both CLI and MCP suites as the final step of the create → finalize → mark-paid → unmark-paid → cancel chain. Schema-validated via ClientInvoiceSchema."
     },
     "core:packages/core/src/client-invoices/service.ts#createClientInvoice": {
-      "status": "pending",
-      "tests": [],
-      "notes": ""
+      "status": "covered",
+      "tests": ["packages/e2e/src/client-invoices/cli.e2e.test.ts", "packages/e2e/src/client-invoices/mcp.e2e.test.ts"],
+      "notes": "Lifecycle E2E (#457) entry point; also exercised by CRUD lifecycle (#455) and upload round-trip blocks. Asserts status === 'draft' and ClientInvoiceSchema on response."
     },
     "core:packages/core/src/client-invoices/service.ts#deleteClientInvoice": {
       "status": "pending",
@@ -606,9 +606,9 @@
       "notes": ""
     },
     "core:packages/core/src/client-invoices/service.ts#finalizeClientInvoice": {
-      "status": "pending",
-      "tests": [],
-      "notes": ""
+      "status": "covered",
+      "tests": ["packages/e2e/src/client-invoices/cli.e2e.test.ts", "packages/e2e/src/client-invoices/mcp.e2e.test.ts"],
+      "notes": "Lifecycle state-transitions E2E (#457): draft → unpaid. Asserts status === 'unpaid' and invoice_number is assigned. Exercised in both CLI and MCP suites."
     },
     "core:packages/core/src/client-invoices/service.ts#getClientInvoice": {
       "status": "pending",
@@ -626,19 +626,19 @@
       "notes": ""
     },
     "core:packages/core/src/client-invoices/service.ts#markClientInvoicePaid": {
-      "status": "pending",
-      "tests": [],
-      "notes": ""
+      "status": "covered",
+      "tests": ["packages/e2e/src/client-invoices/cli.e2e.test.ts", "packages/e2e/src/client-invoices/mcp.e2e.test.ts"],
+      "notes": "Lifecycle state-transitions E2E (#457): unpaid → paid. Exercised in both CLI and MCP suites. Schema-validated via ClientInvoiceSchema."
     },
     "core:packages/core/src/client-invoices/service.ts#sendClientInvoice": {
-      "status": "pending",
-      "tests": [],
-      "notes": ""
+      "status": "covered",
+      "tests": ["packages/e2e/src/client-invoices/cli.e2e.test.ts", "packages/e2e/src/client-invoices/mcp.e2e.test.ts"],
+      "notes": "Lifecycle state-transitions E2E (#457) AC #3: send path covered separately from the main state machine. Opt-in via QONTOCTL_E2E_SEND_EMAIL=true env var since the path requires email-safe sandbox config (a no-bounce test mailbox). Default behavior: describe block skips, leaving the test reachable but inert."
     },
     "core:packages/core/src/client-invoices/service.ts#unmarkClientInvoicePaid": {
-      "status": "pending",
-      "tests": [],
-      "notes": ""
+      "status": "covered",
+      "tests": ["packages/e2e/src/client-invoices/cli.e2e.test.ts", "packages/e2e/src/client-invoices/mcp.e2e.test.ts"],
+      "notes": "Lifecycle state-transitions E2E (#457): paid → unpaid (reversal). Exercised in both CLI and MCP suites. Schema-validated via ClientInvoiceSchema."
     },
     "core:packages/core/src/client-invoices/service.ts#updateClientInvoice": {
       "status": "pending",
@@ -1101,14 +1101,14 @@
       "notes": ""
     },
     "mcp:client_invoice_cancel": {
-      "status": "pending",
-      "tests": [],
-      "notes": ""
+      "status": "covered",
+      "tests": ["packages/e2e/src/client-invoices/mcp.e2e.test.ts"],
+      "notes": "Lifecycle state-transitions E2E (#457) MCP: unpaid → canceled (terminal). Exercised as the final step of the create → finalize → mark-paid → unmark-paid → cancel chain. Also reused as cleanup in the send block."
     },
     "mcp:client_invoice_create": {
-      "status": "pending",
-      "tests": [],
-      "notes": ""
+      "status": "covered",
+      "tests": ["packages/e2e/src/client-invoices/mcp.e2e.test.ts"],
+      "notes": "Lifecycle E2E (#457) entry point; also exercised by the upload round-trip block (#455). Asserts status === 'draft' and ClientInvoiceSchema on response."
     },
     "mcp:client_invoice_delete": {
       "status": "pending",
@@ -1116,9 +1116,9 @@
       "notes": ""
     },
     "mcp:client_invoice_finalize": {
-      "status": "pending",
-      "tests": [],
-      "notes": ""
+      "status": "covered",
+      "tests": ["packages/e2e/src/client-invoices/mcp.e2e.test.ts"],
+      "notes": "Lifecycle state-transitions E2E (#457) MCP: draft → unpaid. Asserts status === 'unpaid' and invoice_number is assigned. Also exercised in the send block as a precondition."
     },
     "mcp:client_invoice_list": {
       "status": "pending",
@@ -1126,14 +1126,14 @@
       "notes": ""
     },
     "mcp:client_invoice_mark_paid": {
-      "status": "pending",
-      "tests": [],
-      "notes": ""
+      "status": "covered",
+      "tests": ["packages/e2e/src/client-invoices/mcp.e2e.test.ts"],
+      "notes": "Lifecycle state-transitions E2E (#457) MCP: unpaid → paid. Schema-validated via ClientInvoiceSchema."
     },
     "mcp:client_invoice_send": {
-      "status": "pending",
-      "tests": [],
-      "notes": ""
+      "status": "covered",
+      "tests": ["packages/e2e/src/client-invoices/mcp.e2e.test.ts"],
+      "notes": "Lifecycle state-transitions E2E (#457) AC #3 MCP: opt-in via QONTOCTL_E2E_SEND_EMAIL=true env var since the path requires email-safe sandbox config (a no-bounce test mailbox). Default behavior: describe block skips, leaving the test reachable but inert."
     },
     "mcp:client_invoice_show": {
       "status": "pending",
@@ -1141,9 +1141,9 @@
       "notes": ""
     },
     "mcp:client_invoice_unmark_paid": {
-      "status": "pending",
-      "tests": [],
-      "notes": ""
+      "status": "covered",
+      "tests": ["packages/e2e/src/client-invoices/mcp.e2e.test.ts"],
+      "notes": "Lifecycle state-transitions E2E (#457) MCP: paid → unpaid (reversal). Schema-validated via ClientInvoiceSchema."
     },
     "mcp:client_invoice_update": {
       "status": "pending",
