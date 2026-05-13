@@ -47,7 +47,14 @@ commands/mcp-payment-links · quotes · recurring-transfers · teams · webhooks
 
 **OAuth + sandbox** (local-only, requires staging-token):
 
-sca-continuation
+sca-continuation · auth/oauth-flow
+
+> The `auth/oauth-flow` suite has an **additional** gate beyond the
+> standard OAuth + staging-token check: it requires a seed refresh token
+> (`QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG` env var or `oauth.refresh-token`
+> in `.qontoctl.yaml`). The seed is consumed on every successful run — see
+> [`docs/ci-oauth-secrets.md`](./ci-oauth-secrets.md) for the one-time-use
+> rotation strategy.
 
 **No credentials needed** (run anywhere):
 
@@ -80,22 +87,29 @@ merging.
 
 ### Required GitHub secrets
 
-To enable the `e2e` CI job, configure these repository secrets:
+To enable the `e2e` CI job's api-key-compatible suites, configure these
+repository secrets:
 
 | Secret                       | Purpose          |
 | ---------------------------- | ---------------- |
 | `QONTOCTL_ORGANIZATION_SLUG` | api-key org slug |
 | `QONTOCTL_SECRET_KEY`        | api-key secret   |
 
-Old OAuth-related secrets (`QONTOCTL_STAGING_TOKEN`, `QONTOCTL_CLIENT_ID`,
-`QONTOCTL_CLIENT_SECRET`, `QONTOCTL_ACCESS_TOKEN`) are no longer used by the
-CI workflow and can be removed from repository settings.
+To additionally enable the OAuth-flow suite (`auth/oauth-flow`), configure
+the four secrets documented in [`docs/ci-oauth-secrets.md`](./ci-oauth-secrets.md):
+`QONTOCTL_CLIENT_ID`, `QONTOCTL_CLIENT_SECRET`, `QONTOCTL_STAGING_TOKEN`,
+`QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG`. Missing any of the four → the
+suite skips, and the rest of the e2e job runs unaffected.
 
 > **Note on `QONTOCTL_REFRESH_TOKEN`**: this env var is **no longer read by
-> qontoctl** (see issue #495). Refresh tokens are runtime-mutable state and
-> were never compatible with env-overlay semantics — refresh would shadow
-> rotated values on subsequent reads. If your CI relied on it, switch to
-> api-key auth (above) or OAuth via file-based credentials.
+> qontoctl at runtime** (see issue #495). Refresh tokens are runtime-mutable
+> state and were never compatible with env-overlay semantics — refresh would
+> shadow rotated values on subsequent reads. If your CI relied on it for
+> runtime auth, switch to api-key auth (above) or OAuth via file-based
+> credentials. For the OAuth-flow E2E suite specifically, use the dedicated
+> `QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG` secret described in
+> [`docs/ci-oauth-secrets.md`](./ci-oauth-secrets.md), which is scoped to
+> tests only and is not read by the runtime.
 
 ## Running locally
 
