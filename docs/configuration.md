@@ -10,6 +10,11 @@ For credential format and authentication-method choice, see [`README.md`](../REA
 (API key vs. OAuth) and [`oauth-setup.md`](./oauth-setup.md). For sandbox-specific
 SCA setup, see [`sandbox-testing.md`](./sandbox-testing.md).
 
+> **Verifying your setup**: After editing your config, run [`qontoctl diagnose`](./troubleshooting.md)
+> to confirm the file resolves where you expect, credentials are accepted, and host
+> routing matches your intent. Diagnose is read-only and exits 0 / 1 / 2 / 10 so it
+> can also be wired as a CI healthcheck.
+
 ## File resolution
 
 The resolver picks **exactly one** file (or no file, if env-only) using the

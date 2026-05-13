@@ -498,6 +498,37 @@ export type { CreateBankAccountParams, UpdateBankAccountParams } from "./service
 export { getEInvoicingSettings } from "./services/einvoicing.js";
 export { getOrganization } from "./services/organization.js";
 
+export {
+  runDiagnose,
+  computeSummaryCounts,
+  runChecks,
+  diagnosticRegistry,
+  buildDiagnoseClients,
+  buildApiKeyClient,
+  buildOAuthClient,
+  applyTripwire,
+  buildRedactionContext,
+  whitelistEvidence,
+  CheckStatusSchema,
+  DiagnosticReportSchema,
+  DiagnosticResultSchema,
+  SummaryCountsSchema,
+} from "./diagnose/index.js";
+
+export type {
+  CheckAuth,
+  CheckKind,
+  CheckStatus,
+  DiagnoseContext,
+  DiagnoseClients,
+  DiagnosticCheck,
+  DiagnosticReport,
+  DiagnosticResult,
+  RedactionContext,
+  SummaryCounts,
+  TripwireResult,
+} from "./diagnose/index.js";
+
 export type {
   PaymentLink,
   PaymentLinkAmount,
