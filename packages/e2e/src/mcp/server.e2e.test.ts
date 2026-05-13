@@ -93,6 +93,7 @@ const EXPECTED_TOOLS = [
   "terminal_list",
   "terminal_payment_create",
   "product_list",
+  "diagnose",
   "supplier_invoice_list",
   "supplier_invoice_show",
   "supplier_invoice_bulk_create",
