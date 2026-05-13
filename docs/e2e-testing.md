@@ -95,11 +95,11 @@ repository secrets:
 | `QONTOCTL_ORGANIZATION_SLUG` | api-key org slug |
 | `QONTOCTL_SECRET_KEY`        | api-key secret   |
 
-To additionally enable the OAuth-flow suite (`auth/oauth-flow`), configure
-the four secrets documented in [`docs/ci-oauth-secrets.md`](./ci-oauth-secrets.md):
-`QONTOCTL_CLIENT_ID`, `QONTOCTL_CLIENT_SECRET`, `QONTOCTL_STAGING_TOKEN`,
-`QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG`. Missing any of the four → the
-suite skips, and the rest of the e2e job runs unaffected.
+The OAuth-flow suite (`auth/oauth-flow`) is **not** wired to CI by default;
+its four required secrets are documented in
+[`docs/ci-oauth-secrets.md`](./ci-oauth-secrets.md), but the workflow does not
+yet export them to the e2e job (see that doc's § Workflow plumbing is
+intentionally deferred for the rationale and activation paths).
 
 > **Note on `QONTOCTL_REFRESH_TOKEN`**: this env var is **no longer read by
 > qontoctl at runtime** (see issue #495). Refresh tokens are runtime-mutable

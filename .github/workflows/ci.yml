@@ -116,15 +116,6 @@ jobs:
         env:
           QONTOCTL_ORGANIZATION_SLUG: ${{ secrets.QONTOCTL_ORGANIZATION_SLUG }}
           QONTOCTL_SECRET_KEY: ${{ secrets.QONTOCTL_SECRET_KEY }}
-          # OAuth-flow E2E suite (auth/oauth-flow.e2e.test.ts). The suite
-          # gates itself capability-based (hasOAuthCredentials() &&
-          # hasStagingToken() && hasE2ERefreshToken()) so absent secrets
-          # materialize as empty strings and the suite skips. See
-          # docs/ci-oauth-secrets.md for the one-time-use rotation strategy.
-          QONTOCTL_CLIENT_ID: ${{ secrets.QONTOCTL_CLIENT_ID }}
-          QONTOCTL_CLIENT_SECRET: ${{ secrets.QONTOCTL_CLIENT_SECRET }}
-          QONTOCTL_STAGING_TOKEN: ${{ secrets.QONTOCTL_STAGING_TOKEN }}
-          QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG: ${{ secrets.QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG }}
 
   ci-gate:
     name: CI

@@ -38,9 +38,45 @@ To enable the OAuth-flow E2E suite in CI, configure these repository secrets:
 | `QONTOCTL_STAGING_TOKEN`                | Sandbox staging token (issued separately by Qonto)                      | Static — routes requests to sandbox endpoints       |
 | `QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG` | A sandbox refresh token freshly issued by `qontoctl auth login` locally | **Consumed on every successful CI run** — see below |
 
-When all four secrets are present, the OAuth-flow E2E suite runs against the
-sandbox. When any one is missing, the suite skips naturally — no `CI=true`
-check is needed (the gate is capability-based).
+When all four secrets are present **and plumbed into the workflow env**, the
+OAuth-flow E2E suite runs against the sandbox. When any one is missing, the
+suite skips naturally — no `CI=true` check is needed (the gate is
+capability-based).
+
+### Workflow plumbing is intentionally deferred
+
+The `.github/workflows/ci.yml` `e2e` job currently passes ONLY the two api-key
+secrets (`QONTOCTL_ORGANIZATION_SLUG`, `QONTOCTL_SECRET_KEY`) to the test
+step's env. The four OAuth-flow secrets above are **not** yet plumbed — so
+even if you set them, the suite still skips in CI.
+
+This deferral is intentional. The existing OAuth-required E2E suites (cards,
+webhooks, intl-transfers, …) gate on `hasOAuthCredentials()`. The moment
+`QONTOCTL_CLIENT_ID` and `QONTOCTL_CLIENT_SECRET` are exported to the e2e
+step, those suites stop skipping and start failing — because CI has no
+working OAuth access/refresh token for the non-flow suites. The OAuth-flow
+suite has its own dedicated seed via `QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG`,
+but that token is consumed per run and isn't a viable runtime token for the
+other suites.
+
+To enable the OAuth-flow suite in CI, the maintainer must EITHER:
+
+1. **Per-step env scoping** — split the OAuth-flow suite into its own CI
+   job (or its own `pnpm test:e2e` invocation with a vitest `--include` filter)
+   so the OAuth-flow env vars are visible only to that job/step. Other OAuth
+   suites continue to skip naturally because their env scope still lacks the
+   client credentials.
+2. **Plumb everything and accept other failures** — add the four OAuth-flow
+   env vars to the `e2e` job env. The OAuth-flow suite passes (until its
+   token is consumed); the other OAuth-required suites fail. The `e2e` job is
+   not part of the merge gate (only `ci-gate` is), so this is operationally
+   acceptable as a transition state until those other suites get working CI
+   tokens (separate scope from #460).
+
+Option 1 is the cleaner path; option 2 is the expedient one. Both are
+deferred to a follow-up PR — #460 ships the test infrastructure, helpers,
+documentation, and coverage manifest updates. The maintainer activates CI
+when they're ready.
 
 ## One-time-use rotation strategy
 
