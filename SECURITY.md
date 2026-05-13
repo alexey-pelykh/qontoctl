@@ -16,23 +16,31 @@ You should receive a response within 48 hours. Please include:
 
 ### API Credential Handling
 
-QontoCtl manages Qonto API credentials (API keys) on behalf of the user.
+QontoCtl manages Qonto API credentials (API keys + OAuth tokens) on behalf of the user.
 Credentials are stored in YAML configuration files on the local filesystem.
 
-**Credential storage locations:**
+**Credential storage locations (resolution precedence, highest first):**
 
-| Location                     | Purpose                     |
-| ---------------------------- | --------------------------- |
-| `~/.qontoctl.yaml`           | Default profile credentials |
-| `~/.qontoctl/<profile>.yaml` | Named profile credentials   |
-| `.qontoctl.yaml` (CWD)       | Project-scoped credentials  |
+| Source                                            | Purpose                                                                           |
+| ------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `--config <path>` (CLI flag)                      | Explicit per-invocation override                                                  |
+| `QONTOCTL_CONFIG_FILE` (env var, CLI **and** MCP) | Explicit override (the only mechanism for the MCP server, which has no CLI flags) |
+| `~/.qontoctl/<profile>.yaml`                      | Named profile credentials (when `--profile <name>` is passed)                     |
+| `~/.qontoctl.yaml`                                | Default profile credentials                                                       |
+
+**Note**: prior to v2.0.0, `.qontoctl.yaml` in the current working directory was auto-discovered. This walk-up behavior was removed in v2.0.0 (#479) — for repo-local configs, use the `direnv` shim (`.envrc.example` → `.envrc`) that exports `QONTOCTL_CONFIG_FILE="$PWD/.qontoctl.yaml"`, or pass `--config ./.qontoctl.yaml`. See [CHANGELOG § Migration from v1.x](CHANGELOG.md#migration-from-v1x).
+
+**On-disk file permissions**: when QontoCtl writes a config file (e.g. after OAuth login or token refresh), it is created with restrictive `0600` permissions (owner read/write only), atomically (via temp-file + rename), and under advisory file lock to prevent concurrent-write races.
+
+**OAuth env-overlay scope**: `QONTOCTL_REFRESH_TOKEN` is **not read** from the environment (refresh tokens rotate; env-overlay would shadow rotation). `QONTOCTL_ACCESS_TOKEN` is honored as a one-shot bearer with read-only / discard-after-use semantics (no proactive refresh, no disk persist).
 
 **Threat model assumptions:**
 
-| Assumption                   | Rationale                                                                 |
-| ---------------------------- | ------------------------------------------------------------------------- |
-| The local machine is trusted | Credentials are stored as plaintext YAML files readable by the local user |
-| The Qonto API is trusted     | All API calls are made over HTTPS to `thirdparty.qonto.com`               |
+| Assumption                                | Rationale                                                                                                                                                             |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The local machine is trusted              | Credentials are stored as plaintext YAML files readable by the local user (0600)                                                                                      |
+| The Qonto API is trusted                  | All API calls are made over HTTPS to `thirdparty.qonto.com` (production) or `thirdparty-sandbox.staging.qonto.co` (sandbox, gated by the `oauth.staging-token` field) |
+| The OAuth authorization server is trusted | Token exchange/refresh/revocation use HTTPS to the configured OAuth endpoints                                                                                         |
 
 ### MCP Trust Model
 

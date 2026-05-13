@@ -4,21 +4,32 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-The next release is a coordinated bump across all four packages — `@qontoctl/core`, `@qontoctl/cli`, `@qontoctl/mcp`, and `qontoctl` (umbrella). **`@qontoctl/mcp` introduces a BREAKING change in the SCA response shape** for the eight write tools (see § Changed); **`qontoctl` (umbrella) inherits MAJOR**. See [`docs/release-runbook.md`](docs/release-runbook.md) for the full semver decision framework and worked example.
+The next release is a coordinated bump across all four packages — `@qontoctl/core`, `@qontoctl/cli`, `@qontoctl/mcp`, and `qontoctl` (umbrella). This is a **MAJOR** release driven by multiple BREAKING changes (see § Changed): `@qontoctl/mcp` SCA-required response shape (8 write-tool families); `@qontoctl/core` + `@qontoctl/cli` env-overlay scope tightening; `@qontoctl/core` bulk-transfer + recurring-transfer request shapes; `@qontoctl/core` deterministic config path resolution (CWD auto-discovery removed); `@qontoctl/core` bank-account update HTTP method (PUT → PATCH). **`qontoctl` (umbrella) inherits MAJOR**. See [`docs/release-runbook.md`](docs/release-runbook.md) for the semver decision framework and [§ Migration from v1.x](#migration-from-v1x) below for upgrade guidance.
 
 ### Added
 
 - **`@qontoctl/cli`**: `sca-session show <token>` subcommand to inspect SCA session status (#431).
 - **`@qontoctl/cli`**: `sca-session mock-decision <token> <allow|deny>` subcommand for sandbox-only SCA decision injection (#431).
+- **`@qontoctl/cli`**: `--config <path>` global flag for explicit configuration file selection. Highest-precedence resolution source; warns on stderr if it disagrees with `QONTOCTL_CONFIG_FILE` or `--profile` (#480).
+- **`@qontoctl/cli`**: `--sca-auto-approve` global flag for sandbox-only single-process SCA. When set against the sandbox, the CLI auto-approves the SCA challenge inline instead of returning a session token for two-step continuation. Production never auto-approves (#577).
+- **`@qontoctl/cli`** + **`@qontoctl/mcp`**: `qontoctl diagnose` CLI command and `diagnose` MCP tool — whole-integration health check covering credential resolution, sandbox routing, token expiry, OAuth scope catalog, optional connectivity probe, with PII redaction in output (#578).
+- **`@qontoctl/cli`** + **`@qontoctl/mcp`**: Qonto Terminals (POS) API support — `terminal list` and `terminal show` (CLI), `terminal_list` / `terminal_show` (MCP). New command/tool family (#484).
+- **`@qontoctl/cli`** + **`@qontoctl/mcp`**: Qonto Products API support — `product list` / `product show` (CLI), `product_list` / `product_show` (MCP). New command/tool family (fc9ddba).
 - **`@qontoctl/mcp`**: `sca_session_show` MCP tool to inspect SCA session status (#432).
 - **`@qontoctl/mcp`**: `sca_session_mock_decision` MCP tool for sandbox-only SCA decision injection (gated to sandbox mode) (#432).
 - **`@qontoctl/mcp`**: `executeWithMcpSca` wrapper module enabling bounded SCA polling (`wait` knob) and two-step `sca_session_token` continuation across MCP write tools (#433).
+- **`@qontoctl/mcp`**: `QONTOCTL_CONFIG_FILE` honored at MCP server startup as the only mechanism for pointing at a non-default config file (MCP has no CLI flags) (#482).
 - **`@qontoctl/core`** + **`@qontoctl/cli`** + **`@qontoctl/mcp`**: `scaMethod` / `X-Qonto-2fa-Preference` exposure through `createClient`, the hidden `--sca-method` CLI flag, and MCP server config. Auto-defaults to `mock` when a sandbox staging token is present and no method is otherwise set; production never auto-defaults. The MCP server resolves the method from env/config only — it is intentionally not exposed as a tool input (#447).
+- **`@qontoctl/core`** + **`@qontoctl/cli`**: extended OAuth scope catalog (cards, teams, webhooks, e-invoicing, payment links, insurance, international transfers, recurring transfers, SCA flows) and improved auth UX in `auth setup` / `auth login` flows (#478).
+- **`@qontoctl/core`** + **`@qontoctl/cli`** + **`@qontoctl/mcp`**: explicit auth precedence control via the `auth.preference` config field (`api-key` / `api-key-first` / `oauth` / `oauth-first`), the `--auth <mode>` CLI flag, and the `QONTOCTL_AUTH` env var. Default is `oauth-first` (OAuth primary with api-key fallback when OAuth fails). MCP server resolves from env/config only — not exposed as a tool input. See [`docs/configuration.md`](docs/configuration.md) § Authentication precedence (#523).
 - **Docs**: PSD2 Article 5 SCA token request-binding verification recorded in `docs/security/sca-token-binding.md` (#438).
 - **Docs**: Release runbook (`docs/release-runbook.md`) covering semver decision framework, npm publish flow, and Homebrew tap update (#435).
+- **Docs**: Canonical configuration reference at [`docs/configuration.md`](docs/configuration.md) covering deterministic resolution chain, per-field env overlay, profile semantics, and migration guidance (#482).
 
 ### Changed
 
+- **`@qontoctl/core`** + **`@qontoctl/cli`** + **`@qontoctl/mcp`** **(BREAKING)**: deterministic configuration-file resolution. The pre-`v2.0.0` CWD walk-up auto-discovery is **removed**. The resolver now uses (highest precedence first): `--config <path>` (CLI only) → `QONTOCTL_CONFIG_FILE` env var (CLI **and** MCP) → `~/.qontoctl/{profile}.yaml` (when `--profile <name>` is passed) → `~/.qontoctl.yaml` (home default). **Migration**: callers relying on a `.qontoctl.yaml` in the current working directory must adopt one of: (a) the `direnv` shim (`.envrc.example` → `.envrc` in the repo) that exports `QONTOCTL_CONFIG_FILE="$PWD/.qontoctl.yaml"`; (b) pass `--config ./.qontoctl.yaml` per invocation; (c) move credentials to `~/.qontoctl.yaml` or `~/.qontoctl/{profile}.yaml`. Atomic writes + advisory file locking added on the writer path so a half-written config file is never observable; restrictive `0600` permissions enforced on writes. See [`docs/configuration.md`](docs/configuration.md) (#479, #480, #482).
+- **`@qontoctl/core`** + **`@qontoctl/cli`** + **`@qontoctl/mcp`** **(BREAKING)**: `updateBankAccount` now uses `PATCH` (was incorrectly using `PUT`). The Qonto API endpoint for partial bank-account updates is `PATCH /v2/bank_accounts/:id`; the previous `PUT` request worked only because the sandbox happened to accept it. **Direct HTTP consumers** of the wire shape (i.e., users not going through `@qontoctl/core`) must update their request method (#563).
 - **`@qontoctl/core`** + **`@qontoctl/cli`** **(BREAKING)**: env-overlay scope tightened so env vars carry **inputs the tool reads**, never **runtime-mutable state the tool writes back**. `QONTOCTL_REFRESH_TOKEN` (and the profile-prefixed `QONTOCTL_{PROFILE}_REFRESH_TOKEN`) is **no longer read** — refresh tokens are rotated on every refresh, and env-overlay would shadow rotation on subsequent reads, so persistence anywhere was effectively defeated by env. `QONTOCTL_ACCESS_TOKEN` is **kept with read-only / discard-after-use semantics**: the env-supplied bearer is honored for the current invocation only — `oauth-authorization-factory` does not trigger proactive refresh and does not persist refreshed tokens to disk when the access token came from env (mirrors `AWS_SESSION_TOKEN`; if the token has expired the API surfaces a `401`). `applyEnvOverlay`'s parameter and return contract are narrowed via a new `EnvOverlayConfig` type that excludes runtime-mutable OAuth fields (`refreshToken`, `accessTokenExpiresAt`, `scopes`) — re-introducing a runtime-mutable env var now requires a deliberate type widening, not a runtime regression. `ConfigResult` gains a new `oauthAccessTokenFromEnv: boolean` field used by `@qontoctl/cli`'s `createClient` and `@qontoctl/mcp`'s `getClient` to thread the read-only signal into `createOAuthAuthorization`'s new `readOnly?: boolean` option. **Migration**: callers relying on `QONTOCTL_REFRESH_TOKEN` (which never worked correctly anyway — refresh results were discarded by env shadowing) must move to file-based OAuth credentials (`.qontoctl.yaml` or `~/.qontoctl/{profile}.yaml`) or use API-key env vars (`QONTOCTL_ORGANIZATION_SLUG` + `QONTOCTL_SECRET_KEY`) for CI. Council Verdict #2 (security / SRE / technical / CLI-conventions lenses) confirmed unanimous alignment with industry precedent: zero major CLI (`gh`, `aws`, `gcloud`, `kubectl`, `op`, `npm`, `docker`, `heroku`, `vercel`) accepts a refresh token via env var (#495).
 - **`@qontoctl/core`**: loader hygiene — an empty or comment-only CWD `.qontoctl.yaml` (whose YAML parses to `null`) now falls back to `~/.qontoctl.yaml` instead of short-circuiting on the empty CWD file. Subordinate to the env-overlay change above; previously the asymmetry could mask credential resolution surprises (#495).
 - **`@qontoctl/mcp`** **(BREAKING)**: SCA-required (HTTP 428) responses across the eight MCP write-tool families (`transfer_*`, `intl_transfer_*`, `internal_transfer_*`, `bulk_transfer_*`, `recurring_transfer_*`, `card_*`, `beneficiary_*`, `request_*` — every operation that triggers SCA) no longer return the legacy dead-end text response. Tools now accept optional `wait` (number 0–120, or `false`) and `sca_session_token` input parameters and return a structured SCA-pending response on poll-timeout that references the new `sca_session_show` and `sca_session_mock_decision` tools. Callers parsing the previous text response must adapt to the new shape (#428).
@@ -28,6 +39,9 @@ The next release is a coordinated bump across all four packages — `@qontoctl/c
 
 ### Fixed
 
+- **`@qontoctl/core`**: SCA-retry now skips `vop_proof_token` auto-resolution. The original (pre-SCA) request's `vop_proof_token` is reused verbatim on retry per PSD2 RTS Art. 5 dynamic linking (the token is bound to the original payment intent — re-resolving on retry would break the binding). CLI/MCP wrappers capture the auto-resolved token in a closure before the SCA challenge so the dynamic-linking property holds (#437).
+- **`@qontoctl/cli`**: `cards` CLI pagination loop now terminates correctly when the Qonto API response omits `next_page` (previously the loop could spin if `next_page` was undefined rather than explicitly `null`) (#489).
+- **`@qontoctl/mcp`**: `transfer_cancel` and `recurring_transfer_cancel` now wrapped in `executeWithMcpSca` for consistency with the rest of the MCP write-tool family — both endpoints can trigger SCA when the cancellation requires it (#500).
 - **`@qontoctl/core`**: SCA-retry idempotency-key drift in `executeWithSca` — both the original 428 attempt and the SCA-approved retry now carry the same `X-Qonto-Idempotency-Key` header. Without this fix, retries without an explicit `--idempotency-key` could create duplicate operations (#429).
 - **`@qontoctl/core`**: `mockScaDecision` URL corrected and request body removed to match the Qonto sandbox API (#446).
 - **`@qontoctl/core`**: `build428Error` now throws a typed error on unknown 428 response shape, surfacing clearer diagnostics instead of silently falling through (#445).
@@ -45,10 +59,102 @@ The next release is a coordinated bump across all four packages — `@qontoctl/c
 - **`@qontoctl/core`**: `cancelRecurringTransfer` now uses `requestVoid` instead of `client.post` to handle the API's `204 No Content` response shape. Previously `cancel` would throw `Unexpected end of JSON input` on success because `client.post` unconditionally tries to parse the empty body as JSON (#486).
 - **`@qontoctl/core`**: `cancelTransfer` (single SEPA transfer) now uses `requestVoid` instead of `client.post` to handle the API's `204 No Content` response shape — same defect pattern as the `cancelRecurringTransfer` fix in #486. Previously `cancel` would throw `Unexpected end of JSON input` on success; the existing unit test masked this by mocking `jsonResponse({})` (a valid empty-object JSON body) instead of a true 204 No Content response (#499).
 - **`@qontoctl/core`**: `RecurringTransfer` schema now treats `note`, `status` as optional and `next_execution_date` as nullable. The Qonto sandbox is observed to omit `note`/`status` from `POST /v2/sepa/recurring_transfers` responses and to return `next_execution_date: null` after a successful cancel; the previous strict-string schema caused `Invalid API response` errors against valid live responses. The `RecurringTransfer` TypeScript type is updated accordingly (`note?: string`, `status?: string`, `next_execution_date: string | null`) (#486).
+- **`@qontoctl/core`**: align international transfer Zod schemas with actual sandbox API response shapes — relaxes previously over-strict fields that caused `Invalid API response` errors against valid live data. Additive (loosens parser); no caller break (#488).
+- **`@qontoctl/core`**: `ClientSchema` now accepts individual (non-company) clients where the `name` field is absent. Additive (loosens parser) (#496).
+- **`@qontoctl/core`** + **`@qontoctl/cli`** + **`@qontoctl/mcp`**: align `insurance-contracts` Zod schemas and CLI/MCP surface with actual Qonto API responses. Additive (loosens parser) (#509).
+- **`@qontoctl/core`**: align `Membership`, `Beneficiary`, `CreditNote`, and `ClientInvoice` schemas with actual API response shapes — fields previously typed as required-string are now optional/nullable where the API may omit them. Additive (loosens parser) (#514).
+- **`@qontoctl/core`** + **`@qontoctl/cli`** + **`@qontoctl/mcp`**: align webhook Zod schema and CLI/MCP surface with the actual Qonto API. Additive (loosens parser) (2005b22).
+- **`@qontoctl/core`** + **`@qontoctl/cli`** + **`@qontoctl/mcp`**: align internal-transfer Zod schema and CLI/MCP surface with actual Qonto API. Additive (loosens parser) (8d40fa6).
+- **`@qontoctl/core`** + **`@qontoctl/cli`** + **`@qontoctl/mcp`**: align attachment upload Zod schema and CLI/MCP surface with the actual Qonto `POST /v2/attachments` response. Additive (loosens parser) (9af3cb3).
+- **`@qontoctl/core`**: align `client-invoice` list `status` enum with the Qonto canonical set. Strict-enum schemas now accept the full set of values the API may return (#544).
+- **`@qontoctl/mcp`**: wrap `intl_beneficiary_add` / `intl_beneficiary_update` / `intl_beneficiary_remove` in `executeWithMcpSca` so these write paths participate in the unified SCA-pending → continuation flow (#552).
+- **`@qontoctl/mcp`**: wrap `account_create` / `account_update` / `account_close` in `executeWithMcpSca` so bank-account write paths participate in the unified SCA-pending → continuation flow (#553).
+- **`@qontoctl/core`**: `client-invoice` schema now accepts `null` items (the Qonto API was observed to return `null` for some line-item slots) (#575).
+- **`@qontoctl/core`**: debug logging of HTTP request headers now happens AFTER per-request additions (SCA preference, staging-token, etc.) so the logged headers reflect what's actually sent (#576).
 
 ### Security
 
 - **`@qontoctl/core`**: SCA session token redacted from error messages and debug logs. `QontoScaRequiredError`, `ScaTimeoutError`, and `ScaDeniedError` no longer embed the token in their `.message` strings (token remains accessible via the dedicated `.scaSessionToken` field). The `sca_session_token` request-body field and `X-Qonto-Sca-Session-Token` header are added to `redactSensitiveFields` (#430).
+
+### Migration from v1.x
+
+This release introduces the following breaking changes. Each section below lists who is affected and the migration path.
+
+#### 1. Configuration-file resolution: CWD auto-discovery removed (#479)
+
+**Affected**: Users who relied on QontoCtl picking up `./.qontoctl.yaml` from the current working directory (or any parent directory).
+
+**What changed**: The resolver no longer walks up from CWD. The new precedence chain is (highest first):
+
+1. `--config <path>` (CLI only)
+2. `QONTOCTL_CONFIG_FILE` env var (CLI **and** MCP)
+3. `~/.qontoctl/{profile}.yaml` (when `--profile <name>` is passed)
+4. `~/.qontoctl.yaml` (home default)
+
+**Migration paths** (pick one):
+
+- **Direnv shim** (recommended for repo-local configs): copy `.envrc.example` → `.envrc` in your repo (gitignored), then `direnv allow`. This exports `QONTOCTL_CONFIG_FILE="$PWD/.qontoctl.yaml"` automatically when you `cd` into the repo.
+- **Per-shell export**: `export QONTOCTL_CONFIG_FILE="$PWD/.qontoctl.yaml"` in your shell profile or before invoking `qontoctl`.
+- **Per-invocation flag**: `qontoctl --config ./.qontoctl.yaml ...` on every call.
+- **Move credentials**: copy `./.qontoctl.yaml` to `~/.qontoctl.yaml` (or a named profile at `~/.qontoctl/{profile}.yaml` and call with `--profile {name}`).
+
+The MCP server (`qontoctl mcp` or the standalone `@qontoctl/mcp` binary) has no CLI flags, so `QONTOCTL_CONFIG_FILE` is its only mechanism for pointing at a non-default file. Set the env var in your MCP client configuration (e.g. `mcpServers.qontoctl.env.QONTOCTL_CONFIG_FILE` in Claude Desktop's `claude_desktop_config.json`).
+
+See [`docs/configuration.md`](docs/configuration.md) for the full reference.
+
+#### 2. Bank-account update HTTP method: PUT → PATCH (#563)
+
+**Affected**: Direct HTTP consumers of `PUT /v2/bank_accounts/{id}`. Users going through `@qontoctl/core` / `@qontoctl/cli` / `@qontoctl/mcp` are migrated transparently.
+
+**What changed**: `updateBankAccount` (core service), `account update` (CLI), and `account_update` (MCP tool) now send `PATCH` instead of `PUT`. The Qonto API's canonical method for partial bank-account updates is `PATCH`; the previous `PUT` worked only because the sandbox happened to accept it.
+
+**Migration**: direct API consumers must change their request method from `PUT` to `PATCH`. No request-body or response-shape changes.
+
+#### 3. OAuth env-overlay scope: `QONTOCTL_REFRESH_TOKEN` no longer read (#495)
+
+**Affected**: CI / scripted setups relying on the `QONTOCTL_REFRESH_TOKEN` env var. The profile-prefixed `QONTOCTL_{PROFILE}_REFRESH_TOKEN` is also no longer read.
+
+**What changed**: Refresh tokens rotate on every refresh. The env-overlay would have shadowed the rotation on subsequent reads, defeating persistence — so the env var was effectively broken before; it now fails closed rather than silently misbehaving. `QONTOCTL_ACCESS_TOKEN` is **kept** with read-only / discard-after-use semantics (mirrors `AWS_SESSION_TOKEN`).
+
+**Migration paths**:
+
+- Use file-based OAuth credentials at `~/.qontoctl.yaml` or `~/.qontoctl/{profile}.yaml`.
+- For CI scenarios where file persistence isn't viable, use API-key env vars (`QONTOCTL_ORGANIZATION_SLUG` + `QONTOCTL_SECRET_KEY`) — note that api-key auth doesn't cover all endpoints (cards, teams, webhooks, e-invoicing, etc., are OAuth-only per the [Qonto auth table](https://docs.qonto.com/get-started/business-api/authentication/introduction)).
+- For one-shot scripted invocations against an already-valid bearer, use `QONTOCTL_ACCESS_TOKEN`.
+
+#### 4. MCP SCA-required (HTTP 428) response shape (#428)
+
+**Affected**: MCP clients (Claude Desktop, Cursor, etc.) that parse the previous text-only response from the eight MCP write-tool families: `transfer_*`, `intl_transfer_*`, `internal_transfer_*`, `bulk_transfer_*`, `recurring_transfer_*`, `card_*`, `beneficiary_*`, `request_*`.
+
+**What changed**: When the Qonto API returns HTTP 428 (SCA required), the MCP tools now return a structured **SCA-pending response** referencing `sca_session_show` and `sca_session_mock_decision` (sandbox), plus accept optional `wait` (number 0–120, or `false`) and `sca_session_token` input parameters for bounded polling and two-step continuation.
+
+**Migration**: MCP-tool callers that parsed the previous dead-end text response must adapt to the new shape. The new flow is:
+
+1. First call → returns either the success body OR an SCA-pending response with `sca_session_token`.
+2. (Optional) Inspect via `sca_session_show <token>`.
+3. (Sandbox) Approve via `sca_session_mock_decision <token> allow`. (Production) The user completes SCA on their paired device.
+4. Re-call the original tool with `sca_session_token` set to the token from step 1 to retrieve the completed result.
+
+See [`docs/security/sca-token-binding.md`](docs/security/sca-token-binding.md) for the PSD2 Article 5 dynamic-linking properties this flow preserves.
+
+#### 5. Bulk-transfer request shape: flat, with required per-item `client_transfer_id` (#487)
+
+**Affected**: Direct callers of `@qontoctl/core` `createBulkTransfer`; CLI/MCP users supplying JSON input files for `bulk-transfer create`.
+
+**What changed**: Request body is now `{ bank_account_id, bulk_transfers, vop_proof_token }` (flat, no `bulk_transfer:` envelope). Per-item changes: `client_transfer_id` (UUID) is now **required** (auto-generated by CLI/MCP when omitted); `amount` is a decimal string; `reference` required; the previous `currency` per-item field is removed (currency is dictated by the source bank account).
+
+**Migration**: regenerate the request body per the new shape. CLI gains required `--debit-account <id>` and optional `--vop-proof-token <token>` (auto-resolved via `bulk_verify_payee` when omitted). MCP `bulk_transfer_create` schema gains `bank_account_id` and `vop_proof_token` (auto-resolved when omitted, except on SCA retry per PSD2 dynamic linking).
+
+#### 6. Recurring-transfer request shape: `amount` as string, `vop_proof_token` required (#486)
+
+**Affected**: Direct callers of `@qontoctl/core` `createRecurringTransfer`. CLI/MCP users are migrated transparently.
+
+**What changed**:
+
+- `CreateRecurringTransferParams.amount` is now `string` (was `number`). The Qonto API rejects numeric amounts with `not_a_string: amount must be a string`.
+- `CreateRecurringTransferParams.vop_proof_token` is now a required `string` field at the top level of the request body (alongside the `recurring_transfer` envelope). The Qonto API rejects requests missing the token with `401 vop_proof_token_missing`.
+
+**Migration**: convert `amount` with `String(amount)` or `amount.toFixed(2)`; supply `vop_proof_token` from `verifyPayee` against the beneficiary's IBAN/name. CLI/MCP wrappers auto-resolve when omitted, except on SCA retry where PSD2 RTS Art. 5 dynamic linking requires the caller to supply the original token.
 
 ## [1.0.0] — 2026-03-26
 

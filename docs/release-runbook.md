@@ -90,10 +90,12 @@ Move the date to the same line as the heading; preserve the `### Added` / `### C
 
 Verify each entry references a merged PR or issue. Confirm the per-package grouping convention (`**\`@qontoctl/<pkg>\`\*\*: ...`) is applied consistently.
 
+Also bump `server.json` (`version` AND `packages[0].version`) to the same release version — the MCP Registry uses an explicit per-submission version (see § 4.5 below). `smithery.yaml` is unpinned (resolves `npx -y qontoctl` to `latest`) and does NOT need editing.
+
 Commit on `main`:
 
 ```sh
-git add CHANGELOG.md
+git add CHANGELOG.md server.json
 git commit -m "(docs) promote [Unreleased] to [2.0.0]"
 git push origin main
 ```
@@ -142,6 +144,20 @@ gh run watch <run-id> --repo alexey-pelykh/qontoctl
 ```
 
 If the run fails before publish, investigate, push a fix to `main`, delete the failed release+tag, and re-cut. If it fails mid-publish (some packages published, others not), **do not unpublish** (npm forbids re-publishing the same version after unpublish). Cut a patch release with the missing packages instead — see § Rollback.
+
+### 4.5. Update MCP Registry & Smithery (manual)
+
+QontoCtl's MCP server is listed in two additional distribution channels beyond npm + Homebrew. Their pre-release coordination differs:
+
+**Smithery** (`smithery.yaml`): Uses `npx -y qontoctl mcp` (no version pin). After npm publish completes, the Smithery channel automatically resolves to `latest` on the next user installation — no per-release action needed.
+
+**MCP Registry** (`server.json`): The MCP Registry uses an explicit `version` per submission. Before tagging:
+
+1. Confirm `server.json` `version` and `packages[0].version` both reflect the version being released (these are stamped manually as part of the CHANGELOG-promotion commit in § 2 above — verify they match the tag about to be cut).
+2. After npm publish completes, re-submit `server.json` to the MCP Registry using the credentials stored at `.mcpregistry_github_token` and `.mcpregistry_registry_token` (gitignored). The submission API/CLI is the official MCP Registry's. If this is the first time submitting after a registry-token rotation, refresh the token first.
+3. Verify by querying the MCP Registry for `io.github.alexey-pelykh/qontoctl` and confirming the live `version` matches.
+
+If the MCP Registry submission step is forgotten, the registry will keep advertising the previous version even though npm has the new one. There is no automation for this today — consider folding the `server.json` stamp + re-submit into `.github/workflows/release.yml` as a follow-up enhancement.
 
 ### 5. Update Homebrew tap (manual trigger)
 

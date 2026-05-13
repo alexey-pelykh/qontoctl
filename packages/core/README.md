@@ -59,8 +59,9 @@ const org = await getOrganization(client);
 
 - **`HttpClient`** — HTTP client for the Qonto API with rate-limit handling
 - **`QontoApiError`** — typed error for Qonto API error responses
-- **`QontoRateLimitError`** — error for rate-limit (429) responses
-- **`QontoScaRequiredError`** — error for SCA-required (403) responses
+- **`QontoRateLimitError`** — error for rate-limit (HTTP 429) responses
+- **`QontoScaRequiredError`** — error for SCA-required (HTTP 428) responses
+- **`QontoScaNotEnrolledError`** — error for HTTP 428 with `code: "sca_not_enrolled"` (distinct from `sca_required`)
 
 ### SCA (Strong Customer Authentication)
 
@@ -154,16 +155,18 @@ Other: `Quote`, `QuoteAddress`, `QuoteAmount`, `QuoteClient`, `QuoteDiscount`, `
 
 ## Configuration Resolution
 
-QontoCtl resolves credentials in this order:
+`resolveConfig` resolves the configuration **file** in this order (highest precedence first):
 
-1. `QONTOCTL_*` environment variables (highest priority)
-2. `.qontoctl.yaml` in the current directory
-3. `~/.qontoctl.yaml` (home default)
+1. `options.configFile` (programmatic — equivalent to the CLI `--config <path>` flag)
+2. `QONTOCTL_CONFIG_FILE` environment variable
+3. `~/.qontoctl/{profile}.yaml` (when `options.profile` is set)
+4. `~/.qontoctl.yaml` (home default)
 
-With `--profile <name>`:
+There is **no** current-working-directory walk-up (removed in v2.0.0 — see [CHANGELOG migration note](https://github.com/alexey-pelykh/qontoctl/blob/main/CHANGELOG.md#1-configuration-file-resolution-cwd-auto-discovery-removed-479)). For repo-local configs, set `QONTOCTL_CONFIG_FILE="$PWD/.qontoctl.yaml"` (e.g. via `direnv`).
 
-1. `QONTOCTL_<NAME>_*` environment variables
-2. `~/.qontoctl/<name>.yaml`
+After the file is loaded, `QONTOCTL_*` environment variables overlay individual fields (or `QONTOCTL_{PROFILE}_*` with profile prefix). `QONTOCTL_REFRESH_TOKEN` is no longer read (refresh tokens rotate, so env-overlay can't persist correctly); `QONTOCTL_ACCESS_TOKEN` is honored as a one-shot bearer with read-only / discard-after-use semantics (no proactive refresh, no disk persist).
+
+Auth-method precedence between the two configured methods is controlled by `config.auth.preference` — one of `api-key`, `api-key-first`, `oauth`, `oauth-first` (default).
 
 ## Requirements
 
