@@ -8,7 +8,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { CLI_PATH, firstTextFromMcpResult } from "../helpers.js";
 import { cliEnv, hasOAuthCredentials, hasStagingToken, pinAuthPreference } from "../sandbox.js";
-import { SCA_PENDING_TOKEN_RE } from "../sca-helpers.js";
+import { approveAndRetryMcp, SCA_PENDING_TOKEN_RE, triggerScaMcp } from "../sca-helpers.js";
 
 interface Beneficiary {
   readonly id: string;
@@ -132,8 +132,89 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("beneficiary MCP t
   });
 });
 
-// NOTE: `beneficiary_update` SCA E2E coverage is deferred — the Qonto
-// sandbox `0909-future-club-2702` holds all 13 SEPA beneficiaries in
-// `status: pending` (empirical 2026-05-12), and `PUT
-// /v2/sepa/beneficiaries/{id}` returns `404 not_found` for pending
-// records. Tracked as a follow-up to #551.
+// OAuth+sandbox SCA E2E for `beneficiary_update`. Local-only — gated on
+// OAuth credentials + staging token. Symmetric to the CLI sibling above:
+// `PUT /v2/sepa/beneficiaries/{id}` empirically requires a `validated`
+// SEPA beneficiary (the sandbox returns `404 not_found` for `status:
+// pending` records per #551, #559). The test fails loudly when no
+// validated beneficiary exists in the sandbox rather than silently
+// skipping, so the precondition gap stays visible.
+//
+// Uses the shared SCA helpers (`triggerScaMcp` + `approveAndRetryMcp`)
+// from `sca-helpers.ts` per #559 AC. The two-step pattern with
+// `wait: false` is the canonical Group 6 shape — the server returns
+// `SCA required` immediately, the test approves via
+// `sca_session_mock_decision`, then re-invokes with `sca_session_token`.
+describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())(
+  "beneficiary MCP tools (e2e, update SCA write path)",
+  () => {
+    pinAuthPreference("oauth-first");
+
+    let client: Client;
+    let transport: StdioClientTransport;
+    let validatedBeneficiary: Beneficiary;
+
+    beforeAll(async () => {
+      transport = new StdioClientTransport({
+        command: "node",
+        args: [CLI_PATH, "mcp"],
+        env: cliEnv(),
+        stderr: "pipe",
+      });
+      client = new Client({ name: "e2e-beneficiary-update-sca", version: "0.0.0" });
+      await client.connect(transport);
+
+      const listResult = (await client.callTool({
+        name: "beneficiary_list",
+        arguments: { status: "validated", per_page: 100 },
+      })) as CallToolResult;
+      const listText = firstTextFromMcpResult(listResult);
+      const list = JSON.parse(listText) as { beneficiaries: Beneficiary[] };
+      if (list.beneficiaries.length === 0) {
+        throw new Error(
+          "E2E precondition unmet: no SEPA beneficiary with `status: validated` in the sandbox. " +
+            "PUT /v2/sepa/beneficiaries/{id} returns 404 for pending records (see #551, #559), so this " +
+            "test cannot exercise the SCA round-trip without one. Manually validate a beneficiary in the " +
+            "Qonto sandbox UI, or wait for the SCA-trigger validation path on `beneficiary_add` to mature " +
+            "so freshly-created records land in `validated`.",
+        );
+      }
+      // Prefer a non-trusted beneficiary — trusted payees are SCA-exempt
+      // under PSD2 Article 13(b), and the AC requires exercising the SCA
+      // gate. Fall back to the first validated record if all are trusted
+      // (defensive — sandbox state can drift) so the test still attempts
+      // and fails-loudly via the helper rather than silently skipping the
+      // SCA assertion.
+      validatedBeneficiary = list.beneficiaries.find((b) => !b.trusted) ?? (list.beneficiaries[0] as Beneficiary);
+    });
+
+    afterAll(async () => {
+      await client.close();
+    });
+
+    it("beneficiary_update: triggers SCA round-trip and applies name change", async () => {
+      const newName = `E2E SCA MCP Update ${randomUUID().slice(0, 12)}`;
+
+      const trigger = await triggerScaMcp(client, "beneficiary_update", {
+        id: validatedBeneficiary.id,
+        name: newName,
+      });
+
+      // AC #4 traceability (#445): the captured token must be a real
+      // base64url, not the `"unknown"` sentinel the parser used to emit.
+      expect(trigger.scaSessionToken).not.toBe("unknown");
+      expect(trigger.scaSessionToken).toMatch(/^[A-Za-z0-9_-]+$/);
+      expect(trigger.pendingText).toContain("sca_session_show");
+      expect(trigger.pendingText).toContain("sca_session_token");
+
+      const retryResult = await approveAndRetryMcp(trigger, "allow");
+
+      expect(retryResult.isError).not.toBe(true);
+      const retryText = firstTextFromMcpResult(retryResult);
+      expect(retryText).not.toMatch(/^SCA required/);
+      const updated = JSON.parse(retryText) as Beneficiary;
+      expect(updated.id).toBe(validatedBeneficiary.id);
+      expect(updated.name).toBe(newName);
+    });
+  },
+);

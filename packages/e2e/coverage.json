@@ -41,9 +41,9 @@
       "notes": ""
     },
     "cli:packages/cli/src/commands/beneficiary/update.ts": {
-      "status": "pending",
-      "tests": [],
-      "notes": ""
+      "status": "covered",
+      "tests": ["packages/e2e/src/beneficiaries/cli.e2e.test.ts"],
+      "notes": "OAuth+sandbox SCA round-trip; gated on hasOAuthCredentials() && hasStagingToken(). Fails loudly if no validated SEPA beneficiary in sandbox (PUT /v2/sepa/beneficiaries/{id} returns 404 for pending records — see #559)."
     },
     "cli:packages/cli/src/commands/bulk-transfer/create.ts": {
       "status": "pending",
@@ -486,9 +486,9 @@
       "notes": ""
     },
     "core:packages/core/src/beneficiaries/service.ts#updateBeneficiary": {
-      "status": "pending",
-      "tests": [],
-      "notes": ""
+      "status": "covered",
+      "tests": ["packages/e2e/src/beneficiaries/cli.e2e.test.ts", "packages/e2e/src/beneficiaries/mcp.e2e.test.ts"],
+      "notes": "Exercised end-to-end via CLI `beneficiary update` and MCP `beneficiary_update` SCA round-trips against the Qonto sandbox (#559)."
     },
     "core:packages/core/src/bulk-transfers/service.ts#createBulkTransfer": {
       "status": "pending",
@@ -996,9 +996,9 @@
       "notes": ""
     },
     "mcp:beneficiary_update": {
-      "status": "pending",
-      "tests": [],
-      "notes": ""
+      "status": "covered",
+      "tests": ["packages/e2e/src/beneficiaries/mcp.e2e.test.ts"],
+      "notes": "OAuth+sandbox SCA round-trip via two-step `wait: false` pattern; gated on hasOAuthCredentials() && hasStagingToken(). Fails loudly if no validated SEPA beneficiary in sandbox (PUT /v2/sepa/beneficiaries/{id} returns 404 for pending records — see #559)."
     },
     "mcp:bulk_transfer_create": {
       "status": "pending",
