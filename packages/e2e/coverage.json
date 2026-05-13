@@ -31,14 +31,14 @@
       "notes": ""
     },
     "cli:packages/cli/src/commands/beneficiary/trust.ts": {
-      "status": "pending",
+      "status": "accepted_gap",
       "tests": [],
-      "notes": ""
+      "notes": "Embed-partner-only OAuth scope (`beneficiary.trust`). (a) Deferred: live-sandbox E2E exercising the trust call. (b) No verifiable risk: Qonto's authorization server rejects the scope for non-partner clients at consent time, and the endpoint returns 403 at request time — both surface as explicit typed errors, not silent failure. The Embed-partner requirement is flagged in CLI help text, MCP tool description (`packages/mcp/src/tools/beneficiary.ts`), service JSDoc (`packages/core/src/beneficiaries/service.ts`), and `docs/oauth-setup.md` § 'Restricted scopes (partner-gated)'; `packages/cli/src/commands/auth.ts` excludes the scope from the default `auth setup` picker via `RESTRICTED_SCOPES` (opt-in only via `--trusted-partner`). (c) Retrofit trigger: qontoctl maintainer (or a downstream user) gains Embed-partner status with the `beneficiary.trust` scope grant. Decision recorded in #461 (closes Group 9 of #449)."
     },
     "cli:packages/cli/src/commands/beneficiary/untrust.ts": {
-      "status": "pending",
+      "status": "accepted_gap",
       "tests": [],
-      "notes": ""
+      "notes": "Embed-partner-only OAuth scope (`beneficiary.trust`). (a) Deferred: live-sandbox E2E exercising the untrust call. (b) No verifiable risk: Qonto's authorization server rejects the scope for non-partner clients at consent time, and the endpoint returns 403 at request time — both surface as explicit typed errors, not silent failure. The Embed-partner requirement is flagged in CLI help text, MCP tool description (`packages/mcp/src/tools/beneficiary.ts`), service JSDoc (`packages/core/src/beneficiaries/service.ts`), and `docs/oauth-setup.md` § 'Restricted scopes (partner-gated)'; `packages/cli/src/commands/auth.ts` excludes the scope from the default `auth setup` picker via `RESTRICTED_SCOPES` (opt-in only via `--trusted-partner`). (c) Retrofit trigger: qontoctl maintainer (or a downstream user) gains Embed-partner status with the `beneficiary.trust` scope grant. Decision recorded in #461 (closes Group 9 of #449)."
     },
     "cli:packages/cli/src/commands/beneficiary/update.ts": {
       "status": "pending",
@@ -986,14 +986,14 @@
       "notes": ""
     },
     "mcp:beneficiary_trust": {
-      "status": "pending",
+      "status": "accepted_gap",
       "tests": [],
-      "notes": ""
+      "notes": "Embed-partner-only OAuth scope (`beneficiary.trust`). (a) Deferred: live-sandbox E2E exercising the `beneficiary_trust` MCP tool. (b) No verifiable risk: Qonto's authorization server rejects the scope for non-partner clients at consent time, and the endpoint returns 403 at request time — both surface as explicit typed errors, not silent failure. The MCP tool description explicitly warns that standard third-party apps will receive 403; service JSDoc (`packages/core/src/beneficiaries/service.ts`) documents the gate. Unit tests cover the parameter mapping and SCA flow. (c) Retrofit trigger: qontoctl maintainer (or a downstream user) gains Embed-partner status with the `beneficiary.trust` scope grant. Decision recorded in #461 (closes Group 9 of #449)."
     },
     "mcp:beneficiary_untrust": {
-      "status": "pending",
+      "status": "accepted_gap",
       "tests": [],
-      "notes": ""
+      "notes": "Embed-partner-only OAuth scope (`beneficiary.trust`). (a) Deferred: live-sandbox E2E exercising the `beneficiary_untrust` MCP tool. (b) No verifiable risk: Qonto's authorization server rejects the scope for non-partner clients at consent time, and the endpoint returns 403 at request time — both surface as explicit typed errors, not silent failure. The MCP tool description explicitly warns that standard third-party apps will receive 403; service JSDoc (`packages/core/src/beneficiaries/service.ts`) documents the gate. Unit tests cover the parameter mapping and SCA flow. (c) Retrofit trigger: qontoctl maintainer (or a downstream user) gains Embed-partner status with the `beneficiary.trust` scope grant. Decision recorded in #461 (closes Group 9 of #449)."
     },
     "mcp:beneficiary_update": {
       "status": "pending",
@@ -1286,9 +1286,9 @@
       "notes": ""
     },
     "mcp:membership_invite": {
-      "status": "pending",
+      "status": "accepted_gap",
       "tests": [],
-      "notes": ""
+      "notes": "Irreversible state mutation: `POST /v2/memberships` sends a real invitation email to the supplied address and creates a pending membership row in the live org. Qonto exposes no first-class dry-run primitive or disposable-test-org capability for this endpoint. (a) Deferred: live-sandbox E2E exercising the invite flow end-to-end. (b) No verifiable risk: the tool is a thin wrapper around a single typed `POST /v2/memberships` call whose request and response are both schema-validated by `MembershipResponseSchema`; failure modes (invalid role, duplicate invite, missing `membership.write` scope) surface as typed errors via the standard MCP error path. Unit tests cover the parameter mapping. The CLI counterpart (`packages/cli/src/commands/membership.ts` § invite, manifest entry `cli:packages/cli/src/commands/membership.ts`) shares the same underlying call and remains `pending` because it co-resides in a file whose `list` subcommand is api-key-testable. (c) Retrofit trigger: Qonto sandbox gains a dry-run mode for `POST /v2/memberships`, OR qontoctl test infrastructure gains a dedicated disposable org with automated pending-invite cleanup. Decision recorded in #461 (closes Group 9 of #449)."
     },
     "mcp:membership_list": {
       "status": "pending",
