@@ -3,7 +3,7 @@
     "cli:packages/cli/src/commands/account.ts": {
       "status": "covered",
       "tests": ["packages/e2e/src/bank-accounts/cli.e2e.test.ts", "packages/e2e/src/org-accounts/cli.e2e.test.ts"],
-      "notes": "Read-side (account list / show / iban-certificate) covered in org-accounts E2E. SCA write paths (account create / update / close) are ACCEPTED_GAP in bank-accounts E2E per #563 — see top-of-file empirical note for the 3 sandbox blockers."
+      "notes": "Read-side (account list / show / iban-certificate) covered in org-accounts E2E. SCA write paths (account create / update / close) covered end-to-end in bank-accounts E2E lifecycle (#563 retry, 2026-05-13) — the PATCH-vs-PUT disambiguation for update landed in the same PR (core service `updateBankAccount` flipped PUT → PATCH)."
     },
     "cli:packages/cli/src/commands/attachment.ts": {
       "status": "pending",
@@ -931,14 +931,14 @@
       "notes": ""
     },
     "mcp:account_close": {
-      "status": "accepted_gap",
-      "tests": [],
-      "notes": "Cannot exercise close without a freshly-created account; create is blocked by plan cap (see mcp:account_create). Closing pre-existing accounts is destructive and would brick subsequent test runs. Scaffold in packages/e2e/src/bank-accounts/mcp.e2e.test.ts; SCA wrap unit-tested in packages/mcp/src/tools/accounts.test.ts. MCP wrap fix delivered in #553. See #563."
+      "status": "covered",
+      "tests": ["packages/e2e/src/bank-accounts/mcp.e2e.test.ts"],
+      "notes": "Bank-account lifecycle E2E (create → update → close) against the live Qonto sandbox; gated on hasOAuthCredentials() && hasStagingToken(). Close is SCA-gated — the test mock-approves via `sca_session_mock_decision` and retries with `sca_session_token`. Self-cleaning: the test closes the account it created so the plan cap (2 active) stays at 1. MCP wrap fix delivered in #553."
     },
     "mcp:account_create": {
-      "status": "accepted_gap",
-      "tests": [],
-      "notes": "Sandbox `0909-future-club-2702` returns `400 bank_accounts_limit` (plan cap) — cannot create a fresh test account. Scaffold in packages/e2e/src/bank-accounts/mcp.e2e.test.ts; SCA wrap unit-tested in packages/mcp/src/tools/accounts.test.ts. MCP wrap fix delivered in #553. See #563 for deferral history."
+      "status": "covered",
+      "tests": ["packages/e2e/src/bank-accounts/mcp.e2e.test.ts"],
+      "notes": "Bank-account lifecycle E2E (create → update → close). Empirically no SCA in sandbox for create. Plan cap is 2 active accounts; the previous deferral (#563 / 2026-05-12) was due to a saturated cap which was freed by closing a pre-existing account. MCP wrap fix delivered in #553."
     },
     "mcp:account_iban_certificate": {
       "status": "pending",
@@ -956,9 +956,9 @@
       "notes": ""
     },
     "mcp:account_update": {
-      "status": "accepted_gap",
-      "tests": [],
-      "notes": "`PUT /v2/bank_accounts/{id}` returns `404 not_found` for both pre-existing sandbox accounts (main `Hauptkonto` and non-main `asdfasdf`); path / method may need investigation. Scaffold in packages/e2e/src/bank-accounts/mcp.e2e.test.ts; SCA wrap unit-tested in packages/mcp/src/tools/accounts.test.ts. MCP wrap fix delivered in #553. See #563."
+      "status": "covered",
+      "tests": ["packages/e2e/src/bank-accounts/mcp.e2e.test.ts"],
+      "notes": "Bank-account lifecycle E2E (create → update → close). PUT-vs-PATCH disambiguation: Qonto returns 404 on `PUT /v2/bank_accounts/{id}` but accepts `PATCH` — core service `updateBankAccount` was flipped PUT → PATCH in the same PR. Empirically no SCA in sandbox for update. MCP wrap fix delivered in #553."
     },
     "mcp:attachment_show": {
       "status": "pending",
