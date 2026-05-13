@@ -4,10 +4,10 @@
 import { execFile, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { promisify } from "node:util";
-import { describe, expect, it } from "vitest";
-import { CLI_PATH } from "../helpers.js";
+import { beforeAll, describe, expect, it } from "vitest";
+import { CLI_PATH, cliJson } from "../helpers.js";
 import { cliEnv, hasOAuthCredentials, hasStagingToken, pinAuthPreference } from "../sandbox.js";
-import { SCA_POLL_URL_RE } from "../sca-helpers.js";
+import { approveAndRetryCli, SCA_POLL_URL_RE, triggerScaCli } from "../sca-helpers.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -130,8 +130,10 @@ async function runWithConditionalSca(args: readonly string[]): Promise<SpawnedCl
 // `intl-transfers/cli.e2e.test.ts` (#550) because empirical SCA
 // enforcement varies by endpoint + sandbox state.
 //
-// `beneficiary update` is intentionally NOT covered here — see the
-// deferral note below the describe block.
+// `beneficiary update` SCA coverage lives in the second describe block
+// below (#559) — a separate suite because its precondition (a
+// `validated` SEPA beneficiary in the sandbox) and its SCA semantics
+// (strictly gated, never direct) differ from `beneficiary add`.
 //
 // The CLI command `beneficiary add` already wraps with `executeWithCliSca`
 // per the #449 audit refresh — no production code changes needed.
@@ -166,10 +168,86 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("beneficiary CLI c
   });
 });
 
-// NOTE: `beneficiary update` SCA E2E coverage is deferred — the Qonto
-// sandbox `0909-future-club-2702` holds all 13 SEPA beneficiaries in
-// `status: pending` (empirical 2026-05-12), and `PUT
-// /v2/sepa/beneficiaries/{id}` returns `404 not_found` for pending
-// records. The pending → validated transition does not happen
-// automatically over weeks, and the available OAuth scope set does not
-// include `beneficiary.trust`. Tracked as a follow-up to #551.
+// OAuth+sandbox SCA E2E for `beneficiary update`. Local-only — gated on
+// OAuth credentials + staging token. Unlike `beneficiary add` (whose
+// SCA outcome is conditional in the sandbox, sometimes direct and
+// sometimes gated), `PUT /v2/sepa/beneficiaries/{id}` empirically
+// requires a `validated` SEPA beneficiary: the sandbox returns
+// `404 not_found` for `status: pending` records (#551, #559). The test
+// fails loudly when no validated beneficiary exists rather than
+// silently skipping, so the precondition gap stays visible.
+//
+// Uses the shared SCA helpers (`triggerScaCli` + `approveAndRetryCli`)
+// from `sca-helpers.ts` per #559 AC. Those helpers throw if SCA does
+// not fire within their default 10s window, so the test asserts the
+// SCA gate is actually exercised — not silently bypassed by an
+// untrusted-payee exemption or sandbox quirk.
+describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())(
+  "beneficiary CLI commands (e2e, update SCA write path)",
+  () => {
+    pinAuthPreference("oauth-first");
+
+    let validatedBeneficiary: Beneficiary;
+
+    beforeAll(() => {
+      // The precondition lookup uses api-key auth via `pinAuthPreference`
+      // having already been resolved to `oauth-first` for the suite — the
+      // `beneficiary list` call goes through the same auth path the test's
+      // write call will. Filter to `status: validated` server-side so the
+      // failure message reflects the precondition the AC names.
+      const beneficiaries = cliJson<Beneficiary[]>("beneficiary", "list", "--status", "validated");
+      if (beneficiaries.length === 0) {
+        throw new Error(
+          "E2E precondition unmet: no SEPA beneficiary with `status: validated` in the sandbox. " +
+            "PUT /v2/sepa/beneficiaries/{id} returns 404 for pending records (see #551, #559), so this " +
+            "test cannot exercise the SCA round-trip without one. Manually validate a beneficiary in the " +
+            "Qonto sandbox UI, or wait for the SCA-trigger validation path on `beneficiary add` to mature " +
+            "so freshly-created records land in `validated`.",
+        );
+      }
+      // Prefer a non-trusted beneficiary — trusted payees are SCA-exempt
+      // under PSD2 Article 13(b), and the AC requires exercising the SCA
+      // gate. Fall back to the first validated record if all are trusted
+      // (defensive — sandbox state can drift) so the test still attempts
+      // and fails-loudly via the helper timeout rather than silently
+      // skipping the SCA assertion.
+      validatedBeneficiary = beneficiaries.find((b) => !b.trusted) ?? (beneficiaries[0] as Beneficiary);
+    });
+
+    it("beneficiary update: triggers SCA round-trip and applies name change", async () => {
+      const newName = `E2E SCA Update ${randomUUID().slice(0, 12)}`;
+
+      const trigger = await triggerScaCli([
+        "--output",
+        "json",
+        "beneficiary",
+        "update",
+        validatedBeneficiary.id,
+        "--name",
+        newName,
+      ]);
+
+      // AC #4 traceability (#445): token is a real base64url, not the
+      // `"unknown"` fallback the parser used to emit.
+      expect(trigger.scaSessionToken).not.toBe("unknown");
+      expect(trigger.scaSessionToken).toMatch(/^[A-Za-z0-9_-]+$/);
+
+      const exit = await approveAndRetryCli(trigger, "allow");
+
+      if (exit.exitCode !== 0) {
+        throw new Error(
+          `beneficiary update exited ${String(exit.exitCode)}\n--- stderr ---\n${exit.stderr}\n--- stdout ---\n${exit.stdout}`,
+        );
+      }
+
+      // Wire-log assertions prove the SCA continuation actually exercised:
+      // the initial PUT and at least one SCA-session poll.
+      expect(exit.stderr).toMatch(/PUT .*\/v2\/sepa\/beneficiaries\//);
+      expect(exit.stderr).toMatch(SCA_POLL_URL_RE);
+
+      const updated = JSON.parse(exit.stdout) as Beneficiary;
+      expect(updated.id).toBe(validatedBeneficiary.id);
+      expect(updated.name).toBe(newName);
+    });
+  },
+);

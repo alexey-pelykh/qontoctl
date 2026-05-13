@@ -41,9 +41,9 @@
       "notes": "Embed-partner-only OAuth scope (`beneficiary.trust`). (a) Deferred: live-sandbox E2E exercising the untrust call. (b) No verifiable risk: Qonto's authorization server rejects the scope for non-partner clients at consent time, and the endpoint returns 403 at request time — both surface as explicit typed errors, not silent failure. The Embed-partner requirement is flagged in CLI help text, MCP tool description (`packages/mcp/src/tools/beneficiary.ts`), service JSDoc (`packages/core/src/beneficiaries/service.ts`), and `docs/oauth-setup.md` § 'Restricted scopes (partner-gated)'; `packages/cli/src/commands/auth.ts` excludes the scope from the default `auth setup` picker via `RESTRICTED_SCOPES` (opt-in only via `--trusted-partner`). (c) Retrofit trigger: qontoctl maintainer (or a downstream user) gains Embed-partner status with the `beneficiary.trust` scope grant. Decision recorded in #461 (closes Group 9 of #449)."
     },
     "cli:packages/cli/src/commands/beneficiary/update.ts": {
-      "status": "pending",
-      "tests": [],
-      "notes": ""
+      "status": "covered",
+      "tests": ["packages/e2e/src/beneficiaries/cli.e2e.test.ts"],
+      "notes": "OAuth+sandbox SCA round-trip; gated on hasOAuthCredentials() && hasStagingToken(). Fails loudly if no validated SEPA beneficiary in sandbox (PUT /v2/sepa/beneficiaries/{id} returns 404 for pending records — see #559)."
     },
     "cli:packages/cli/src/commands/bulk-transfer/create.ts": {
       "status": "pending",
@@ -486,9 +486,9 @@
       "notes": ""
     },
     "core:packages/core/src/beneficiaries/service.ts#updateBeneficiary": {
-      "status": "pending",
-      "tests": [],
-      "notes": ""
+      "status": "covered",
+      "tests": ["packages/e2e/src/beneficiaries/cli.e2e.test.ts", "packages/e2e/src/beneficiaries/mcp.e2e.test.ts"],
+      "notes": "Exercised end-to-end via CLI `beneficiary update` and MCP `beneficiary_update` SCA round-trips against the Qonto sandbox (#559)."
     },
     "core:packages/core/src/bulk-transfers/service.ts#createBulkTransfer": {
       "status": "pending",
@@ -996,9 +996,9 @@
       "notes": "Embed-partner-only OAuth scope (`beneficiary.trust`). (a) Deferred: live-sandbox E2E exercising the `beneficiary_untrust` MCP tool. (b) No verifiable risk: Qonto's authorization server rejects the scope for non-partner clients at consent time, and the endpoint returns 403 at request time — both surface as explicit typed errors, not silent failure. The MCP tool description explicitly warns that standard third-party apps will receive 403; service JSDoc (`packages/core/src/beneficiaries/service.ts`) documents the gate. Unit tests cover the parameter mapping and SCA flow. (c) Retrofit trigger: qontoctl maintainer (or a downstream user) gains Embed-partner status with the `beneficiary.trust` scope grant. Decision recorded in #461 (closes Group 9 of #449)."
     },
     "mcp:beneficiary_update": {
-      "status": "pending",
-      "tests": [],
-      "notes": ""
+      "status": "covered",
+      "tests": ["packages/e2e/src/beneficiaries/mcp.e2e.test.ts"],
+      "notes": "OAuth+sandbox SCA round-trip via two-step `wait: false` pattern; gated on hasOAuthCredentials() && hasStagingToken(). Fails loudly if no validated SEPA beneficiary in sandbox (PUT /v2/sepa/beneficiaries/{id} returns 404 for pending records — see #559)."
     },
     "mcp:bulk_transfer_create": {
       "status": "pending",
