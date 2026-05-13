@@ -441,19 +441,19 @@
       "notes": ""
     },
     "core:packages/core/src/auth/oauth-service.ts#exchangeCode": {
-      "status": "pending",
+      "status": "accepted_gap",
       "tests": [],
-      "notes": ""
+      "notes": "Authorization-code flow requires browser interaction (user authentication + consent at the Qonto authorization endpoint); cannot be automated headlessly without significant test infrastructure (mock OAuth server or headless-browser harness). The runtime path is covered by the `auth login` CLI command exercised manually during sandbox/production setup; `refreshAccessToken` and `revokeToken` exercise the same shared `requestTokens` helper (#460). See docs/ci-oauth-secrets.md for the documented gap."
     },
     "core:packages/core/src/auth/oauth-service.ts#refreshAccessToken": {
-      "status": "pending",
-      "tests": [],
-      "notes": ""
+      "status": "covered",
+      "tests": ["packages/e2e/src/auth/oauth-flow.e2e.test.ts"],
+      "notes": "OAuth + sandbox + e2e refresh token gate; one-time-use refresh strategy (Qonto rotates on every refresh). See docs/ci-oauth-secrets.md."
     },
     "core:packages/core/src/auth/oauth-service.ts#revokeToken": {
-      "status": "pending",
-      "tests": [],
-      "notes": ""
+      "status": "covered",
+      "tests": ["packages/e2e/src/auth/oauth-flow.e2e.test.ts"],
+      "notes": "OAuth + sandbox + e2e refresh token gate; revoked access token is verified to return 401 on subsequent API call."
     },
     "core:packages/core/src/beneficiaries/service.ts#buildBeneficiaryQueryParams": {
       "status": "pending",

@@ -30,6 +30,7 @@ interface ConfigCredentials {
   readonly clientId?: string;
   readonly clientSecret?: string;
   readonly stagingToken?: string;
+  readonly refreshToken?: string;
 }
 
 /**
@@ -81,6 +82,9 @@ function readConfigFileCredentials(): ConfigCredentials | undefined {
         }
         if (typeof record["staging-token"] === "string") {
           (result as { stagingToken: string }).stagingToken = record["staging-token"];
+        }
+        if (typeof record["refresh-token"] === "string") {
+          (result as { refreshToken: string }).refreshToken = record["refresh-token"];
         }
       }
     }
@@ -187,6 +191,55 @@ export function getTransferProofId(): string {
     throw new Error("QONTOCTL_TRANSFER_PROOF_ID is not set (guard with hasTransferProofId())");
   }
   return id;
+}
+
+/**
+ * Check whether a sandbox OAuth refresh token is available for the
+ * OAuth-flow round-trip E2E suite — either via the
+ * `QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG` env var (the CI surface, kept
+ * distinct from runtime refresh-token env vars per #495) or via
+ * `oauth.refresh-token` in `.qontoctl.yaml` (local developer flow,
+ * populated by `qontoctl auth login`).
+ *
+ * Used by `describe.skipIf(... || !hasE2ERefreshToken())` on the
+ * OAuth-flow E2E suite. Pair with `!hasOAuthCredentials()` and
+ * `!hasStagingToken()` since the flow requires sandbox routing and
+ * client credentials in addition to the seed refresh token.
+ *
+ * The `_LONG` suffix on the env var name is operational: it signals to
+ * the maintainer that this is a dedicated, manually-rotated sandbox
+ * refresh token — distinct from runtime tokens that qontoctl rotates
+ * on every refresh. See [`docs/ci-oauth-secrets.md`](../../../docs/ci-oauth-secrets.md)
+ * for the one-time-use rotation strategy.
+ */
+export function hasE2ERefreshToken(): boolean {
+  if (process.env["QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG"]) {
+    return true;
+  }
+  return Boolean(readConfigFileCredentials()?.refreshToken);
+}
+
+/**
+ * Retrieve the sandbox OAuth refresh token for the OAuth-flow round-trip
+ * E2E suite. Resolution order: `QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG`
+ * env var, then `oauth.refresh-token` in `.qontoctl.yaml`.
+ *
+ * Throws if no refresh token is available — callers should be guarded by
+ * {@link hasE2ERefreshToken}.
+ */
+export function getE2ERefreshToken(): string {
+  const envToken = process.env["QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG"];
+  if (envToken) {
+    return envToken;
+  }
+  const fileToken = readConfigFileCredentials()?.refreshToken;
+  if (fileToken) {
+    return fileToken;
+  }
+  throw new Error(
+    "No E2E OAuth refresh token available " +
+      "(checked QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG env var and oauth.refresh-token in .qontoctl.yaml)",
+  );
 }
 
 /**
