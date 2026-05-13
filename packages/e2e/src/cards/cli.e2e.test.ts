@@ -224,49 +224,55 @@ async function runWithConditionalSca(args: readonly string[]): Promise<SpawnedCl
   };
 }
 
-// Empirical sandbox probe (2026-05-12, sandbox org `0909-future-club-2702`,
-// OAuth token with all card.write scopes):
+// Empirical sandbox probe (2026-05-12 re-probe against sandbox org
+// `0909-future-club-2702`, OAuth token with all card.write scopes):
 //
 //   - `POST /v2/cards`                                  → 428 SCA, then 200 (works)
-//   - `POST /v2/cards/bulk`                             → 404 not_found  (deferred)
+//   - `POST /v2/cards/bulk`                             → 404 not_found  (deferred, #570)
 //   - `POST /v2/cards/{id}/lock`                        → 200 (works, NOT SCA-gated in sandbox)
 //   - `POST /v2/cards/{id}/unlock`                      → 428 SCA, then 200 (works)
 //   - `PUT  /v2/cards/{id}/limits`                      → 428 SCA, then 200 (works)
 //   - `PUT  /v2/cards/{id}/nickname`                    → 200 (works, NOT SCA-gated in sandbox)
-//   - `PUT  /v2/cards/{id}/options`                     → 403 Forbidden (deferred)
-//   - `PUT  /v2/cards/{id}/restrictions`                → 403 Forbidden (deferred)
+//   - `PUT  /v2/cards/{id}/options`                     → 403 Forbidden (deferred, #570)
+//   - `PUT  /v2/cards/{id}/restrictions`                → 200 (works, NOT SCA-gated in sandbox; was 403 pre-2026-05-12)
 //
-// Three of the 8 covered endpoints return non-200 in the sandbox despite
-// all card.write scopes being granted on the OAuth token — same sandbox-
-// plan / admin-role pattern observed in #555 (request 4/5 endpoints 403)
-// and #554 (transfer_proof 404). E2E coverage for those three (bulk-create,
-// update-options, update-restrictions) is deferred to a follow-up issue
-// (linked in the deferral note at the bottom of this file). CLI + MCP
-// code paths for ALL THREE are confirmed correct by audit-refresh
-// inspection — all wrap with `executeWithCliSca` /  `executeWithMcpSca`,
-// structurally identical to the 5 covered endpoints below.
+// Two of the 8 covered endpoints still return non-200 in the sandbox
+// despite all card.write scopes being granted on the OAuth token — same
+// sandbox-plan / admin-role pattern observed in #555 (request 4/5
+// endpoints 403) and #554 (transfer_proof 404). E2E coverage for those
+// two (bulk-create, update-options) remains deferred under #570 (linked
+// in the deferral note at the bottom of this file). CLI + MCP code paths
+// for BOTH are confirmed correct by audit-refresh inspection — both wrap
+// with `executeWithCliSca` / `executeWithMcpSca`, structurally identical
+// to the 6 covered endpoints below.
+//
+// `PUT /v2/cards/{id}/restrictions` flipped from 403 → 200 between the
+// 2026-04 #556 probe and the 2026-05-12 re-probe without any user-visible
+// config change (likely sandbox-plan tier upgrade by Qonto). It is
+// covered here as round-trip #6 in the lifecycle test below.
 //
 // Per #551 user feedback ("graceful skip is BAD — bail out with error"),
 // we do NOT add a conditional skip wrapper that would swallow the 403/404
-// silently. The 5-of-8 covered endpoints below exercise every distinct
+// silently. The 6-of-8 covered endpoints below exercise every distinct
 // SCA-wrapping permutation on the working sandbox surface (both true
 // SCA-gating with mock-decision round-trip AND no-SCA direct 200 through
-// the same wrap), so the deferred three add no incremental wrap-shape
+// the same wrap), so the deferred two add no incremental wrap-shape
 // coverage.
 //
 // Idempotency strategy: each test run creates 1 fresh card (used for all
-// 4 update/lock lifecycle ops) — the card is NEVER discarded here because
-// `discardCard` / `reportCardLost` / `reportCardStolen` are terminal-state
-// ACCEPTED_GAP endpoints (see deferral note below). Cards accumulate in
-// the sandbox across runs. Empirical determination: the sandbox tolerated
-// 5 stacked test cards in a row without throttling (manual probes
-// 2026-05-12); the per-org card cap is not publicly documented but is
-// well above the 1/run rate this suite produces.
+// 5 update/lock/restrictions lifecycle ops) — the card is NEVER discarded
+// here because `discardCard` / `reportCardLost` / `reportCardStolen` are
+// terminal-state ACCEPTED_GAP endpoints (see deferral note below). Cards
+// accumulate in the sandbox across runs. Empirical determination: the
+// sandbox tolerated 5 stacked test cards in a row without throttling
+// (manual probes 2026-05-12); the per-org card cap is not publicly
+// documented but is well above the 1/run rate this suite produces.
 //
-// All 5 covered endpoints are exercised against a single shared
+// All 6 covered endpoints are exercised against a single shared
 // `testCardId` to minimize sandbox-card accumulation. Lock/unlock cycle
 // leaves the card in its post-unlock `live` state — symmetric with the
-// natural starting state of a freshly-activated card.
+// natural starting state of a freshly-activated card — at which point
+// `update-restrictions` runs as the final round-trip.
 
 describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("card CLI commands (e2e, SCA write paths)", () => {
   pinAuthPreference("oauth-first");
@@ -413,6 +419,45 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("card CLI commands
     const unlocked = JSON.parse(unlockResult.stdout) as CreatedCard;
     expect(unlocked.id).toBe(testCardId);
     expect(unlocked.status).not.toBe("paused");
+
+    // ---- Round-trip #6: update-restrictions.
+    //
+    // Empirical 2026-05-12: this endpoint flipped from 403 Forbidden (the
+    // original probe at #556) to 200 OK without any user-visible config
+    // change — most likely a sandbox-plan tier upgrade by Qonto. Covered
+    // here as the final round-trip; runs against the post-unlock `live`
+    // card. SCA was NOT triggered in the 2026-05-12 probe (see header
+    // empirical table) — `runWithConditionalSca` tolerates either path.
+    //
+    // Exercise a meaningful change (`--active-days 1 2 3 4 5`, Mon–Fri)
+    // rather than the no-op all-7-days probe used in #570's empirical
+    // re-check; the response must echo the requested subset so we can
+    // assert the update landed (mirroring the `payment_monthly_limit`
+    // assertion in round-trip #3).
+    const restrictionsResult = await runWithConditionalSca([
+      "card",
+      "update-restrictions",
+      testCardId,
+      "--active-days",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+    ]);
+    if (restrictionsResult.scaTriggered) {
+      console.log(`[card update-restrictions SCA probe] SCA triggered; round-trip exercised.`);
+    } else {
+      console.log(`[card update-restrictions SCA probe] NO SCA in OAuth+sandbox.`);
+    }
+    if (restrictionsResult.exitCode !== 0) {
+      throw new Error(
+        `card update-restrictions exited ${String(restrictionsResult.exitCode)}\n--- stderr ---\n${restrictionsResult.stderr}\n--- stdout ---\n${restrictionsResult.stdout}`,
+      );
+    }
+    const restrictionsUpdated = JSON.parse(restrictionsResult.stdout) as CreatedCard;
+    expect(restrictionsUpdated.id).toBe(testCardId);
+    expect([...restrictionsUpdated.active_days]).toEqual([1, 2, 3, 4, 5]);
   });
 });
 
@@ -420,29 +465,28 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("card CLI commands
 // E2E coverage is DEFERRED — terminal state, would consume the test card
 // per run. The CLI wraps all three with `executeWithCliSca` (verified by
 // audit-refresh inspection of `packages/cli/src/commands/card/{discard,report}.ts`),
-// so the SCA path is structurally identical to the 5 covered endpoints
+// so the SCA path is structurally identical to the 6 covered endpoints
 // above. Exercising the destructive trio would force a 2-card-per-run
 // burn rate (1 lifecycle card, 1 sacrificial card per destructive op),
 // or 4-card-per-run, with no way to recover a card once `discarded` /
-// `lost` / `stolen`. The covered 5 already exercise every SCA-wrapping
+// `lost` / `stolen`. The covered 6 already exercise every SCA-wrapping
 // permutation on the working sandbox surface; the destructive endpoints
 // add no incremental SCA-shape coverage. Tracked in #458 as the only
 // ACCEPTED_GAP cluster for this sub-issue.
 //
-// NOTE: 3 of 8 covered endpoints are deferred to a follow-up issue
-// because Qonto sandbox returns non-200 responses despite all card.write
-// scopes being granted on the OAuth token (empirical 2026-05-12 probe
-// via both CLI and MCP paths):
+// NOTE: 2 of 8 covered endpoints remain deferred under #570 because
+// Qonto sandbox returns non-200 responses despite all card.write scopes
+// being granted on the OAuth token (empirical 2026-05-12 re-probe via
+// both CLI and MCP paths — `update-restrictions` flipped from 403 → 200
+// and is now covered above):
 //
 //   - `card bulk-create`        → `POST /v2/cards/bulk`                 404 not_found
 //   - `card update-options`     → `PUT  /v2/cards/{id}/options`         403 Forbidden
-//   - `card update-restrictions`→ `PUT  /v2/cards/{id}/restrictions`    403 Forbidden
 //
 // Same sandbox-plan / admin-role pattern as the 4 deferred request
 // endpoints in #555 (request approve/decline/create-flash-card/
 // create-virtual-card all 403 with `request_*.write` scopes granted).
-// All three CLI commands wrap with `executeWithCliSca` (verified by
-// audit-refresh inspection of `packages/cli/src/commands/card/{create,
-// update-options,update-restrictions}.ts`), so the SCA path is
-// structurally identical to the 5 covered endpoints above. Tracked as
-// a follow-up to #556.
+// Both CLI commands wrap with `executeWithCliSca` (verified by
+// audit-refresh inspection of `packages/cli/src/commands/card/{bulk-create,
+// update-options}.ts`), so the SCA path is structurally identical to the
+// 6 covered endpoints above. Tracked under #570 as a follow-up to #556.
