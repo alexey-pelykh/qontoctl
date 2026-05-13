@@ -180,7 +180,7 @@ describe("updateBankAccount", () => {
     vi.restoreAllMocks();
   });
 
-  it("puts to the correct endpoint and returns updated bank account", async () => {
+  it("patches the correct endpoint and returns updated bank account", async () => {
     const account = {
       id: "acc-1",
       name: "Renamed Account",
@@ -203,7 +203,7 @@ describe("updateBankAccount", () => {
 
     const [url, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
     expect(url.pathname).toBe("/v2/bank_accounts/acc-1");
-    expect(init.method).toBe("PUT");
+    expect(init.method).toBe("PATCH");
 
     const body = JSON.parse(init.body as string) as Record<string, unknown>;
     expect(body).toEqual({ bank_account: { name: "Renamed Account" } });

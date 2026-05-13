@@ -81,7 +81,7 @@ export async function updateBankAccount(
   options?: { readonly idempotencyKey?: string; readonly scaSessionToken?: string },
 ): Promise<BankAccount> {
   const endpointPath = `/v2/bank_accounts/${encodeURIComponent(id)}`;
-  const response = await client.request("PUT", endpointPath, {
+  const response = await client.request("PATCH", endpointPath, {
     body: { bank_account: params },
     ...options,
   });

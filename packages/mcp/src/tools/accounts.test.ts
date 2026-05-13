@@ -206,7 +206,7 @@ describe("account MCP tools", () => {
       expect(parsed.name).toBe("Updated Name");
     });
 
-    it("sends PUT with wrapped body to the correct endpoint", async () => {
+    it("sends PATCH with wrapped body to the correct endpoint", async () => {
       fetchSpy.mockReturnValue(
         jsonResponse({
           bank_account: makeBankAccount({ name: "Updated Name" }),
@@ -220,7 +220,7 @@ describe("account MCP tools", () => {
 
       const [url, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
       expect(url.pathname).toBe("/v2/bank_accounts/acc-1");
-      expect(opts.method).toBe("PUT");
+      expect(opts.method).toBe("PATCH");
       const body = JSON.parse(opts.body as string) as { bank_account: { name: string } };
       expect(body.bank_account.name).toBe("Updated Name");
     });
