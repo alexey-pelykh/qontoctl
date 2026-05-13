@@ -52,9 +52,10 @@ sca-continuation · auth/oauth-flow
 > The `auth/oauth-flow` suite has an **additional** gate beyond the
 > standard OAuth + staging-token check: it requires a seed refresh token
 > (`QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG` env var or `oauth.refresh-token`
-> in `.qontoctl.yaml`). The seed is consumed on every successful run — see
-> [`docs/ci-oauth-secrets.md`](./ci-oauth-secrets.md) for the one-time-use
-> rotation strategy.
+> in `.qontoctl.yaml`). The seed is consumed on every successful run, and
+> the suite is **local-only by design** — see
+> [`docs/oauth-flow-e2e.md`](./oauth-flow-e2e.md) for the rationale and
+> local rotation workflow.
 
 **No credentials needed** (run anywhere):
 
@@ -95,21 +96,22 @@ repository secrets:
 | `QONTOCTL_ORGANIZATION_SLUG` | api-key org slug |
 | `QONTOCTL_SECRET_KEY`        | api-key secret   |
 
-The OAuth-flow suite (`auth/oauth-flow`) is **not** wired to CI by default;
-its four required secrets are documented in
-[`docs/ci-oauth-secrets.md`](./ci-oauth-secrets.md), but the workflow does not
-yet export them to the e2e job (see that doc's § Workflow plumbing is
-intentionally deferred for the rationale and activation paths).
+The OAuth-flow suite (`auth/oauth-flow`) is **local-only by design** — it is
+not wired to CI, and it never will be without a structural retrofit (see
+[`docs/oauth-flow-e2e.md`](./oauth-flow-e2e.md) § Why this suite is local-only
+and [#591](https://github.com/alexey-pelykh/qontoctl/issues/591) for the
+mock-OAuth-server exploration).
 
 > **Note on `QONTOCTL_REFRESH_TOKEN`**: this env var is **no longer read by
 > qontoctl at runtime** (see issue #495). Refresh tokens are runtime-mutable
 > state and were never compatible with env-overlay semantics — refresh would
 > shadow rotated values on subsequent reads. If your CI relied on it for
 > runtime auth, switch to api-key auth (above) or OAuth via file-based
-> credentials. For the OAuth-flow E2E suite specifically, use the dedicated
-> `QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG` secret described in
-> [`docs/ci-oauth-secrets.md`](./ci-oauth-secrets.md), which is scoped to
-> tests only and is not read by the runtime.
+> credentials. For the OAuth-flow E2E suite specifically, see
+> [`docs/oauth-flow-e2e.md`](./oauth-flow-e2e.md) — the suite is local-only
+> by design and uses a dedicated `QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG`
+> env var (or `oauth.refresh-token` in `.qontoctl.yaml`) scoped to tests
+> only, not read by the runtime.
 
 ## Running locally
 

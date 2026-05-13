@@ -196,9 +196,9 @@ export function getTransferProofId(): string {
 /**
  * Check whether a sandbox OAuth refresh token is available for the
  * OAuth-flow round-trip E2E suite — either via the
- * `QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG` env var (the CI surface, kept
- * distinct from runtime refresh-token env vars per #495) or via
- * `oauth.refresh-token` in `.qontoctl.yaml` (local developer flow,
+ * `QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG` env var (a dedicated test seed
+ * surface, kept distinct from runtime refresh-token env vars per #495) or
+ * via `oauth.refresh-token` in `.qontoctl.yaml` (local developer flow,
  * populated by `qontoctl auth login`).
  *
  * Used by `describe.skipIf(... || !hasE2ERefreshToken())` on the
@@ -206,11 +206,10 @@ export function getTransferProofId(): string {
  * `!hasStagingToken()` since the flow requires sandbox routing and
  * client credentials in addition to the seed refresh token.
  *
- * The `_LONG` suffix on the env var name is operational: it signals to
- * the maintainer that this is a dedicated, manually-rotated sandbox
- * refresh token — distinct from runtime tokens that qontoctl rotates
- * on every refresh. See [`docs/ci-oauth-secrets.md`](../../../docs/ci-oauth-secrets.md)
- * for the one-time-use rotation strategy.
+ * The suite is **local-only by design**: Qonto rotates refresh tokens on
+ * every `oauth/token` exchange (per RFC 6749 §6), so CI-seeded secrets
+ * burn on every run. See [`docs/oauth-flow-e2e.md`](../../../docs/oauth-flow-e2e.md)
+ * for the rationale and the local rotation workflow.
  */
 export function hasE2ERefreshToken(): boolean {
   if (process.env["QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG"]) {

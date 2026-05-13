@@ -26,7 +26,9 @@ import {
 // AND a seed refresh token (`QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG` env var
 // or `oauth.refresh-token` in `.qontoctl.yaml`). The seed token is consumed
 // on each successful run (Qonto rotates refresh tokens on every refresh) —
-// see `docs/ci-oauth-secrets.md` for the one-time-use rotation strategy.
+// see `docs/oauth-flow-e2e.md` for the rationale and the local rotation
+// workflow. This suite is local-only by design (CI is intentionally out of
+// scope).
 //
 // `exchangeCode` is intentionally NOT covered: the authorization-code flow
 // requires browser interaction (user authentication + consent) which cannot
@@ -83,9 +85,8 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken() || !hasE2ERefreshTo
 
       // Qonto rotates refresh tokens on every refresh — the returned token
       // MUST differ from the one we sent. This rotation is what makes
-      // CI-stored refresh tokens "burn on use" and motivates the
-      // one-time-use rotation strategy documented in
-      // `docs/ci-oauth-secrets.md`.
+      // CI-stored refresh tokens "burn on use" and motivates the local-only
+      // design documented in `docs/oauth-flow-e2e.md`.
       expect(tokens.refreshToken).toBeTruthy();
       expect(tokens.refreshToken).not.toBe(seedRefreshToken);
 

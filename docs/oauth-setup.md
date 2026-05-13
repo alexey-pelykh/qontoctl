@@ -275,7 +275,7 @@ export QONTOCTL_CLIENT_SECRET="sandbox-client-secret"
 
 When `oauth.staging-token` is configured (or the `QONTOCTL_STAGING_TOKEN` env var is set), sandbox URLs are used automatically. SCA writes against sandbox additionally need an `X-Qonto-2fa-Preference: mock` header — QontoCtl auto-applies this when a staging token is set. See [`sandbox-testing.md`](./sandbox-testing.md) for SCA-method overrides and the `qontoctl sca-session mock-decision` workflow.
 
-For running the OAuth-flow E2E suite (`refreshAccessToken` + `revokeToken` round-trip) against the sandbox in CI, see [`ci-oauth-secrets.md`](./ci-oauth-secrets.md), which documents the dedicated `QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG` secret and the one-time-use rotation strategy.
+For running the OAuth-flow E2E suite (`refreshAccessToken` + `revokeToken` round-trip) against the sandbox locally, see [`oauth-flow-e2e.md`](./oauth-flow-e2e.md). The suite is local-only by design: Qonto rotates refresh tokens per exchange (per RFC 6749 §6), so CI-seeded secrets burn on every run.
 
 The sandbox uses separate OAuth endpoints:
 
