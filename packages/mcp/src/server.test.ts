@@ -143,7 +143,8 @@ describe("createServer", () => {
       expect(toolNames).toContain("terminal_list");
       expect(toolNames).toContain("terminal_payment_create");
       expect(toolNames).toContain("product_list");
-      expect(tools).toHaveLength(127);
+      expect(toolNames).toContain("diagnose");
+      expect(tools).toHaveLength(128);
     });
 
     it("tools have descriptions", async () => {
@@ -157,8 +158,17 @@ describe("createServer", () => {
     it("tool names follow entity_operation underscore convention", async () => {
       const { tools } = await mcpClient.listTools();
 
+      // Top-level utility tools are exempt from the {entity}_{operation}
+      // convention — they are verb-only commands with no separate entity
+      // (e.g., `diagnose` is the entity AND the operation). Adding more
+      // here requires explicit registration to avoid drift.
+      const SINGLE_WORD_UTILITY_TOOLS = new Set<string>(["diagnose"]);
       const pattern = /^[a-z]+(?:_[a-z]+)+$/;
       for (const tool of tools) {
+        if (SINGLE_WORD_UTILITY_TOOLS.has(tool.name)) {
+          expect(tool.name, `Single-word tool "${tool.name}" must be lowercase letters only`).toMatch(/^[a-z]+$/);
+          continue;
+        }
         expect(tool.name, `Tool "${tool.name}" should match {entity}_{operation} pattern`).toMatch(pattern);
       }
     });

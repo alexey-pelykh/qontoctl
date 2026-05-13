@@ -70,6 +70,7 @@ describe("qontoctl CLI", () => {
       expect(names).toContain("completion");
       expect(names).toContain("beneficiary");
       expect(names).toContain("card");
+      expect(names).toContain("diagnose");
       expect(names).toContain("einvoicing");
       expect(names).toContain("auth");
       expect(names).toContain("transaction");
@@ -99,7 +100,7 @@ describe("qontoctl CLI", () => {
       expect(names).toContain("insurance");
       expect(names).toContain("payment-link");
       expect(names).toContain("mcp");
-      expect(program.commands).toHaveLength(30);
+      expect(program.commands).toHaveLength(31);
     });
 
     it("commands have descriptions", () => {

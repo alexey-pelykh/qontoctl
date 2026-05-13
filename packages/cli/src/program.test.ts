@@ -47,6 +47,7 @@ describe("createProgram", () => {
       expect(names).toContain("completion");
       expect(names).toContain("beneficiary");
       expect(names).toContain("card");
+      expect(names).toContain("diagnose");
       expect(names).toContain("einvoicing");
       expect(names).toContain("auth");
       expect(names).toContain("transaction");
@@ -61,7 +62,7 @@ describe("createProgram", () => {
       expect(names).toContain("intl");
       expect(names).toContain("payment-link");
       expect(names).toContain("profile");
-      expect(program.commands).toHaveLength(17);
+      expect(program.commands).toHaveLength(18);
     });
 
     it("commands have descriptions", () => {

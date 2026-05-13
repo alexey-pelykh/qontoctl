@@ -135,6 +135,16 @@
       "tests": [],
       "notes": ""
     },
+    "cli:packages/cli/src/commands/diagnose-format.ts": {
+      "status": "covered",
+      "tests": ["packages/e2e/src/diagnose/cli.e2e.test.ts"],
+      "notes": "Table + JSON renderers exercised via the diagnose CLI E2E (table markers, summary line, ASCII fallback, --frozen-timestamp determinism, redaction tripwire). Unit tests in packages/cli/src/commands/diagnose-format.test.ts cover the formatter shapes in isolation."
+    },
+    "cli:packages/cli/src/commands/diagnose.ts": {
+      "status": "covered",
+      "tests": ["packages/e2e/src/diagnose/cli.e2e.test.ts"],
+      "notes": "Diagnose CLI E2E asserts all 9 default checks execute, the report parses against DiagnosticReportSchema, api-key-health succeeds against the live sandbox, exit codes (0/1/2) are correct, and the regex-based redaction audit passes."
+    },
     "cli:packages/cli/src/commands/einvoicing.ts": {
       "status": "pending",
       "tests": [],
@@ -220,6 +230,11 @@
       "tests": ["packages/e2e/src/commands/payment-link.e2e.test.ts"],
       "notes": "E2E exercises read-only paths (list/show/payments/methods/connection-status) plus the full write-path lifecycle (connect → create → deactivate); OAuth-gated so CI skips, runs locally against the live sandbox. Tenants without the Payment Links subscription (#490) skip the lifecycle gracefully."
     },
+    "cli:packages/cli/src/commands/product.ts": {
+      "status": "covered",
+      "tests": ["packages/e2e/src/products/cli.e2e.test.ts"],
+      "notes": "List-only; CRUD endpoints not yet published by Qonto."
+    },
     "cli:packages/cli/src/commands/profile/add.ts": {
       "status": "pending",
       "tests": [],
@@ -244,11 +259,6 @@
       "status": "pending",
       "tests": [],
       "notes": ""
-    },
-    "cli:packages/cli/src/commands/product.ts": {
-      "status": "covered",
-      "tests": ["packages/e2e/src/products/cli.e2e.test.ts"],
-      "notes": "List-only; CRUD endpoints not yet published by Qonto."
     },
     "cli:packages/cli/src/commands/quote.ts": {
       "status": "pending",
@@ -639,6 +649,16 @@
       "status": "pending",
       "tests": [],
       "notes": ""
+    },
+    "core:packages/core/src/diagnose/service.ts#computeSummaryCounts": {
+      "status": "covered",
+      "tests": ["packages/e2e/src/diagnose/cli.e2e.test.ts", "packages/e2e/src/diagnose/mcp.e2e.test.ts"],
+      "notes": "Exercised indirectly via runDiagnose in both CLI and MCP E2E (the summaryCounts field of every report is asserted to match the per-result tally)."
+    },
+    "core:packages/core/src/diagnose/service.ts#runDiagnose": {
+      "status": "covered",
+      "tests": ["packages/e2e/src/diagnose/cli.e2e.test.ts", "packages/e2e/src/diagnose/mcp.e2e.test.ts"],
+      "notes": "Top-level diagnose orchestrator. CLI E2E exercises the happy path (api-key healthy, OAuth-state-dependent), the AC scenario 3 failing path (bad api-key → fail + exit 1), and the redaction audit. MCP E2E exercises the same shape via the read-only diagnose tool."
     },
     "core:packages/core/src/insurance-contracts/service.ts#createInsuranceContract": {
       "status": "pending",
@@ -1164,6 +1184,11 @@
       "status": "pending",
       "tests": [],
       "notes": ""
+    },
+    "mcp:diagnose": {
+      "status": "covered",
+      "tests": ["packages/e2e/src/diagnose/mcp.e2e.test.ts"],
+      "notes": "Read-only MCP tool (ADR-DIAG-5: input is { profile? } only, no display flags). E2E asserts the report validates against DiagnosticReportSchema, unknown input fields are ignored (no privileged surface elevation), and the regex-based redaction audit passes against the JSON output."
     },
     "mcp:einvoicing_settings": {
       "status": "pending",
