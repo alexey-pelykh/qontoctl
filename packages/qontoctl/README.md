@@ -1,4 +1,4 @@
-# QontoCtl: The Complete CLI & MCP for Qonto
+![QontoCtl: The Complete CLI & MCP for Qonto](https://raw.githubusercontent.com/qontoctl/.github/main/profile/assets/social-preview.png)
 
 [![CI](https://github.com/alexey-pelykh/qontoctl/actions/workflows/ci.yml/badge.svg)](https://github.com/alexey-pelykh/qontoctl/actions/workflows/ci.yml)
 [![Codecov](https://img.shields.io/codecov/c/github/alexey-pelykh/qontoctl?logo=codecov)](https://codecov.io/gh/alexey-pelykh/qontoctl)
@@ -24,8 +24,16 @@ QontoCtl lets AI assistants (Claude, etc.) interact with Qonto through the [Mode
 - **SEPA Beneficiaries** — list, add, update, trust/untrust SEPA beneficiaries
 - **SEPA Transfers** — list, create, cancel transfers; download proofs; verify payees
 - **Internal Transfers** — create transfers between accounts in the same organization
-- **Bulk Transfers** — list and view bulk transfer batches
-- **Recurring Transfers** — list and view recurring transfers
+- **Bulk Transfers** — list, view, and create bulk SEPA transfer batches
+- **Recurring Transfers** — list, view, create, cancel recurring transfers
+- **International Transfers (SWIFT)** — create SWIFT transfers and manage international beneficiaries
+- **Cards** — list, create, update, lock/unlock, report lost/stolen, discard cards
+- **Teams** — list and create teams
+- **Webhooks** — create and manage webhook subscriptions
+- **Payment Links** — create, deactivate, and manage Stripe-backed payment links
+- **Insurance** — show, create, update insurance contracts and manage documents
+- **Terminals (POS)** — list Qonto Terminals and initiate terminal payments
+- **Products** — list catalogue products
 - **Clients** — list, create, update, delete clients
 - **Client Invoices** — full lifecycle: create, update, finalize, send, mark paid, cancel, upload files
 - **Quotes** — create, update, delete, send quotes
@@ -161,100 +169,168 @@ The MCP server has no CLI flags. To load credentials from a config file other th
 }
 ```
 
-The path is captured at server startup. See [`docs/configuration.md`](https://github.com/alexey-pelykh/qontoctl/blob/main/docs/configuration.md) for the full resolution chain.
+The path is captured at server startup. See [`docs/configuration.md`](docs/configuration.md) for the full resolution chain.
 
 ### Available MCP Tools
 
-| Tool                            | Description                                                       |
-| ------------------------------- | ----------------------------------------------------------------- |
-| **Organization**                |                                                                   |
-| `org_show`                      | Show organization details including name, slug, and bank accounts |
-| **Accounts**                    |                                                                   |
-| `account_list`                  | List all bank accounts for the organization                       |
-| `account_show`                  | Show details of a specific bank account                           |
-| `account_iban_certificate`      | Download IBAN certificate PDF for a bank account                  |
-| `account_create`                | Create a new bank account                                         |
-| `account_update`                | Update an existing bank account                                   |
-| `account_close`                 | Close a bank account                                              |
-| **Transactions**                |                                                                   |
-| `transaction_list`              | List transactions for a bank account with optional filters        |
-| `transaction_show`              | Show details of a specific transaction                            |
-| `transaction_attachment_list`   | List attachments for a transaction                                |
-| `transaction_attachment_add`    | Attach a file to a transaction                                    |
-| `transaction_attachment_remove` | Remove attachment(s) from a transaction                           |
-| **Statements**                  |                                                                   |
-| `statement_list`                | List bank statements with optional filters                        |
-| `statement_show`                | Show details of a specific bank statement                         |
-| **Labels**                      |                                                                   |
-| `label_list`                    | List all labels in the organization                               |
-| `label_show`                    | Show details of a specific label                                  |
-| **Memberships**                 |                                                                   |
-| `membership_list`               | List all memberships in the organization                          |
-| `membership_show`               | Show the current authenticated user's membership                  |
-| `membership_invite`             | Invite a new member to the organization                           |
-| **SEPA Beneficiaries**          |                                                                   |
-| `beneficiary_list`              | List SEPA beneficiaries in the organization                       |
-| `beneficiary_show`              | Show details of a specific SEPA beneficiary                       |
-| `beneficiary_add`               | Create a new SEPA beneficiary                                     |
-| `beneficiary_update`            | Update an existing SEPA beneficiary                               |
-| `beneficiary_trust`             | Trust one or more SEPA beneficiaries                              |
-| `beneficiary_untrust`           | Untrust one or more SEPA beneficiaries                            |
-| **SEPA Transfers**              |                                                                   |
-| `transfer_list`                 | List SEPA transfers with optional filters                         |
-| `transfer_show`                 | Show details of a specific SEPA transfer                          |
-| `transfer_create`               | Create a SEPA transfer                                            |
-| `transfer_cancel`               | Cancel a pending SEPA transfer                                    |
-| `transfer_proof`                | Download SEPA transfer proof PDF                                  |
-| `transfer_verify_payee`         | Verify a payee (Verification of Payee / VoP)                      |
-| `transfer_bulk_verify_payee`    | Bulk verify payees (VoP)                                          |
-| **Internal Transfers**          |                                                                   |
-| `internal_transfer_create`      | Create an internal transfer between two bank accounts             |
-| **Bulk Transfers**              |                                                                   |
-| `bulk_transfer_list`            | List bulk transfers                                               |
-| `bulk_transfer_show`            | Show details of a specific bulk transfer                          |
-| **Recurring Transfers**         |                                                                   |
-| `recurring_transfer_list`       | List recurring transfers                                          |
-| `recurring_transfer_show`       | Show details of a specific recurring transfer                     |
-| **Clients**                     |                                                                   |
-| `client_list`                   | List clients with optional pagination                             |
-| `client_show`                   | Show details of a specific client                                 |
-| `client_create`                 | Create a new client                                               |
-| `client_update`                 | Update an existing client                                         |
-| `client_delete`                 | Delete a client                                                   |
-| **Client Invoices**             |                                                                   |
-| `client_invoice_list`           | List client invoices with optional filters                        |
-| `client_invoice_show`           | Show details of a specific client invoice                         |
-| `client_invoice_create`         | Create a draft client invoice with client and line items          |
-| `client_invoice_update`         | Update a draft client invoice                                     |
-| `client_invoice_delete`         | Delete a draft client invoice                                     |
-| `client_invoice_finalize`       | Finalize a client invoice (assign number)                         |
-| `client_invoice_send`           | Send a client invoice to the client via email                     |
-| `client_invoice_mark_paid`      | Mark a client invoice as paid                                     |
-| `client_invoice_unmark_paid`    | Unmark a client invoice paid status                               |
-| `client_invoice_cancel`         | Cancel a finalized client invoice                                 |
-| `client_invoice_upload`         | Upload a file to a client invoice                                 |
-| `client_invoice_upload_show`    | Show upload details for a client invoice                          |
-| **Quotes**                      |                                                                   |
-| `quote_list`                    | List quotes with optional filters                                 |
-| `quote_show`                    | Show details of a specific quote                                  |
-| `quote_create`                  | Create a new quote with client and line items                     |
-| `quote_update`                  | Update an existing quote                                          |
-| `quote_delete`                  | Delete a quote                                                    |
-| `quote_send`                    | Send a quote to the client via email                              |
-| **Credit Notes**                |                                                                   |
-| `credit_note_list`              | List credit notes in the organization                             |
-| `credit_note_show`              | Show details of a specific credit note                            |
-| **Supplier Invoices**           |                                                                   |
-| `supplier_invoice_list`         | List supplier invoices with optional filters                      |
-| `supplier_invoice_show`         | Show details of a specific supplier invoice                       |
-| `supplier_invoice_bulk_create`  | Create supplier invoices by uploading files                       |
-| **Requests**                    |                                                                   |
-| `request_list`                  | List all requests in the organization                             |
-| **Attachments**                 |                                                                   |
-| `attachment_upload`             | Upload an attachment file (PDF, JPEG, PNG)                        |
-| `attachment_show`               | Show details of a specific attachment                             |
-| **E-Invoicing**                 |                                                                   |
-| `einvoicing_settings`           | Retrieve e-invoicing settings for the organization                |
+| Tool                                            | Description                                                           |
+| ----------------------------------------------- | --------------------------------------------------------------------- |
+| **Organization**                                |                                                                       |
+| `org_show`                                      | Show organization details including name, slug, and bank accounts     |
+| **Accounts**                                    |                                                                       |
+| `account_list`                                  | List all bank accounts for the organization                           |
+| `account_show`                                  | Show details of a specific bank account                               |
+| `account_iban_certificate`                      | Download IBAN certificate PDF for a bank account                      |
+| `account_create`                                | Create a new bank account                                             |
+| `account_update`                                | Update an existing bank account                                       |
+| `account_close`                                 | Close a bank account                                                  |
+| **Transactions**                                |                                                                       |
+| `transaction_list`                              | List transactions for a bank account with optional filters            |
+| `transaction_show`                              | Show details of a specific transaction                                |
+| `transaction_attachment_list`                   | List attachments for a transaction                                    |
+| `transaction_attachment_add`                    | Attach a file to a transaction                                        |
+| `transaction_attachment_remove`                 | Remove attachment(s) from a transaction                               |
+| **Statements**                                  |                                                                       |
+| `statement_list`                                | List bank statements with optional filters                            |
+| `statement_show`                                | Show details of a specific bank statement                             |
+| **Labels**                                      |                                                                       |
+| `label_list`                                    | List all labels in the organization                                   |
+| `label_show`                                    | Show details of a specific label                                      |
+| **Memberships**                                 |                                                                       |
+| `membership_list`                               | List all memberships in the organization                              |
+| `membership_show`                               | Show the current authenticated user's membership                      |
+| `membership_invite`                             | Invite a new member to the organization                               |
+| **SEPA Beneficiaries**                          |                                                                       |
+| `beneficiary_list`                              | List SEPA beneficiaries in the organization                           |
+| `beneficiary_show`                              | Show details of a specific SEPA beneficiary                           |
+| `beneficiary_add`                               | Create a new SEPA beneficiary                                         |
+| `beneficiary_update`                            | Update an existing SEPA beneficiary                                   |
+| `beneficiary_trust`                             | Trust one or more SEPA beneficiaries                                  |
+| `beneficiary_untrust`                           | Untrust one or more SEPA beneficiaries                                |
+| **SEPA Transfers**                              |                                                                       |
+| `transfer_list`                                 | List SEPA transfers with optional filters                             |
+| `transfer_show`                                 | Show details of a specific SEPA transfer                              |
+| `transfer_create`                               | Create a SEPA transfer                                                |
+| `transfer_cancel`                               | Cancel a pending SEPA transfer                                        |
+| `transfer_proof`                                | Download SEPA transfer proof PDF                                      |
+| `transfer_verify_payee`                         | Verify a payee (Verification of Payee / VoP)                          |
+| `transfer_bulk_verify_payee`                    | Bulk verify payees (VoP)                                              |
+| **Internal Transfers**                          |                                                                       |
+| `internal_transfer_create`                      | Create an internal transfer between two bank accounts                 |
+| **Bulk Transfers**                              |                                                                       |
+| `bulk_transfer_list`                            | List bulk transfers                                                   |
+| `bulk_transfer_show`                            | Show details of a specific bulk transfer                              |
+| `bulk_transfer_create`                          | Create a bulk SEPA transfer (auto-resolves VoP via bulk_verify_payee) |
+| **Recurring Transfers**                         |                                                                       |
+| `recurring_transfer_list`                       | List recurring transfers                                              |
+| `recurring_transfer_show`                       | Show details of a specific recurring transfer                         |
+| `recurring_transfer_create`                     | Create a recurring transfer (SCA-gated)                               |
+| `recurring_transfer_cancel`                     | Cancel a recurring transfer (SCA-gated)                               |
+| **International Transfers (SWIFT, OAuth-only)** |                                                                       |
+| `intl_transfer_create`                          | Create an international (SWIFT) transfer (SCA-gated)                  |
+| `intl_transfer_requirements`                    | Get international transfer requirements                               |
+| `intl_quote_create`                             | Create an international transfer quote                                |
+| `intl_currencies`                               | List supported international currencies                               |
+| `intl_eligibility`                              | Check international transfer eligibility                              |
+| `intl_beneficiary_list`                         | List international beneficiaries                                      |
+| `intl_beneficiary_add`                          | Add an international beneficiary (SCA-gated)                          |
+| `intl_beneficiary_update`                       | Update an international beneficiary (SCA-gated)                       |
+| `intl_beneficiary_remove`                       | Remove an international beneficiary (SCA-gated)                       |
+| `intl_beneficiary_requirements`                 | Get international beneficiary requirements                            |
+| **Cards (OAuth-only)**                          |                                                                       |
+| `card_list`                                     | List cards                                                            |
+| `card_show`                                     | Show details of a specific card                                       |
+| `card_create`                                   | Create a new card (SCA-gated)                                         |
+| `card_bulk_create`                              | Bulk-create cards (SCA-gated)                                         |
+| `card_update_nickname`                          | Update card nickname (SCA-gated)                                      |
+| `card_update_limits`                            | Update card spending limits (SCA-gated)                               |
+| `card_update_options`                           | Update card options (SCA-gated)                                       |
+| `card_update_restrictions`                      | Update card restrictions (SCA-gated)                                  |
+| `card_lock` / `card_unlock`                     | Lock or unlock a card (SCA-gated)                                     |
+| `card_iframe_url`                               | Get a secure iframe URL to view card details                          |
+| `card_report_lost`                              | Report a card lost                                                    |
+| `card_report_stolen`                            | Report a card stolen                                                  |
+| `card_discard`                                  | Discard a card                                                        |
+| `card_appearances`                              | List available card appearances                                       |
+| **Teams (OAuth-only)**                          |                                                                       |
+| `team_list`                                     | List teams                                                            |
+| `team_create`                                   | Create a new team                                                     |
+| **Webhooks (OAuth-only)**                       |                                                                       |
+| `webhook_list`                                  | List webhook subscriptions                                            |
+| `webhook_show`                                  | Show details of a specific webhook                                    |
+| `webhook_create`                                | Create a new webhook subscription                                     |
+| `webhook_update`                                | Update a webhook subscription                                         |
+| `webhook_delete`                                | Delete a webhook subscription                                         |
+| **Payment Links (OAuth-only)**                  |                                                                       |
+| `payment_link_list`                             | List payment links                                                    |
+| `payment_link_show`                             | Show details of a specific payment link                               |
+| `payment_link_create`                           | Create a new payment link                                             |
+| `payment_link_deactivate`                       | Deactivate a payment link                                             |
+| `payment_link_connect`                          | Connect a Stripe account for payment links                            |
+| `payment_link_connection_status`                | Show Stripe connection status                                         |
+| `payment_link_methods`                          | List enabled payment methods                                          |
+| `payment_link_payments`                         | List payments received via payment links                              |
+| **Insurance (OAuth-only)**                      |                                                                       |
+| `insurance_show`                                | Show insurance contract details                                       |
+| `insurance_create`                              | Create an insurance contract                                          |
+| `insurance_update`                              | Update an insurance contract                                          |
+| `insurance_upload_document`                     | Upload a document to an insurance contract                            |
+| `insurance_remove_document`                     | Remove a document from an insurance contract                          |
+| **Terminals (POS)**                             |                                                                       |
+| `terminal_list`                                 | List Qonto Terminals linked to the organization                       |
+| `terminal_payment_create`                       | Initiate a payment on a terminal (returns 202 Accepted)               |
+| **Products**                                    |                                                                       |
+| `product_list`                                  | List catalogue products with optional pagination and sort             |
+| **Clients**                                     |                                                                       |
+| `client_list`                                   | List clients with optional pagination                                 |
+| `client_show`                                   | Show details of a specific client                                     |
+| `client_create`                                 | Create a new client                                                   |
+| `client_update`                                 | Update an existing client                                             |
+| `client_delete`                                 | Delete a client                                                       |
+| **Client Invoices**                             |                                                                       |
+| `client_invoice_list`                           | List client invoices with optional filters                            |
+| `client_invoice_show`                           | Show details of a specific client invoice                             |
+| `client_invoice_create`                         | Create a draft client invoice with client and line items              |
+| `client_invoice_update`                         | Update a draft client invoice                                         |
+| `client_invoice_delete`                         | Delete a draft client invoice                                         |
+| `client_invoice_finalize`                       | Finalize a client invoice (assign number)                             |
+| `client_invoice_send`                           | Send a client invoice to the client via email                         |
+| `client_invoice_mark_paid`                      | Mark a client invoice as paid                                         |
+| `client_invoice_unmark_paid`                    | Unmark a client invoice paid status                                   |
+| `client_invoice_cancel`                         | Cancel a finalized client invoice                                     |
+| `client_invoice_upload`                         | Upload a file to a client invoice                                     |
+| `client_invoice_upload_show`                    | Show upload details for a client invoice                              |
+| **Quotes**                                      |                                                                       |
+| `quote_list`                                    | List quotes with optional filters                                     |
+| `quote_show`                                    | Show details of a specific quote                                      |
+| `quote_create`                                  | Create a new quote with client and line items                         |
+| `quote_update`                                  | Update an existing quote                                              |
+| `quote_delete`                                  | Delete a quote                                                        |
+| `quote_send`                                    | Send a quote to the client via email                                  |
+| **Credit Notes**                                |                                                                       |
+| `credit_note_list`                              | List credit notes in the organization                                 |
+| `credit_note_show`                              | Show details of a specific credit note                                |
+| **Supplier Invoices**                           |                                                                       |
+| `supplier_invoice_list`                         | List supplier invoices with optional filters                          |
+| `supplier_invoice_show`                         | Show details of a specific supplier invoice                           |
+| `supplier_invoice_bulk_create`                  | Create supplier invoices by uploading files                           |
+| **Requests (OAuth-only)**                       |                                                                       |
+| `request_list`                                  | List all requests in the organization                                 |
+| `request_approve`                               | Approve a request (SCA-gated)                                         |
+| `request_decline`                               | Decline a request                                                     |
+| `request_create_flash_card`                     | Create a flash-card request                                           |
+| `request_create_virtual_card`                   | Create a virtual-card request                                         |
+| `request_create_multi_transfer`                 | Create a multi-transfer request                                       |
+| **Diagnostics**                                 |                                                                       |
+| `diagnose`                                      | Report current configuration, auth status, and connectivity           |
+| **SCA Sessions**                                |                                                                       |
+| `sca_session_show`                              | Show the status of an SCA session (`waiting` / `allow` / `deny`)      |
+| `sca_session_mock_decision`                     | Simulate an SCA decision in the Qonto sandbox (sandbox-only)          |
+| **Attachments**                                 |                                                                       |
+| `attachment_upload`                             | Upload an attachment file (PDF, JPEG, PNG)                            |
+| `attachment_show`                               | Show details of a specific attachment                                 |
+| **E-Invoicing**                                 |                                                                       |
+| `einvoicing_settings`                           | Retrieve e-invoicing settings for the organization                    |
 
 ### Example Prompts
 
@@ -267,96 +343,168 @@ Once configured, you can ask your AI assistant things like:
 - "List bank statements for January 2026"
 - "Create a summary of this week's debits"
 
+### SCA Continuation
+
+Some Qonto write operations — creating a transfer, modifying a card, approving a request — require **Strong Customer Authentication (SCA)**: the user has to approve the request in the Qonto mobile app before it executes. QontoCtl wraps every SCA-gated MCP write tool with a continuation flow so the LLM client never has to reimplement polling.
+
+#### How a wrapped write tool behaves
+
+When an SCA-gated tool (e.g. `transfer_create`, `card_create`, `beneficiary_trust`, `request_approve`) hits a 428 SCA challenge, the wrapper polls the SCA session inline. If the user approves within the polling window, the tool returns the operation's success result transparently — the LLM never sees the SCA round-trip. If polling times out (or polling is disabled), the tool returns a structured **SCA-pending response** carrying the session token and instructions to continue.
+
+Every wrapped tool exposes two optional input fields for this flow:
+
+- `wait` — maximum seconds to poll inline before falling back to the pending response.
+- `sca_session_token` — bind a previously approved SCA challenge to a retry.
+
+#### The `wait` knob
+
+| Value            | Behavior                                                                             |
+| ---------------- | ------------------------------------------------------------------------------------ |
+| `30` _(default)_ | Poll for up to 30 seconds, then fall back to the structured pending response.        |
+| `1`–`120`        | Poll for the specified number of seconds (capped at 120).                            |
+| `0` or `false`   | Skip polling entirely. Return the SCA-pending response immediately on the first 428. |
+
+The `120` upper bound is the hard ceiling enforced via Zod at the input boundary. The practical ceiling is your MCP host's request timeout — Claude Desktop hardcodes ≈ 60 s and Cursor's effective limit is ≈ 30 s, so values above those will surface as host-side timeouts before the wrapper resolves. Use a small `wait` (e.g. `5`-`10`) when the LLM expects the user to be present and willing to approve immediately. Use `wait: false` (or `wait: 0`) for **pure two-step flows** where the LLM and the user converse out-of-band between the SCA challenge and the retry.
+
+#### Two-step fallback (out-of-band continuation)
+
+When polling does not resolve, the SCA-pending response carries:
+
+- A user-facing message: `"SCA required. The user must approve this operation on their Qonto mobile app."`
+- A `Session token: <token>` line (token validity: 15 minutes from issuance).
+- Step-by-step instructions to continue.
+
+The LLM (or the user) can then:
+
+1. **Poll session status** with the `sca_session_show` tool, passing the captured token. It returns `waiting`, `allow`, or `deny`.
+2. **Retry the original tool** once the status is `allow`, passing the _same parameters_ plus `sca_session_token: "<token>"`. The wrapper invokes the operation exactly once with the token bound — no second poll happens.
+
+> **PSD2 dynamic linking.** The SCA session token is bound to the _original_ request parameters (amount, payee). Reusing a token against a different operation is rejected by Qonto. Reissue an SCA challenge by calling the original tool again whenever the parameters need to change.
+
+#### Caller-supplied retry (`sca_session_token`)
+
+When `sca_session_token` is set on a wrapped write tool, the wrapper:
+
+- Invokes the operation exactly once.
+- Skips polling entirely.
+- Forwards the token via the `X-Qonto-Sca-Session-Token` header.
+
+This is the path used by step (2) of the two-step fallback. It is also useful when the LLM client implements its own polling cadence and only needs the wrapper to retry with an already-captured approval.
+
+#### Sandbox testing
+
+Sandbox accounts cannot enroll a real paired device, so SCA challenges in sandbox use a `mock` flow. After receiving a pending response, simulate the user's decision with the `sca_session_mock_decision` tool (sandbox-only — refuses to run when no staging token is configured). See [`docs/sandbox-testing.md`](docs/sandbox-testing.md) for the full sandbox setup.
+
+#### Migration note
+
+Earlier QontoCtl builds (pre-`@qontoctl/mcp` SCA continuation) returned a free-form text response on 428 with no continuation hooks. Callers parsing that response should adopt the structured flow:
+
+| Before                                                                                | After                                                                                                                                                          |
+| ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Free-form text mentioned the SCA endpoint but offered no MCP-exposed way to continue. | The SCA-pending response is still text content but its shape is stable: `Session token: <token>` is the canonical line; `sca_session_show` is the polling API. |
+| Polling required driving the Qonto HTTP API directly.                                 | Use the `sca_session_show` MCP tool.                                                                                                                           |
+| Re-running the operation orphaned the prior approval.                                 | Retry the original tool with the captured `sca_session_token` parameter — the prior approval is bound to that retry.                                           |
+| No way to opt-in to inline polling — every 428 was a dead end.                        | Pass `wait: <seconds>` (1-120) to poll inline; tools default to 30s. Pass `wait: false` for the explicit two-step flow.                                        |
+
+The pending response's textual format is stable, so callers that need to extract the token programmatically can match against the `Session token:` line — but using `sca_session_show` directly avoids relying on the response prose.
+
 ## CLI Usage
+
+> **First command to try when something doesn't work**: [`qontoctl diagnose`](docs/troubleshooting.md) — a read-only healthcheck across config, credentials, scopes, organization metadata, and host routing.
 
 ### Commands
 
-| Command                                       | Description                               |
-| --------------------------------------------- | ----------------------------------------- |
-| `org show`                                    | Show organization details                 |
-| `account list`                                | List bank accounts                        |
-| `account show <id>`                           | Show bank account details                 |
-| `account iban-certificate <id>`               | Download IBAN certificate PDF             |
-| `account create`                              | Create a new bank account                 |
-| `account update <id>`                         | Update a bank account                     |
-| `account close <id>`                          | Close a bank account                      |
-| `transaction list`                            | List transactions with filters            |
-| `transaction show <id>`                       | Show transaction details                  |
-| `transaction attachment list <id>`            | List attachments for a transaction        |
-| `transaction attachment add <id> <file>`      | Attach a file to a transaction            |
-| `transaction attachment remove <id> [att-id]` | Remove attachment(s) from a transaction   |
-| `statement list`                              | List bank statements                      |
-| `statement show <id>`                         | Show statement details                    |
-| `statement download <id>`                     | Download statement PDF                    |
-| `label list`                                  | List all labels                           |
-| `label show <id>`                             | Show label details                        |
-| `membership list`                             | List organization memberships             |
-| `membership show`                             | Show current user's membership            |
-| `membership invite`                           | Invite a new member                       |
-| `beneficiary list`                            | List SEPA beneficiaries                   |
-| `beneficiary show <id>`                       | Show beneficiary details                  |
-| `beneficiary add`                             | Create a new beneficiary                  |
-| `beneficiary update <id>`                     | Update a beneficiary                      |
-| `beneficiary trust <id...>`                   | Trust one or more beneficiaries           |
-| `beneficiary untrust <id...>`                 | Untrust one or more beneficiaries         |
-| `transfer list`                               | List SEPA transfers                       |
-| `transfer show <id>`                          | Show SEPA transfer details                |
-| `transfer create`                             | Create a SEPA transfer                    |
-| `transfer cancel <id>`                        | Cancel a pending SEPA transfer            |
-| `transfer proof <id>`                         | Download SEPA transfer proof PDF          |
-| `transfer verify-payee`                       | Verify a payee (VoP)                      |
-| `transfer bulk-verify-payee`                  | Bulk verify payees from CSV               |
-| `internal-transfer create`                    | Create an internal transfer               |
-| `bulk-transfer list`                          | List bulk transfers                       |
-| `bulk-transfer show <id>`                     | Show bulk transfer details                |
-| `recurring-transfer list`                     | List recurring transfers                  |
-| `recurring-transfer show <id>`                | Show recurring transfer details           |
-| `client list`                                 | List clients                              |
-| `client show <id>`                            | Show client details                       |
-| `client create`                               | Create a new client                       |
-| `client update <id>`                          | Update a client                           |
-| `client delete <id>`                          | Delete a client                           |
-| `client-invoice list`                         | List client invoices                      |
-| `client-invoice show <id>`                    | Show client invoice details               |
-| `client-invoice create`                       | Create a draft client invoice             |
-| `client-invoice update <id>`                  | Update a draft client invoice             |
-| `client-invoice delete <id>`                  | Delete a draft client invoice             |
-| `client-invoice finalize <id>`                | Finalize client invoice and assign number |
-| `client-invoice send <id>`                    | Send client invoice to client via email   |
-| `client-invoice mark-paid <id>`               | Mark client invoice as paid               |
-| `client-invoice unmark-paid <id>`             | Unmark client invoice paid status         |
-| `client-invoice cancel <id>`                  | Cancel a finalized client invoice         |
-| `client-invoice upload <id> <file>`           | Upload a file to a client invoice         |
-| `client-invoice upload-show <id> <upload-id>` | Show upload details for a client invoice  |
-| `quote list`                                  | List quotes                               |
-| `quote show <id>`                             | Show quote details                        |
-| `quote create`                                | Create a new quote                        |
-| `quote update <id>`                           | Update a quote                            |
-| `quote delete <id>`                           | Delete a quote                            |
-| `quote send <id>`                             | Send quote to client via email            |
-| `credit-note list`                            | List credit notes                         |
-| `credit-note show <id>`                       | Show credit note details                  |
-| `supplier-invoice list`                       | List supplier invoices                    |
-| `supplier-invoice show <id>`                  | Show supplier invoice details             |
-| `supplier-invoice bulk-create`                | Create supplier invoices from files       |
-| `einvoicing settings`                         | Show e-invoicing settings                 |
-| `request list`                                | List all requests                         |
-| `attachment upload <file>`                    | Upload an attachment file                 |
-| `attachment show <id>`                        | Show attachment details                   |
-| `auth setup`                                  | Configure OAuth client credentials        |
-| `auth login`                                  | Start OAuth login flow                    |
-| `auth status`                                 | Display OAuth token status                |
-| `auth refresh`                                | Refresh the OAuth access token            |
-| `auth revoke`                                 | Revoke OAuth consent and clear tokens     |
-| `profile add <name>`                          | Create a named profile                    |
-| `profile list`                                | List all profiles                         |
-| `profile show <name>`                         | Show profile details (secrets redacted)   |
-| `profile remove <name>`                       | Remove a named profile                    |
-| `profile test`                                | Test credentials                          |
-| `completion bash`                             | Generate bash completions                 |
-| `completion zsh`                              | Generate zsh completions                  |
-| `completion fish`                             | Generate fish completions                 |
-| `mcp`                                         | Start MCP server on stdio                 |
+| Command                                       | Description                                                                        |
+| --------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `diagnose`                                    | Read-only healthcheck (see [troubleshooting](docs/troubleshooting.md))             |
+| `org show`                                    | Show organization details                                                          |
+| `account list`                                | List bank accounts                                                                 |
+| `account show <id>`                           | Show bank account details                                                          |
+| `account iban-certificate <id>`               | Download IBAN certificate PDF                                                      |
+| `account create`                              | Create a new bank account                                                          |
+| `account update <id>`                         | Update a bank account                                                              |
+| `account close <id>`                          | Close a bank account                                                               |
+| `transaction list`                            | List transactions with filters                                                     |
+| `transaction show <id>`                       | Show transaction details                                                           |
+| `transaction attachment list <id>`            | List attachments for a transaction                                                 |
+| `transaction attachment add <id> <file>`      | Attach a file to a transaction                                                     |
+| `transaction attachment remove <id> [att-id]` | Remove attachment(s) from a transaction                                            |
+| `statement list`                              | List bank statements                                                               |
+| `statement show <id>`                         | Show statement details                                                             |
+| `statement download <id>`                     | Download statement PDF                                                             |
+| `label list`                                  | List all labels                                                                    |
+| `label show <id>`                             | Show label details                                                                 |
+| `membership list`                             | List organization memberships                                                      |
+| `membership show`                             | Show current user's membership                                                     |
+| `membership invite`                           | Invite a new member                                                                |
+| `beneficiary list`                            | List SEPA beneficiaries                                                            |
+| `beneficiary show <id>`                       | Show beneficiary details                                                           |
+| `beneficiary add`                             | Create a new beneficiary                                                           |
+| `beneficiary update <id>`                     | Update a beneficiary                                                               |
+| `beneficiary trust <id...>`                   | Trust one or more beneficiaries                                                    |
+| `beneficiary untrust <id...>`                 | Untrust one or more beneficiaries                                                  |
+| `transfer list`                               | List SEPA transfers                                                                |
+| `transfer show <id>`                          | Show SEPA transfer details                                                         |
+| `transfer create`                             | Create a SEPA transfer                                                             |
+| `transfer cancel <id>`                        | Cancel a pending SEPA transfer                                                     |
+| `transfer proof <id>`                         | Download SEPA transfer proof PDF                                                   |
+| `transfer verify-payee`                       | Verify a payee (VoP)                                                               |
+| `transfer bulk-verify-payee`                  | Bulk verify payees from CSV                                                        |
+| `internal-transfer create`                    | Create an internal transfer                                                        |
+| `bulk-transfer list`                          | List bulk transfers                                                                |
+| `bulk-transfer show <id>`                     | Show bulk transfer details                                                         |
+| `bulk-transfer create`                        | Create a bulk SEPA transfer from JSON                                              |
+| `recurring-transfer list`                     | List recurring transfers                                                           |
+| `recurring-transfer show <id>`                | Show recurring transfer details                                                    |
+| `terminal list`                               | List Qonto Terminals (POS)                                                         |
+| `terminal payment create <id>`                | Initiate a payment on a terminal                                                   |
+| `product list`                                | List catalogue products                                                            |
+| `client list`                                 | List clients                                                                       |
+| `client show <id>`                            | Show client details                                                                |
+| `client create`                               | Create a new client                                                                |
+| `client update <id>`                          | Update a client                                                                    |
+| `client delete <id>`                          | Delete a client                                                                    |
+| `client-invoice list`                         | List client invoices                                                               |
+| `client-invoice show <id>`                    | Show client invoice details                                                        |
+| `client-invoice create`                       | Create a draft client invoice                                                      |
+| `client-invoice update <id>`                  | Update a draft client invoice                                                      |
+| `client-invoice delete <id>`                  | Delete a draft client invoice                                                      |
+| `client-invoice finalize <id>`                | Finalize client invoice and assign number                                          |
+| `client-invoice send <id>`                    | Send client invoice to client via email                                            |
+| `client-invoice mark-paid <id>`               | Mark client invoice as paid                                                        |
+| `client-invoice unmark-paid <id>`             | Unmark client invoice paid status                                                  |
+| `client-invoice cancel <id>`                  | Cancel a finalized client invoice                                                  |
+| `client-invoice upload <id> <file>`           | Upload a file to a client invoice                                                  |
+| `client-invoice upload-show <id> <upload-id>` | Show upload details for a client invoice                                           |
+| `quote list`                                  | List quotes                                                                        |
+| `quote show <id>`                             | Show quote details                                                                 |
+| `quote create`                                | Create a new quote                                                                 |
+| `quote update <id>`                           | Update a quote                                                                     |
+| `quote delete <id>`                           | Delete a quote                                                                     |
+| `quote send <id>`                             | Send quote to client via email                                                     |
+| `credit-note list`                            | List credit notes                                                                  |
+| `credit-note show <id>`                       | Show credit note details                                                           |
+| `supplier-invoice list`                       | List supplier invoices                                                             |
+| `supplier-invoice show <id>`                  | Show supplier invoice details                                                      |
+| `supplier-invoice bulk-create`                | Create supplier invoices from files                                                |
+| `einvoicing settings`                         | Show e-invoicing settings                                                          |
+| `request list`                                | List all requests                                                                  |
+| `attachment upload <file>`                    | Upload an attachment file                                                          |
+| `attachment show <id>`                        | Show attachment details                                                            |
+| `auth setup`                                  | Configure OAuth client credentials                                                 |
+| `auth login`                                  | Start OAuth login flow                                                             |
+| `auth status`                                 | Display OAuth token status (focused; for whole-integration health, use `diagnose`) |
+| `auth refresh`                                | Refresh the OAuth access token                                                     |
+| `auth revoke`                                 | Revoke OAuth consent and clear tokens                                              |
+| `profile add <name>`                          | Create a named profile                                                             |
+| `profile list`                                | List all profiles                                                                  |
+| `profile show <name>`                         | Show profile details (secrets redacted)                                            |
+| `profile remove <name>`                       | Remove a named profile                                                             |
+| `profile test`                                | Test credentials                                                                   |
+| `completion bash`                             | Generate bash completions                                                          |
+| `completion zsh`                              | Generate zsh completions                                                           |
+| `completion fish`                             | Generate fish completions                                                          |
+| `mcp`                                         | Start MCP server on stdio                                                          |
 
 ### Global Options
 
@@ -373,34 +521,26 @@ Once configured, you can ask your AI assistant things like:
 
 ## Configuration
 
-QontoCtl supports two authentication methods: **API Key** (read-only) and **OAuth 2.0** (read + write).
+QontoCtl supports two authentication methods:
 
-### API Key Authentication
+- **API Key** — production-only access using your organization slug and secret key. Supports the endpoints listed as "API key ✔" in the [Qonto auth table](https://docs.qonto.com/get-started/business-api/authentication/introduction) (most reads plus many writes — internal transfers, clients, attachments, …). Cannot be used against the Qonto sandbox.
+- **OAuth 2.0** — full access including OAuth-only endpoints (cards, teams, webhooks, e-invoicing, payment links, insurance, international transfers, recurring transfers, SCA flows) and the Qonto sandbox via staging-token; see the [OAuth App Setup Guide](docs/oauth-setup.md).
+
+### Profile Format
+
+All configuration files use the same YAML format:
 
 ```yaml
+# API Key authentication
 api-key:
     organization-slug: acme-corp-4821
     secret-key: your-secret-key
+
+# OAuth 2.0 authentication (see docs/oauth-setup.md)
+oauth:
+    client-id: your-client-id
+    client-secret: your-client-secret
 ```
-
-### OAuth 2.0 Authentication
-
-OAuth enables write operations (transfers, invoices, etc.) and uses the Authorization Code Grant with PKCE.
-
-```sh
-# 1. Set up OAuth credentials (interactive guide)
-qontoctl auth setup
-
-# 2. Log in via browser
-qontoctl auth login
-
-# 3. Check token status
-qontoctl auth status
-```
-
-The `auth setup` command walks you through creating an OAuth app on the [Qonto Developer Portal](https://developers.qonto.com/). After creating the app, you must **publish the production version** — the sandbox version does not work with production API endpoints.
-
-When both API key and OAuth credentials are configured, OAuth is used when an active session exists (access token present); otherwise it falls through to API key.
 
 ### Resolution Order
 
@@ -420,7 +560,7 @@ When `--config` is supplied alongside `QONTOCTL_CONFIG_FILE` or `--profile` and 
 - Without `--profile`: `QONTOCTL_*` env vars override file values
 - With `--profile acme`: `QONTOCTL_ACME_*` env vars override file values
 
-For the full reference (including the migration story for users coming from pre-`0.x` builds that walked CWD), see [`docs/configuration.md`](https://github.com/alexey-pelykh/qontoctl/blob/main/docs/configuration.md).
+For the full reference (precedence rules per entry point, profile semantics, migration from CWD discovery), see [`docs/configuration.md`](docs/configuration.md).
 
 ### Environment Variables
 
