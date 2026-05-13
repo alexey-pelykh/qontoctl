@@ -83,8 +83,17 @@ describe.skipIf(!hasApiKeyCredentials())("client-invoice commands (e2e)", () => 
         expect(parsed).toHaveProperty("status", "draft");
         createdInvoiceId = parsed["id"] as string;
       } catch {
-        // Invoice creation may fail if the organization lacks required setup
-        // (e.g., IBAN not configured). Skip downstream lifecycle tests.
+        // `client-invoice create` requires an org-level *invoicing IBAN* to be
+        // configured. This is distinct from bank-account IBANs (which can be
+        // present yet the API still returns HTTP 422 `invalid_iban: IBAN is
+        // empty`) and is NOT the same as `einvoicing.sending_status` returned
+        // by `GET /v2/einvoicing/settings` (that gates a different flow).
+        // The invoicing-IBAN setting is not exposed by the public Qonto API —
+        // it must be configured via the Qonto web UI or a Qonto support
+        // ticket. Without it the entire write-path lifecycle (create →
+        // update → upload → finalize → send → mark_paid → unmark_paid →
+        // cancel → delete) is unreachable, so downstream tests below are
+        // silently skipped (createdInvoiceId stays undefined). Tracked: #539.
       }
     });
 
@@ -232,8 +241,14 @@ describe.skipIf(!hasApiKeyCredentials())("client-invoice commands (e2e)", () => 
         expect(parsed).toHaveProperty("status", "draft");
         emptyDraftId = parsed["id"] as string;
       } catch {
-        // Sandbox/prod organizations may reject empty-items drafts (IBAN
-        // setup, business-rule constraints). Skip the show round-trip.
+        // Same blocker as the parent CRUD lifecycle: `client-invoice create`
+        // is gated on an org-level invoicing-IBAN configuration not exposed
+        // by the public Qonto API (#539). On orgs where that setting is
+        // missing the API rejects with HTTP 422 `invalid_iban: IBAN is empty`
+        // before any items-shape validation runs, so the empty-items round
+        // trip is silently skipped here. The schema fix from #575 is still
+        // exercised by the unit tests in `packages/core/src/client-invoices/
+        // schemas.test.ts` (`normalizes items: null to []` and siblings).
       }
     });
 
