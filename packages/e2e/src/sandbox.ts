@@ -153,6 +153,43 @@ export function hasStagingToken(): boolean {
 }
 
 /**
+ * Check whether `QONTOCTL_TRANSFER_PROOF_ID` is set — a known-good
+ * production-org SEPA transfer UUID whose proof PDF the test harness
+ * may fetch.
+ *
+ * Used by `describe.skipIf(!hasTransferProofId())` guards on the
+ * `transfer proof` / `transfer_proof` E2E suites (#565). The Qonto
+ * sandbox simulator does NOT generate proof PDFs — `GET /v2/sepa/
+ * transfers/{id}/proof` returns `404 not_found` for ALL settled
+ * sandbox transfers (empirical re-probe 2026-05-13, refresh of the
+ * 2026-05-12 probe in #565). Coverage therefore requires routing the
+ * test against a production org with a dedicated, known-settled
+ * transfer whose proof has been generated post-settlement.
+ *
+ * This gate is opt-in: CI never sets `QONTOCTL_TRANSFER_PROOF_ID`, so
+ * proof tests skip in CI; local devs opt in by exporting the env var
+ * with a real production transfer UUID. The dev is responsible for
+ * routing to production (i.e., not configuring a staging token in the
+ * same shell), since a sandbox-routed request will 404 deterministically.
+ */
+export function hasTransferProofId(): boolean {
+  return Boolean(process.env["QONTOCTL_TRANSFER_PROOF_ID"]);
+}
+
+/**
+ * Return the production-org transfer UUID from
+ * `QONTOCTL_TRANSFER_PROOF_ID`. Throws if unset — callers must guard
+ * with `hasTransferProofId()`.
+ */
+export function getTransferProofId(): string {
+  const id = process.env["QONTOCTL_TRANSFER_PROOF_ID"];
+  if (!id) {
+    throw new Error("QONTOCTL_TRANSFER_PROOF_ID is not set (guard with hasTransferProofId())");
+  }
+  return id;
+}
+
+/**
  * Retrieve credentials from environment variables or `.qontoctl.yaml`.
  * Throws if no credentials are available (callers should be guarded by
  * `hasApiKeyCredentials()` or `hasOAuthCredentials()` as appropriate).
