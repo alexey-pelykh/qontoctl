@@ -1,9 +1,9 @@
 {
   "surfaces": {
     "cli:packages/cli/src/commands/account.ts": {
-      "status": "pending",
-      "tests": [],
-      "notes": ""
+      "status": "covered",
+      "tests": ["packages/e2e/src/bank-accounts/cli.e2e.test.ts", "packages/e2e/src/org-accounts/cli.e2e.test.ts"],
+      "notes": "Read-side (account list / show / iban-certificate) covered in org-accounts E2E. SCA write paths (account create / update / close) are ACCEPTED_GAP in bank-accounts E2E per #563 — see top-of-file empirical note for the 3 sandbox blockers."
     },
     "cli:packages/cli/src/commands/attachment.ts": {
       "status": "pending",
@@ -931,14 +931,14 @@
       "notes": ""
     },
     "mcp:account_close": {
-      "status": "pending",
+      "status": "accepted_gap",
       "tests": [],
-      "notes": ""
+      "notes": "Cannot exercise close without a freshly-created account; create is blocked by plan cap (see mcp:account_create). Closing pre-existing accounts is destructive and would brick subsequent test runs. Scaffold in packages/e2e/src/bank-accounts/mcp.e2e.test.ts; SCA wrap unit-tested in packages/mcp/src/tools/accounts.test.ts. MCP wrap fix delivered in #553. See #563."
     },
     "mcp:account_create": {
-      "status": "pending",
+      "status": "accepted_gap",
       "tests": [],
-      "notes": ""
+      "notes": "Sandbox `0909-future-club-2702` returns `400 bank_accounts_limit` (plan cap) — cannot create a fresh test account. Scaffold in packages/e2e/src/bank-accounts/mcp.e2e.test.ts; SCA wrap unit-tested in packages/mcp/src/tools/accounts.test.ts. MCP wrap fix delivered in #553. See #563 for deferral history."
     },
     "mcp:account_iban_certificate": {
       "status": "pending",
@@ -956,9 +956,9 @@
       "notes": ""
     },
     "mcp:account_update": {
-      "status": "pending",
+      "status": "accepted_gap",
       "tests": [],
-      "notes": ""
+      "notes": "`PUT /v2/bank_accounts/{id}` returns `404 not_found` for both pre-existing sandbox accounts (main `Hauptkonto` and non-main `asdfasdf`); path / method may need investigation. Scaffold in packages/e2e/src/bank-accounts/mcp.e2e.test.ts; SCA wrap unit-tested in packages/mcp/src/tools/accounts.test.ts. MCP wrap fix delivered in #553. See #563."
     },
     "mcp:attachment_show": {
       "status": "pending",
