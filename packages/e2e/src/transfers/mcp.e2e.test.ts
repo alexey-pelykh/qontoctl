@@ -8,7 +8,15 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { TransferListResponseSchema, TransferSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { CLI_PATH, firstTextFromMcpResult } from "../helpers.js";
-import { cliEnv, hasApiKeyCredentials, hasOAuthCredentials, hasStagingToken, pinAuthPreference } from "../sandbox.js";
+import {
+  cliEnv,
+  getTransferProofId,
+  hasApiKeyCredentials,
+  hasOAuthCredentials,
+  hasStagingToken,
+  hasTransferProofId,
+  pinAuthPreference,
+} from "../sandbox.js";
 import { approveAndRetryMcp, SCA_PENDING_TOKEN_RE, triggerScaMcp } from "../sca-helpers.js";
 
 interface TransferItem {
@@ -421,10 +429,70 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("transfer MCP tool
   });
 });
 
-// NOTE: `transfer_proof` E2E coverage is deferred — same blocker as the CLI
-// counterpart. Qonto sandbox `0909-future-club-2702` returns `404 not_found`
-// from `GET /v2/sepa/transfers/{id}/proof` for ALL settled transfers
-// (empirical 2026-05-12 probe of the 10 most-recent). The MCP tool path
-// is confirmed correct by code inspection — it delegates to `getTransferProof`
-// → `client.getBuffer`, wraps the buffer as a base64-encoded MCP resource,
-// and is not SCA-gated. Tracked as a follow-up to #554.
+// `transfer_proof` is exercised against a production-org transfer because
+// the Qonto sandbox simulator does not generate proof PDFs. Empirical
+// probes against sandbox `0909-future-club-2702` on 2026-05-12 and
+// refreshed 2026-05-13: `GET /v2/sepa/transfers/{id}/proof` returned
+// `404 not_found` for ALL most-recent `status: settled` transfers.
+//
+// This block is opt-in: gated on `QONTOCTL_TRANSFER_PROOF_ID` (a
+// known-good production-org SEPA transfer UUID whose proof has been
+// generated). CI never sets the env var, so this block skips in CI;
+// local devs opt in by exporting the env var alongside production
+// credentials. See `docs/e2e-testing.md` § Production-org-gated tests.
+// Tracked as #565.
+describe.skipIf(!hasApiKeyCredentials() || !hasTransferProofId())(
+  "transfer MCP tools (e2e, production-org proof — opt-in via QONTOCTL_TRANSFER_PROOF_ID)",
+  () => {
+    let proofClient: Client;
+    let proofTransport: StdioClientTransport;
+
+    beforeAll(async () => {
+      proofTransport = new StdioClientTransport({
+        command: "node",
+        args: [CLI_PATH, "mcp"],
+        env: cliEnv(),
+        stderr: "pipe",
+      });
+
+      proofClient = new Client({
+        name: "e2e-test-client",
+        version: "0.0.0",
+      });
+
+      await proofClient.connect(proofTransport);
+    });
+
+    afterAll(async () => {
+      await proofClient.close();
+    });
+
+    describe("transfer_proof", () => {
+      it("returns a base64-encoded PDF resource with mimeType application/pdf", async () => {
+        const id = getTransferProofId();
+        const result = (await proofClient.callTool({
+          name: "transfer_proof",
+          arguments: { id },
+        })) as CallToolResult;
+
+        expect(result.isError).not.toBe(true);
+        const content = result.content[0];
+        if (content === undefined || content.type !== "resource") {
+          throw new Error(`Expected resource content, got: ${JSON.stringify(result.content)}`);
+        }
+        const resource = content.resource;
+        expect(resource.mimeType).toBe("application/pdf");
+        expect(resource.uri).toBe(`transfer-proof://${id}`);
+        if (typeof resource.blob !== "string") {
+          throw new Error(`Expected base64 blob string, got: ${typeof resource.blob}`);
+        }
+        const buffer = Buffer.from(resource.blob, "base64");
+        // PDF magic bytes: %PDF-
+        expect(buffer.subarray(0, 5).toString("latin1")).toBe("%PDF-");
+        // 1 KiB lower bound — Qonto proof PDFs are several KiB; a smaller
+        // buffer would suggest truncation or a non-PDF response.
+        expect(buffer.byteLength).toBeGreaterThan(1024);
+      });
+    });
+  },
+);

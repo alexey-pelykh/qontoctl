@@ -391,9 +391,9 @@
       "notes": ""
     },
     "cli:packages/cli/src/commands/transfer/proof.ts": {
-      "status": "pending",
-      "tests": [],
-      "notes": ""
+      "status": "covered",
+      "tests": ["packages/e2e/src/transfers/cli.e2e.test.ts"],
+      "notes": "Production-org-gated (opt-in via QONTOCTL_TRANSFER_PROOF_ID); Qonto sandbox returns 404 for all settled-transfer proofs (#565)."
     },
     "cli:packages/cli/src/commands/transfer/show.ts": {
       "status": "pending",
@@ -891,9 +891,9 @@
       "notes": ""
     },
     "core:packages/core/src/transfers/service.ts#getTransferProof": {
-      "status": "pending",
-      "tests": [],
-      "notes": ""
+      "status": "covered",
+      "tests": ["packages/e2e/src/transfers/cli.e2e.test.ts", "packages/e2e/src/transfers/mcp.e2e.test.ts"],
+      "notes": "Production-org-gated (opt-in via QONTOCTL_TRANSFER_PROOF_ID); Qonto sandbox returns 404 for all settled-transfer proofs (#565)."
     },
     "core:packages/core/src/transfers/service.ts#listTransfers": {
       "status": "pending",
@@ -1531,9 +1531,9 @@
       "notes": ""
     },
     "mcp:transfer_proof": {
-      "status": "pending",
-      "tests": [],
-      "notes": ""
+      "status": "covered",
+      "tests": ["packages/e2e/src/transfers/mcp.e2e.test.ts"],
+      "notes": "Production-org-gated (opt-in via QONTOCTL_TRANSFER_PROOF_ID); Qonto sandbox returns 404 for all settled-transfer proofs (#565)."
     },
     "mcp:transfer_show": {
       "status": "pending",

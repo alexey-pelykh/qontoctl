@@ -3,14 +3,22 @@
 
 import { execFile, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { TransferSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
 import { CLI_PATH, cli, cliJson } from "../helpers.js";
-import { cliEnv, hasApiKeyCredentials, hasOAuthCredentials, hasStagingToken, pinAuthPreference } from "../sandbox.js";
+import {
+  cliEnv,
+  getTransferProofId,
+  hasApiKeyCredentials,
+  hasOAuthCredentials,
+  hasStagingToken,
+  hasTransferProofId,
+  pinAuthPreference,
+} from "../sandbox.js";
 import { approveAndRetryCli, SCA_POLL_URL_RE, triggerScaCli } from "../sca-helpers.js";
 
 const execFileAsync = promisify(execFile);
@@ -427,12 +435,44 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("transfer CLI comm
   });
 });
 
-// NOTE: `getTransferProof` (CLI: `transfer proof`, MCP: `transfer_proof`)
-// E2E coverage is deferred. Empirical probe against Qonto sandbox org
-// `0909-future-club-2702` on 2026-05-12: `GET /v2/sepa/transfers/{id}/proof`
-// returns `404 not_found` for ALL 10 most-recent `status: settled`
-// transfers. The proof PDF is reliably generated post-settlement in
-// production but the sandbox simulator does not produce it. The CLI and
-// MCP code paths are confirmed correct by code inspection and the audit
-// refresh — both delegate to `getTransferProof` → `client.getBuffer`,
-// which is not SCA-gated. Tracked as a follow-up to #554.
+// `getTransferProof` (CLI: `transfer proof`) is exercised against a
+// production-org transfer because the Qonto sandbox simulator does not
+// generate proof PDFs. Empirical probes against sandbox org
+// `0909-future-club-2702` on 2026-05-12 and refreshed 2026-05-13:
+// `GET /v2/sepa/transfers/{id}/proof` returned `404 not_found` for ALL
+// most-recent `status: settled` transfers. The proof PDF is reliably
+// generated post-settlement in production but not in sandbox.
+//
+// This block is opt-in: gated on `QONTOCTL_TRANSFER_PROOF_ID` (a
+// known-good production-org SEPA transfer UUID whose proof has been
+// generated). CI never sets the env var, so this block skips in CI;
+// local devs opt in by exporting the env var alongside production
+// credentials. See `docs/e2e-testing.md` § Production-org-gated tests.
+// Tracked as #565.
+describe.skipIf(!hasApiKeyCredentials() || !hasTransferProofId())(
+  "transfer CLI commands (e2e, production-org proof — opt-in via QONTOCTL_TRANSFER_PROOF_ID)",
+  () => {
+    describe("transfer proof", () => {
+      it("downloads a valid PDF to --output-file", () => {
+        const id = getTransferProofId();
+        const tmpDir = mkdtempSync(join(tmpdir(), "qontoctl-transfer-proof-"));
+        const outputPath = join(tmpDir, "proof.pdf");
+        try {
+          // CLI prints `Downloaded: <path>` to stdout; we don't parse it,
+          // we read the file back and assert PDF magic bytes + min size.
+          cli("transfer", "proof", id, "--output-file", outputPath);
+          const buffer = readFileSync(outputPath);
+          // PDF magic bytes: %PDF- (0x25 0x50 0x44 0x46 0x2D) per ISO 32000-1 §7.5.2;
+          // the 6th byte is the version digit (e.g. "1" in "%PDF-1.7") which varies.
+          expect(buffer.subarray(0, 5).toString("latin1")).toBe("%PDF-");
+          // 1 KiB lower bound — Qonto proof PDFs include rendered SEPA
+          // transfer details + branding; empirically several KiB. A
+          // truncation or HTML-error-page response would be much smaller.
+          expect(buffer.byteLength).toBeGreaterThan(1024);
+        } finally {
+          rmSync(tmpDir, { recursive: true, force: true });
+        }
+      });
+    });
+  },
+);

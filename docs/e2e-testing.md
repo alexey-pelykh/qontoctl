@@ -216,6 +216,70 @@ for the canonical implementation. (The shared helpers module exposes
 `firstTextFromMcpResult` to centralize the content-extraction
 boilerplate.)
 
+## Production-org-gated tests (sandbox-blocker pattern)
+
+A small number of Qonto endpoints behave correctly in production but cannot
+be exercised against the sandbox simulator at all — for example, `GET
+/v2/sepa/transfers/{id}/proof` returns `404 not_found` for **every**
+settled sandbox transfer (re-probed 2026-05-13 in #565). Skip-if-empty
+and skip-if-feature-unavailable cannot help here because the resource is
+provably absent across the entire sandbox surface; the only way to
+exercise the code path end-to-end is to point the test at a real
+production resource.
+
+For these endpoints we use a **dedicated env var** as the opt-in gate:
+
+```ts
+import { hasApiKeyCredentials, hasTransferProofId, getTransferProofId } from "../sandbox.js";
+
+describe.skipIf(!hasApiKeyCredentials() || !hasTransferProofId())(
+    "transfer CLI commands (e2e, production-org proof — opt-in via QONTOCTL_TRANSFER_PROOF_ID)",
+    () => {
+        it("downloads a valid PDF", () => {
+            const id = getTransferProofId();
+            // ...exercise the endpoint, assert against the real production resource...
+        });
+    },
+);
+```
+
+**Properties of this gate:**
+
+- **CI never sets the env var** → the suite skips naturally in CI without
+  any CI-side configuration.
+- **Local devs without the env var** also skip naturally — no behavior
+  change for the default `pnpm test:e2e` flow.
+- **Local devs who opt in** export the env var with a real production
+  resource ID (e.g. `QONTOCTL_TRANSFER_PROOF_ID=01234567-...`) alongside
+  production credentials.
+- The dev is responsible for **routing to production** in the same shell
+  (i.e. unsetting `QONTOCTL_STAGING_TOKEN` or using a profile without one).
+  A sandbox-routed request will 404 deterministically.
+
+**When to use this pattern:** only when both of the following hold:
+
+1. Empirical probing has shown the endpoint is **uniformly broken** in
+   sandbox (not a per-org config issue, not a feature flag — the simulator
+   simply does not produce the resource).
+2. The production resource can be **read-only**, with no side effects —
+   safe to exercise repeatedly against a real org. Mutating endpoints
+   should never be production-org-gated.
+
+**Coverage manifest:** mark the surface as `covered` (the test exists and
+binds AC #2/AC #3) and mention the env var in `notes`. The opt-in nature
+is encoded in the test description and the env var name; the coverage
+detector does not need a separate state for this.
+
+**Helpers** (in [`packages/e2e/src/sandbox.ts`](../packages/e2e/src/sandbox.ts)):
+
+| Helper                 | Purpose                                                                        |
+| ---------------------- | ------------------------------------------------------------------------------ |
+| `hasTransferProofId()` | True iff `QONTOCTL_TRANSFER_PROOF_ID` is set. Use as a `describe.skipIf` term. |
+| `getTransferProofId()` | Read the env var; throws if unset. Guard with `hasTransferProofId()` first.    |
+
+When adding a new production-org-gated endpoint, mirror this pair for the
+new env var (e.g. `hasFooBarId()` / `getFooBarId()`).
+
 ### Helpers reference
 
 [`packages/e2e/src/helpers.ts`](../packages/e2e/src/helpers.ts) exports the
