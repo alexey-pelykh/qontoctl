@@ -7,6 +7,7 @@ import {
   refreshAccessToken,
   revokeToken,
   SANDBOX_BASE_URL,
+  saveOAuthTokens,
 } from "@qontoctl/core";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -91,6 +92,24 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken() || !hasE2ERefreshTo
       expect(tokens.refreshToken).not.toBe(seedRefreshToken);
 
       freshAccessToken = tokens.accessToken;
+
+      // Persist the rotated tokens back to .qontoctl.yaml so subsequent E2E
+      // suites (bank-accounts, beneficiaries, cards, etc.) use the live
+      // refresh token instead of the now-invalidated seed. Only persist when
+      // the seed came from the config file — when the dedicated env var was
+      // set, the file should remain untouched.
+      //
+      // accessTokenExpiresAt is set to epoch-0 so the OAuth factory
+      // force-refreshes on the next CLI call (this access token will be
+      // revoked by the revoke test below, but the refresh token remains
+      // valid for one more rotation).
+      if (!process.env["QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG"]) {
+        await saveOAuthTokens({
+          accessToken: tokens.accessToken,
+          refreshToken: tokens.refreshToken,
+          accessTokenExpiresAt: new Date(0).toISOString(),
+        });
+      }
     });
 
     // AC: Given a freshly-issued access token from `refreshAccessToken`,
