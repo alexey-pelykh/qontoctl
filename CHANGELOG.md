@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.0.1] — 2026-05-15
+
+### Fixed
+
+- **`qontoctl` (umbrella)**: bundle the full dependency closure — `@qontoctl/cli`, `@qontoctl/mcp`, their transitive `@qontoctl/core`, and all 3rd-party deps (`commander`, `yaml`, `@clack/prompts`, `@modelcontextprotocol/sdk`, `zod`, `proper-lockfile`, and their transitives) — into the umbrella tarball at release time. Restores `brew install qontoctl/tap/qontoctl` reliability immediately after every release. Homebrew's `npm install` step injects `--min-release-age=1` (day) by default as a supply-chain hardening measure; multi-package `pnpm -r publish` ships all four `@qontoctl/*` packages within ~11 seconds, so the umbrella's `^2.0.0` registry deps fail the age filter for ~24 hours after every release (observed against v2.0.0: install error `No matching version found for @qontoctl/cli@^2.0.0 with a date before {now-1d}`). The release workflow now uses `pnpm deploy` with the hoisted linker to materialize a self-contained tree, then `pnpm pack` from that tree produces a tarball containing real `node_modules/` (driven by `bundleDependencies: ["@qontoctl/cli", "@qontoctl/mcp"]` on the umbrella's `package.json`). At install time `npm install` finds every dep locally and never queries the registry — `--min-release-age` has nothing to filter on. A CI guard added to `.github/workflows/release.yml` asserts the full closure is present on every release. See `docs/release-runbook.md` § Why the umbrella is self-contained (#597, #599).
+
 ## [2.0.0] — 2026-05-13
 
 Coordinated bump across all four packages — `@qontoctl/core`, `@qontoctl/cli`, `@qontoctl/mcp`, and `qontoctl` (umbrella). This is a **MAJOR** release driven by multiple BREAKING changes (see § Changed): `@qontoctl/mcp` SCA-required response shape (8 write-tool families); `@qontoctl/core` + `@qontoctl/cli` env-overlay scope tightening; `@qontoctl/core` bulk-transfer + recurring-transfer request shapes; `@qontoctl/core` deterministic config path resolution (CWD auto-discovery removed); `@qontoctl/core` bank-account update HTTP method (PUT → PATCH). **`qontoctl` (umbrella) inherits MAJOR**. See [`docs/release-runbook.md`](docs/release-runbook.md) for the semver decision framework and [§ Migration from v1.x](#migration-from-v1x) below for upgrade guidance.

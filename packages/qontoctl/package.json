@@ -49,6 +49,10 @@
     "@qontoctl/cli": "workspace:^",
     "@qontoctl/mcp": "workspace:^"
   },
+  "bundleDependencies": [
+    "@qontoctl/cli",
+    "@qontoctl/mcp"
+  ],
   "devDependencies": {
     "@types/node": "catalog:",
     "eslint": "catalog:",
