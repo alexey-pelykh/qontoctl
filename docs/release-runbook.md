@@ -16,6 +16,8 @@ QontoCtl publishes a coordinated set of npm packages from a single git tag, then
 
 All four npm packages ship under the **same version**, stamped from the git tag at release time by the `Stamp version` step in [`.github/workflows/release.yml`](../.github/workflows/release.yml).
 
+The umbrella `qontoctl` package is **self-contained from v2.0.1 onwards**: its tarball embeds `@qontoctl/cli` + `@qontoctl/mcp` and their full transitive closure (internal `@qontoctl/core` + 3rd-party `commander`, `yaml`, `@clack/prompts`, `@modelcontextprotocol/sdk`, `zod`, `proper-lockfile`, plus their transitives). The release workflow assembles this via `pnpm deploy` (hoisted linker) + `pnpm pack` from the deploy target; the umbrella's `bundleDependencies: ["@qontoctl/cli", "@qontoctl/mcp"]` is the flag that tells pnpm/npm to include `node_modules/` in the tarball. See [§ Why the umbrella is self-contained](#why-the-umbrella-is-self-contained) for the rationale and the CI guard that enforces it.
+
 ## Release Cadence
 
 On demand. Trigger criteria: meaningful user-visible changes accumulated in `CHANGELOG.md [Unreleased]`, a security fix needing prompt distribution, or a regression that warrants a patch.
@@ -72,6 +74,39 @@ pnpm format:check
 ```
 
 All checks must pass green locally before tagging. The release workflow re-runs the same checks across ubuntu/macos/windows in CI (see step 4 below).
+
+### 1.5. Verify umbrella bundle integrity (local)
+
+Before promoting `[Unreleased]` to a versioned heading, verify the umbrella tarball still bundles its full dependency closure. This is the manual backstop for the CI guard described in [§ Why the umbrella is self-contained](#why-the-umbrella-is-self-contained); the CI guard catches the same regression at workflow-time, but running it locally first surfaces problems before tagging.
+
+The recipe mirrors what `.github/workflows/release.yml` does in CI: `pnpm deploy` with hoisted linker materializes a self-contained tree under `.tmp/qontoctl-deploy/`, `pnpm pack` from there produces a tarball with `node_modules/` included (driven by the umbrella's `bundleDependencies` field).
+
+```sh
+rm -rf .tmp/qontoctl-deploy
+NPM_CONFIG_NODE_LINKER=hoisted pnpm deploy --filter=./packages/qontoctl --prod .tmp/qontoctl-deploy
+echo "node-linker=hoisted" > .tmp/qontoctl-deploy/.npmrc
+
+(cd .tmp/qontoctl-deploy && pnpm pack)
+tarball=$(ls .tmp/qontoctl-deploy/qontoctl-*.tgz | head -1)
+
+# Verify full closure — any missing dep would trigger ETARGET under
+# Homebrew's --min-release-age=1 filter
+for dep in @qontoctl/cli @qontoctl/mcp @qontoctl/core commander yaml @clack/prompts @modelcontextprotocol/sdk zod proper-lockfile; do
+  if ! tar tzf "$tarball" | grep -q "^package/node_modules/${dep}/package.json$"; then
+    echo "ERROR: umbrella tarball is missing bundled ${dep}"
+    exit 1
+  fi
+done
+echo "✓ Umbrella tarball bundles full dependency closure"
+
+# Smoke test: global install must succeed even under strict age filtering
+npm install -g "$tarball" --min-release-age=999
+qontoctl --version
+```
+
+The smoke-test step simulates the Homebrew install path under the strictest possible age filter; if it passes here it will pass under `--min-release-age=1` against the live registry too.
+
+If verification fails, the most likely causes are: (a) `bundleDependencies` having been removed from `packages/qontoctl/package.json` (so pnpm pack excludes `node_modules/` entirely); (b) the `NPM_CONFIG_NODE_LINKER=hoisted` env var was dropped from the deploy step, leaving symlinked `node_modules/.pnpm/` that pack cannot include; (c) a new transitive dep was added to `@qontoctl/cli`, `@qontoctl/mcp`, or `@qontoctl/core` but the CI guard's enumeration in `.github/workflows/release.yml` was not updated to verify it. Inspect `tar tzf "$tarball" | grep node_modules | awk -F/ '{print $3}' | sort -u` to see what is actually bundled.
 
 ### 2. Update CHANGELOG
 
@@ -235,6 +270,30 @@ gh workflow run "Update Formula" --repo qontoctl/homebrew-tap
 | Validate job concern about `0.0.0`                  | Validate runs at workspace baseline `0.0.0`, not the release version               | Accepted trade-off documented in the workflow file. If version-dependent behavior is introduced into the pipeline, move stamping before validation |
 | `pnpm publish-check` fails                          | A `package.json` field (homepage, repository, license, etc.) is missing or invalid | See `scripts/check-publish-manifest.js` for the enforced fields                                                                                    |
 | `pnpm license-check` fails                          | A new dependency uses a non-allowed license                                        | See `scripts/check-licenses.js` for allowed list; pin/replace the dependency                                                                       |
+
+## Why the umbrella is self-contained
+
+The umbrella `qontoctl` package publishes from a `pnpm deploy` materialized tree with full transitive `node_modules/` baked into the tarball. The mechanism has three load-bearing parts:
+
+1. **`bundleDependencies` flag.** [`packages/qontoctl/package.json`](../packages/qontoctl/package.json) declares `bundleDependencies: ["@qontoctl/cli", "@qontoctl/mcp"]`. This is npm's signal that `node_modules/` should be included in the tarball when packing. Without this field, `pnpm pack` and `npm pack` exclude `node_modules/` entirely regardless of what's on disk.
+
+2. **`pnpm deploy` with hoisted linker.** pnpm's default `node-linker=isolated` produces symlinked `node_modules/` (with `.pnpm/` virtual store), which `pnpm pack` refuses to bundle (it errors with `ERR_PNPM_BUNDLED_DEPENDENCIES_WITHOUT_HOISTED`, and even if it didn't, the symlinks point to paths that won't exist on install). The release workflow runs `pnpm deploy --filter=./packages/qontoctl --prod .tmp/qontoctl-deploy` with `NPM_CONFIG_NODE_LINKER=hoisted` so the deploy target gets real materialized directories for every dep in the closure.
+
+3. **Pack from the deploy target, not the workspace.** A local `.npmrc` (`node-linker=hoisted`) inside `.tmp/qontoctl-deploy/` lets `pnpm pack` read the materialized tree directly. The resulting tarball self-contains `@qontoctl/{cli,mcp,core}` plus every 3rd-party transitive (`commander`, `yaml`, `@clack/prompts`, `@modelcontextprotocol/sdk`, `zod`, `proper-lockfile`, and their own transitives — ~106 packages total). At install time `npm install` finds everything locally and never queries the registry.
+
+**Why this matters for Homebrew.** Homebrew's `std_npm_args` injects `--min-release-age=1` (day) into the `npm install` step of `Formula/qontoctl.rb` as a post-axios-compromise supply-chain hardening default. Without bundling, the umbrella's `^2.0.0` registry deps would fail the age filter for ~24 hours after every release, because `pnpm -r publish` ships all four `@qontoctl/*` packages within ~11 seconds of each other (all topologically — `core` → `cli`/`mcp` → `qontoctl`). The bundled subtree sidesteps registry resolution entirely, so `--min-release-age` has nothing to filter on and the brew install succeeds within minutes of the npm publish.
+
+This was a v2.0.0 regression (`brew install qontoctl/tap/qontoctl` failed with `ETARGET` for ~24h) — see [#597](https://github.com/alexey-pelykh/qontoctl/issues/597) and the v2.0.1 CHANGELOG entry. npm does not yet provide an exclusion mechanism for `--min-release-age` ([npm/cli#8994](https://github.com/npm/cli/issues/8994)); the deploy-target bundling approach is the npm-native functional equivalent.
+
+**Why not a single esbuild bundle?** Considered and rejected during /council (2026-05-15). The codebase pervasively uses `createRequire(import.meta.url) + require("../package.json")` (in `program.ts`, `diagnose.ts`, `http-client.ts`, `server.ts`) and `import.meta.url`-based asset loading (`auth.ts` loads `logo.png`). esbuild would silently break all of these — `--version`, `qontoctl diagnose`, and the OAuth UX would report wrong values or fail. The deploy-target approach preserves the runtime module-resolution semantics of a regular `npm install`.
+
+**Publish topology.** The release workflow publishes in two phases: (1) `pnpm -r publish --filter='!qontoctl' --provenance` ships `@qontoctl/{core,cli,mcp}` from the workspace; (2) `pnpm publish --provenance` from `.tmp/qontoctl-deploy/` ships the umbrella from the materialized tree. Both phases attest provenance via the same OIDC token; the umbrella's tarball-content provenance covers the embedded `node_modules/` subtree.
+
+**CI guard.** [`.github/workflows/release.yml`](../.github/workflows/release.yml) `publish-npm` job packs the deploy target and inspects the tarball for the full closure (`@qontoctl/{cli,mcp,core}` + every direct 3rd-party dep) before publishing. If anyone removes `bundleDependencies`, drops the `NPM_CONFIG_NODE_LINKER=hoisted` env var, or adds a new transitive dep that isn't covered, the release fails with a `::error::` annotation pointing at the missing dep — the regression cannot ship silently. See [#599](https://github.com/alexey-pelykh/qontoctl/issues/599).
+
+**Manual backstop.** § 1.5 above documents the same verification commands for local execution before tagging. Run them at minimum when modifying `packages/qontoctl/package.json`, the release workflow, or any direct dep of `@qontoctl/cli`/`@qontoctl/mcp`/`@qontoctl/core`.
+
+**Trade-off.** The umbrella tarball is now larger than a thin shim (~4-5MB with bundled transitives). This is the accepted cost of install reliability; the tarball is still single-digit MB.
 
 ## References
 

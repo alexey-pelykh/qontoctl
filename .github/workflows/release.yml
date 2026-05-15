@@ -73,8 +73,55 @@ jobs:
 
       - run: pnpm build
 
-      - name: Verify packages
-        run: pnpm -r publish --dry-run --access public --no-git-checks
+      # Path 3 (pnpm deploy + bundleDependencies) — the umbrella publishes from
+      # a materialized deploy target with full transitive node_modules. The
+      # workspace's default node-linker=isolated produces symlinked node_modules
+      # which `pnpm pack` cannot include in tarballs; node-linker=hoisted forces
+      # materialized files. pnpm deploy reads the env var at deploy time; the
+      # local .npmrc is what pnpm pack reads when packing from the deploy dir.
+      # See docs/release-runbook.md § Why the umbrella is self-contained.
+      - name: Materialize umbrella deploy target (hoisted linker)
+        env:
+          NPM_CONFIG_NODE_LINKER: hoisted
+        run: |
+          pnpm deploy --filter=./packages/qontoctl --prod .tmp/qontoctl-deploy
+          echo "node-linker=hoisted" > .tmp/qontoctl-deploy/.npmrc
 
-      - name: Publish packages
-        run: pnpm -r publish --access public --no-git-checks --report-summary --provenance
+      # Asserts the umbrella tarball self-contains its full dependency closure
+      # (internal @qontoctl/* + 3rd-party). Catches regressions where
+      # bundleDependencies is removed from packages/qontoctl/package.json or
+      # pnpm deploy produces a tarball missing critical deps. Without this
+      # guard, the resulting release breaks `brew install` for ~24h after
+      # publish under Homebrew's --min-release-age=1 default.
+      - name: Verify umbrella tarball bundles dependency closure
+        working-directory: .tmp/qontoctl-deploy
+        run: |
+          pnpm pack
+          tarball=$(ls qontoctl-*.tgz)
+          echo "Inspecting $tarball"
+          missing=0
+          for dep in @qontoctl/cli @qontoctl/mcp @qontoctl/core commander yaml @clack/prompts @modelcontextprotocol/sdk zod proper-lockfile; do
+            if ! tar tzf "$tarball" | grep -q "^package/node_modules/${dep}/package.json$"; then
+              echo "::error::Umbrella tarball is missing bundled ${dep}"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "::error::See docs/release-runbook.md § Why the umbrella is self-contained for context."
+            exit 1
+          fi
+          echo "✓ Umbrella tarball bundles full dependency closure"
+
+      - name: Verify sub-package publish (dry-run)
+        run: pnpm -r publish --filter='!qontoctl' --dry-run --access public --no-git-checks
+
+      - name: Verify umbrella publish (dry-run, provenance)
+        working-directory: .tmp/qontoctl-deploy
+        run: pnpm publish --dry-run --provenance --access public --no-git-checks
+
+      - name: Publish sub-packages (@qontoctl/core, @qontoctl/cli, @qontoctl/mcp)
+        run: pnpm -r publish --filter='!qontoctl' --access public --no-git-checks --report-summary --provenance
+
+      - name: Publish umbrella (qontoctl, self-contained tarball)
+        working-directory: .tmp/qontoctl-deploy
+        run: pnpm publish --access public --no-git-checks --provenance
