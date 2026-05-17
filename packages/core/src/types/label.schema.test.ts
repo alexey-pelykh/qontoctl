@@ -29,4 +29,11 @@ describe("LabelSchema", () => {
   it("rejects missing required fields", () => {
     expect(() => LabelSchema.parse({ id: "label-1" })).toThrow();
   });
+
+  it("accepts Label with parent_id omitted entirely (regression: L2 audit #604)", () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { parent_id: _omit, ...withoutParentId } = validLabel;
+    const result = LabelSchema.parse(withoutParentId);
+    expect(result.parent_id).toBeUndefined();
+  });
 });

@@ -22,7 +22,7 @@ export interface Client {
   readonly first_name?: string | null | undefined;
   readonly last_name?: string | null | undefined;
   readonly kind: "company" | "individual" | "freelancer";
-  readonly email: string | null;
+  readonly email?: string | null | undefined;
   readonly vat_number?: string | null | undefined;
   readonly tax_identification_number?: string | null | undefined;
   readonly address?: string | null | undefined;
@@ -30,7 +30,7 @@ export interface Client {
   readonly zip_code?: string | null | undefined;
   readonly province_code?: string | null | undefined;
   readonly country_code?: string | null | undefined;
-  readonly billing_address: ClientAddress | null;
+  readonly billing_address?: ClientAddress | null | undefined;
   readonly delivery_address?: ClientAddress | null | undefined;
   readonly locale?: string | null | undefined;
   readonly currency?: string | null | undefined;

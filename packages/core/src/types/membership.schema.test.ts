@@ -75,6 +75,20 @@ describe("MembershipSchema", () => {
     expect(() => MembershipSchema.parse({ id: "member-1" })).toThrow();
   });
 
+  it("accepts Membership with role omitted entirely (regression: L2 audit #604)", () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { role: _omit, ...withoutRole } = validMembership;
+    const result = MembershipSchema.parse(withoutRole);
+    expect(result.role).toBeUndefined();
+  });
+
+  it("accepts Membership with team_id omitted entirely (regression: L2 audit #604)", () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { team_id: _omit, ...withoutTeamId } = validMembership;
+    const result = MembershipSchema.parse(withoutTeamId);
+    expect(result.team_id).toBeUndefined();
+  });
+
   it("accepts invitable memberships with null role and team_id (regression: #514)", () => {
     // Invitable memberships have not yet accepted the invitation, so the
     // Qonto API returns null for role and team_id and `status: "invitable"`.

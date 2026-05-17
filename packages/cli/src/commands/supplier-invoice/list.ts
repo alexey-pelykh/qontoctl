@@ -36,11 +36,11 @@ const SUPPLIER_INVOICE_STATUSES = [
 function toTableRow(inv: SupplierInvoice): Record<string, string | null> {
   return {
     id: inv.id,
-    supplier_name: inv.supplier_name,
-    invoice_number: inv.invoice_number,
-    total_amount: inv.total_amount !== null ? `${inv.total_amount.value} ${inv.total_amount.currency}` : null,
+    supplier_name: inv.supplier_name ?? null,
+    invoice_number: inv.invoice_number ?? null,
+    total_amount: inv.total_amount ? `${inv.total_amount.value} ${inv.total_amount.currency}` : null,
     status: inv.status,
-    due_date: inv.due_date,
+    due_date: inv.due_date ?? null,
   };
 }
 

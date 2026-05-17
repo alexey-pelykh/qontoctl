@@ -103,6 +103,13 @@ describe("OrganizationSchema", () => {
     expect(result.legal_name).toBeNull();
   });
 
+  it("accepts Organization with legal_name omitted entirely (regression: L2 audit #604)", () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { legal_name: _omit, ...withoutLegalName } = validOrg;
+    const result = OrganizationSchema.parse(withoutLegalName);
+    expect(result.legal_name).toBeUndefined();
+  });
+
   it("strips unknown fields from org and nested bank accounts", () => {
     const result = OrganizationSchema.parse({
       ...validOrg,

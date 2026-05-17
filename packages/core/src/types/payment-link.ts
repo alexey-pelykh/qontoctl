@@ -32,11 +32,11 @@ export interface PaymentLink {
   readonly potential_payment_methods: readonly string[];
   readonly amount: PaymentLinkAmount;
   readonly resource_type: string;
-  readonly items: readonly PaymentLinkItem[] | null;
+  readonly items?: readonly PaymentLinkItem[] | null | undefined;
   readonly reusable: boolean;
-  readonly invoice_id: string | null;
-  readonly invoice_number: string | null;
-  readonly debitor_name: string | null;
+  readonly invoice_id?: string | null | undefined;
+  readonly invoice_number?: string | null | undefined;
+  readonly debitor_name?: string | null | undefined;
   readonly created_at: string;
   readonly url: string;
 }

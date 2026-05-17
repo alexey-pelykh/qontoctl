@@ -12,6 +12,14 @@ import type {
   RequestVirtualCard,
 } from "./request.js";
 
+// `approver_id` and `processed_at` are in Qonto's `required:` list for
+// RequestTransfer (the most strictly-typed variant; other variants have no
+// explicit `required:` list, so the strict-superset binds). Both values are
+// nullable until the request is approved/declined. Field presence is
+// guaranteed by the contract, so we keep `.nullable()` (no `.optional()`)
+// per L2 audit (#604, R-SS-2). `declined_note` and `last_recurrence_date`
+// (RequestTransfer-only) are NOT in `required:` and have been relaxed to
+// `.nullable().optional()`.
 const RequestBaseSchema = z
   .object({
     id: z.string(),
@@ -19,7 +27,7 @@ const RequestBaseSchema = z
     initiator_id: z.string(),
     approver_id: z.string().nullable(),
     note: z.string(),
-    declined_note: z.string().nullable(),
+    declined_note: z.string().nullable().optional(),
     processed_at: z.string().nullable(),
     created_at: z.string(),
   })
@@ -47,7 +55,7 @@ export const RequestTransferSchema = RequestBaseSchema.extend({
   currency: z.string(),
   scheduled_date: z.string(),
   recurrence: z.string(),
-  last_recurrence_date: z.string().nullable(),
+  last_recurrence_date: z.string().nullable().optional(),
   attachment_ids: z.array(z.string()),
 }) satisfies z.ZodType<RequestTransfer>;
 

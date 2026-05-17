@@ -85,6 +85,23 @@ describe("SupplierInvoiceSchema", () => {
   it("throws on missing required field", () => {
     expect(() => SupplierInvoiceSchema.parse({ ...validInvoice, id: undefined })).toThrow();
   });
+
+  // Fields NOT in Qonto's SupplierInvoice `required:` list — regression: L2 audit #604
+  it.each([
+    "invoice_number",
+    "supplier_name",
+    "total_amount",
+    "payable_amount",
+    "issue_date",
+    "due_date",
+    "payment_date",
+    "scheduled_date",
+    "iban",
+  ] as const)("accepts SupplierInvoice with %s omitted entirely (regression: L2 audit #604)", (field) => {
+    const input = Object.fromEntries(Object.entries(validInvoice).filter(([k]) => k !== field));
+    const result = SupplierInvoiceSchema.parse(input);
+    expect((result as Record<string, unknown>)[field]).toBeUndefined();
+  });
 });
 
 describe("BulkCreateSupplierInvoiceErrorSchema", () => {

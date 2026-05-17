@@ -28,7 +28,7 @@ export interface BankAccount {
  */
 export interface Organization {
   readonly slug: string;
-  readonly legal_name: string | null;
+  readonly legal_name?: string | null | undefined;
   readonly bank_accounts: readonly BankAccount[];
 }
 

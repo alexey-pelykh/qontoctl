@@ -24,6 +24,12 @@ describe("TransactionLabelSchema", () => {
   it("throws on missing required field", () => {
     expect(() => TransactionLabelSchema.parse({ id: "lbl-1" })).toThrow();
   });
+
+  it("accepts TransactionLabel with parent_id omitted entirely (regression: L2 audit #604)", () => {
+    const label = { id: "lbl-1", name: "Marketing" };
+    const result = TransactionLabelSchema.parse(label);
+    expect(result.parent_id).toBeUndefined();
+  });
 });
 
 describe("TransactionSchema", () => {
@@ -215,5 +221,12 @@ describe("TransactionSchema", () => {
 
   it("throws on missing required field", () => {
     expect(() => TransactionSchema.parse({ ...validTransaction, id: undefined })).toThrow();
+  });
+
+  it("accepts Transaction with created_at omitted entirely (regression: L2 audit #604)", () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { created_at: _omit, ...withoutCreatedAt } = validTransaction;
+    const result = TransactionSchema.parse(withoutCreatedAt);
+    expect(result.created_at).toBeUndefined();
   });
 });

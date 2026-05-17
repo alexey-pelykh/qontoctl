@@ -42,11 +42,11 @@ export const PaymentLinkSchema = z
     potential_payment_methods: z.array(z.string()).readonly(),
     amount: PaymentLinkAmountSchema,
     resource_type: z.string(),
-    items: z.array(PaymentLinkItemSchema).readonly().nullable(),
+    items: z.array(PaymentLinkItemSchema).readonly().nullable().optional(),
     reusable: z.boolean(),
-    invoice_id: z.string().nullable(),
-    invoice_number: z.string().nullable(),
-    debitor_name: z.string().nullable(),
+    invoice_id: z.string().nullable().optional(),
+    invoice_number: z.string().nullable().optional(),
+    debitor_name: z.string().nullable().optional(),
     created_at: z.string(),
     url: z.string(),
   })
@@ -65,6 +65,10 @@ export const PaymentLinkListResponseSchema = z
   })
   .strip();
 
+// `paid_at` is in Qonto's `required:` list for the payment schema, but its
+// value is nullable until the payment completes. Field presence is guaranteed
+// by the contract, so we keep `.nullable()` (no `.optional()`) per L2 audit
+// (#604, R-SS-2).
 export const PaymentLinkPaymentSchema = z
   .object({
     id: z.string(),

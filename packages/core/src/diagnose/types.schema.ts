@@ -19,6 +19,11 @@ import type { AuthPreference } from "../config/types.js";
 
 export const CheckStatusSchema = z.enum(["ok", "warn", "fail", "skip"]);
 
+// `suggestedAction` is an internal qontoctl contract (not a Qonto API field).
+// The diagnose tool emits this field on every result, with `null` when no
+// suggestion applies. The L2 audit (#604, R-SS-2) keeps it `.nullable()` (no
+// `.optional()`) because field presence is guaranteed by qontoctl's own
+// emission discipline — drift would be a qontoctl bug, not an API change.
 export const DiagnosticResultSchema = z
   .object({
     checkId: z.string(),

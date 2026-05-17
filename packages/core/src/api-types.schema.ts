@@ -32,7 +32,7 @@ export const BankAccountSchema = z
 export const OrganizationSchema = z
   .object({
     slug: z.string(),
-    legal_name: z.string().nullable(),
+    legal_name: z.string().nullable().optional(),
     bank_accounts: z.array(BankAccountSchema).readonly(),
   })
   .strip() satisfies z.ZodType<Organization>;
