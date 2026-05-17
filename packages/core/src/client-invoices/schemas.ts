@@ -21,9 +21,13 @@ export const ClientInvoiceAmountSchema = z
   })
   .strip() satisfies z.ZodType<ClientInvoiceAmount>;
 
+// Qonto's client-invoice-endpoint docs use `"absolute"` canonically for the
+// same semantic that the quote-endpoint docs call `"amount"`. Accept all three
+// values to remain consistent with QuoteDiscountSchema and forward-compatible
+// regardless of which surface Qonto cleans up first. See #496.
 export const ClientInvoiceDiscountSchema = z
   .object({
-    type: z.enum(["percentage", "amount"]),
+    type: z.enum(["percentage", "absolute", "amount"]),
     value: z.string(),
     amount: ClientInvoiceAmountSchema,
     amount_cents: z.number(),
@@ -113,7 +117,10 @@ export const ClientInvoiceSchema = z
     due_date: z.string().nullable(),
     created_at: z.string(),
     updated_at: z.string(),
-    attachment_id: z.string().nullable(),
+    // Qonto's `ClientInvoice` schema does not list `attachment_id` in
+    // `required`, so the field may be omitted entirely (not just null).
+    // Mirrors the Quote fix from #496.
+    attachment_id: z.string().nullable().optional(),
     contact_email: z.string().nullable(),
     terms_and_conditions: z.string().nullable(),
     header: z.string().nullable(),

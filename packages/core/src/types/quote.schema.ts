@@ -13,9 +13,14 @@ export const QuoteAmountSchema = z
   })
   .strip() satisfies z.ZodType<QuoteAmount>;
 
+// Qonto's quote-endpoint docs declare `discount.type` as `[percentage, amount]`,
+// but the live `/v2/quotes` API returns `"absolute"` for fixed-amount discounts
+// (reported in #496 with raw curl evidence, 2026-05-17). The client-invoice
+// endpoint docs use `"absolute"` canonically for the same semantic. Accept all
+// three values to remain forward-compatible regardless of which docs are right.
 export const QuoteDiscountSchema = z
   .object({
-    type: z.enum(["percentage", "amount"]),
+    type: z.enum(["percentage", "absolute", "amount"]),
     value: z.string(),
     amount: QuoteAmountSchema,
     amount_cents: z.number(),
@@ -90,7 +95,10 @@ export const QuoteSchema = z
     created_at: z.string(),
     approved_at: z.string().nullable(),
     canceled_at: z.string().nullable(),
-    attachment_id: z.string().nullable(),
+    // Qonto's `Quote` schema does not list `attachment_id` in `required`,
+    // so the field may be omitted entirely (not just null). Observed in
+    // PATCH responses where the field is dropped from the payload (#496).
+    attachment_id: z.string().nullable().optional(),
     quote_url: z.string().nullable(),
     contact_email: z.string().nullable(),
     terms_and_conditions: z.string().nullable(),
