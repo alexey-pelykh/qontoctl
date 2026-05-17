@@ -112,6 +112,20 @@ describe("QuoteDiscountSchema", () => {
   it("validates type enum", () => {
     expect(() => QuoteDiscountSchema.parse({ ...discount, type: "fixed" })).toThrow();
   });
+
+  // Regression for #496: the live `/v2/quotes` API returns `discount.type:
+  // "absolute"` for fixed-amount discounts (raw curl evidence in the issue
+  // comment thread), even though Qonto's own quote-endpoint docs say the
+  // enum is `[percentage, amount]`. Accept `"absolute"` to unblock parsing.
+  it("parses an absolute discount (regression: #496)", () => {
+    const absoluteDiscount = { ...discount, type: "absolute" as const };
+    expect(QuoteDiscountSchema.parse(absoluteDiscount)).toEqual(absoluteDiscount);
+  });
+
+  it("parses an amount discount (regression: #496)", () => {
+    const amountDiscount = { ...discount, type: "amount" as const };
+    expect(QuoteDiscountSchema.parse(amountDiscount)).toEqual(amountDiscount);
+  });
 });
 
 describe("QuoteItemSchema", () => {
@@ -239,5 +253,17 @@ describe("QuoteSchema", () => {
 
   it("rejects missing required fields", () => {
     expect(() => QuoteSchema.parse({ id: "quote-1" })).toThrow();
+  });
+
+  // Regression for #496: PATCH responses from `/v2/quotes/{id}` omit
+  // `attachment_id` entirely (not just `null`). Qonto's `Quote` OpenAPI
+  // schema does not list it in `required`, so per OpenAPI semantics the
+  // field MAY be absent. Reproducer: `quote_update` MCP tool / `quote
+  // update` CLI command.
+  it("accepts attachment_id omitted entirely (regression: #496)", () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { attachment_id: _omit, ...withoutAttachment } = validQuote;
+    const result = QuoteSchema.parse(withoutAttachment);
+    expect(result.attachment_id).toBeUndefined();
   });
 });

@@ -11,9 +11,13 @@ export interface QuoteAmount {
 
 /**
  * A discount applied to a quote or quote item.
+ *
+ * `type` accepts `"absolute"` in addition to the documented `"percentage"`
+ * and `"amount"` because the live `/v2/quotes` API returns `"absolute"` for
+ * fixed-amount discounts (reported in #496).
  */
 export interface QuoteDiscount {
-  readonly type: "percentage" | "amount";
+  readonly type: "percentage" | "absolute" | "amount";
   readonly value: string;
   readonly amount: QuoteAmount;
   readonly amount_cents: number;
@@ -92,7 +96,7 @@ export interface Quote {
   readonly created_at: string;
   readonly approved_at: string | null;
   readonly canceled_at: string | null;
-  readonly attachment_id: string | null;
+  readonly attachment_id?: string | null | undefined;
   readonly quote_url: string | null;
   readonly contact_email: string | null;
   readonly terms_and_conditions: string | null;

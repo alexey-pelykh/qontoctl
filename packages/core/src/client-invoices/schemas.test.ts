@@ -57,6 +57,20 @@ describe("ClientInvoiceDiscountSchema", () => {
     };
     expect(() => ClientInvoiceDiscountSchema.parse(data)).toThrow();
   });
+
+  // Regression for #496: symmetric fix with QuoteDiscountSchema. Qonto's
+  // client-invoice-endpoint docs use `"absolute"` canonically for the same
+  // semantic. Accept it preemptively to avoid a latent bug for any user
+  // creating a client invoice with a fixed-amount discount.
+  it("parses an absolute discount (regression: #496)", () => {
+    const data = {
+      type: "absolute" as const,
+      value: "5.00",
+      amount: { value: "5.00", currency: "EUR" },
+      amount_cents: 500,
+    };
+    expect(ClientInvoiceDiscountSchema.parse(data)).toEqual(data);
+  });
 });
 
 describe("ClientInvoiceItemSchema", () => {
@@ -369,5 +383,16 @@ describe("ClientInvoiceSchema", () => {
     const wrapperSchema = z.object({ client_invoice: ClientInvoiceSchema });
     const result = parseResponse(wrapperSchema, wrapped, "/v2/client_invoices/inv-1");
     expect(result.client_invoice.items).toEqual([]);
+  });
+
+  // Regression for #496: symmetric fix with QuoteSchema. Qonto's
+  // `ClientInvoice` OpenAPI schema does not list `attachment_id` in
+  // `required`, so the field may be omitted entirely. Mirrors the latent-bug
+  // prevention rationale for the Quote-side fix.
+  it("accepts attachment_id omitted entirely (regression: #496)", () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { attachment_id: _omit, ...withoutAttachment } = validInvoice;
+    const result = ClientInvoiceSchema.parse(withoutAttachment);
+    expect(result.attachment_id).toBeUndefined();
   });
 });

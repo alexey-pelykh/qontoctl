@@ -11,9 +11,13 @@ export interface ClientInvoiceAmount {
 
 /**
  * A discount applied to a client invoice or invoice item.
+ *
+ * `type` accepts `"absolute"` in addition to `"percentage"` and `"amount"`
+ * for consistency with `QuoteDiscount` — Qonto's client-invoice docs use
+ * `"absolute"` canonically. See #496.
  */
 export interface ClientInvoiceDiscount {
-  readonly type: "percentage" | "amount";
+  readonly type: "percentage" | "absolute" | "amount";
   readonly value: string;
   readonly amount: ClientInvoiceAmount;
   readonly amount_cents: number;
@@ -108,7 +112,7 @@ export interface ClientInvoice {
   readonly due_date: string | null;
   readonly created_at: string;
   readonly updated_at: string;
-  readonly attachment_id: string | null;
+  readonly attachment_id?: string | null | undefined;
   readonly contact_email: string | null;
   readonly terms_and_conditions: string | null;
   readonly header: string | null;
