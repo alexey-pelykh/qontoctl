@@ -15,7 +15,7 @@ export const TransactionLabelSchema = z
   .object({
     id: z.string(),
     name: z.string(),
-    parent_id: z.string().nullable(),
+    parent_id: z.string().nullable().optional(),
   })
   .strip() satisfies z.ZodType<TransactionLabel>;
 
@@ -43,7 +43,7 @@ export const TransactionSchema = z
     clean_counterparty_name: z.string().nullable().optional().default(null),
     settled_at: z.string().nullable().optional().default(null),
     emitted_at: z.string(),
-    created_at: z.string().nullable(),
+    created_at: z.string().nullable().optional(),
     updated_at: z.string(),
     status: z.enum(["pending", "declined", "completed"]),
     note: z.string().nullable().optional().default(null),

@@ -127,6 +127,34 @@ describe("PaymentLinkSchema", () => {
     expect(() => PaymentLinkSchema.parse({ ...validPaymentLink, status: undefined })).toThrow();
     expect(() => PaymentLinkSchema.parse({ ...validPaymentLink, url: undefined })).toThrow();
   });
+
+  it("accepts PaymentLink with items omitted entirely (regression: L2 audit #604)", () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { items: _omit, ...withoutItems } = validPaymentLink;
+    const result = PaymentLinkSchema.parse(withoutItems);
+    expect(result.items).toBeUndefined();
+  });
+
+  it("accepts PaymentLink with invoice_id omitted entirely (regression: L2 audit #604)", () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { invoice_id: _omit, ...withoutInvoiceId } = validPaymentLink;
+    const result = PaymentLinkSchema.parse(withoutInvoiceId);
+    expect(result.invoice_id).toBeUndefined();
+  });
+
+  it("accepts PaymentLink with invoice_number omitted entirely (regression: L2 audit #604)", () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { invoice_number: _omit, ...withoutInvoiceNumber } = validPaymentLink;
+    const result = PaymentLinkSchema.parse(withoutInvoiceNumber);
+    expect(result.invoice_number).toBeUndefined();
+  });
+
+  it("accepts PaymentLink with debitor_name omitted entirely (regression: L2 audit #604)", () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { debitor_name: _omit, ...withoutDebitorName } = validPaymentLink;
+    const result = PaymentLinkSchema.parse(withoutDebitorName);
+    expect(result.debitor_name).toBeUndefined();
+  });
 });
 
 describe("PaymentLinkResponseSchema", () => {

@@ -13,8 +13,8 @@ export interface Membership {
   readonly first_name: string;
   readonly last_name: string;
   readonly email?: string | undefined;
-  readonly role: "owner" | "admin" | "manager" | "reporting" | "employee" | "accountant" | null;
-  readonly team_id: string | null;
+  readonly role?: "owner" | "admin" | "manager" | "reporting" | "employee" | "accountant" | null | undefined;
+  readonly team_id?: string | null | undefined;
   readonly residence_country?: string | null | undefined;
   readonly birthdate?: string | null | undefined;
   readonly nationality?: string | null | undefined;

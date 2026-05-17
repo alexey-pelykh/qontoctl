@@ -21,7 +21,7 @@ export interface Transaction {
   readonly clean_counterparty_name: string | null;
   readonly settled_at: string | null;
   readonly emitted_at: string;
-  readonly created_at: string | null;
+  readonly created_at?: string | null | undefined;
   readonly updated_at: string;
   readonly status: "pending" | "declined" | "completed";
   readonly note: string | null;
@@ -62,7 +62,7 @@ export interface Transaction {
 export interface TransactionLabel {
   readonly id: string;
   readonly name: string;
-  readonly parent_id: string | null;
+  readonly parent_id?: string | null | undefined;
 }
 
 /**

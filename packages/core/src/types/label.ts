@@ -8,5 +8,5 @@
 export interface Label {
   readonly id: string;
   readonly name: string;
-  readonly parent_id: string | null;
+  readonly parent_id?: string | null | undefined;
 }

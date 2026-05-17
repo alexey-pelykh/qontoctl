@@ -167,4 +167,18 @@ describe("ClientSchema", () => {
   it("rejects missing required fields", () => {
     expect(() => ClientSchema.parse({ id: "client-1" })).toThrow();
   });
+
+  it("accepts Client with email omitted entirely (regression: L2 audit #604)", () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { email: _omit, ...withoutEmail } = validClient;
+    const result = ClientSchema.parse(withoutEmail);
+    expect(result.email).toBeUndefined();
+  });
+
+  it("accepts Client with billing_address omitted entirely (regression: L2 audit #604)", () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { billing_address: _omit, ...withoutBillingAddress } = validClient;
+    const result = ClientSchema.parse(withoutBillingAddress);
+    expect(result.billing_address).toBeUndefined();
+  });
 });

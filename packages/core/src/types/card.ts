@@ -31,7 +31,7 @@ export interface ParentCardSummary {
 export interface Card {
   readonly id: string;
   readonly nickname: string;
-  readonly embossed_name: string | null;
+  readonly embossed_name?: string | null | undefined;
   readonly status:
     | "pending"
     | "live"
@@ -47,11 +47,11 @@ export interface Card {
     | "pre_expired"
     | "abusive";
   readonly pin_set: boolean;
-  readonly mask_pan: string | null;
-  readonly exp_month: string | null;
-  readonly exp_year: string | null;
+  readonly mask_pan?: string | null | undefined;
+  readonly exp_month?: string | null | undefined;
+  readonly exp_year?: string | null | undefined;
   readonly last_activity_at: string;
-  readonly last_digits: string | null;
+  readonly last_digits?: string | null | undefined;
   readonly ship_to_business: boolean;
   readonly atm_option: boolean;
   readonly nfc_option: boolean;
@@ -76,23 +76,23 @@ export interface Card {
   readonly organization_id: string;
   readonly updated_at: string;
   readonly created_at: string;
-  readonly shipped_at: string | null;
+  readonly shipped_at?: string | null | undefined;
   readonly card_type: "debit" | "prepaid";
   readonly card_level: "standard" | "plus" | "metal" | "virtual" | "virtual_partner" | "flash" | "advertising";
-  readonly payment_lifespan_limit: number | null;
+  readonly payment_lifespan_limit?: number | null | undefined;
   readonly payment_lifespan_spent: number;
-  readonly pre_expires_at: string | null;
+  readonly pre_expires_at?: string | null | undefined;
   readonly categories: readonly string[];
   readonly renewed: boolean;
   readonly renewal: boolean;
-  readonly parent_card_summary: ParentCardSummary | null;
+  readonly parent_card_summary?: ParentCardSummary | null | undefined;
   readonly had_operation: boolean;
   readonly had_pin_operation: boolean;
   readonly card_design: string;
-  readonly type_of_print: "print" | "embossed" | null;
+  readonly type_of_print?: "print" | "embossed" | null | undefined;
   readonly upsold: boolean;
   readonly upsell: boolean;
-  readonly discard_on: string | null;
+  readonly discard_on?: string | null | undefined;
   readonly reordered: boolean;
   readonly appearance: CardAppearance;
   readonly has_only_user_liftable_locks: boolean;

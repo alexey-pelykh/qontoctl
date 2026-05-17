@@ -18,6 +18,12 @@ export const BulkTransferResultErrorSchema = z
 
 /**
  * Schema for an individual transfer result within a bulk transfer.
+ *
+ * `transfer_id` and `errors` are both in Qonto's `required:` list for the
+ * bulk-transfer Result element, but each value is conditionally null:
+ * `transfer_id` populated when `status === "completed"`; `errors` populated
+ * when `status === "failed"`. Field presence is guaranteed by the contract,
+ * so we keep `.nullable()` (no `.optional()`) per L2 audit (#604, R-SS-2).
  */
 export const BulkTransferResultSchema = z
   .object({

@@ -10,7 +10,7 @@ export const LabelSchema = z
   .object({
     id: z.string(),
     name: z.string(),
-    parent_id: z.string().nullable(),
+    parent_id: z.string().nullable().optional(),
   })
   .strip() satisfies z.ZodType<Label>;
 

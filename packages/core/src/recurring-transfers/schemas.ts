@@ -13,9 +13,13 @@ import type { RecurringTransfer } from "./types.js";
  * `POST /v2/sepa/recurring_transfers` (the recurring transfer is created
  * successfully but the payload lacks them); both are treated as optional.
  *
- * `next_execution_date` is observed to be `null` after a successful cancel
- * (`POST /v2/sepa/recurring_transfers/{id}/cancel`) — the recurring transfer
- * has no further executions scheduled.
+ * `last_execution_date` and `next_execution_date` are both in Qonto's
+ * `required:` list for SepaRecurringTransfer, but their values are nullable
+ * (e.g., `next_execution_date` is null after a successful cancel via
+ * `POST /v2/sepa/recurring_transfers/{id}/cancel` — the recurring transfer
+ * has no further executions scheduled). Field presence is guaranteed by the
+ * contract, so we keep `.nullable()` (no `.optional()`) per L2 audit
+ * (#604, R-SS-2).
  */
 export const RecurringTransferSchema = z
   .object({

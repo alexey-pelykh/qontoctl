@@ -10,7 +10,7 @@ interface RequestBase {
   readonly initiator_id: string;
   readonly approver_id: string | null;
   readonly note: string;
-  readonly declined_note: string | null;
+  readonly declined_note?: string | null | undefined;
   readonly processed_at: string | null;
   readonly created_at: string;
 }
@@ -46,7 +46,7 @@ export interface RequestTransfer extends RequestBase {
   readonly currency: string;
   readonly scheduled_date: string;
   readonly recurrence: string;
-  readonly last_recurrence_date: string | null;
+  readonly last_recurrence_date?: string | null | undefined;
   readonly attachment_ids: readonly string[];
 }
 

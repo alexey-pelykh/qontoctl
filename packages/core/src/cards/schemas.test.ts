@@ -208,6 +208,26 @@ describe("CardSchema", () => {
     const { id: _id, ...cardWithoutId } = makeCard();
     expect(() => CardSchema.parse(cardWithoutId)).toThrow();
   });
+
+  // Fields NOT in Qonto's Card `required:` list (the Card schema has no
+  // `required:` list at all per the OpenAPI docs) — regression: L2 audit #604
+  it.each([
+    "embossed_name",
+    "mask_pan",
+    "exp_month",
+    "exp_year",
+    "last_digits",
+    "shipped_at",
+    "payment_lifespan_limit",
+    "pre_expires_at",
+    "parent_card_summary",
+    "type_of_print",
+    "discard_on",
+  ] as const)("accepts Card with %s omitted entirely (regression: L2 audit #604)", (field) => {
+    const input = Object.fromEntries(Object.entries(makeCard()).filter(([k]) => k !== field));
+    const result = CardSchema.parse(input);
+    expect((result as Record<string, unknown>)[field]).toBeUndefined();
+  });
 });
 
 describe("CardLevelAppearanceSchema", () => {

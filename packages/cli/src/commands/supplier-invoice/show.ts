@@ -23,14 +23,15 @@ export function registerSupplierInvoiceShowCommand(parent: Command): void {
         : [
             {
               id: invoice.id,
-              supplier_name: invoice.supplier_name,
-              invoice_number: invoice.invoice_number,
-              total_amount:
-                invoice.total_amount !== null ? `${invoice.total_amount.value} ${invoice.total_amount.currency}` : null,
+              supplier_name: invoice.supplier_name ?? null,
+              invoice_number: invoice.invoice_number ?? null,
+              total_amount: invoice.total_amount
+                ? `${invoice.total_amount.value} ${invoice.total_amount.currency}`
+                : null,
               status: invoice.status,
-              due_date: invoice.due_date,
-              issue_date: invoice.issue_date,
-              payment_date: invoice.payment_date,
+              due_date: invoice.due_date ?? null,
+              issue_date: invoice.issue_date ?? null,
+              payment_date: invoice.payment_date ?? null,
               file_name: invoice.file_name,
               is_einvoice: invoice.is_einvoice,
               created_at: invoice.created_at,

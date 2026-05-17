@@ -38,6 +38,13 @@ describe("RequestFlashCardSchema", () => {
     const result = RequestFlashCardSchema.parse({ ...validFlashCard, extra: true });
     expect(result).not.toHaveProperty("extra");
   });
+
+  it("accepts RequestFlashCard with declined_note omitted entirely (regression: L2 audit #604)", () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { declined_note: _omit, ...withoutDeclinedNote } = validFlashCard;
+    const result = RequestFlashCardSchema.parse(withoutDeclinedNote);
+    expect(result.declined_note).toBeUndefined();
+  });
 });
 
 describe("RequestVirtualCardSchema", () => {
@@ -75,6 +82,13 @@ describe("RequestTransferSchema", () => {
   it("parses a transfer with empty attachment_ids", () => {
     const transfer = { ...validTransfer, attachment_ids: [] };
     expect(RequestTransferSchema.parse(transfer)).toEqual(transfer);
+  });
+
+  it("accepts RequestTransfer with last_recurrence_date omitted entirely (regression: L2 audit #604)", () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { last_recurrence_date: _omit, ...withoutLastRecurrenceDate } = validTransfer;
+    const result = RequestTransferSchema.parse(withoutLastRecurrenceDate);
+    expect(result.last_recurrence_date).toBeUndefined();
   });
 });
 
