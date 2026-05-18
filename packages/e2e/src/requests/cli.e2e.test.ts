@@ -110,9 +110,13 @@ async function runWithConditionalSca(args: readonly string[]): Promise<SpawnedCl
 //   - `GET  /v2/requests`                                  → 200 OK (11 pending multi_transfer requests)
 //   - `POST /v2/requests/multi_transfers`                  → 200 OK (works, NOT SCA-gated)
 //   - `POST /v2/requests/flash_cards`                      → 403 Forbidden
+//     (precondition: docs/qonto-sandbox-preconditions.md#post-v2-requests-flash-cards)
 //   - `POST /v2/requests/virtual_cards`                    → 403 Forbidden
+//     (precondition: docs/qonto-sandbox-preconditions.md#post-v2-requests-virtual-cards)
 //   - `POST /v2/requests/multi_transfers/{id}/approve`     → 403 Forbidden
+//     (precondition: docs/qonto-sandbox-preconditions.md#post-v2-requests-multi-transfers-id-approve)
 //   - `POST /v2/requests/multi_transfers/{id}/decline`     → 403 Forbidden
+//     (precondition: docs/qonto-sandbox-preconditions.md#post-v2-requests-multi-transfers-id-decline)
 //
 // The 4 sandbox-blocked endpoints (`flash_cards` create, `virtual_cards` create,
 // approve, decline) return `403 unknown` despite all `request_*.write` scopes
@@ -203,6 +207,12 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("request CLI comma
 // `request_transfers.write`), so this is a sandbox-plan or admin-role
 // limitation — not an auth misconfiguration on our side.
 //
+// Preconditions documented in the L3 catalog:
+//   - precondition: docs/qonto-sandbox-preconditions.md#post-v2-requests-flash-cards
+//   - precondition: docs/qonto-sandbox-preconditions.md#post-v2-requests-virtual-cards
+//   - precondition: docs/qonto-sandbox-preconditions.md#post-v2-requests-multi-transfers-id-approve
+//   - precondition: docs/qonto-sandbox-preconditions.md#post-v2-requests-multi-transfers-id-decline
+//
 // The CLI and MCP code paths for the deferred endpoints are confirmed
 // correct by audit-refresh inspection:
 //   - `packages/cli/src/commands/request/{approve,decline,create-flash-card,
@@ -210,4 +220,4 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("request CLI comma
 //   - `packages/mcp/src/tools/request.ts` wraps all four with
 //     `executeWithMcpSca`
 //
-// Tracked as a follow-up to #555.
+// Tracked as a follow-up to #555 under #567.

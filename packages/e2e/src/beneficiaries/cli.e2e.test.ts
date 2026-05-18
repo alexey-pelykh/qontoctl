@@ -195,6 +195,7 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())(
       // `beneficiary list` call goes through the same auth path the test's
       // write call will. Filter to `status: validated` server-side so the
       // failure message reflects the precondition the AC names.
+      // precondition: docs/qonto-sandbox-preconditions.md#put-v2-sepa-beneficiaries-id
       const beneficiaries = cliJson<Beneficiary[]>("beneficiary", "list", "--status", "validated");
       if (beneficiaries.length === 0) {
         throw new Error(

@@ -238,12 +238,12 @@ async function runWithConditionalSca(args: readonly string[]): Promise<SpawnedCl
 // `0909-future-club-2702`, OAuth token with all card.write scopes):
 //
 //   - `POST /v2/cards`                                  → 428 SCA, then 200 (works)
-//   - `POST /v2/cards/bulk`                             → 404 not_found  (deferred, #570)
+//   - `POST /v2/cards/bulk`                             → 404 not_found  (precondition: docs/qonto-sandbox-preconditions.md#post-v2-cards-bulk)
 //   - `POST /v2/cards/{id}/lock`                        → 200 (works, NOT SCA-gated in sandbox)
 //   - `POST /v2/cards/{id}/unlock`                      → 428 SCA, then 200 (works)
 //   - `PUT  /v2/cards/{id}/limits`                      → 428 SCA, then 200 (works)
 //   - `PUT  /v2/cards/{id}/nickname`                    → 200 (works, NOT SCA-gated in sandbox)
-//   - `PUT  /v2/cards/{id}/options`                     → 403 Forbidden (deferred, #570)
+//   - `PUT  /v2/cards/{id}/options`                     → 403 Forbidden (precondition: docs/qonto-sandbox-preconditions.md#put-v2-cards-id-options)
 //   - `PUT  /v2/cards/{id}/restrictions`                → 200 (works, NOT SCA-gated in sandbox; was 403 pre-2026-05-12)
 //
 // Two of the 8 covered endpoints still return non-200 in the sandbox
@@ -491,7 +491,9 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("card CLI commands
 // and is now covered above):
 //
 //   - `card bulk-create`        → `POST /v2/cards/bulk`                 404 not_found
+//     (precondition: docs/qonto-sandbox-preconditions.md#post-v2-cards-bulk)
 //   - `card update-options`     → `PUT  /v2/cards/{id}/options`         403 Forbidden
+//     (precondition: docs/qonto-sandbox-preconditions.md#put-v2-cards-id-options)
 //
 // Same sandbox-plan / admin-role pattern as the 4 deferred request
 // endpoints in #555 (request approve/decline/create-flash-card/

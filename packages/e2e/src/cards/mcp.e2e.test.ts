@@ -244,11 +244,14 @@ async function callWithConditionalSca(
 // `0909-future-club-2702`): 6 of 8 covered card write endpoints succeed
 // (create + update-nickname + update-limits + lock + unlock + update-
 // restrictions). The other 2 (bulk-create, update-options) return 404/403
-// in the sandbox despite all card.write scopes being granted; deferred
-// under #570. `update-restrictions` flipped from 403 → 200 between the
-// 2026-04 #556 probe and the 2026-05-12 re-probe without any user-visible
-// config change (likely sandbox-plan tier upgrade by Qonto), and is now
-// covered as round-trip #6 below. See `packages/e2e/src/cards/cli.e2e.test.ts`
+// in the sandbox despite all card.write scopes being granted; tracked
+// under #570. See:
+//   - precondition: docs/qonto-sandbox-preconditions.md#post-v2-cards-bulk
+//   - precondition: docs/qonto-sandbox-preconditions.md#put-v2-cards-id-options
+// `update-restrictions` flipped from 403 → 200 between the 2026-04 #556
+// probe and the 2026-05-12 re-probe without any user-visible config
+// change (likely sandbox-plan tier upgrade by Qonto), and is now covered
+// as round-trip #6 below. See `packages/e2e/src/cards/cli.e2e.test.ts`
 // header note for the full per-endpoint table and idempotency strategy
 // (cards accumulate; 1/run). Deferral notes for the destructive trio AND
 // the 2 sandbox-blocked write endpoints are repeated at the bottom of
@@ -427,7 +430,9 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("card MCP tools (e
 // above):
 //
 //   - `card_bulk_create`        → `POST /v2/cards/bulk`               404 not_found
+//     (precondition: docs/qonto-sandbox-preconditions.md#post-v2-cards-bulk)
 //   - `card_update_options`     → `PUT  /v2/cards/{id}/options`       403 Forbidden
+//     (precondition: docs/qonto-sandbox-preconditions.md#put-v2-cards-id-options)
 //
 // Same sandbox-plan / admin-role pattern as the 4 deferred request
 // endpoints in #555. Both MCP tools wrap with `executeWithMcpSca`

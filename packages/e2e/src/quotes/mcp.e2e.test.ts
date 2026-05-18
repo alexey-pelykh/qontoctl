@@ -165,11 +165,11 @@ describe.skipIf(!hasOAuthCredentials())("MCP quote tools (e2e)", () => {
         },
       });
 
-      // Documented sandbox-precondition: `quote_update` returns HTTP 412
-      // `quote_has_no_attachment` against the live sandbox unless the quote
-      // has at least one attachment first (design §7.2 R-SP-3 Path B; #606
-      // catalog). Triage rather than assert so the lifecycle's downstream
-      // delete step still runs.
+      // precondition: docs/qonto-sandbox-preconditions.md#patch-v2-quotes-id
+      // `quote_update` returns HTTP 412 `quote_has_no_attachment` against the
+      // live sandbox unless the quote has at least one attachment first
+      // (design §7.2 R-SP-3 Path B). Triage rather than assert so the
+      // lifecycle's downstream delete step still runs.
       skipIfToolError(result, ctx, "sandbox-precondition", "quote_update requires attachment — see #606 (design §7.2)");
 
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as Record<string, unknown>;
@@ -185,9 +185,10 @@ describe.skipIf(!hasOAuthCredentials())("MCP quote tools (e2e)", () => {
         arguments: { id },
       });
 
+      // precondition: docs/qonto-sandbox-preconditions.md#post-v2-quotes-id-send
       // Send may fail with a 4xx if the quote's client lacks a mailbox.
-      // Triage as sandbox-precondition (the client has no email configured);
-      // see #606 (epic #603) for the L3 sandbox-precondition catalog (#605).
+      // Triage as sandbox-precondition rather than assert so the lifecycle's
+      // downstream delete step still runs.
       skipIfToolError(result, ctx, "sandbox-precondition", "quote_send requires client mailbox — see #606");
 
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as Record<string, unknown>;
@@ -204,9 +205,10 @@ describe.skipIf(!hasOAuthCredentials())("MCP quote tools (e2e)", () => {
         arguments: { id },
       });
 
+      // precondition: docs/qonto-sandbox-preconditions.md#delete-v2-quotes-id
       // If the previous step actually sent the quote, the delete is likely
       // rejected by the API. Triage as sandbox-precondition (delete requires
-      // non-sent state); see #606 for the L3 catalog (#605).
+      // non-sent state) so the lifecycle stays best-effort.
       skipIfToolError(result, ctx, "sandbox-precondition", "quote_delete requires non-sent state — see #606");
 
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as Record<string, unknown>;

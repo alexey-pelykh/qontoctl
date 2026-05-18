@@ -164,6 +164,7 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())(
       client = new Client({ name: "e2e-beneficiary-update-sca", version: "0.0.0" });
       await client.connect(transport);
 
+      // precondition: docs/qonto-sandbox-preconditions.md#put-v2-sepa-beneficiaries-id
       const listResult = (await client.callTool({
         name: "beneficiary_list",
         arguments: { status: "validated", per_page: 100 },
