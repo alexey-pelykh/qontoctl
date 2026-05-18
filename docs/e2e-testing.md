@@ -315,3 +315,103 @@ shared helpers used across E2E suites:
 Tests that adopt the helpers should remove their inlined copies of the
 same boilerplate to keep the codebase DRY — the helpers are the single
 source of truth for "how E2E tests talk to the CLI / MCP server".
+
+## Order-independence invariant
+
+**The invariant.** No test may depend on another test's side effects
+except within an explicit CRUD-lifecycle `describe` block using the
+[`LifecycleSkipCarrier`](../packages/e2e/src/helpers.ts) pattern. Across
+files and across sibling describes, every test must run from a clean
+starting state — its outcome must be the same whether the suite runs in
+declaration order, reverse order, or any random permutation.
+
+**Why.** The E2E suite shares a single Qonto sandbox org across all
+tests in a run. Hidden cross-test dependencies (a `let` at file scope
+populated by one test and read by another, a sandbox-state mutation
+that primes a later test, a singleton OAuth token leaked between
+suites) make the suite a slot machine: outcomes depend on which test
+ran first, which is implicit in vitest's declaration order and the
+filesystem walk that `vitest.e2e.config.ts` produces. When the order
+matters and nobody designed it to, a test failure may flip to pass on
+re-run — the silent flake that wasted ~2 weeks chasing #496 (epic
+[#603](https://github.com/alexey-pelykh/qontoctl/issues/603) §1.1).
+
+**The lifecycle-`describe` carve-out.** Tests that CRUD a resource
+inherently depend on each other (`create` populates `createdId`,
+`update` reads it). The legitimate pattern is to declare the shared
+state inside the `describe` block that owns the lifecycle:
+
+```ts
+describe.skipIf(!hasApiKeyCredentials())("client commands (e2e)", () => {
+    describe("client CRUD lifecycle", () => {
+        const lifecycleSkip: LifecycleSkipCarrier = { reason: undefined };
+        let createdClientId: string | undefined;
+
+        it("creates a client", async (ctx) => {
+            /* populates createdClientId */
+        });
+        it("shows the created client", async (ctx) => {
+            skipIfUpstreamSkipped(lifecycleSkip, ctx);
+            const id = assertLifecycleState(createdClientId, "createdClientId");
+            /* ... */
+        });
+        // updates, deletes follow the same pattern
+    });
+});
+```
+
+The shared `let` is scoped to the `describe` — vitest's
+`fileParallelism: false` (set in
+[`vitest.e2e.config.ts`](../vitest.e2e.config.ts)) guarantees the
+chain runs in declaration order within a single worker, and the
+`LifecycleSkipCarrier` propagates skips visibly without leaking state
+across sibling describes or files.
+
+**The forbidden pattern.**
+
+```ts
+// ❌ Module-scope `let` shared across `it()` blocks — order-dependent across the suite.
+let createdId: string | undefined;
+
+describe("foo", () => {
+    it("creates", () => {
+        createdId = "...";
+    });
+});
+
+describe("bar", () => {
+    it("uses", () => {
+        /* reads createdId — depends on "foo" running first */
+    });
+});
+```
+
+This is enforced two ways:
+
+1. **Lint guard** (authoring time):
+   [`eslint-rules/no-module-scope-mutable-state-in-e2e.js`](../eslint-rules/no-module-scope-mutable-state-in-e2e.js)
+   flags any `let` or `var` declared at the top level of a
+   `*.e2e.test.ts` file. Runs as part of `pnpm lint`.
+2. **Pre-release diff** (run time): `pnpm order-independence-check`
+   (script at
+   [`scripts/check-order-independence.sh`](../scripts/check-order-independence.sh))
+   runs the E2E suite twice — default file order and shuffled
+   (`--sequence.shuffle.files`) — and diffs the pass/fail/skip
+   classification of every test. A test whose outcome differs across
+   runs is flagged for state-isolation review (epic #603 R-OI-2).
+   Skip-reason text may differ legitimately; pass/fail/skip
+   _membership_ may not.
+
+When the pre-release diff flags a test, the remediation is one of:
+
+- Move the cross-test state into a CRUD-lifecycle `describe` (as
+  above), or
+- Add a `beforeEach`/`afterEach` to reset the state, or
+- If the dependency is on sandbox state (not in-process state), document
+  the precondition in
+  [`docs/qonto-sandbox-preconditions.md`](./qonto-sandbox-preconditions.md)
+  (epic #603 §7) and either satisfy the precondition or
+  `ctx.skip("sandbox-precondition: ...")`.
+
+See [`docs/designs/e2e-test-reliability.md`](./designs/e2e-test-reliability.md)
+§8.3 for the full design rationale.
