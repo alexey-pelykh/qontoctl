@@ -108,6 +108,31 @@ The smoke-test step simulates the Homebrew install path under the strictest poss
 
 If verification fails, the most likely causes are: (a) `bundleDependencies` having been removed from `packages/qontoctl/package.json` (so pnpm pack excludes `node_modules/` entirely); (b) the `NPM_CONFIG_NODE_LINKER=hoisted` env var was dropped from the deploy step, leaving symlinked `node_modules/.pnpm/` that pack cannot include; (c) a new transitive dep was added to `@qontoctl/cli`, `@qontoctl/mcp`, or `@qontoctl/core` but the CI guard's enumeration in `.github/workflows/release.yml` was not updated to verify it. Inspect `tar tzf "$tarball" | grep node_modules | awk -F/ '{print $3}' | sort -u` to see what is actually bundled.
 
+### 1.6. Run the contract probe (local)
+
+Run the schema-vs-runtime contract probe to catch any Zod schema drift before tagging. This is the safety net against shipping a release where one or more `@qontoctl/core` schemas reject responses the live Qonto API actually returns (the failure mode that motivated #601, #604, #514, #496, etc., where each schema-strictness fix landed reactively after a user hit `Invalid API response`).
+
+```sh
+pnpm contract-probe
+```
+
+The probe loads OAuth credentials from the resolved config file (per CLAUDE.md § Configuration), calls every GET endpoint listed in `scripts/contract-probe.endpoints.json`, diffs each response against the named Zod schema exported from `@qontoctl/core`, and writes a `SchemaDriftReport[]` to `.tmp/contract-probe/{ISO8601}.json` plus a console summary table. The script is read-only by construction (GET-only endpoint catalog; never auto-edits schemas) — it surfaces drift as **suggested** corrective Zod declarations the maintainer reviews and applies manually.
+
+**Exit codes**:
+
+| Code | Meaning                                                      | Action                                                                                                                                                                                                                                                                                                              |
+| ---- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `0`  | No drift detected — every probed endpoint matches its schema | Proceed to § 2                                                                                                                                                                                                                                                                                                      |
+| `1`  | Drift detected on one or more endpoints                      | Open the JSON report at `.tmp/contract-probe/{ISO8601}.json`, decide per finding whether to relax the schema (additive `*.nullable().optional()` change) or to investigate as a real API contract change. Suggested fixes are emitted next to each finding; apply them in a follow-up PR before tagging the release |
+| `2`  | OAuth credentials expired or missing                         | Re-authenticate (`qontoctl auth login` or refresh the file at the resolved config path) and re-run                                                                                                                                                                                                                  |
+| `3`  | Config / network / schema-shape error                        | See the error message; the probe fails fast on misconfiguration                                                                                                                                                                                                                                                     |
+
+**Why this matters at release time**: every prior schema-strictness incident was found by a user hitting a live response the schema rejected. Running the probe pre-release converts that reactive loop into a proactive check — discovered drift becomes a one-line schema relaxation in the same release rather than a hotfix the week after.
+
+**Cadence**: at minimum, **before every release** (this step). The maintainer SHOULD also run the probe **quarterly** out-of-band even when no release is imminent — Qonto API responses can drift between releases, and a quarterly cadence keeps the drift surface bounded. There is no automated quarterly trigger today; the contract probe is intentionally local-only per `docs/designs/e2e-test-reliability.md §8.1` (CI runs api-key only, so it cannot exercise the OAuth-required endpoints in the catalog).
+
+**Expanding the catalog**: if a new GET endpoint ships in `@qontoctl/core`, add an entry to `scripts/contract-probe.endpoints.json` with the schema name, response path, and an optional `query` map (some endpoints reject `per_page`). The catalog is the only thing the probe consults — adding code does not auto-enroll an endpoint into the probe surface.
+
 ### 2. Update CHANGELOG
 
 Promote `[Unreleased]` to a versioned heading and start a fresh empty `[Unreleased]`:

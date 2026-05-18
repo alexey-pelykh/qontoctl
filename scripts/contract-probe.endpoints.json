@@ -1,0 +1,175 @@
+{
+  "_comment": "Schema-vs-runtime contract probe endpoint catalog. READ-ONLY by construction. Each entry samples one GET endpoint and diffs the response against the named Zod schema (exported from @qontoctl/core). The probe extracts response_path before diffing, so the schema can be the inner item schema (e.g., QuoteSchema) rather than the wrapper (QuoteListResponseSchema). Adding new endpoints: ensure (a) endpoint is GET-only, (b) schema is exported from @qontoctl/core/index.ts, (c) response_path resolves to a single object (use [0] to pick the first list item). See docs/designs/e2e-test-reliability.md §8.1 and PRD §4.4 (R-CP-1..R-CP-4) for the contract.",
+  "_schema_version": 1,
+  "endpoints": [
+    {
+      "id": "organization",
+      "method": "GET",
+      "path": "/v2/organization",
+      "schema": "OrganizationSchema",
+      "response_path": "organization",
+      "notes": "Singular resource. Always present for authenticated org."
+    },
+    {
+      "id": "list-labels",
+      "method": "GET",
+      "path": "/v2/labels",
+      "query": { "per_page": "1" },
+      "schema": "LabelSchema",
+      "response_path": "labels[0]",
+      "notes": "Probe first item only; per_page=1 minimizes payload."
+    },
+    {
+      "id": "list-memberships",
+      "method": "GET",
+      "path": "/v2/memberships",
+      "query": { "per_page": "1" },
+      "schema": "MembershipSchema",
+      "response_path": "memberships[0]"
+    },
+    {
+      "id": "list-teams",
+      "method": "GET",
+      "path": "/v2/teams",
+      "query": { "per_page": "1" },
+      "schema": "TeamSchema",
+      "response_path": "teams[0]"
+    },
+    {
+      "id": "list-beneficiaries",
+      "method": "GET",
+      "path": "/v2/sepa/beneficiaries",
+      "query": { "per_page": "1" },
+      "schema": "BeneficiarySchema",
+      "response_path": "beneficiaries[0]"
+    },
+    {
+      "id": "list-cards",
+      "method": "GET",
+      "path": "/v2/cards",
+      "query": { "per_page": "1" },
+      "schema": "CardSchema",
+      "response_path": "cards[0]"
+    },
+    {
+      "id": "list-clients",
+      "method": "GET",
+      "path": "/v2/clients",
+      "query": { "per_page": "1" },
+      "schema": "ClientSchema",
+      "response_path": "clients[0]"
+    },
+    {
+      "id": "list-quotes",
+      "method": "GET",
+      "path": "/v2/quotes",
+      "query": { "per_page": "1" },
+      "schema": "QuoteSchema",
+      "response_path": "quotes[0]",
+      "notes": "Source of #496 schema drift; high-value probe target."
+    },
+    {
+      "id": "list-client-invoices",
+      "method": "GET",
+      "path": "/v2/client_invoices",
+      "query": { "per_page": "1" },
+      "schema": "ClientInvoiceSchema",
+      "response_path": "client_invoices[0]"
+    },
+    {
+      "id": "list-credit-notes",
+      "method": "GET",
+      "path": "/v2/credit_notes",
+      "query": { "per_page": "1" },
+      "schema": "CreditNoteSchema",
+      "response_path": "credit_notes[0]"
+    },
+    {
+      "id": "list-transactions",
+      "method": "GET",
+      "path": "/v2/transactions",
+      "query": { "per_page": "1" },
+      "schema": "TransactionSchema",
+      "response_path": "transactions[0]"
+    },
+    {
+      "id": "list-products",
+      "method": "GET",
+      "path": "/v2/products",
+      "query": { "per_page": "1" },
+      "schema": "ProductSchema",
+      "response_path": "products[0]"
+    },
+    {
+      "id": "list-payment-links",
+      "method": "GET",
+      "path": "/v2/payment_links",
+      "query": { "per_page": "1" },
+      "schema": "PaymentLinkSchema",
+      "response_path": "payment_links[0]"
+    },
+    {
+      "id": "list-recurring-transfers",
+      "method": "GET",
+      "path": "/v2/sepa/recurring_transfers",
+      "query": { "per_page": "1" },
+      "schema": "RecurringTransferSchema",
+      "response_path": "recurring_transfers[0]"
+    },
+    {
+      "id": "list-supplier-invoices",
+      "method": "GET",
+      "path": "/v2/supplier_invoices",
+      "query": { "per_page": "1" },
+      "schema": "SupplierInvoiceSchema",
+      "response_path": "supplier_invoices[0]"
+    },
+    {
+      "id": "list-insurance-contracts",
+      "method": "GET",
+      "path": "/v2/insurance_contracts",
+      "query": { "per_page": "1" },
+      "schema": "InsuranceContractSchema",
+      "response_path": "insurance_contracts[0]"
+    },
+    {
+      "id": "list-webhook-subscriptions",
+      "method": "GET",
+      "path": "/v2/webhook_subscriptions",
+      "schema": "WebhookSubscriptionSchema",
+      "response_path": "webhook_subscriptions[0]",
+      "notes": "Webhook list endpoint does not accept per_page."
+    },
+    {
+      "id": "list-transfers",
+      "method": "GET",
+      "path": "/v2/sepa/transfers",
+      "query": { "per_page": "1" },
+      "schema": "TransferSchema",
+      "response_path": "transfers[0]"
+    },
+    {
+      "id": "list-statements",
+      "method": "GET",
+      "path": "/v2/statements",
+      "query": { "per_page": "1" },
+      "schema": "StatementSchema",
+      "response_path": "statements[0]"
+    },
+    {
+      "id": "list-intl-beneficiaries",
+      "method": "GET",
+      "path": "/v2/international/beneficiaries",
+      "query": { "per_page": "1" },
+      "schema": "IntlBeneficiarySchema",
+      "response_path": "beneficiaries[0]"
+    },
+    {
+      "id": "einvoicing-settings",
+      "method": "GET",
+      "path": "/v2/einvoicing/settings",
+      "schema": "EInvoicingSettingsSchema",
+      "response_path": "einvoicing_settings"
+    }
+  ]
+}

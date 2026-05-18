@@ -14,24 +14,30 @@
     "test": "turbo run test",
     "test:e2e": "turbo run test:e2e --concurrency=1",
     "format:check": "prettier --check .",
-    "typecheck": "turbo run typecheck",
+    "typecheck": "turbo run typecheck && tsc -p scripts/tsconfig.json",
     "lint": "turbo run lint",
     "license-check": "node scripts/check-licenses.js",
     "publish-check": "node scripts/check-publish-manifest.js",
     "coverage-drift-check": "node scripts/check-coverage-drift.js",
     "silent-skip-check": "node scripts/check-no-silent-skip.js",
+    "contract-probe": "tsx scripts/contract-probe.ts",
+    "contract-probe-test": "vitest run scripts/contract-probe.test.ts",
     "dev": "turbo run dev"
   },
   "devDependencies": {
     "@eslint/js": "catalog:",
+    "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "eslint": "catalog:",
     "eslint-config-prettier": "catalog:",
     "@tony.ganchev/eslint-plugin-header": "catalog:",
     "prettier": "catalog:",
+    "tsx": "catalog:",
     "turbo": "catalog:",
     "typescript": "catalog:",
     "typescript-eslint": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "@qontoctl/core": "workspace:^",
+    "zod": "catalog:"
   }
 }
