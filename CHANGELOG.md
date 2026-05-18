@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- **Tooling**: `pnpm contract-probe` — schema-vs-runtime drift detector that probes Qonto GET endpoints with OAuth credentials, diffs live responses against Zod schemas exported from `@qontoctl/core`, and emits a `SchemaDriftReport[]` to `.tmp/contract-probe/{ISO8601}.json` plus a console summary table. Read-only by construction (GET-only endpoint catalog at `scripts/contract-probe.endpoints.json`); suggest-don't-apply (never edits schema files — emits corrective Zod declarations as text for maintainer review). Local-only per design (CI is api-key only — see `docs/designs/e2e-test-reliability.md §8.1`); maintainers should run it quarterly and before each release (see `docs/release-runbook.md` § Contract probe). Typed exit codes: 0 = clean, 1 = drift detected (scriptable), 2 = OAuth expired/missing, 3 = config/network error. Implements PRD requirements R-CP-1..R-CP-4 (#608).
+
 ## [2.0.1] — 2026-05-15
 
 ### Fixed
