@@ -34,6 +34,7 @@ jobs:
       - run: pnpm coverage-drift-check
       - run: pnpm silent-skip-check
       - run: pnpm eslint-rules-test
+      - run: pnpm contract-probe-test
       - run: pnpm test ${{ matrix.os == 'ubuntu-latest' && '-- -- --coverage' || '' }}
       - name: Upload coverage to Codecov
         if: matrix.os == 'ubuntu-latest' && env.CODECOV_TOKEN != ''

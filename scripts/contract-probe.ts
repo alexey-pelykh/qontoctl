@@ -144,9 +144,10 @@ interface EndpointsFile {
 
 /**
  * Extract the field map from a Zod object schema, capturing nullable / optional
- * flags. Unwraps `ZodOptional`/`ZodNullable` wrappers iteratively via the
- * Zod 4 `_zod.def.innerType` chain to support `.nullable().optional()` in
- * either order.
+ * flags. Unwraps `ZodOptional` / `ZodNullable` / `ZodDefault` (via the Zod 4
+ * `_zod.def.innerType` chain) and `ZodPipe` (via `_zod.def.in`) iteratively,
+ * order-independent, so `.nullable().optional()`, `.default(null)`, and
+ * `.transform()` chains all classify correctly (#616).
  *
  * Schemas not satisfying `instanceof z.ZodObject` should be rejected by the
  * caller before invoking this helper — the function assumes a `.shape` field.
@@ -160,11 +161,45 @@ export function walkKeys(schema: z.ZodObject<z.ZodRawShape>): Map<string, KeySpe
     let inner: z.ZodType = raw as z.ZodType;
     let isNullable = false;
     let isOptional = false;
-    // Unwrap ZodOptional / ZodNullable iteratively; both orderings work.
-    while (inner instanceof z.ZodOptional || inner instanceof z.ZodNullable) {
-      if (inner instanceof z.ZodOptional) isOptional = true;
-      if (inner instanceof z.ZodNullable) isNullable = true;
-      inner = (inner as unknown as { _zod: { def: { innerType: z.ZodType } } })._zod.def.innerType;
+    // Unwrap strictness-affecting wrappers iteratively, in any order. The
+    // iteration cap mirrors unwrapToObject (depth > 16 is implausible).
+    //   ZodOptional → accepts absence
+    //   ZodNullable → accepts null
+    //   ZodDefault  → `.default(v)` supplies a value when the input is absent,
+    //                 so the field accepts absence; descend to surface any
+    //                 nested `.nullable()` (e.g. `z.T().nullable().optional()
+    //                 .default(null)`, the BeneficiarySchema.email / QuoteSchema
+    //                 .discount shape).
+    //   ZodPipe     → `.transform(fn)` produces a pipe whose `in` side is the
+    //                 schema the raw response is validated against; descend
+    //                 into `in` so an upstream `.nullable()` is not lost
+    //                 (e.g. `z.array(...).nullable().transform(...)`, the
+    //                 ClientInvoiceSchema.items shape).
+    // Without ZodDefault / ZodPipe handling the outermost wrapper short-circuits
+    // the loop, leaving both flags false → false-positive drift (#616).
+    for (let i = 0; i < 16; i++) {
+      if (inner instanceof z.ZodOptional) {
+        isOptional = true;
+        inner = (inner as unknown as { _zod: { def: { innerType: z.ZodType } } })._zod.def.innerType;
+        continue;
+      }
+      if (inner instanceof z.ZodNullable) {
+        isNullable = true;
+        inner = (inner as unknown as { _zod: { def: { innerType: z.ZodType } } })._zod.def.innerType;
+        continue;
+      }
+      if (inner instanceof z.ZodDefault) {
+        isOptional = true;
+        inner = (inner as unknown as { _zod: { def: { innerType: z.ZodType } } })._zod.def.innerType;
+        continue;
+      }
+      if (inner instanceof z.ZodPipe) {
+        const pipeIn = (inner as unknown as { _zod: { def: { in?: unknown } } })._zod.def.in;
+        if (!(pipeIn instanceof z.ZodType)) break;
+        inner = pipeIn;
+        continue;
+      }
+      break;
     }
     result.set(key, { isNullable, isOptional });
   }
