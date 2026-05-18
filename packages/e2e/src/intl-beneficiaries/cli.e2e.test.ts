@@ -20,6 +20,14 @@ interface IntlBeneficiaryItem {
  * to the CLI as a non-zero exit. We use `cliRaw` here so the suite
  * remains useful both on eligibility-cleared and ineligible sandbox accounts;
  * the tests still assert response shape when the call succeeds.
+ *
+ * NOTE: This suite covers `intl beneficiary list` only — the SCA write
+ * paths (`intl beneficiary add`/`update`/`remove`) are blocked by a
+ * sandbox-side HTTP 500 on `POST /v2/international/beneficiaries` and are
+ * tracked separately under #561. Preconditions documented:
+ *   - precondition: docs/qonto-sandbox-preconditions.md#post-v2-international-beneficiaries
+ *   - precondition: docs/qonto-sandbox-preconditions.md#put-v2-international-beneficiaries-id
+ *   - precondition: docs/qonto-sandbox-preconditions.md#delete-v2-international-beneficiaries-id
  */
 describe.skipIf(!hasOAuthCredentials())("intl-beneficiary CLI commands (e2e)", () => {
   pinAuthPreference("oauth-first");

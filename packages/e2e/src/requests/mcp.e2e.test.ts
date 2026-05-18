@@ -162,6 +162,12 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("request MCP tools
 // `request_cards.write`, `request_transfers.write`) are granted; the
 // limitation is sandbox-plan / admin-role level, not auth misconfiguration.
 //
+// Preconditions documented in the L3 catalog:
+//   - precondition: docs/qonto-sandbox-preconditions.md#post-v2-requests-flash-cards
+//   - precondition: docs/qonto-sandbox-preconditions.md#post-v2-requests-virtual-cards
+//   - precondition: docs/qonto-sandbox-preconditions.md#post-v2-requests-multi-transfers-id-approve
+//   - precondition: docs/qonto-sandbox-preconditions.md#post-v2-requests-multi-transfers-id-decline
+//
 // MCP code paths confirmed correct by audit-refresh inspection — all four
 // tools wrap with `executeWithMcpSca` in `packages/mcp/src/tools/request.ts`.
-// Tracked as a follow-up to #555.
+// Tracked as a follow-up to #555 under #567.

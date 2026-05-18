@@ -8,6 +8,14 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { CLI_PATH, firstTextFromMcpResult, skipIfToolError, skipMissingFixture } from "../helpers.js";
 import { cliEnv, hasOAuthCredentials, pinAuthPreference } from "../sandbox.js";
 
+// NOTE: This suite covers `intl_beneficiary_list` and `intl_beneficiary_requirements`
+// only — the SCA write paths (`intl_beneficiary_add`/`update`/`remove`) are
+// blocked by a sandbox-side HTTP 500 on `POST /v2/international/beneficiaries`
+// and are tracked separately under #561. Preconditions documented:
+//   - precondition: docs/qonto-sandbox-preconditions.md#post-v2-international-beneficiaries
+//   - precondition: docs/qonto-sandbox-preconditions.md#put-v2-international-beneficiaries-id
+//   - precondition: docs/qonto-sandbox-preconditions.md#delete-v2-international-beneficiaries-id
+
 describe.skipIf(!hasOAuthCredentials())("intl-beneficiary MCP tools (e2e)", () => {
   pinAuthPreference("oauth-first");
 

@@ -172,10 +172,12 @@ describe.skipIf(!hasApiKeyCredentials())("MCP client invoice tools (e2e)", () =>
         },
       });
 
-      // Invoice creation may fail if the organization lacks required setup
-      // (e.g., IBAN not configured) — surface as visible feature-not-supported
-      // skip and propagate to downstream tests via the lifecycle carrier
-      // (see #606 for the L3 sandbox-precondition catalog, #605).
+      // precondition: docs/qonto-sandbox-preconditions.md#post-v2-client-invoices
+      // Invoice creation requires an org-level invoicing-IBAN setting that is
+      // not exposed by the public Qonto API — see [#539] for the
+      // configuration-investigation track. The whole write-path lifecycle is
+      // unreachable without it, so surface as `feature-not-supported` and
+      // propagate to downstream tests via the lifecycle carrier.
       skipIfToolError(
         createResult,
         ctx,
@@ -296,10 +298,12 @@ describe.skipIf(!hasApiKeyCredentials())("MCP client invoice tools (e2e)", () =>
         },
       });
 
-      // Invoice creation may fail if the organization lacks required setup
-      // (e.g., IBAN not configured) — surface as visible feature-not-supported
-      // skip and propagate to downstream lifecycle steps via the carrier
-      // (see #606 for the L3 sandbox-precondition catalog, #605).
+      // precondition: docs/qonto-sandbox-preconditions.md#post-v2-client-invoices
+      // Invoice creation requires an org-level invoicing-IBAN setting that is
+      // not exposed by the public Qonto API — see [#539] for the
+      // configuration-investigation track. The whole state-machine lifecycle
+      // is unreachable without it, so surface as `feature-not-supported` and
+      // propagate to downstream lifecycle steps via the carrier.
       skipIfToolError(
         createResult,
         ctx,
@@ -431,6 +435,9 @@ describe.skipIf(!hasApiKeyCredentials())("MCP client invoice tools (e2e)", () =>
           },
         });
 
+        // precondition: docs/qonto-sandbox-preconditions.md#post-v2-client-invoices
+        // Same invoicing-IBAN gate as the other lifecycles in this file —
+        // unblocked separately under [#539].
         skipIfToolError(
           createResult,
           ctx,
