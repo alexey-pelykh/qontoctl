@@ -4,9 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.0.2] — 2026-05-18
+
 ### Added
 
 - **Tooling**: `pnpm contract-probe` — schema-vs-runtime drift detector that probes Qonto GET endpoints with OAuth credentials, diffs live responses against Zod schemas exported from `@qontoctl/core`, and emits a `SchemaDriftReport[]` to `.tmp/contract-probe/{ISO8601}.json` plus a console summary table. Read-only by construction (GET-only endpoint catalog at `scripts/contract-probe.endpoints.json`); suggest-don't-apply (never edits schema files — emits corrective Zod declarations as text for maintainer review). Local-only per design (CI is api-key only — see `docs/designs/e2e-test-reliability.md §8.1`); maintainers should run it quarterly and before each release (see `docs/release-runbook.md` § Contract probe). Typed exit codes: 0 = clean, 1 = drift detected (scriptable), 2 = OAuth expired/missing, 3 = config/network error. Implements PRD requirements R-CP-1..R-CP-4 (#608).
+- **Tooling**: `pnpm order-independence-check` — pre-release diff guard that detects E2E test order-dependencies by running the suite under shuffled file ordering and comparing pass/fail signatures against the canonical baseline. Catches lifecycle-carrier coupling that would otherwise silently mask failures. Pairs with the lifecycle-carrier invariant lint (now run suite-wide) and a CI regression guard (#607).
+
+### Fixed
+
+- **`@qontoctl/core`**: L2 schema-strictness audit — relax 48 nullable-not-optional fields across `QuoteSchema` (33 fields: top-level + nested `QuoteItem`, `QuoteAddress`, `QuoteClient`) and `ClientInvoiceSchema` (15 fields: nested `ClientInvoiceItem`, `ClientInvoiceAddress`, `ClientInvoiceClient`). Fields whose `required:` declaration in Qonto's OpenAPI does NOT include them — i.e., fields the API MAY omit entirely — are now `.nullable().optional()` (was previously `.nullable()`-only, which rejected omission). Mirrored TypeScript types updated; +48 regression tests. Additive (loosens parser); no caller break (#601).
+- **`@qontoctl/core`**: L2 schema-strictness audit — relax 34 nullable-not-optional fields across 11 core schemas (`Organization`, `Card`, `SupplierInvoice`, `Transaction`, `TransactionLabel`, `Client`, `Label`, `Membership`, `PaymentLink`, `RequestBase`, `RequestTransfer`). Same R-SS-1 pattern as #601 — fields whose Qonto OpenAPI `required:` declaration omits them (i.e., fields the API MAY omit entirely) are now `.nullable().optional()`. Mirrored TypeScript types updated for each `satisfies z.ZodType<T>` constraint. Additive (loosens parser); +34 regression tests (#604).
+- **`@qontoctl/core`**: `QuoteSchema` and `ClientInvoiceSchema` — extend `discount.type` enum to accept `"absolute"` (Qonto's `/v2/quotes` endpoint returns this for fixed-amount discounts despite the endpoint docs declaring only `[percentage, amount]`; the client-invoice endpoint docs use `"absolute"` canonically for the same semantic — reported with raw curl evidence in #496). `attachment_id` relaxed to `.nullable().optional()`. Additive (loosens parser) (#496).
 
 ## [2.0.1] — 2026-05-15
 
