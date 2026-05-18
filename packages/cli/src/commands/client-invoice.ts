@@ -82,11 +82,12 @@ function buildClientInvoiceListParams(opts: ClientInvoiceListOptions): QueryPara
 }
 
 function clientDisplayName(client: ClientInvoice["client"]): string {
-  if (client.name !== null) {
+  // `!= null` (not `!== null`) to also strip undefined: nested EmbeddedClient
+  // fields are now optional (#601 L2 audit — no `required:` list); for company
+  // clients, first_name/last_name are omitted (not present-and-null).
+  if (client.name != null) {
     return client.name;
   }
-  // `!= null` (not `!== null`) to also strip undefined: for company clients,
-  // first_name/last_name are omitted from the response, not present-and-null.
   const parts = [client.first_name, client.last_name].filter((p) => p != null);
   return parts.length > 0 ? parts.join(" ") : "";
 }

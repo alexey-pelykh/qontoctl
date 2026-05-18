@@ -27,14 +27,18 @@ export const QuoteDiscountSchema = z
   })
   .strip() satisfies z.ZodType<QuoteDiscount>;
 
+// Per Qonto's quote-endpoint docs, the nested Item schema has no `required:`
+// list — every field MAY be omitted entirely. Relaxed `.nullable()` fields to
+// `.nullable().optional()` (R-SS-1 / #604 pattern); strict fields kept as-is
+// (out of nullable-vs-optional audit scope, separate strict-to-optional class).
 export const QuoteItemSchema = z
   .object({
     title: z.string(),
-    description: z.string().nullable(),
+    description: z.string().nullable().optional(),
     quantity: z.string(),
-    unit: z.string().nullable().default(null),
+    unit: z.string().nullable().optional().default(null),
     vat_rate: z.string(),
-    vat_exemption_reason: z.string().nullable().default(null),
+    vat_exemption_reason: z.string().nullable().optional().default(null),
     unit_price: QuoteAmountSchema,
     unit_price_cents: z.number(),
     total_amount: QuoteAmountSchema,
@@ -43,42 +47,56 @@ export const QuoteItemSchema = z
     total_vat_cents: z.number(),
     subtotal: QuoteAmountSchema,
     subtotal_cents: z.number(),
-    discount: QuoteDiscountSchema.nullable().default(null),
+    discount: QuoteDiscountSchema.nullable().optional().default(null),
   })
   .strip() satisfies z.ZodType<QuoteItem>;
 
+// Per Qonto's quote-endpoint docs, the nested Address schema has no
+// `required:` list — every field MAY be omitted entirely. Relaxed to
+// `.nullable().optional()` (R-SS-1 / #604 pattern).
 export const QuoteAddressSchema = z
   .object({
-    street_address: z.string().nullable().default(null),
-    city: z.string().nullable().default(null),
-    zip_code: z.string().nullable().default(null),
-    province_code: z.string().nullable().default(null),
-    country_code: z.string().nullable().default(null),
+    street_address: z.string().nullable().optional().default(null),
+    city: z.string().nullable().optional().default(null),
+    zip_code: z.string().nullable().optional().default(null),
+    province_code: z.string().nullable().optional().default(null),
+    country_code: z.string().nullable().optional().default(null),
   })
   .strip() satisfies z.ZodType<QuoteAddress>;
 
+// Per Qonto's quote-endpoint docs, the EmbeddedClient schema has no
+// `required:` list — every field other than `id` and `type` MAY be omitted
+// entirely. Relaxed to `.nullable().optional()` (R-SS-1 / #604 pattern).
+// `id` and `type` are kept strict because they are universally returned
+// and `type` drives downstream branching (individual/company/freelancer).
 export const QuoteClientSchema = z
   .object({
     id: z.string(),
     type: z.enum(["individual", "company", "freelancer"]),
-    name: z.string().nullable().default(null),
-    first_name: z.string().nullable().default(null),
-    last_name: z.string().nullable().default(null),
-    email: z.string().nullable().default(null),
-    vat_number: z.string().nullable().default(null),
-    tax_identification_number: z.string().nullable().default(null),
-    address: z.string().nullable().default(null),
-    city: z.string().nullable().default(null),
-    zip_code: z.string().nullable().default(null),
-    province_code: z.string().nullable().default(null),
-    country_code: z.string().nullable().default(null),
-    recipient_code: z.string().nullable().default(null),
-    locale: z.string().nullable().default(null),
-    billing_address: QuoteAddressSchema.nullable().default(null),
-    delivery_address: QuoteAddressSchema.nullable().default(null),
+    name: z.string().nullable().optional().default(null),
+    first_name: z.string().nullable().optional().default(null),
+    last_name: z.string().nullable().optional().default(null),
+    email: z.string().nullable().optional().default(null),
+    vat_number: z.string().nullable().optional().default(null),
+    tax_identification_number: z.string().nullable().optional().default(null),
+    address: z.string().nullable().optional().default(null),
+    city: z.string().nullable().optional().default(null),
+    zip_code: z.string().nullable().optional().default(null),
+    province_code: z.string().nullable().optional().default(null),
+    country_code: z.string().nullable().optional().default(null),
+    recipient_code: z.string().nullable().optional().default(null),
+    locale: z.string().nullable().optional().default(null),
+    billing_address: QuoteAddressSchema.nullable().optional().default(null),
+    delivery_address: QuoteAddressSchema.nullable().optional().default(null),
   })
   .strip() satisfies z.ZodType<QuoteClient>;
 
+// Per Qonto's quote-endpoint docs (list / retrieve / create / patch),
+// `Quote.required` covers: id, organization_id, number, status, currency,
+// total_amount{,_cents}, vat_amount{,_cents}, issue_date, expiry_date,
+// created_at, items, client, organization. Every other field MAY be
+// omitted entirely. Relaxed each non-required `.nullable()` field to
+// `.nullable().optional()` (#601, mirroring #604's L2 audit pattern).
 export const QuoteSchema = z
   .object({
     id: z.string(),
@@ -93,21 +111,18 @@ export const QuoteSchema = z
     issue_date: z.string(),
     expiry_date: z.string(),
     created_at: z.string(),
-    approved_at: z.string().nullable(),
-    canceled_at: z.string().nullable(),
-    // Qonto's `Quote` schema does not list `attachment_id` in `required`,
-    // so the field may be omitted entirely (not just null). Observed in
-    // PATCH responses where the field is dropped from the payload (#496).
+    approved_at: z.string().nullable().optional(),
+    canceled_at: z.string().nullable().optional(),
     attachment_id: z.string().nullable().optional(),
-    quote_url: z.string().nullable(),
-    contact_email: z.string().nullable(),
-    terms_and_conditions: z.string().nullable(),
-    header: z.string().nullable(),
-    footer: z.string().nullable(),
-    discount: QuoteDiscountSchema.nullable().default(null),
+    quote_url: z.string().nullable().optional(),
+    contact_email: z.string().nullable().optional(),
+    terms_and_conditions: z.string().nullable().optional(),
+    header: z.string().nullable().optional(),
+    footer: z.string().nullable().optional(),
+    discount: QuoteDiscountSchema.nullable().optional().default(null),
     items: z.array(QuoteItemSchema).readonly(),
     client: QuoteClientSchema,
-    invoice_ids: z.array(z.string()).readonly(),
+    invoice_ids: z.array(z.string()).readonly().optional(),
   })
   .strip() satisfies z.ZodType<Quote>;
 

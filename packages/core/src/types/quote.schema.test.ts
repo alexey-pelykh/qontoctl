@@ -266,4 +266,76 @@ describe("QuoteSchema", () => {
     const result = QuoteSchema.parse(withoutAttachment);
     expect(result.attachment_id).toBeUndefined();
   });
+
+  // Fields NOT in Qonto's Quote `required:` list (see body comment in
+  // quote.schema.ts for the canonical required list) — regression: L2
+  // audit #601. Per OpenAPI semantics, fields outside `required:` MAY be
+  // omitted entirely (not just null).
+  it.each([
+    "approved_at",
+    "canceled_at",
+    "quote_url",
+    "contact_email",
+    "terms_and_conditions",
+    "header",
+    "footer",
+    "discount",
+    "invoice_ids",
+  ] as const)("accepts Quote with %s omitted entirely (regression: L2 audit #601)", (field) => {
+    const input = Object.fromEntries(Object.entries(validQuote).filter(([k]) => k !== field));
+    const result = QuoteSchema.parse(input);
+    if (field === "discount") {
+      expect(result.discount).toBeNull(); // `.default(null)` supplies null for missing input
+    } else {
+      expect((result as Record<string, unknown>)[field]).toBeUndefined();
+    }
+  });
+});
+
+// Nested-schema regression tests for #601 L2 audit: per Qonto's quote-endpoint
+// docs, none of QuoteItem / QuoteAddress / QuoteClient has a `required:` list
+// — every field MAY be omitted entirely. Verified at the schema boundary so
+// real Qonto responses lacking these fields parse without error.
+
+describe("QuoteItemSchema (#601 L2 audit)", () => {
+  it.each(["description", "unit", "vat_exemption_reason", "discount"] as const)(
+    "accepts Item with %s omitted entirely (regression: L2 audit #601)",
+    (field) => {
+      const input = Object.fromEntries(Object.entries(item).filter(([k]) => k !== field));
+      expect(() => QuoteItemSchema.parse(input)).not.toThrow();
+    },
+  );
+});
+
+describe("QuoteAddressSchema (#601 L2 audit)", () => {
+  it.each(["street_address", "city", "zip_code", "province_code", "country_code"] as const)(
+    "accepts Address with %s omitted entirely (regression: L2 audit #601)",
+    (field) => {
+      const input = Object.fromEntries(Object.entries(address).filter(([k]) => k !== field));
+      expect(() => QuoteAddressSchema.parse(input)).not.toThrow();
+    },
+  );
+});
+
+describe("QuoteClientSchema (#601 L2 audit)", () => {
+  it.each([
+    "name",
+    "first_name",
+    "last_name",
+    "email",
+    "vat_number",
+    "tax_identification_number",
+    "address",
+    "city",
+    "zip_code",
+    "province_code",
+    "country_code",
+    "recipient_code",
+    "locale",
+    "billing_address",
+    "delivery_address",
+  ] as const)("accepts Client with %s omitted entirely (regression: L2 audit #601)", (field) => {
+    const input = Object.fromEntries(Object.entries(client).filter(([k]) => k !== field));
+    expect(() => QuoteClientSchema.parse(input)).not.toThrow();
+  });
 });

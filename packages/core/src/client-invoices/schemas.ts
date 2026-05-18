@@ -34,10 +34,14 @@ export const ClientInvoiceDiscountSchema = z
   })
   .strip() satisfies z.ZodType<ClientInvoiceDiscount>;
 
+// Per Qonto's client-invoice-endpoint docs, the nested DocumentItem schema
+// has no `required:` list — every field MAY be omitted entirely. Relaxed
+// `description` from `.nullable()` to `.nullable().optional()` to match the
+// pattern used elsewhere in this Item schema (R-SS-1 / #604).
 export const ClientInvoiceItemSchema = z
   .object({
     title: z.string(),
-    description: z.string().nullable(),
+    description: z.string().nullable().optional(),
     quantity: z.string(),
     unit: z.string().nullable().optional(),
     vat_rate: z.string(),
@@ -54,38 +58,43 @@ export const ClientInvoiceItemSchema = z
   })
   .strip() satisfies z.ZodType<ClientInvoiceItem>;
 
+// Per Qonto's client-invoice-endpoint docs, the nested Address schemas
+// (ClientBillingAddress / ClientDeliveryAddress) have no `required:` list —
+// every field MAY be omitted entirely. Relaxed to `.nullable().optional()`
+// (R-SS-1 / #604 pattern).
 export const ClientInvoiceAddressSchema = z
   .object({
-    street_address: z.string().nullable(),
-    city: z.string().nullable(),
-    zip_code: z.string().nullable(),
+    street_address: z.string().nullable().optional(),
+    city: z.string().nullable().optional(),
+    zip_code: z.string().nullable().optional(),
     province_code: z.string().nullable().optional(),
-    country_code: z.string().nullable(),
+    country_code: z.string().nullable().optional(),
   })
   .strip() satisfies z.ZodType<ClientInvoiceAddress>;
 
-// Per the Qonto API docs, `first_name` and `last_name` "will be returned
-// only if the client is an individual or a freelancer" — i.e., omitted
-// entirely (not just null) for `type: "company"`. Make them optional in
-// addition to nullable. Mirrors the standalone-ClientSchema fix from #496.
+// Per Qonto's client-invoice-endpoint docs, the EmbeddedClient schema has
+// no `required:` list — every field other than `id` and `type` MAY be
+// omitted entirely. Relaxed all remaining `.nullable()`-only fields to
+// `.nullable().optional()` (R-SS-1 / #604 pattern). `first_name` /
+// `last_name` were already relaxed (#496) per the company-type carve-out.
 export const ClientInvoiceClientSchema = z
   .object({
     id: z.string(),
     type: z.enum(["individual", "company", "freelancer"]),
-    name: z.string().nullable(),
+    name: z.string().nullable().optional(),
     first_name: z.string().nullable().optional(),
     last_name: z.string().nullable().optional(),
-    email: z.string().nullable(),
-    vat_number: z.string().nullable(),
-    tax_identification_number: z.string().nullable(),
-    address: z.string().nullable(),
-    city: z.string().nullable(),
-    zip_code: z.string().nullable(),
+    email: z.string().nullable().optional(),
+    vat_number: z.string().nullable().optional(),
+    tax_identification_number: z.string().nullable().optional(),
+    address: z.string().nullable().optional(),
+    city: z.string().nullable().optional(),
+    zip_code: z.string().nullable().optional(),
     province_code: z.string().nullable().optional(),
-    country_code: z.string().nullable(),
+    country_code: z.string().nullable().optional(),
     recipient_code: z.string().nullable().optional(),
-    locale: z.string().nullable(),
-    billing_address: ClientInvoiceAddressSchema.nullable(),
+    locale: z.string().nullable().optional(),
+    billing_address: ClientInvoiceAddressSchema.nullable().optional(),
     delivery_address: ClientInvoiceAddressSchema.nullable().optional(),
   })
   .strip() satisfies z.ZodType<ClientInvoiceClient>;
@@ -101,6 +110,20 @@ export const ClientInvoiceUploadSchema = z
   })
   .strip() satisfies z.ZodType<ClientInvoiceUpload>;
 
+// Per Qonto's client-invoice-endpoint docs, `ClientInvoice.required` covers
+// (among others): id, organization_id, number, purchase_order, status,
+// invoice_url, contact_email, terms_and_conditions, header, footer,
+// currency, total_amount{,_cents}, vat_amount{,_cents}, issue_date,
+// due_date, created_at, finalized_at, paid_at, items, client, payment_methods,
+// credit_notes_ids, organization, invoice_type.
+//
+// Fields that are IN `required:` but whose VALUE is nullable per Qonto
+// (`contact_email`, `terms_and_conditions`, `header`, `footer`, `issue_date`,
+// `due_date`) keep `.nullable()` (no `.optional()`) per L2 audit
+// (#601, R-SS-2 — field presence is guaranteed by the contract).
+//
+// Fields NOT in `required:` (`attachment_id`, `discount`) are `.nullable().optional()`
+// — they MAY be omitted entirely per Qonto's OpenAPI semantics (#496 / #604 pattern).
 export const ClientInvoiceSchema = z
   .object({
     id: z.string(),
@@ -117,9 +140,6 @@ export const ClientInvoiceSchema = z
     due_date: z.string().nullable(),
     created_at: z.string(),
     updated_at: z.string(),
-    // Qonto's `ClientInvoice` schema does not list `attachment_id` in
-    // `required`, so the field may be omitted entirely (not just null).
-    // Mirrors the Quote fix from #496.
     attachment_id: z.string().nullable().optional(),
     contact_email: z.string().nullable(),
     terms_and_conditions: z.string().nullable(),

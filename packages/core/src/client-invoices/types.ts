@@ -28,7 +28,7 @@ export interface ClientInvoiceDiscount {
  */
 export interface ClientInvoiceItem {
   readonly title: string;
-  readonly description: string | null;
+  readonly description?: string | null | undefined;
   readonly quantity: string;
   readonly unit?: string | null | undefined;
   readonly vat_rate: string;
@@ -48,11 +48,11 @@ export interface ClientInvoiceItem {
  * An address embedded in a client invoice client.
  */
 export interface ClientInvoiceAddress {
-  readonly street_address: string | null;
-  readonly city: string | null;
-  readonly zip_code: string | null;
+  readonly street_address?: string | null | undefined;
+  readonly city?: string | null | undefined;
+  readonly zip_code?: string | null | undefined;
   readonly province_code?: string | null | undefined;
-  readonly country_code: string | null;
+  readonly country_code?: string | null | undefined;
 }
 
 /**
@@ -65,20 +65,20 @@ export interface ClientInvoiceAddress {
 export interface ClientInvoiceClient {
   readonly id: string;
   readonly type: "individual" | "company" | "freelancer";
-  readonly name: string | null;
+  readonly name?: string | null | undefined;
   readonly first_name?: string | null | undefined;
   readonly last_name?: string | null | undefined;
-  readonly email: string | null;
-  readonly vat_number: string | null;
-  readonly tax_identification_number: string | null;
-  readonly address: string | null;
-  readonly city: string | null;
-  readonly zip_code: string | null;
+  readonly email?: string | null | undefined;
+  readonly vat_number?: string | null | undefined;
+  readonly tax_identification_number?: string | null | undefined;
+  readonly address?: string | null | undefined;
+  readonly city?: string | null | undefined;
+  readonly zip_code?: string | null | undefined;
   readonly province_code?: string | null | undefined;
-  readonly country_code: string | null;
+  readonly country_code?: string | null | undefined;
   readonly recipient_code?: string | null | undefined;
-  readonly locale: string | null;
-  readonly billing_address: ClientInvoiceAddress | null;
+  readonly locale?: string | null | undefined;
+  readonly billing_address?: ClientInvoiceAddress | null | undefined;
   readonly delivery_address?: ClientInvoiceAddress | null | undefined;
 }
 
