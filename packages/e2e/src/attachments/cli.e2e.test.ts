@@ -4,7 +4,14 @@
 import { resolve } from "node:path";
 import { AttachmentSchema, UploadedAttachmentSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
-import { cli, cliJson } from "../helpers.js";
+import {
+  cli,
+  cliJson,
+  type LifecycleSkipCarrier,
+  assertLifecycleState,
+  skipIfUpstreamSkipped,
+  skipMissingFixture,
+} from "../helpers.js";
 import { hasApiKeyCredentials } from "../sandbox.js";
 
 interface TransactionItem {
@@ -59,9 +66,11 @@ function findTransactionWithoutAttachments(): TransactionItem | undefined {
 
 describe.skipIf(!hasApiKeyCredentials())("attachment CLI commands (e2e)", () => {
   describe("transaction attachment list", () => {
-    it("lists attachments for a transaction and validates through schema", () => {
+    it("lists attachments for a transaction and validates through schema", (ctx) => {
       const txn = findTransactionWithAttachments();
-      if (txn === undefined) return;
+      if (txn === undefined) {
+        skipMissingFixture(ctx, "no transactions with attachments in sandbox");
+      }
 
       const attachments = cliJson<AttachmentItem[]>("transaction", "attachment", "list", txn.id);
       expect(Array.isArray(attachments)).toBe(true);
@@ -80,9 +89,11 @@ describe.skipIf(!hasApiKeyCredentials())("attachment CLI commands (e2e)", () => 
   });
 
   describe("attachment show", () => {
-    it("shows attachment details by ID and validates through schema", () => {
+    it("shows attachment details by ID and validates through schema", (ctx) => {
       const txn = findTransactionWithAttachments();
-      if (txn === undefined) return;
+      if (txn === undefined) {
+        skipMissingFixture(ctx, "no transactions with attachments in sandbox");
+      }
 
       const attachments = cliJson<AttachmentItem[]>("transaction", "attachment", "list", txn.id);
       expect(attachments.length).toBeGreaterThan(0);
@@ -108,6 +119,7 @@ describe.skipIf(!hasApiKeyCredentials())("attachment CLI commands (e2e)", () => 
   // `removeAllTransactionAttachments` is intentionally left to the MCP suite,
   // which has no such prompt and exercises the same core function.
   describe("attachment upload + delete round-trip", () => {
+    const lifecycleSkip: LifecycleSkipCarrier = { reason: undefined };
     let transactionId: string | undefined;
     let addedAttachmentId: string | undefined;
 
@@ -122,11 +134,10 @@ describe.skipIf(!hasApiKeyCredentials())("attachment CLI commands (e2e)", () => 
       expect(typeof attachment.id).toBe("string");
     });
 
-    it("adds the fixture to a transaction via transaction attachment add", () => {
+    it("adds the fixture to a transaction via transaction attachment add", (ctx) => {
       const txn = findTransactionWithoutAttachments();
       if (txn === undefined) {
-        console.warn("[e2e] no attachment-free transaction in sandbox — skipping CRUD round-trip");
-        return;
+        skipMissingFixture(ctx, "no attachment-free transaction in sandbox for CRUD round-trip", lifecycleSkip);
       }
       transactionId = txn.id;
 
@@ -143,20 +154,24 @@ describe.skipIf(!hasApiKeyCredentials())("attachment CLI commands (e2e)", () => 
       addedAttachmentId = newest.id;
     });
 
-    it("listTransactionAttachments returns the added attachment", () => {
-      if (transactionId === undefined || addedAttachmentId === undefined) return;
+    it("listTransactionAttachments returns the added attachment", (ctx) => {
+      skipIfUpstreamSkipped(lifecycleSkip, ctx);
+      const txnId = assertLifecycleState(transactionId, "transactionId");
+      const attId = assertLifecycleState(addedAttachmentId, "addedAttachmentId");
 
-      const attachments = cliJson<AttachmentItem[]>("transaction", "attachment", "list", transactionId);
-      expect(attachments.map((a) => a.id)).toContain(addedAttachmentId);
+      const attachments = cliJson<AttachmentItem[]>("transaction", "attachment", "list", txnId);
+      expect(attachments.map((a) => a.id)).toContain(attId);
     });
 
-    it("removes the attachment via transaction attachment remove", () => {
-      if (transactionId === undefined || addedAttachmentId === undefined) return;
+    it("removes the attachment via transaction attachment remove", (ctx) => {
+      skipIfUpstreamSkipped(lifecycleSkip, ctx);
+      const txnId = assertLifecycleState(transactionId, "transactionId");
+      const attId = assertLifecycleState(addedAttachmentId, "addedAttachmentId");
 
-      cli("transaction", "attachment", "remove", transactionId, addedAttachmentId);
+      cli("transaction", "attachment", "remove", txnId, attId);
 
-      const attachments = cliJson<AttachmentItem[]>("transaction", "attachment", "list", transactionId);
-      expect(attachments.map((a) => a.id)).not.toContain(addedAttachmentId);
+      const attachments = cliJson<AttachmentItem[]>("transaction", "attachment", "list", txnId);
+      expect(attachments.map((a) => a.id)).not.toContain(attId);
     });
   });
 });

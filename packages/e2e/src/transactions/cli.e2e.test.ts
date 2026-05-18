@@ -3,7 +3,7 @@
 
 import { TransactionSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
-import { cli, cliJson } from "../helpers.js";
+import { cli, cliJson, skipMissingFixture } from "../helpers.js";
 import { hasApiKeyCredentials } from "../sandbox.js";
 
 interface TransactionItem {
@@ -56,10 +56,12 @@ describe.skipIf(!hasApiKeyCredentials())("transaction CLI commands (e2e)", () =>
       expect(transactions.length).toBeLessThanOrEqual(2);
     });
 
-    it("filters by bank account ID", () => {
+    it("filters by bank account ID", (ctx) => {
       const all = cliJson<TransactionItem[]>("transaction", "list", "--no-paginate", "--per-page", "1");
       const first = firstTransaction(all);
-      if (first === undefined) return;
+      if (first === undefined) {
+        skipMissingFixture(ctx, "no transactions in sandbox to derive a bank-account filter");
+      }
 
       const bankAccountId = first.bank_account_id;
       const filtered = cliJson<TransactionItem[]>(
@@ -206,10 +208,12 @@ describe.skipIf(!hasApiKeyCredentials())("transaction CLI commands (e2e)", () =>
   });
 
   describe("transaction show", () => {
-    it("shows a transaction by ID", () => {
+    it("shows a transaction by ID", (ctx) => {
       const transactions = cliJson<TransactionItem[]>("transaction", "list", "--no-paginate", "--per-page", "1");
       const first = firstTransaction(transactions);
-      if (first === undefined) return;
+      if (first === undefined) {
+        skipMissingFixture(ctx, "no transactions in sandbox to resolve an id for transaction show");
+      }
 
       const txnId = first.id;
       const transaction = cliJson<TransactionItem>("transaction", "show", txnId);
@@ -221,10 +225,12 @@ describe.skipIf(!hasApiKeyCredentials())("transaction CLI commands (e2e)", () =>
       expect(transaction).toHaveProperty("currency");
     });
 
-    it("shows a transaction with included labels", () => {
+    it("shows a transaction with included labels", (ctx) => {
       const transactions = cliJson<TransactionItem[]>("transaction", "list", "--no-paginate", "--per-page", "1");
       const first = firstTransaction(transactions);
-      if (first === undefined) return;
+      if (first === undefined) {
+        skipMissingFixture(ctx, "no transactions in sandbox to resolve an id for transaction show with labels");
+      }
 
       const txnId = first.id;
       const transaction = cliJson<TransactionItem>("transaction", "show", txnId, "--include", "labels");
@@ -233,10 +239,12 @@ describe.skipIf(!hasApiKeyCredentials())("transaction CLI commands (e2e)", () =>
       expect(Array.isArray(transaction.labels)).toBe(true);
     });
 
-    it("shows a transaction with included attachments", () => {
+    it("shows a transaction with included attachments", (ctx) => {
       const transactions = cliJson<TransactionItem[]>("transaction", "list", "--no-paginate", "--per-page", "1");
       const first = firstTransaction(transactions);
-      if (first === undefined) return;
+      if (first === undefined) {
+        skipMissingFixture(ctx, "no transactions in sandbox to resolve an id for transaction show with attachments");
+      }
 
       const txnId = first.id;
       const transaction = cliJson<TransactionItem>("transaction", "show", txnId, "--include", "attachments");
@@ -244,10 +252,12 @@ describe.skipIf(!hasApiKeyCredentials())("transaction CLI commands (e2e)", () =>
       expect(transaction).toHaveProperty("attachments");
     });
 
-    it("outputs transaction details as YAML", () => {
+    it("outputs transaction details as YAML", (ctx) => {
       const transactions = cliJson<TransactionItem[]>("transaction", "list", "--no-paginate", "--per-page", "1");
       const first = firstTransaction(transactions);
-      if (first === undefined) return;
+      if (first === undefined) {
+        skipMissingFixture(ctx, "no transactions in sandbox to resolve an id for transaction show YAML output");
+      }
 
       const txnId = first.id;
       const output = cli("transaction", "show", txnId, "--output", "yaml");

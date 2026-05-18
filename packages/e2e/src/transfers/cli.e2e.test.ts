@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import { TransferSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
-import { CLI_PATH, cli, cliJson } from "../helpers.js";
+import { CLI_PATH, cli, cliJson, skipMissingFixture } from "../helpers.js";
 import {
   cliEnv,
   getTransferProofId,
@@ -126,10 +126,12 @@ describe.skipIf(!hasApiKeyCredentials())("transfer CLI commands (e2e)", () => {
   });
 
   describe("transfer show", () => {
-    it("shows a transfer by ID", () => {
+    it("shows a transfer by ID", (ctx) => {
       const transfers = cliJson<TransferItem[]>("transfer", "list", "--no-paginate", "--per-page", "1");
       const first = firstTransfer(transfers);
-      if (first === undefined) return;
+      if (first === undefined) {
+        skipMissingFixture(ctx, "no transfers in sandbox to resolve an id for transfer show");
+      }
 
       const transferId = first.id;
       const transfer = cliJson<TransferItem>("transfer", "show", transferId);
@@ -141,10 +143,12 @@ describe.skipIf(!hasApiKeyCredentials())("transfer CLI commands (e2e)", () => {
       expect(transfer).toHaveProperty("amount_currency");
     });
 
-    it("outputs transfer details as YAML", () => {
+    it("outputs transfer details as YAML", (ctx) => {
       const transfers = cliJson<TransferItem[]>("transfer", "list", "--no-paginate", "--per-page", "1");
       const first = firstTransfer(transfers);
-      if (first === undefined) return;
+      if (first === undefined) {
+        skipMissingFixture(ctx, "no transfers in sandbox to resolve an id for transfer show YAML");
+      }
 
       const transferId = first.id;
       const output = cli("transfer", "show", transferId, "--output", "yaml");

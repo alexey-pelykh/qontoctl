@@ -6,7 +6,7 @@ import { existsSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { CLI_PATH, cli, cliJson } from "../helpers.js";
+import { CLI_PATH, cli, cliJson, skipMissingFixture } from "../helpers.js";
 import { cliEnv, hasApiKeyCredentials } from "../sandbox.js";
 
 function listStatements(): Record<string, unknown>[] {
@@ -17,12 +17,14 @@ describe.skipIf(!hasApiKeyCredentials())("statement CLI commands (e2e)", () => {
   // -- statement list --
 
   describe("statement list", () => {
-    it("lists statements with expected fields", () => {
+    it("lists statements with expected fields", (ctx) => {
       const rows = listStatements();
       expect(Array.isArray(rows)).toBe(true);
 
       // Sandbox may have no statements — verify structure only when data exists
-      if (rows.length === 0) return;
+      if (rows.length === 0) {
+        skipMissingFixture(ctx, "no statements in sandbox to assert per-row structure");
+      }
 
       const first = rows[0] as Record<string, unknown>;
       expect(first).toHaveProperty("id");
@@ -33,9 +35,11 @@ describe.skipIf(!hasApiKeyCredentials())("statement CLI commands (e2e)", () => {
       expect(first).toHaveProperty("file_size");
     });
 
-    it("filters by bank account ID", () => {
+    it("filters by bank account ID", (ctx) => {
       const allRows = listStatements();
-      if (allRows.length === 0) return;
+      if (allRows.length === 0) {
+        skipMissingFixture(ctx, "no statements in sandbox to derive a bank-account filter");
+      }
 
       const bankAccountId = (allRows[0] as Record<string, unknown>)["bank_account_id"] as string;
 
@@ -62,9 +66,11 @@ describe.skipIf(!hasApiKeyCredentials())("statement CLI commands (e2e)", () => {
   // -- statement show --
 
   describe("statement show", () => {
-    it("shows full details of a statement", () => {
+    it("shows full details of a statement", (ctx) => {
       const allRows = listStatements();
-      if (allRows.length === 0) return;
+      if (allRows.length === 0) {
+        skipMissingFixture(ctx, "no statements in sandbox to resolve an id for statement show");
+      }
 
       const statementId = (allRows[0] as Record<string, unknown>)["id"] as string;
 
@@ -94,9 +100,11 @@ describe.skipIf(!hasApiKeyCredentials())("statement CLI commands (e2e)", () => {
       rmSync(tempDir, { recursive: true, force: true });
     });
 
-    it("downloads a statement PDF to the current directory", () => {
+    it("downloads a statement PDF to the current directory", (ctx) => {
       const allRows = listStatements();
-      if (allRows.length === 0) return;
+      if (allRows.length === 0) {
+        skipMissingFixture(ctx, "no statements in sandbox to download to cwd");
+      }
 
       const firstRow = allRows[0] as Record<string, unknown>;
       const statementId = firstRow["id"] as string;
@@ -118,9 +126,11 @@ describe.skipIf(!hasApiKeyCredentials())("statement CLI commands (e2e)", () => {
       expect(existsSync(downloadedFile)).toBe(true);
     });
 
-    it("downloads a statement PDF to a specified output directory", () => {
+    it("downloads a statement PDF to a specified output directory", (ctx) => {
       const allRows = listStatements();
-      if (allRows.length === 0) return;
+      if (allRows.length === 0) {
+        skipMissingFixture(ctx, "no statements in sandbox to download to --output-dir");
+      }
 
       const firstRow = allRows[0] as Record<string, unknown>;
       const statementId = firstRow["id"] as string;

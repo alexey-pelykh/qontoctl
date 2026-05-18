@@ -5,7 +5,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { StatementListResponseSchema, StatementSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { CLI_PATH, firstTextFromMcpResult } from "../helpers.js";
+import { CLI_PATH, firstTextFromMcpResult, skipIfToolError, skipMissingFixture } from "../helpers.js";
 import { cliEnv, hasApiKeyCredentials } from "../sandbox.js";
 
 describe.skipIf(!hasApiKeyCredentials())("statement MCP tools (e2e)", () => {
@@ -29,11 +29,12 @@ describe.skipIf(!hasApiKeyCredentials())("statement MCP tools (e2e)", () => {
   });
 
   describe("statement_list", () => {
-    it("lists statements and returns expected fields", async () => {
+    it("lists statements and returns expected fields", async (ctx) => {
       const result = await client.callTool({ name: "statement_list", arguments: {} });
 
-      // Sandbox may not have statements — skip gracefully on tool error
-      if (result.isError === true) return;
+      // Sandbox may not expose the statements module — surface as visible
+      // feature-not-supported skip (#605).
+      skipIfToolError(result, ctx, "feature-not-supported", "statement_list");
 
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as {
         statements: Record<string, unknown>[];
@@ -42,8 +43,10 @@ describe.skipIf(!hasApiKeyCredentials())("statement MCP tools (e2e)", () => {
       StatementListResponseSchema.parse(parsed);
       expect(parsed.meta).toHaveProperty("current_page");
 
-      // Sandbox may have no statements — verify structure only when data exists
-      if (parsed.statements.length === 0) return;
+      // Sandbox may have no statements — verify structure only when data exists.
+      if (parsed.statements.length === 0) {
+        skipMissingFixture(ctx, "no statements in sandbox to verify per-item shape");
+      }
 
       const first = parsed.statements[0] as Record<string, unknown>;
       expect(first).toHaveProperty("id");
@@ -71,18 +74,20 @@ describe.skipIf(!hasApiKeyCredentials())("statement MCP tools (e2e)", () => {
   });
 
   describe("statement_show", () => {
-    it("shows details of a specific statement", async () => {
+    it("shows details of a specific statement", async (ctx) => {
       // First, get a statement ID from the list
       const listResult = await client.callTool({
         name: "statement_list",
         arguments: {},
       });
-      if (listResult.isError === true) return;
+      skipIfToolError(listResult, ctx, "feature-not-supported", "statement_list");
 
       const listParsed = JSON.parse(firstTextFromMcpResult(listResult)) as {
         statements: Record<string, unknown>[];
       };
-      if (listParsed.statements.length === 0) return;
+      if (listParsed.statements.length === 0) {
+        skipMissingFixture(ctx, "no statements in sandbox to resolve an id for statement_show");
+      }
 
       const statementId = (listParsed.statements[0] as Record<string, unknown>)["id"] as string;
 

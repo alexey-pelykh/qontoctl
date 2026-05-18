@@ -19,6 +19,7 @@
     "license-check": "node scripts/check-licenses.js",
     "publish-check": "node scripts/check-publish-manifest.js",
     "coverage-drift-check": "node scripts/check-coverage-drift.js",
+    "silent-skip-check": "node scripts/check-no-silent-skip.js",
     "dev": "turbo run dev"
   },
   "devDependencies": {

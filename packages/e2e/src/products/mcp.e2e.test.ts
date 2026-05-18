@@ -5,7 +5,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { ProductListResponseSchema, ProductSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { CLI_PATH, firstTextFromMcpResult } from "../helpers.js";
+import { CLI_PATH, firstTextFromMcpResult, skipIfToolError } from "../helpers.js";
 import { cliEnv, hasApiKeyCredentials } from "../sandbox.js";
 
 interface ProductItem {
@@ -45,9 +45,9 @@ describe.skipIf(!hasApiKeyCredentials())("product MCP tools (e2e)", () => {
   });
 
   describe("product_list", () => {
-    it("returns a list of products with the expected structure", async () => {
+    it("returns a list of products with the expected structure", async (ctx) => {
       const result = await client.callTool({ name: "product_list", arguments: {} });
-      if (result.isError === true) return;
+      skipIfToolError(result, ctx, "feature-not-supported", "product_list");
 
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as ProductListResponse;
       ProductListResponseSchema.parse(parsed);
@@ -60,24 +60,24 @@ describe.skipIf(!hasApiKeyCredentials())("product MCP tools (e2e)", () => {
       }
     });
 
-    it("supports pagination", async () => {
+    it("supports pagination", async (ctx) => {
       const result = await client.callTool({
         name: "product_list",
         arguments: { per_page: 1, page: 1 },
       });
-      if (result.isError === true) return;
+      skipIfToolError(result, ctx, "feature-not-supported", "product_list");
 
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as ProductListResponse;
       expect(parsed.products.length).toBeLessThanOrEqual(1);
       expect(parsed.meta.current_page).toBe(1);
     });
 
-    it("supports sort_by", async () => {
+    it("supports sort_by", async (ctx) => {
       const result = await client.callTool({
         name: "product_list",
         arguments: { sort_by: "title:asc", per_page: 5 },
       });
-      if (result.isError === true) return;
+      skipIfToolError(result, ctx, "feature-not-supported", "product_list");
 
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as ProductListResponse;
       expect(Array.isArray(parsed.products)).toBe(true);

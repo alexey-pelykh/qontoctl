@@ -5,7 +5,7 @@ import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import { RecurringTransferSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
-import { CLI_PATH, cli, cliJson } from "../helpers.js";
+import { CLI_PATH, cli, cliJson, skipMissingFixture } from "../helpers.js";
 import { cliEnv, hasOAuthCredentials, hasStagingToken, pinAuthPreference } from "../sandbox.js";
 
 const execFileAsync = promisify(execFile);
@@ -150,7 +150,7 @@ describe.skipIf(!hasOAuthCredentials())("recurring-transfer CLI commands (e2e)",
   });
 
   describe("recurring-transfer show", () => {
-    it("shows a recurring transfer by ID", () => {
+    it("shows a recurring transfer by ID", (ctx) => {
       const recurringTransfers = cliJson<RecurringTransferItem[]>(
         "recurring-transfer",
         "list",
@@ -159,7 +159,9 @@ describe.skipIf(!hasOAuthCredentials())("recurring-transfer CLI commands (e2e)",
         "1",
       );
       const first = recurringTransfers[0];
-      if (first === undefined) return;
+      if (first === undefined) {
+        skipMissingFixture(ctx, "no recurring transfers in sandbox to resolve an id for recurring-transfer show");
+      }
 
       const rt = cliJson<RecurringTransferItem>("recurring-transfer", "show", first.id);
       RecurringTransferSchema.parse(rt);
@@ -178,13 +180,17 @@ describe.skipIf(!hasOAuthCredentials())("recurring-transfer CLI commands (e2e)",
   // separate process must call `sca-session mock-decision <token> allow` to
   // unblock polling. Skip when the staging token (sandbox routing) is absent.
   describe.skipIf(!hasStagingToken())("recurring-transfer create (sandbox SCA)", () => {
-    it("creates a recurring transfer with SCA mock-decision orchestration", async () => {
+    it("creates a recurring transfer with SCA mock-decision orchestration", async (ctx) => {
       const beneficiaries = cliJson<{ id: string }[]>("beneficiary", "list", "--no-paginate", "--per-page", "1");
-      if (beneficiaries.length === 0) return;
+      if (beneficiaries.length === 0) {
+        skipMissingFixture(ctx, "no beneficiaries in sandbox for recurring-transfer create");
+      }
       const beneficiaryId = (beneficiaries[0] as { id: string }).id;
 
       const accounts = cliJson<{ id: string }[]>("account", "list");
-      if (accounts.length === 0) return;
+      if (accounts.length === 0) {
+        skipMissingFixture(ctx, "no bank accounts in sandbox for recurring-transfer create");
+      }
       const accountId = (accounts[0] as { id: string }).id;
 
       const futureDate = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] as string;
@@ -230,13 +236,17 @@ describe.skipIf(!hasOAuthCredentials())("recurring-transfer CLI commands (e2e)",
   // SCA approval against the sandbox. Each spawn handles its own SCA
   // orchestration independently (two child processes, two approvals).
   describe.skipIf(!hasStagingToken())("recurring-transfer cancel (sandbox SCA)", () => {
-    it("creates and then cancels a recurring transfer with SCA mock-decision orchestration", async () => {
+    it("creates and then cancels a recurring transfer with SCA mock-decision orchestration", async (ctx) => {
       const beneficiaries = cliJson<{ id: string }[]>("beneficiary", "list", "--no-paginate", "--per-page", "1");
-      if (beneficiaries.length === 0) return;
+      if (beneficiaries.length === 0) {
+        skipMissingFixture(ctx, "no beneficiaries in sandbox for recurring-transfer cancel");
+      }
       const beneficiaryId = (beneficiaries[0] as { id: string }).id;
 
       const accounts = cliJson<{ id: string }[]>("account", "list");
-      if (accounts.length === 0) return;
+      if (accounts.length === 0) {
+        skipMissingFixture(ctx, "no bank accounts in sandbox for recurring-transfer cancel");
+      }
       const accountId = (accounts[0] as { id: string }).id;
 
       const futureDate = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] as string;

@@ -6,7 +6,14 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { AttachmentSchema, UploadedAttachmentSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { CLI_PATH, firstTextFromMcpResult } from "../helpers.js";
+import {
+  CLI_PATH,
+  firstTextFromMcpResult,
+  type LifecycleSkipCarrier,
+  assertLifecycleState,
+  skipIfUpstreamSkipped,
+  skipMissingFixture,
+} from "../helpers.js";
 import { cliEnv, hasApiKeyCredentials } from "../sandbox.js";
 
 /**
@@ -77,9 +84,11 @@ describe.skipIf(!hasApiKeyCredentials())("attachment MCP tools (e2e)", () => {
   }
 
   describe("transaction_attachment_list", () => {
-    it("lists attachments for a transaction and validates through schema", async () => {
+    it("lists attachments for a transaction and validates through schema", async (ctx) => {
       const txn = await findTransactionWithAttachments();
-      if (txn === undefined) return;
+      if (txn === undefined) {
+        skipMissingFixture(ctx, "no transactions with attachments in sandbox");
+      }
 
       const result = await client.callTool({
         name: "transaction_attachment_list",
@@ -104,9 +113,11 @@ describe.skipIf(!hasApiKeyCredentials())("attachment MCP tools (e2e)", () => {
   });
 
   describe("attachment_show", () => {
-    it("shows attachment details by ID and validates through schema", async () => {
+    it("shows attachment details by ID and validates through schema", async (ctx) => {
       const txn = await findTransactionWithAttachments();
-      if (txn === undefined) return;
+      if (txn === undefined) {
+        skipMissingFixture(ctx, "no transactions with attachments in sandbox");
+      }
 
       // First get the attachment list to find a valid ID
       const listResult = await client.callTool({
@@ -162,6 +173,7 @@ describe.skipIf(!hasApiKeyCredentials())("attachment MCP tools (e2e)", () => {
   // prompt, whereas the CLI's all-remove variant does (see cli.e2e.test.ts
   // comment); this is the canonical site for that function's coverage.
   describe("attachment upload + delete round-trip (MCP)", () => {
+    const lifecycleSkip: LifecycleSkipCarrier = { reason: undefined };
     let transactionId: string | undefined;
     let addedAttachmentId: string | undefined;
 
@@ -181,11 +193,10 @@ describe.skipIf(!hasApiKeyCredentials())("attachment MCP tools (e2e)", () => {
       expect(typeof parsed.id).toBe("string");
     });
 
-    it("adds the fixture to a transaction via transaction_attachment_add", async () => {
+    it("adds the fixture to a transaction via transaction_attachment_add", async (ctx) => {
       const txn = await findTransactionWithoutAttachments();
       if (txn === undefined) {
-        console.warn("[e2e] no attachment-free transaction in sandbox — skipping CRUD round-trip");
-        return;
+        skipMissingFixture(ctx, "no attachment-free transaction in sandbox for CRUD round-trip", lifecycleSkip);
       }
       transactionId = txn.id;
 
@@ -210,61 +221,66 @@ describe.skipIf(!hasApiKeyCredentials())("attachment MCP tools (e2e)", () => {
       addedAttachmentId = newest.id;
     });
 
-    it("transaction_attachment_list returns the added attachment", async () => {
-      if (transactionId === undefined || addedAttachmentId === undefined) return;
+    it("transaction_attachment_list returns the added attachment", async (ctx) => {
+      skipIfUpstreamSkipped(lifecycleSkip, ctx);
+      const txnId = assertLifecycleState(transactionId, "transactionId");
+      const attId = assertLifecycleState(addedAttachmentId, "addedAttachmentId");
 
       const result = await client.callTool({
         name: "transaction_attachment_list",
-        arguments: { transaction_id: transactionId },
+        arguments: { transaction_id: txnId },
       });
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as AttachmentListResponse;
-      expect(parsed.attachments.map((a) => a.id)).toContain(addedAttachmentId);
+      expect(parsed.attachments.map((a) => a.id)).toContain(attId);
     });
 
-    it("removes the specific attachment via transaction_attachment_remove", async () => {
-      if (transactionId === undefined || addedAttachmentId === undefined) return;
+    it("removes the specific attachment via transaction_attachment_remove", async (ctx) => {
+      skipIfUpstreamSkipped(lifecycleSkip, ctx);
+      const txnId = assertLifecycleState(transactionId, "transactionId");
+      const attId = assertLifecycleState(addedAttachmentId, "addedAttachmentId");
 
       const removeResult = await client.callTool({
         name: "transaction_attachment_remove",
-        arguments: { transaction_id: transactionId, attachment_id: addedAttachmentId },
+        arguments: { transaction_id: txnId, attachment_id: attId },
       });
       expect(removeResult.isError).toBeFalsy();
 
       const listResult = await client.callTool({
         name: "transaction_attachment_list",
-        arguments: { transaction_id: transactionId },
+        arguments: { transaction_id: txnId },
       });
       const parsed = JSON.parse(firstTextFromMcpResult(listResult)) as AttachmentListResponse;
-      expect(parsed.attachments.map((a) => a.id)).not.toContain(addedAttachmentId);
+      expect(parsed.attachments.map((a) => a.id)).not.toContain(attId);
     });
 
-    it("removes all attachments via transaction_attachment_remove (cleanup + coverage)", async () => {
-      if (transactionId === undefined) return;
+    it("removes all attachments via transaction_attachment_remove (cleanup + coverage)", async (ctx) => {
+      skipIfUpstreamSkipped(lifecycleSkip, ctx);
+      const txnId = assertLifecycleState(transactionId, "transactionId");
 
       // Re-seed an attachment so `removeAllTransactionAttachments` has something
       // to remove — this doubles as the function's own coverage point per AC.
       const addResult = await client.callTool({
         name: "transaction_attachment_add",
-        arguments: { transaction_id: transactionId, file_path: PDF_FIXTURE_PATH },
+        arguments: { transaction_id: txnId, file_path: PDF_FIXTURE_PATH },
       });
       expect(addResult.isError).toBeFalsy();
 
       const beforeResult = await client.callTool({
         name: "transaction_attachment_list",
-        arguments: { transaction_id: transactionId },
+        arguments: { transaction_id: txnId },
       });
       const before = JSON.parse(firstTextFromMcpResult(beforeResult)) as AttachmentListResponse;
       expect(before.attachments.length).toBeGreaterThan(0);
 
       const removeAllResult = await client.callTool({
         name: "transaction_attachment_remove",
-        arguments: { transaction_id: transactionId },
+        arguments: { transaction_id: txnId },
       });
       expect(removeAllResult.isError).toBeFalsy();
 
       const afterResult = await client.callTool({
         name: "transaction_attachment_list",
-        arguments: { transaction_id: transactionId },
+        arguments: { transaction_id: txnId },
       });
       const after = JSON.parse(firstTextFromMcpResult(afterResult)) as AttachmentListResponse;
       expect(after.attachments.length).toBe(0);

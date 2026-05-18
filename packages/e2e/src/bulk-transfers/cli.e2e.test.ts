@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import { BulkTransferSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
-import { CLI_PATH, cli, cliJson } from "../helpers.js";
+import { CLI_PATH, cli, cliJson, skipMissingFixture } from "../helpers.js";
 import { cliEnv, hasOAuthCredentials, hasStagingToken, pinAuthPreference } from "../sandbox.js";
 
 const execFileAsync = promisify(execFile);
@@ -69,13 +69,17 @@ describe.skipIf(!hasOAuthCredentials())("bulk-transfer CLI commands (e2e)", () =
   // process must call `sca-session mock-decision <token> allow` to unblock
   // polling. Skip when the staging token (sandbox routing) is absent.
   describe.skipIf(!hasStagingToken())("bulk-transfer create (sandbox SCA)", () => {
-    it("creates a bulk transfer from a JSON file with SCA mock-decision orchestration", async () => {
+    it("creates a bulk transfer from a JSON file with SCA mock-decision orchestration", async (ctx) => {
       const beneficiaries = cliJson<{ id: string }[]>("beneficiary", "list", "--no-paginate", "--per-page", "1");
-      if (beneficiaries.length === 0) return;
+      if (beneficiaries.length === 0) {
+        skipMissingFixture(ctx, "no beneficiaries in sandbox for bulk-transfer create");
+      }
       const beneficiaryId = (beneficiaries[0] as { id: string }).id;
 
       const accounts = cliJson<{ id: string }[]>("account", "list");
-      if (accounts.length === 0) return;
+      if (accounts.length === 0) {
+        skipMissingFixture(ctx, "no bank accounts in sandbox for bulk-transfer create");
+      }
       const accountId = (accounts[0] as { id: string }).id;
 
       const tmpDir = mkdtempSync(join(tmpdir(), "qontoctl-e2e-"));
@@ -176,9 +180,11 @@ describe.skipIf(!hasOAuthCredentials())("bulk-transfer CLI commands (e2e)", () =
   });
 
   describe("bulk-transfer show", () => {
-    it("shows a bulk transfer by ID", () => {
+    it("shows a bulk transfer by ID", (ctx) => {
       const bulkTransfers = cliJson<BulkTransferRecord[]>("bulk-transfer", "list", "--no-paginate");
-      if (bulkTransfers.length === 0) return;
+      if (bulkTransfers.length === 0) {
+        skipMissingFixture(ctx, "no bulk transfers in sandbox to resolve an id for bulk-transfer show");
+      }
 
       const first = bulkTransfers[0] as BulkTransferRecord;
 

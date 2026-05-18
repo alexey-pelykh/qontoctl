@@ -5,7 +5,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { PaymentLinkConnectionSchema, PaymentLinkListResponseSchema, PaymentLinkSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { CLI_PATH, firstTextFromMcpResult } from "../helpers.js";
+import { CLI_PATH, firstTextFromMcpResult, skipMissingFixture } from "../helpers.js";
 import { cliEnv, hasOAuthCredentials, pinAuthPreference } from "../sandbox.js";
 
 /**
@@ -70,7 +70,7 @@ describe.skipIf(!hasOAuthCredentials())("MCP payment link tools (e2e)", () => {
   });
 
   describe("payment_link_show", () => {
-    it("returns details for a specific payment link", async () => {
+    it("returns details for a specific payment link", async (ctx) => {
       const listResult = await client.callTool({
         name: "payment_link_list",
         arguments: {},
@@ -80,7 +80,9 @@ describe.skipIf(!hasOAuthCredentials())("MCP payment link tools (e2e)", () => {
       const listParsed = JSON.parse(firstTextFromMcpResult(listResult)) as {
         payment_links: { id: string }[];
       };
-      if (listParsed.payment_links.length === 0) return; // No payment links in sandbox
+      if (listParsed.payment_links.length === 0) {
+        skipMissingFixture(ctx, "no payment links in sandbox to resolve an id for payment_link_show");
+      }
 
       const firstLink = listParsed.payment_links[0] as { id: string };
       const result = await client.callTool({
@@ -97,7 +99,7 @@ describe.skipIf(!hasOAuthCredentials())("MCP payment link tools (e2e)", () => {
   });
 
   describe("payment_link_payments", () => {
-    it("returns payments for a payment link", async () => {
+    it("returns payments for a payment link", async (ctx) => {
       const listResult = await client.callTool({
         name: "payment_link_list",
         arguments: {},
@@ -107,7 +109,9 @@ describe.skipIf(!hasOAuthCredentials())("MCP payment link tools (e2e)", () => {
       const listParsed = JSON.parse(firstTextFromMcpResult(listResult)) as {
         payment_links: { id: string }[];
       };
-      if (listParsed.payment_links.length === 0) return; // No payment links in sandbox
+      if (listParsed.payment_links.length === 0) {
+        skipMissingFixture(ctx, "no payment links in sandbox to resolve an id for payment_link_payments");
+      }
 
       const firstLink = listParsed.payment_links[0] as { id: string };
       const result = await client.callTool({

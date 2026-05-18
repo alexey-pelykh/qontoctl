@@ -5,7 +5,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { IntlBeneficiaryListResponseSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { CLI_PATH, firstTextFromMcpResult } from "../helpers.js";
+import { CLI_PATH, firstTextFromMcpResult, skipIfToolError, skipMissingFixture } from "../helpers.js";
 import { cliEnv, hasOAuthCredentials, pinAuthPreference } from "../sandbox.js";
 
 describe.skipIf(!hasOAuthCredentials())("intl-beneficiary MCP tools (e2e)", () => {
@@ -31,13 +31,13 @@ describe.skipIf(!hasOAuthCredentials())("intl-beneficiary MCP tools (e2e)", () =
   });
 
   describe("intl_beneficiary_list", () => {
-    it("returns a list with expected structure", async () => {
+    it("returns a list with expected structure", async (ctx) => {
       const result = await client.callTool({
         name: "intl_beneficiary_list",
         arguments: { currency: "USD" },
       });
 
-      if (result.isError === true) return;
+      skipIfToolError(result, ctx, "feature-not-supported", "intl_beneficiary_list");
 
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as {
         international_beneficiaries: unknown[];
@@ -49,13 +49,13 @@ describe.skipIf(!hasOAuthCredentials())("intl-beneficiary MCP tools (e2e)", () =
       expect(Array.isArray(parsed.international_beneficiaries)).toBe(true);
     });
 
-    it("supports pagination", async () => {
+    it("supports pagination", async (ctx) => {
       const result = await client.callTool({
         name: "intl_beneficiary_list",
         arguments: { currency: "USD", per_page: 2, page: 1 },
       });
 
-      if (result.isError === true) return;
+      skipIfToolError(result, ctx, "feature-not-supported", "intl_beneficiary_list");
 
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as {
         international_beneficiaries: unknown[];
@@ -67,17 +67,19 @@ describe.skipIf(!hasOAuthCredentials())("intl-beneficiary MCP tools (e2e)", () =
   });
 
   describe("intl_beneficiary_requirements", () => {
-    it("returns requirements for an existing beneficiary", async () => {
+    it("returns requirements for an existing beneficiary", async (ctx) => {
       const listResult = await client.callTool({
         name: "intl_beneficiary_list",
         arguments: { currency: "USD" },
       });
-      if (listResult.isError === true) return;
+      skipIfToolError(listResult, ctx, "feature-not-supported", "intl_beneficiary_list");
 
       const listParsed = JSON.parse(firstTextFromMcpResult(listResult)) as {
         international_beneficiaries: { id: string }[];
       };
-      if (listParsed.international_beneficiaries.length === 0) return;
+      if (listParsed.international_beneficiaries.length === 0) {
+        skipMissingFixture(ctx, "no international beneficiaries in sandbox");
+      }
 
       const id = (listParsed.international_beneficiaries[0] as { id: string }).id;
 

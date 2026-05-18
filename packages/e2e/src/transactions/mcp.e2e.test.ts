@@ -5,7 +5,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { TransactionListResponseSchema, TransactionSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { CLI_PATH, firstTextFromMcpResult } from "../helpers.js";
+import { CLI_PATH, firstTextFromMcpResult, skipMissingFixture } from "../helpers.js";
 import { cliEnv, hasApiKeyCredentials } from "../sandbox.js";
 
 interface TransactionItem {
@@ -115,7 +115,7 @@ describe.skipIf(!hasApiKeyCredentials())("transaction MCP tools (e2e)", () => {
       expect(Array.isArray(parsed.transactions)).toBe(true);
     });
 
-    it("filters by bank account ID", async () => {
+    it("filters by bank account ID", async (ctx) => {
       // First get a transaction to extract bank_account_id
       const listResult = await client.callTool({
         name: "transaction_list",
@@ -123,7 +123,9 @@ describe.skipIf(!hasApiKeyCredentials())("transaction MCP tools (e2e)", () => {
       });
       const listParsed = JSON.parse(firstTextFromMcpResult(listResult)) as TransactionListResponse;
       const firstTxn = listParsed.transactions[0];
-      if (firstTxn === undefined) return;
+      if (firstTxn === undefined) {
+        skipMissingFixture(ctx, "no transactions in sandbox to derive a bank-account filter");
+      }
 
       const bankAccountId = firstTxn.bank_account_id;
       const result = await client.callTool({
@@ -139,7 +141,7 @@ describe.skipIf(!hasApiKeyCredentials())("transaction MCP tools (e2e)", () => {
   });
 
   describe("transaction_show", () => {
-    it("shows a transaction by ID", async () => {
+    it("shows a transaction by ID", async (ctx) => {
       // First get a transaction ID
       const listResult = await client.callTool({
         name: "transaction_list",
@@ -147,7 +149,9 @@ describe.skipIf(!hasApiKeyCredentials())("transaction MCP tools (e2e)", () => {
       });
       const listParsed = JSON.parse(firstTextFromMcpResult(listResult)) as TransactionListResponse;
       const firstTxn = listParsed.transactions[0];
-      if (firstTxn === undefined) return;
+      if (firstTxn === undefined) {
+        skipMissingFixture(ctx, "no transactions in sandbox to resolve an id for transaction_show");
+      }
 
       const txnId = firstTxn.id;
       const result = await client.callTool({

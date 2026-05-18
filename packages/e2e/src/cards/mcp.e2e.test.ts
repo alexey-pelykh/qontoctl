@@ -7,7 +7,7 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { CardListResponseSchema, CardSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { CLI_PATH, firstTextFromMcpResult } from "../helpers.js";
+import { CLI_PATH, firstTextFromMcpResult, skipIfToolError, skipMissingFixture } from "../helpers.js";
 import { cliEnv, hasOAuthCredentials, hasStagingToken, pinAuthPreference } from "../sandbox.js";
 import { SCA_PENDING_TOKEN_RE } from "../sca-helpers.js";
 
@@ -49,13 +49,13 @@ describe.skipIf(!hasOAuthCredentials())("card MCP tools (e2e)", () => {
   });
 
   describe("card_list", () => {
-    it("returns a list of cards with expected structure", async () => {
+    it("returns a list of cards with expected structure", async (ctx) => {
       const result = await client.callTool({
         name: "card_list",
         arguments: {},
       });
 
-      if (result.isError === true) return;
+      skipIfToolError(result, ctx, "feature-not-supported", "card_list");
 
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as CardListResponse;
       CardListResponseSchema.parse(parsed);
@@ -64,26 +64,26 @@ describe.skipIf(!hasOAuthCredentials())("card MCP tools (e2e)", () => {
       expect(Array.isArray(parsed.cards)).toBe(true);
     });
 
-    it("supports pagination", async () => {
+    it("supports pagination", async (ctx) => {
       const result = await client.callTool({
         name: "card_list",
         arguments: { per_page: 2, page: 1 },
       });
 
-      if (result.isError === true) return;
+      skipIfToolError(result, ctx, "feature-not-supported", "card_list");
 
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as CardListResponse;
       expect(parsed.cards.length).toBeLessThanOrEqual(2);
       expect(parsed.meta.current_page).toBe(1);
     });
 
-    it("filters by status", async () => {
+    it("filters by status", async (ctx) => {
       const result = await client.callTool({
         name: "card_list",
         arguments: { statuses: ["live"] },
       });
 
-      if (result.isError === true) return;
+      skipIfToolError(result, ctx, "feature-not-supported", "card_list");
 
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as CardListResponse;
       for (const c of parsed.cards) {
@@ -93,16 +93,18 @@ describe.skipIf(!hasOAuthCredentials())("card MCP tools (e2e)", () => {
   });
 
   describe("card_show", () => {
-    it("shows a card by ID", async () => {
+    it("shows a card by ID", async (ctx) => {
       const listResult = await client.callTool({
         name: "card_list",
         arguments: { per_page: 1 },
       });
-      if (listResult.isError === true) return;
+      skipIfToolError(listResult, ctx, "feature-not-supported", "card_list");
 
       const listParsed = JSON.parse(firstTextFromMcpResult(listResult)) as CardListResponse;
       const first = listParsed.cards[0];
-      if (first === undefined) return;
+      if (first === undefined) {
+        skipMissingFixture(ctx, "no cards in sandbox to resolve an id for card_show");
+      }
 
       const result = await client.callTool({
         name: "card_show",
@@ -119,13 +121,13 @@ describe.skipIf(!hasOAuthCredentials())("card MCP tools (e2e)", () => {
   });
 
   describe("card_appearances", () => {
-    it("returns available card appearances", async () => {
+    it("returns available card appearances", async (ctx) => {
       const result = await client.callTool({
         name: "card_appearances",
         arguments: {},
       });
 
-      if (result.isError === true) return;
+      skipIfToolError(result, ctx, "feature-not-supported", "card_appearances");
 
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as unknown[];
       expect(Array.isArray(parsed)).toBe(true);
@@ -133,7 +135,7 @@ describe.skipIf(!hasOAuthCredentials())("card MCP tools (e2e)", () => {
   });
 
   describe("card_iframe_url", () => {
-    it("returns a secure iframe URL for an existing card", async () => {
+    it("returns a secure iframe URL for an existing card", async (ctx) => {
       // Pick the first non-virtual live card — data_view returns 400 for
       // virtual cards in the sandbox (empirical 2026-05-12). Skip cleanly
       // when no physical card is available; mirrors the CLI counterpart.
@@ -141,7 +143,7 @@ describe.skipIf(!hasOAuthCredentials())("card MCP tools (e2e)", () => {
         name: "card_list",
         arguments: { statuses: ["live"] },
       });
-      if (listResult.isError === true) return;
+      skipIfToolError(listResult, ctx, "feature-not-supported", "card_list");
 
       const listParsed = JSON.parse(firstTextFromMcpResult(listResult)) as CardListResponse;
       const first = listParsed.cards.find(
@@ -149,7 +151,9 @@ describe.skipIf(!hasOAuthCredentials())("card MCP tools (e2e)", () => {
           (c as { card_level?: string }).card_level !== "virtual" &&
           (c as { card_level?: string }).card_level !== "virtual_partner",
       );
-      if (first === undefined) return;
+      if (first === undefined) {
+        skipMissingFixture(ctx, "no non-virtual live card in sandbox for iframe_url");
+      }
 
       const result = await client.callTool({
         name: "card_iframe_url",

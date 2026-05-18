@@ -3,7 +3,7 @@
 
 import { PaymentLinkConnectionSchema, PaymentLinkSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
-import { cliJson, cliRaw, qontoHttpStatus, SKIP, skipIfNotFound } from "../helpers.js";
+import { cliJson, cliRaw, qontoHttpStatus, SKIP, skipIfNotFound, skipMissingFixture } from "../helpers.js";
 import { hasOAuthCredentials, pinAuthPreference } from "../sandbox.js";
 
 describe.skipIf(!hasOAuthCredentials())("payment-link commands (e2e)", () => {
@@ -35,11 +35,13 @@ describe.skipIf(!hasOAuthCredentials())("payment-link commands (e2e)", () => {
   });
 
   describe("payment-link show", () => {
-    it("shows payment link details", () => {
+    it("shows payment link details", (ctx) => {
       const stdout = skipIfNotFound("--output", "json", "payment-link", "list");
       if (stdout === SKIP) return;
       const links = JSON.parse(stdout) as { id: string }[];
-      if (links.length === 0) return; // No payment links in sandbox
+      if (links.length === 0) {
+        skipMissingFixture(ctx, "no payment links in sandbox to resolve an id for payment-link show");
+      }
 
       const firstLink = links[0] as { id: string };
       const output = cliJson<unknown>("payment-link", "show", firstLink.id);
@@ -54,11 +56,13 @@ describe.skipIf(!hasOAuthCredentials())("payment-link commands (e2e)", () => {
   });
 
   describe("payment-link payments", () => {
-    it("lists payments for a payment link", () => {
+    it("lists payments for a payment link", (ctx) => {
       const stdout = skipIfNotFound("--output", "json", "payment-link", "list");
       if (stdout === SKIP) return;
       const links = JSON.parse(stdout) as { id: string }[];
-      if (links.length === 0) return; // No payment links in sandbox
+      if (links.length === 0) {
+        skipMissingFixture(ctx, "no payment links in sandbox to resolve an id for payment-link payments");
+      }
 
       const firstLink = links[0] as { id: string };
       const parsed = cliJson<unknown[]>("payment-link", "payments", firstLink.id);

@@ -4,7 +4,7 @@
 import { resolve } from "node:path";
 import { InsuranceContractSchema, InsuranceDocumentSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
-import { cli } from "../helpers.js";
+import { cli, type LifecycleSkipCarrier, assertLifecycleState, skipIfUpstreamSkipped } from "../helpers.js";
 import { hasOAuthCredentials, pinAuthPreference } from "../sandbox.js";
 
 /**
@@ -23,6 +23,7 @@ describe.skipIf(!hasOAuthCredentials())("insurance CLI commands (e2e)", () => {
   pinAuthPreference("oauth-first");
 
   describe("insurance CRUD lifecycle", () => {
+    const lifecycleSkip: LifecycleSkipCarrier = { reason: undefined };
     let createdId: string | undefined;
 
     it("creates an insurance contract", () => {
@@ -60,21 +61,23 @@ describe.skipIf(!hasOAuthCredentials())("insurance CLI commands (e2e)", () => {
       createdId = parsed["id"] as string;
     });
 
-    it("shows the created insurance contract", () => {
-      if (createdId === undefined) return;
+    it("shows the created insurance contract", (ctx) => {
+      skipIfUpstreamSkipped(lifecycleSkip, ctx);
+      const id = assertLifecycleState(createdId, "createdId");
 
-      const output = cli("--output", "json", "insurance", "show", createdId);
+      const output = cli("--output", "json", "insurance", "show", id);
       const parsed = JSON.parse(output) as Record<string, unknown>;
       InsuranceContractSchema.parse(parsed);
-      expect(parsed).toHaveProperty("id", createdId);
+      expect(parsed).toHaveProperty("id", id);
     });
 
-    it("updates the created insurance contract", () => {
-      if (createdId === undefined) return;
+    it("updates the created insurance contract", (ctx) => {
+      skipIfUpstreamSkipped(lifecycleSkip, ctx);
+      const id = assertLifecycleState(createdId, "createdId");
 
-      const output = cli("--output", "json", "insurance", "update", createdId, "--provider-slug", "allianz");
+      const output = cli("--output", "json", "insurance", "update", id, "--provider-slug", "allianz");
       const parsed = JSON.parse(output) as Record<string, unknown>;
-      expect(parsed).toHaveProperty("id", createdId);
+      expect(parsed).toHaveProperty("id", id);
       expect(parsed).toHaveProperty("provider_slug", "allianz");
     });
 
@@ -86,21 +89,13 @@ describe.skipIf(!hasOAuthCredentials())("insurance CLI commands (e2e)", () => {
     // fixture (`packages/e2e/fixtures/tiny.pdf`) landed with #G4A.
     let uploadedDocId: string | undefined;
 
-    it("uploads a document via insurance upload-doc", () => {
-      if (createdId === undefined) return;
+    it("uploads a document via insurance upload-doc", (ctx) => {
+      skipIfUpstreamSkipped(lifecycleSkip, ctx);
+      const id = assertLifecycleState(createdId, "createdId");
 
       // `--type` is required by the Qonto API (one of contract, amendment,
       // invoice, other, policy, certificate — empirically observed values).
-      const output = cli(
-        "--output",
-        "json",
-        "insurance",
-        "upload-doc",
-        createdId,
-        PDF_FIXTURE_PATH,
-        "--type",
-        "contract",
-      );
+      const output = cli("--output", "json", "insurance", "upload-doc", id, PDF_FIXTURE_PATH, "--type", "contract");
       const parsed = JSON.parse(output) as Record<string, unknown>;
       InsuranceDocumentSchema.parse(parsed);
       expect(parsed).toHaveProperty("id");
@@ -109,27 +104,31 @@ describe.skipIf(!hasOAuthCredentials())("insurance CLI commands (e2e)", () => {
       uploadedDocId = parsed["id"] as string;
     });
 
-    it("insurance show reflects the uploaded document", () => {
-      if (createdId === undefined || uploadedDocId === undefined) return;
+    it("insurance show reflects the uploaded document", (ctx) => {
+      skipIfUpstreamSkipped(lifecycleSkip, ctx);
+      const id = assertLifecycleState(createdId, "createdId");
+      const docId = assertLifecycleState(uploadedDocId, "uploadedDocId");
 
-      const output = cli("--output", "json", "insurance", "show", createdId);
+      const output = cli("--output", "json", "insurance", "show", id);
       const parsed = JSON.parse(output) as Record<string, unknown>;
       InsuranceContractSchema.parse(parsed);
       const documents = (parsed["documents"] as readonly InsuranceDocumentRef[] | null | undefined) ?? [];
-      expect(documents.map((d) => d.id)).toContain(uploadedDocId);
+      expect(documents.map((d) => d.id)).toContain(docId);
     });
 
-    it("removes the document via insurance remove-doc --yes", () => {
-      if (createdId === undefined || uploadedDocId === undefined) return;
+    it("removes the document via insurance remove-doc --yes", (ctx) => {
+      skipIfUpstreamSkipped(lifecycleSkip, ctx);
+      const id = assertLifecycleState(createdId, "createdId");
+      const docId = assertLifecycleState(uploadedDocId, "uploadedDocId");
 
       // `--yes` is required: without it, the CLI prints a confirmation prompt
       // to stderr and exits 1 (see `packages/cli/src/commands/insurance.ts`).
-      cli("--output", "json", "insurance", "remove-doc", createdId, uploadedDocId, "--yes");
+      cli("--output", "json", "insurance", "remove-doc", id, docId, "--yes");
 
-      const output = cli("--output", "json", "insurance", "show", createdId);
+      const output = cli("--output", "json", "insurance", "show", id);
       const parsed = JSON.parse(output) as Record<string, unknown>;
       const documents = (parsed["documents"] as readonly InsuranceDocumentRef[] | null | undefined) ?? [];
-      expect(documents.map((d) => d.id)).not.toContain(uploadedDocId);
+      expect(documents.map((d) => d.id)).not.toContain(docId);
     });
   });
 });

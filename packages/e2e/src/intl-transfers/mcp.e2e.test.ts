@@ -7,7 +7,7 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { IntlTransferRequirementsResponseSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { CLI_PATH, firstTextFromMcpResult } from "../helpers.js";
+import { CLI_PATH, firstTextFromMcpResult, skipIfToolError, skipMissingFixture } from "../helpers.js";
 import { cliEnv, hasOAuthCredentials, hasStagingToken, pinAuthPreference } from "../sandbox.js";
 import { SCA_PENDING_TOKEN_RE } from "../sca-helpers.js";
 
@@ -45,18 +45,20 @@ describe.skipIf(!hasOAuthCredentials())("intl-transfer MCP tools (e2e)", () => {
   });
 
   describe("intl_transfer_requirements", () => {
-    it("returns requirements for a beneficiary", async () => {
+    it("returns requirements for a beneficiary", async (ctx) => {
       // First list intl beneficiaries to get an ID
       const listResult = await client.callTool({
         name: "intl_beneficiary_list",
         arguments: {},
       });
-      if (listResult.isError === true) return;
+      skipIfToolError(listResult, ctx, "feature-not-supported", "intl_beneficiary_list");
 
       const listParsed = JSON.parse(firstTextFromMcpResult(listResult)) as {
         international_beneficiaries: { id: string }[];
       };
-      if (listParsed.international_beneficiaries.length === 0) return;
+      if (listParsed.international_beneficiaries.length === 0) {
+        skipMissingFixture(ctx, "no international beneficiaries in sandbox for intl_transfer_requirements");
+      }
 
       const id = (listParsed.international_beneficiaries[0] as { id: string }).id;
 

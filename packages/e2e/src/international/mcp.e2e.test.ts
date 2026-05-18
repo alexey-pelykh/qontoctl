@@ -5,7 +5,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { IntlCurrencySchema, IntlEligibilitySchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { CLI_PATH, firstTextFromMcpResult } from "../helpers.js";
+import { CLI_PATH, firstTextFromMcpResult, skipIfToolError } from "../helpers.js";
 import { cliEnv, hasOAuthCredentials, pinAuthPreference } from "../sandbox.js";
 
 describe.skipIf(!hasOAuthCredentials())("international MCP tools (e2e)", () => {
@@ -31,13 +31,13 @@ describe.skipIf(!hasOAuthCredentials())("international MCP tools (e2e)", () => {
   });
 
   describe("intl_eligibility", () => {
-    it("returns eligibility status (flat shape)", async () => {
+    it("returns eligibility status (flat shape)", async (ctx) => {
       const result = await client.callTool({
         name: "intl_eligibility",
         arguments: {},
       });
 
-      if (result.isError === true) return;
+      skipIfToolError(result, ctx, "feature-not-supported", "intl_eligibility");
 
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as Record<string, unknown>;
       IntlEligibilitySchema.parse(parsed);
@@ -46,13 +46,13 @@ describe.skipIf(!hasOAuthCredentials())("international MCP tools (e2e)", () => {
   });
 
   describe("intl_currencies", () => {
-    it("returns a list of currencies", async () => {
+    it("returns a list of currencies", async (ctx) => {
       const result = await client.callTool({
         name: "intl_currencies",
         arguments: { source: "EUR" },
       });
 
-      if (result.isError === true) return;
+      skipIfToolError(result, ctx, "feature-not-supported", "intl_currencies");
 
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as unknown[];
       expect(Array.isArray(parsed)).toBe(true);
@@ -62,13 +62,13 @@ describe.skipIf(!hasOAuthCredentials())("international MCP tools (e2e)", () => {
       }
     });
 
-    it("supports search filter", async () => {
+    it("supports search filter", async (ctx) => {
       const result = await client.callTool({
         name: "intl_currencies",
         arguments: { source: "EUR", search: "EUR" },
       });
 
-      if (result.isError === true) return;
+      skipIfToolError(result, ctx, "feature-not-supported", "intl_currencies");
 
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as { currency_code: string; country_code: string }[];
       expect(Array.isArray(parsed)).toBe(true);

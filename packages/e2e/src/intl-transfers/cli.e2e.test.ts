@@ -5,7 +5,7 @@ import { execFile, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
-import { CLI_PATH, cli, cliJson, cliRaw } from "../helpers.js";
+import { CLI_PATH, cli, cliRaw, SKIP, skipIfNotFound, skipMissingFixture } from "../helpers.js";
 import { cliEnv, hasOAuthCredentials, hasStagingToken, pinAuthPreference } from "../sandbox.js";
 import { SCA_POLL_URL_RE } from "../sca-helpers.js";
 
@@ -30,15 +30,20 @@ describe.skipIf(!hasOAuthCredentials())("intl-transfer CLI commands (e2e)", () =
   pinAuthPreference("oauth-first");
 
   describe("intl-transfer requirements", () => {
-    it("returns requirements for a beneficiary", () => {
-      // First list intl beneficiaries to get an ID
-      let beneficiaries: { id: string }[];
-      try {
-        beneficiaries = cliJson<{ id: string }[]>("intl-beneficiary", "list");
-      } catch {
-        return;
+    it("returns requirements for a beneficiary", (ctx) => {
+      // First list intl beneficiaries to get an ID. The intl-beneficiary
+      // feature can be sandbox-gated; previously a bare try/catch swallowed
+      // ANY error (including auth failures — the #496 class). Use the
+      // 404-specific `skipIfNotFound` helper instead so genuine errors
+      // (401 auth failure, 5xx) still surface as test failures.
+      const stdout = skipIfNotFound("--output", "json", "intl-beneficiary", "list");
+      if (stdout === SKIP) {
+        skipMissingFixture(ctx, "intl-beneficiary list returned 404 — feature not enabled in sandbox");
       }
-      if (beneficiaries.length === 0) return;
+      const beneficiaries = JSON.parse(stdout) as { id: string }[];
+      if (beneficiaries.length === 0) {
+        skipMissingFixture(ctx, "no international beneficiaries in sandbox for intl-transfer requirements");
+      }
 
       const id = (beneficiaries[0] as { id: string }).id;
       const output = cli("--output", "json", "intl-transfer", "requirements", id);
