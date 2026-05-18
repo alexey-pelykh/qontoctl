@@ -37,10 +37,12 @@ function buildQuoteListParams(opts: QuoteListOptions): QueryParams {
 }
 
 function clientDisplayName(client: Quote["client"]): string {
-  if (client.name !== null) {
+  // `!= null` (not `!== null`) to also strip undefined: nested EmbeddedClient
+  // fields are now optional (#601 L2 audit — no `required:` list).
+  if (client.name != null) {
     return client.name;
   }
-  const parts = [client.first_name, client.last_name].filter((p) => p !== null);
+  const parts = [client.first_name, client.last_name].filter((p) => p != null);
   return parts.length > 0 ? parts.join(" ") : "";
 }
 

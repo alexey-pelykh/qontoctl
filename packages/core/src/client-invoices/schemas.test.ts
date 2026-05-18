@@ -396,3 +396,90 @@ describe("ClientInvoiceSchema", () => {
     expect(result.attachment_id).toBeUndefined();
   });
 });
+
+// Nested-schema regression tests for #601 L2 audit: per Qonto's
+// client-invoice-endpoint docs, none of DocumentItem / Address / EmbeddedClient
+// has a `required:` list — every field MAY be omitted entirely. Verified at
+// the schema boundary so real Qonto responses lacking these fields parse
+// without error.
+
+describe("ClientInvoiceItemSchema (#601 L2 audit)", () => {
+  const validItem = {
+    title: "Consulting",
+    description: null,
+    quantity: "2",
+    unit: "hours",
+    vat_rate: "20.0",
+    vat_exemption_reason: null,
+    unit_price: { value: "100.00", currency: "EUR" },
+    unit_price_cents: 10000,
+    total_amount: { value: "200.00", currency: "EUR" },
+    total_amount_cents: 20000,
+    total_vat: { value: "40.00", currency: "EUR" },
+    total_vat_cents: 4000,
+    subtotal: { value: "200.00", currency: "EUR" },
+    subtotal_cents: 20000,
+    discount: null,
+  };
+
+  it("accepts Item with description omitted entirely (regression: L2 audit #601)", () => {
+    const input = Object.fromEntries(Object.entries(validItem).filter(([k]) => k !== "description"));
+    expect(() => ClientInvoiceItemSchema.parse(input)).not.toThrow();
+  });
+});
+
+describe("ClientInvoiceAddressSchema (#601 L2 audit)", () => {
+  const validAddress = {
+    street_address: "123 Main St",
+    city: "Paris",
+    zip_code: "75001",
+    province_code: null,
+    country_code: "FR",
+  };
+
+  it.each(["street_address", "city", "zip_code", "country_code"] as const)(
+    "accepts Address with %s omitted entirely (regression: L2 audit #601)",
+    (field) => {
+      const input = Object.fromEntries(Object.entries(validAddress).filter(([k]) => k !== field));
+      expect(() => ClientInvoiceAddressSchema.parse(input)).not.toThrow();
+    },
+  );
+});
+
+describe("ClientInvoiceClientSchema (#601 L2 audit)", () => {
+  const validClient = {
+    id: "client-1",
+    type: "company" as const,
+    name: "Acme Corp",
+    first_name: null,
+    last_name: null,
+    email: "billing@acme.com",
+    vat_number: "FR12345678901",
+    tax_identification_number: null,
+    address: "123 Main St",
+    city: "Paris",
+    zip_code: "75001",
+    province_code: null,
+    country_code: "FR",
+    recipient_code: null,
+    locale: "fr",
+    billing_address: null,
+    delivery_address: null,
+  };
+
+  it.each([
+    "name",
+    "email",
+    "vat_number",
+    "tax_identification_number",
+    "address",
+    "city",
+    "zip_code",
+    "country_code",
+    "locale",
+    "billing_address",
+  ] as const)("accepts Client with %s omitted entirely (regression: L2 audit #601)", (field) => {
+    const input = Object.fromEntries(Object.entries(validClient).filter(([k]) => k !== field));
+    expect(() => ClientInvoiceClientSchema.parse(input)).not.toThrow();
+  });
+});
