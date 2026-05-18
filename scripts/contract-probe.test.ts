@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
+import { BeneficiarySchema, ClientInvoiceSchema, QuoteSchema } from "@qontoctl/core";
 import { describe, it, expect } from "vitest";
 import { z } from "zod";
 
@@ -10,6 +11,7 @@ import {
   assertCatalogShape,
   diffSchema,
   suggestCorrection,
+  unwrapToObject,
   walkKeys,
 } from "./contract-probe.js";
 
@@ -275,5 +277,152 @@ describe("assertCatalogShape", () => {
       const bad: EndpointConfig = { ...okEntry, method };
       expect(() => assertCatalogShape([bad])).toThrow(ProbeError);
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// walkKeys — composite-wrapper regressions (#616)
+//
+// The probe's first production run (v2.0.2 release prep) emitted 6 false
+// positives because walkKeys only unwrapped ZodOptional / ZodNullable. When
+// the OUTERMOST wrapper is ZodDefault (`.default(null)`) or ZodPipe
+// (`.transform()`), the unwrap loop short-circuited and isNullable/isOptional
+// stayed false. These tests pin the three affected patterns.
+// ---------------------------------------------------------------------------
+
+describe("walkKeys — composite-wrapper regressions (#616)", () => {
+  // REQ-A1: z.<T>().nullable().optional().default(null) — accepts null AND absent.
+  it("REQ-A1: nullable().optional().default(null) is nullable + optional", () => {
+    const schema = z.object({ f: z.string().nullable().optional().default(null) }).strip();
+    expect(walkKeys(schema).get("f")).toEqual({ isNullable: true, isOptional: true });
+  });
+
+  // REQ-A1: default() alone makes a field accept absence (acceptsAbsent).
+  it("REQ-A1: a bare .default() makes the field optional (accepts absence)", () => {
+    const schema = z.object({ f: z.string().default("x") }).strip();
+    expect(walkKeys(schema).get("f")).toEqual({ isNullable: false, isOptional: true });
+  });
+
+  // REQ-A2: wrapper-form z.nullable(z.<T>()) is equivalent to chained .nullable().
+  it("REQ-A2: z.nullable(z.string()) wrapper-form == chained z.string().nullable()", () => {
+    const wrapper = walkKeys(z.object({ f: z.nullable(z.string()) }).strip()).get("f");
+    const chained = walkKeys(z.object({ f: z.string().nullable() }).strip()).get("f");
+    expect(wrapper).toEqual(chained);
+    expect(wrapper).toEqual({ isNullable: true, isOptional: false });
+  });
+
+  // REQ-A2 + REQ-A1 combined: the exact BeneficiarySchema.email declaration shape.
+  it("REQ-A2: z.nullable(z.string()).optional().default(null) is nullable + optional", () => {
+    const schema = z.object({ email: z.nullable(z.string()).optional().default(null) }).strip();
+    expect(walkKeys(schema).get("email")).toEqual({ isNullable: true, isOptional: true });
+  });
+
+  // REQ-A3: a .transform() following .nullable() must preserve upstream nullability.
+  it("REQ-A3: z.array(...).nullable().transform(...) preserves nullability", () => {
+    const schema = z
+      .object({
+        items: z
+          .array(z.object({ id: z.string() }).strip())
+          .nullable()
+          .transform((v) => v ?? []),
+      })
+      .strip();
+    expect(walkKeys(schema).get("items")).toMatchObject({ isNullable: true });
+  });
+
+  // BUT NOT (issue constraint #2): real drift must still be flagged — the
+  // unwrap fix must not silence a genuinely non-nullable field that is null.
+  it("BUT NOT: a genuinely non-nullable field is still flagged when null", () => {
+    const schema = z.object({ id: z.string(), header: z.string() }).strip();
+    const diff = diffSchema(schema, { id: "1", header: null });
+    expect(diff.strictness_mismatches.map((m) => m.field)).toContain("header");
+  });
+
+  // BUT NOT: a genuinely required field is still flagged when absent, even
+  // alongside default()-wrapped siblings that must NOT be flagged.
+  it("BUT NOT: a required field is still flagged missing next to default() siblings", () => {
+    const schema = z.object({ id: z.string(), opt: z.string().nullable().optional().default(null) }).strip();
+    const diff = diffSchema(schema, { opt: null });
+    expect(diff.missing_fields.map((m) => m.field)).toContain("id");
+    expect(diff.missing_fields.map((m) => m.field)).not.toContain("opt");
+    expect(diff.strictness_mismatches.map((m) => m.field)).not.toContain("opt");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// diffSchema — production-schema regression for the 6 reported false
+// positives (probe report .tmp/contract-probe/2026-05-18T12-30-04-316Z.json).
+// Exercises the REAL @qontoctl/core schemas + the REAL probe unwrap path
+// (unwrapToObject → diffSchema), per BUT NOT #3 (no mocking introspection).
+// ---------------------------------------------------------------------------
+
+describe("diffSchema — #616 production-schema false-positive regression", () => {
+  it("BeneficiarySchema: email:null is clean (probe finding: list-beneficiaries)", () => {
+    const schema = unwrapToObject(BeneficiarySchema as unknown as z.ZodType);
+    expect(schema).not.toBeNull();
+    const diff = diffSchema(schema!, {
+      id: "ben_1",
+      name: "Acme Ltd",
+      iban: "FR7630006000011234567890189",
+      bic: null,
+      email: null,
+      activity_tag: null,
+      status: "validated",
+      trusted: true,
+      created_at: "2026-05-18T00:00:00.000Z",
+      updated_at: "2026-05-18T00:00:00.000Z",
+    });
+    expect(diff.strictness_mismatches.map((m) => m.field)).not.toContain("email");
+    expect(diff.strictness_mismatches.map((m) => m.field)).not.toContain("bic");
+    expect(diff.strictness_mismatches.map((m) => m.field)).not.toContain("activity_tag");
+    expect(diff.missing_fields.map((m) => m.field)).not.toContain("email");
+  });
+
+  it("QuoteSchema: discount + client.* absent are clean (probe finding: list-quotes)", () => {
+    const schema = unwrapToObject(QuoteSchema as unknown as z.ZodType);
+    expect(schema).not.toBeNull();
+    // Runtime shape from the probe report: discount omitted entirely; nested
+    // client omits province_code / recipient_code / delivery_address.
+    const diff = diffSchema(schema!, {
+      id: "quote_1",
+      organization_id: "org_1",
+      number: "Q-1",
+      status: "approved",
+      currency: "EUR",
+      total_amount: { value: "10.00", currency: "EUR" },
+      total_amount_cents: 1000,
+      vat_amount: { value: "0.00", currency: "EUR" },
+      vat_amount_cents: 0,
+      issue_date: "2026-05-18",
+      expiry_date: "2026-06-18",
+      created_at: "2026-05-18T00:00:00.000Z",
+      items: [],
+      client: { id: "client_1", name: "Acme", type: "company", email: "a@b.co" },
+    });
+    for (const f of ["discount", "client.province_code", "client.recipient_code", "client.delivery_address"]) {
+      expect(diff.missing_fields.map((m) => m.field)).not.toContain(f);
+    }
+  });
+
+  it("ClientInvoiceSchema: items:null is clean (probe finding: list-client-invoices)", () => {
+    const schema = unwrapToObject(ClientInvoiceSchema as unknown as z.ZodType);
+    expect(schema).not.toBeNull();
+    const diff = diffSchema(schema!, {
+      id: "ci_1",
+      number: "INV-1",
+      status: "draft",
+      currency: "EUR",
+      due_date: null,
+      created_at: "2026-05-18T00:00:00.000Z",
+      updated_at: "2026-05-18T00:00:00.000Z",
+      contact_email: null,
+      terms_and_conditions: null,
+      header: null,
+      footer: null,
+      items: null,
+      client: { id: "client_1", name: "Acme" },
+    });
+    expect(diff.strictness_mismatches.map((m) => m.field)).not.toContain("items");
+    expect(diff.missing_fields.map((m) => m.field)).not.toContain("items");
   });
 });
