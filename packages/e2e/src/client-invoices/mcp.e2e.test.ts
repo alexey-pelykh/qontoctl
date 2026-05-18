@@ -6,7 +6,15 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { ClientInvoiceListResponseSchema, ClientInvoiceSchema, ClientInvoiceUploadSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { CLI_PATH, firstTextFromMcpResult } from "../helpers.js";
+import {
+  CLI_PATH,
+  firstTextFromMcpResult,
+  type LifecycleSkipCarrier,
+  assertLifecycleState,
+  skipIfToolError,
+  skipIfUpstreamSkipped,
+  skipMissingFixture,
+} from "../helpers.js";
 import { cliEnv, hasApiKeyCredentials } from "../sandbox.js";
 
 /**
@@ -36,14 +44,15 @@ describe.skipIf(!hasApiKeyCredentials())("MCP client invoice tools (e2e)", () =>
   });
 
   describe("client_invoice_list", () => {
-    it("returns a list of client invoices with expected structure", async () => {
+    it("returns a list of client invoices with expected structure", async (ctx) => {
       const result = await client.callTool({
         name: "client_invoice_list",
         arguments: {},
       });
 
-      // Sandbox may not have client invoices — skip gracefully on tool error
-      if (result.isError === true) return;
+      // Sandbox may not expose the client-invoices module — surface as visible
+      // feature-not-supported skip (#605).
+      skipIfToolError(result, ctx, "feature-not-supported", "client_invoice_list");
 
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as {
         client_invoices: unknown[];
@@ -61,13 +70,13 @@ describe.skipIf(!hasApiKeyCredentials())("MCP client invoice tools (e2e)", () =>
     // value Qonto actually returns) and accepted `pending` (which Qonto's API
     // silently treats as no-match). This asserts the canonical value passes the
     // tool's input schema AND the API accepts it.
-    it("supports status: 'unpaid' (canonical Qonto value)", async () => {
+    it("supports status: 'unpaid' (canonical Qonto value)", async (ctx) => {
       const result = await client.callTool({
         name: "client_invoice_list",
         arguments: { status: "unpaid" },
       });
 
-      if (result.isError === true) return;
+      skipIfToolError(result, ctx, "feature-not-supported", "client_invoice_list (status=unpaid)");
 
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as {
         client_invoices: unknown[];
@@ -79,18 +88,18 @@ describe.skipIf(!hasApiKeyCredentials())("MCP client invoice tools (e2e)", () =>
   });
 
   describe("client_invoice_show", () => {
-    it("returns details for a specific client invoice", async () => {
+    it("returns details for a specific client invoice", async (ctx) => {
       const listResult = await client.callTool({
         name: "client_invoice_list",
         arguments: {},
       });
-      if (listResult.isError === true) return;
+      skipIfToolError(listResult, ctx, "feature-not-supported", "client_invoice_list");
 
       const listParsed = JSON.parse(firstTextFromMcpResult(listResult)) as {
         client_invoices: { id: string }[];
       };
       if (listParsed.client_invoices.length === 0) {
-        return;
+        skipMissingFixture(ctx, "no client invoices in sandbox to resolve an id for client_invoice_show");
       }
 
       const invoiceId = (listParsed.client_invoices[0] as { id: string }).id;
@@ -121,22 +130,23 @@ describe.skipIf(!hasApiKeyCredentials())("MCP client invoice tools (e2e)", () =>
   // round-trip, then cleans up by deleting the invoice (which implicitly
   // removes the upload — there is no upload-delete endpoint).
   describe("client_invoice upload + retrieval round-trip (MCP)", () => {
+    const lifecycleSkip: LifecycleSkipCarrier = { reason: undefined };
     let createdInvoiceId: string | undefined;
     let uploadedFileId: string | undefined;
 
-    it("creates a draft invoice as a precondition for upload", async () => {
+    it("creates a draft invoice as a precondition for upload", async (ctx) => {
       // Fetch a client ID from existing clients (mirrors the CLI lifecycle).
       const clientListResult = await client.callTool({
         name: "client_list",
         arguments: {},
       });
-      if (clientListResult.isError === true) return;
+      skipIfToolError(clientListResult, ctx, "feature-not-supported", "client_list", lifecycleSkip);
 
       const clientsParsed = JSON.parse(firstTextFromMcpResult(clientListResult)) as {
         clients: { id: string }[];
       };
       if (clientsParsed.clients.length === 0) {
-        return;
+        skipMissingFixture(ctx, "no clients in sandbox to seed client_invoice_create", lifecycleSkip);
       }
 
       const clientId = (clientsParsed.clients[0] as { id: string }).id;
@@ -163,8 +173,16 @@ describe.skipIf(!hasApiKeyCredentials())("MCP client invoice tools (e2e)", () =>
       });
 
       // Invoice creation may fail if the organization lacks required setup
-      // (e.g., IBAN not configured) — skip downstream lifecycle when it does.
-      if (createResult.isError === true) return;
+      // (e.g., IBAN not configured) — surface as visible feature-not-supported
+      // skip and propagate to downstream tests via the lifecycle carrier
+      // (see #606 for the L3 sandbox-precondition catalog, #605).
+      skipIfToolError(
+        createResult,
+        ctx,
+        "feature-not-supported",
+        "client_invoice_create requires IBAN — see #606",
+        lifecycleSkip,
+      );
 
       const parsed = JSON.parse(firstTextFromMcpResult(createResult)) as Record<string, unknown>;
       expect(parsed).toHaveProperty("id");
@@ -172,12 +190,13 @@ describe.skipIf(!hasApiKeyCredentials())("MCP client invoice tools (e2e)", () =>
       createdInvoiceId = parsed["id"] as string;
     });
 
-    it("uploads a PDF to the created invoice via client_invoice_upload", async () => {
-      if (createdInvoiceId === undefined) return;
+    it("uploads a PDF to the created invoice via client_invoice_upload", async (ctx) => {
+      skipIfUpstreamSkipped(lifecycleSkip, ctx);
+      const id = assertLifecycleState(createdInvoiceId, "createdInvoiceId");
 
       const result = await client.callTool({
         name: "client_invoice_upload",
-        arguments: { id: createdInvoiceId, file_path: PDF_FIXTURE_PATH },
+        arguments: { id, file_path: PDF_FIXTURE_PATH },
       });
 
       expect(result.isError).toBeFalsy();
@@ -190,30 +209,33 @@ describe.skipIf(!hasApiKeyCredentials())("MCP client invoice tools (e2e)", () =>
       uploadedFileId = parsed["id"] as string;
     });
 
-    it("retrieves the upload via client_invoice_upload_show", async () => {
-      if (createdInvoiceId === undefined || uploadedFileId === undefined) return;
+    it("retrieves the upload via client_invoice_upload_show", async (ctx) => {
+      skipIfUpstreamSkipped(lifecycleSkip, ctx);
+      const id = assertLifecycleState(createdInvoiceId, "createdInvoiceId");
+      const uploadId = assertLifecycleState(uploadedFileId, "uploadedFileId");
 
       const result = await client.callTool({
         name: "client_invoice_upload_show",
-        arguments: { id: createdInvoiceId, upload_id: uploadedFileId },
+        arguments: { id, upload_id: uploadId },
       });
 
       expect(result.isError).toBeFalsy();
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as Record<string, unknown>;
       ClientInvoiceUploadSchema.parse(parsed);
-      expect(parsed).toHaveProperty("id", uploadedFileId);
+      expect(parsed).toHaveProperty("id", uploadId);
       expect(parsed).toHaveProperty("file_name", "tiny.pdf");
       expect(parsed).toHaveProperty("file_content_type");
       expect(parsed).toHaveProperty("url");
       expect(parsed).toHaveProperty("created_at");
     });
 
-    it("deletes the created invoice (cleanup)", async () => {
-      if (createdInvoiceId === undefined) return;
+    it("deletes the created invoice (cleanup)", async (ctx) => {
+      skipIfUpstreamSkipped(lifecycleSkip, ctx);
+      const id = assertLifecycleState(createdInvoiceId, "createdInvoiceId");
 
       const result = await client.callTool({
         name: "client_invoice_delete",
-        arguments: { id: createdInvoiceId },
+        arguments: { id },
       });
       expect(result.isError).toBeFalsy();
     });
@@ -234,20 +256,21 @@ describe.skipIf(!hasApiKeyCredentials())("MCP client invoice tools (e2e)", () =>
   // one canceled invoice into the test org (accepted trade-off per #449
   // Group 5).
   describe("client_invoice lifecycle state transitions (#457, MCP)", () => {
+    const lifecycleSkip: LifecycleSkipCarrier = { reason: undefined };
     let lifecycleInvoiceId: string | undefined;
 
-    it("creates a draft invoice as the lifecycle entry point", async () => {
+    it("creates a draft invoice as the lifecycle entry point", async (ctx) => {
       const clientListResult = await client.callTool({
         name: "client_list",
         arguments: {},
       });
-      if (clientListResult.isError === true) return;
+      skipIfToolError(clientListResult, ctx, "feature-not-supported", "client_list", lifecycleSkip);
 
       const clientsParsed = JSON.parse(firstTextFromMcpResult(clientListResult)) as {
         clients: { id: string }[];
       };
       if (clientsParsed.clients.length === 0) {
-        return;
+        skipMissingFixture(ctx, "no clients in sandbox to seed client_invoice_create", lifecycleSkip);
       }
 
       const clientId = (clientsParsed.clients[0] as { id: string }).id;
@@ -274,8 +297,16 @@ describe.skipIf(!hasApiKeyCredentials())("MCP client invoice tools (e2e)", () =>
       });
 
       // Invoice creation may fail if the organization lacks required setup
-      // (e.g., IBAN not configured) — skip downstream lifecycle when it does.
-      if (createResult.isError === true) return;
+      // (e.g., IBAN not configured) — surface as visible feature-not-supported
+      // skip and propagate to downstream lifecycle steps via the carrier
+      // (see #606 for the L3 sandbox-precondition catalog, #605).
+      skipIfToolError(
+        createResult,
+        ctx,
+        "feature-not-supported",
+        "client_invoice_create requires IBAN — see #606",
+        lifecycleSkip,
+      );
 
       const parsed = JSON.parse(firstTextFromMcpResult(createResult)) as Record<string, unknown>;
       const invoice = ClientInvoiceSchema.parse(parsed);
@@ -283,65 +314,69 @@ describe.skipIf(!hasApiKeyCredentials())("MCP client invoice tools (e2e)", () =>
       lifecycleInvoiceId = invoice.id;
     });
 
-    it("transitions draft → unpaid via client_invoice_finalize", async () => {
-      if (lifecycleInvoiceId === undefined) return;
+    it("transitions draft → unpaid via client_invoice_finalize", async (ctx) => {
+      skipIfUpstreamSkipped(lifecycleSkip, ctx);
+      const id = assertLifecycleState(lifecycleInvoiceId, "lifecycleInvoiceId");
 
       const result = await client.callTool({
         name: "client_invoice_finalize",
-        arguments: { id: lifecycleInvoiceId },
+        arguments: { id },
       });
 
       expect(result.isError).toBeFalsy();
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as Record<string, unknown>;
       const invoice = ClientInvoiceSchema.parse(parsed);
-      expect(invoice.id).toBe(lifecycleInvoiceId);
+      expect(invoice.id).toBe(id);
       expect(invoice.status).toBe("unpaid");
       // Finalize assigns the invoice number — pre-finalize this is null.
       expect(invoice.invoice_number).not.toBeNull();
     });
 
-    it("transitions unpaid → paid via client_invoice_mark_paid", async () => {
-      if (lifecycleInvoiceId === undefined) return;
+    it("transitions unpaid → paid via client_invoice_mark_paid", async (ctx) => {
+      skipIfUpstreamSkipped(lifecycleSkip, ctx);
+      const id = assertLifecycleState(lifecycleInvoiceId, "lifecycleInvoiceId");
 
       const result = await client.callTool({
         name: "client_invoice_mark_paid",
-        arguments: { id: lifecycleInvoiceId },
+        arguments: { id },
       });
 
       expect(result.isError).toBeFalsy();
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as Record<string, unknown>;
       const invoice = ClientInvoiceSchema.parse(parsed);
-      expect(invoice.id).toBe(lifecycleInvoiceId);
+      expect(invoice.id).toBe(id);
       expect(invoice.status).toBe("paid");
     });
 
-    it("transitions paid → unpaid via client_invoice_unmark_paid", async () => {
-      if (lifecycleInvoiceId === undefined) return;
+    it("transitions paid → unpaid via client_invoice_unmark_paid", async (ctx) => {
+      skipIfUpstreamSkipped(lifecycleSkip, ctx);
+      const id = assertLifecycleState(lifecycleInvoiceId, "lifecycleInvoiceId");
 
       const result = await client.callTool({
         name: "client_invoice_unmark_paid",
-        arguments: { id: lifecycleInvoiceId },
+        arguments: { id },
       });
 
       expect(result.isError).toBeFalsy();
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as Record<string, unknown>;
       const invoice = ClientInvoiceSchema.parse(parsed);
-      expect(invoice.id).toBe(lifecycleInvoiceId);
+      expect(invoice.id).toBe(id);
       expect(invoice.status).toBe("unpaid");
     });
 
-    it("transitions unpaid → canceled via client_invoice_cancel (terminal)", async () => {
-      if (lifecycleInvoiceId === undefined) return;
+    it("transitions unpaid → canceled via client_invoice_cancel (terminal)", async (ctx) => {
+      skipIfUpstreamSkipped(lifecycleSkip, ctx);
+      const id = assertLifecycleState(lifecycleInvoiceId, "lifecycleInvoiceId");
 
       const result = await client.callTool({
         name: "client_invoice_cancel",
-        arguments: { id: lifecycleInvoiceId },
+        arguments: { id },
       });
 
       expect(result.isError).toBeFalsy();
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as Record<string, unknown>;
       const invoice = ClientInvoiceSchema.parse(parsed);
-      expect(invoice.id).toBe(lifecycleInvoiceId);
+      expect(invoice.id).toBe(id);
       expect(invoice.status).toBe("canceled");
       // Terminal state — no cleanup; canceled invoices cannot be deleted.
     });
@@ -356,20 +391,21 @@ describe.skipIf(!hasApiKeyCredentials())("MCP client invoice tools (e2e)", () =>
   describe.skipIf(process.env["QONTOCTL_E2E_SEND_EMAIL"] !== "true")(
     "client_invoice_send (#457 AC #3, MCP, opt-in via QONTOCTL_E2E_SEND_EMAIL=true)",
     () => {
+      const lifecycleSkip: LifecycleSkipCarrier = { reason: undefined };
       let sendInvoiceId: string | undefined;
 
-      it("creates a draft invoice as a send precondition", async () => {
+      it("creates a draft invoice as a send precondition", async (ctx) => {
         const clientListResult = await client.callTool({
           name: "client_list",
           arguments: {},
         });
-        if (clientListResult.isError === true) return;
+        skipIfToolError(clientListResult, ctx, "feature-not-supported", "client_list", lifecycleSkip);
 
         const clientsParsed = JSON.parse(firstTextFromMcpResult(clientListResult)) as {
           clients: { id: string }[];
         };
         if (clientsParsed.clients.length === 0) {
-          return;
+          skipMissingFixture(ctx, "no clients in sandbox to seed client_invoice_create", lifecycleSkip);
         }
 
         const clientId = (clientsParsed.clients[0] as { id: string }).id;
@@ -395,7 +431,13 @@ describe.skipIf(!hasApiKeyCredentials())("MCP client invoice tools (e2e)", () =>
           },
         });
 
-        if (createResult.isError === true) return;
+        skipIfToolError(
+          createResult,
+          ctx,
+          "feature-not-supported",
+          "client_invoice_create requires IBAN — see #606",
+          lifecycleSkip,
+        );
 
         const parsed = JSON.parse(firstTextFromMcpResult(createResult)) as Record<string, unknown>;
         expect(parsed).toHaveProperty("id");
@@ -403,45 +445,48 @@ describe.skipIf(!hasApiKeyCredentials())("MCP client invoice tools (e2e)", () =>
         sendInvoiceId = parsed["id"] as string;
       });
 
-      it("finalizes the draft to make it sendable", async () => {
-        if (sendInvoiceId === undefined) return;
+      it("finalizes the draft to make it sendable", async (ctx) => {
+        skipIfUpstreamSkipped(lifecycleSkip, ctx);
+        const id = assertLifecycleState(sendInvoiceId, "sendInvoiceId");
 
         const result = await client.callTool({
           name: "client_invoice_finalize",
-          arguments: { id: sendInvoiceId },
+          arguments: { id },
         });
 
         expect(result.isError).toBeFalsy();
         const parsed = JSON.parse(firstTextFromMcpResult(result)) as Record<string, unknown>;
-        expect(parsed).toHaveProperty("id", sendInvoiceId);
+        expect(parsed).toHaveProperty("id", id);
         expect(parsed).toHaveProperty("status", "unpaid");
       });
 
-      it("sends the finalized invoice to the client via email", async () => {
-        if (sendInvoiceId === undefined) return;
+      it("sends the finalized invoice to the client via email", async (ctx) => {
+        skipIfUpstreamSkipped(lifecycleSkip, ctx);
+        const id = assertLifecycleState(sendInvoiceId, "sendInvoiceId");
 
         const result = await client.callTool({
           name: "client_invoice_send",
-          arguments: { id: sendInvoiceId },
+          arguments: { id },
         });
 
         expect(result.isError).toBeFalsy();
         const parsed = JSON.parse(firstTextFromMcpResult(result)) as Record<string, unknown>;
         expect(parsed).toHaveProperty("sent", true);
-        expect(parsed).toHaveProperty("id", sendInvoiceId);
+        expect(parsed).toHaveProperty("id", id);
       });
 
-      it("cancels the sent invoice (cleanup)", async () => {
-        if (sendInvoiceId === undefined) return;
+      it("cancels the sent invoice (cleanup)", async (ctx) => {
+        skipIfUpstreamSkipped(lifecycleSkip, ctx);
+        const id = assertLifecycleState(sendInvoiceId, "sendInvoiceId");
 
         const result = await client.callTool({
           name: "client_invoice_cancel",
-          arguments: { id: sendInvoiceId },
+          arguments: { id },
         });
 
         expect(result.isError).toBeFalsy();
         const parsed = JSON.parse(firstTextFromMcpResult(result)) as Record<string, unknown>;
-        expect(parsed).toHaveProperty("id", sendInvoiceId);
+        expect(parsed).toHaveProperty("id", id);
         expect(parsed).toHaveProperty("status", "canceled");
       });
     },

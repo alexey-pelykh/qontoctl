@@ -3,7 +3,16 @@
 
 import { WebhookSubscriptionSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
-import { cli, cliJson, cliRaw, qontoHttpStatus } from "../helpers.js";
+import {
+  cli,
+  cliJson,
+  cliRaw,
+  qontoHttpStatus,
+  type LifecycleSkipCarrier,
+  assertLifecycleState,
+  skipIfUpstreamSkipped,
+  skipMissingFixture,
+} from "../helpers.js";
 import { hasOAuthCredentials, pinAuthPreference } from "../sandbox.js";
 
 interface WebhookItem {
@@ -47,10 +56,12 @@ describe.skipIf(!hasOAuthCredentials())("webhook CLI commands (e2e)", () => {
   });
 
   describe("webhook show", () => {
-    it("shows a webhook by ID", () => {
+    it("shows a webhook by ID", (ctx) => {
       const webhooks = cliJson<WebhookItem[]>("webhook", "list", "--per-page", "1");
       const first = webhooks[0];
-      if (first === undefined) return;
+      if (first === undefined) {
+        skipMissingFixture(ctx, "no webhooks in sandbox to resolve an id for webhook show");
+      }
 
       const webhook = cliJson<WebhookItem>("webhook", "show", first.id);
       WebhookSubscriptionSchema.parse(webhook);
@@ -65,6 +76,7 @@ describe.skipIf(!hasOAuthCredentials())("webhook CLI commands (e2e)", () => {
   // entirely uncovered by E2E. Sequential `it` blocks share `createdWebhookId`
   // via closure, mirroring the pattern in `packages/e2e/src/clients/cli.e2e.test.ts`.
   describe("webhook CRUD lifecycle", () => {
+    const lifecycleSkip: LifecycleSkipCarrier = { reason: undefined };
     let createdWebhookId: string | undefined;
 
     it("creates a webhook subscription", () => {
@@ -83,8 +95,9 @@ describe.skipIf(!hasOAuthCredentials())("webhook CLI commands (e2e)", () => {
       createdWebhookId = webhook.id;
     });
 
-    it("updates the webhook by widening the event filter", () => {
-      if (createdWebhookId === undefined) return;
+    it("updates the webhook by widening the event filter", (ctx) => {
+      skipIfUpstreamSkipped(lifecycleSkip, ctx);
+      const id = assertLifecycleState(createdWebhookId, "createdWebhookId");
 
       // The Qonto API treats PUT as full-replacement (not partial) — sending
       // only `types` returns "HTTP 400: CallbackURL is missing", so the URL
@@ -94,7 +107,7 @@ describe.skipIf(!hasOAuthCredentials())("webhook CLI commands (e2e)", () => {
       const webhook = cliJson<WebhookItem>(
         "webhook",
         "update",
-        createdWebhookId,
+        id,
         "--url",
         TEST_CALLBACK_URL,
         "--events",
@@ -102,23 +115,28 @@ describe.skipIf(!hasOAuthCredentials())("webhook CLI commands (e2e)", () => {
         "v1/cards",
       );
       WebhookSubscriptionSchema.parse(webhook);
-      expect(webhook.id).toBe(createdWebhookId);
+      expect(webhook.id).toBe(id);
       expect(webhook.types).toEqual(expect.arrayContaining(["v1/transactions", "v1/cards"]));
     });
 
-    it("deletes the webhook via the API", () => {
-      if (createdWebhookId === undefined) return;
+    it("deletes the webhook via the API", (ctx) => {
+      skipIfUpstreamSkipped(lifecycleSkip, ctx);
+      const id = assertLifecycleState(createdWebhookId, "createdWebhookId");
 
-      const result = cliJson<{ deleted: boolean; id: string }>("webhook", "delete", createdWebhookId, "--yes");
+      const result = cliJson<{ deleted: boolean; id: string }>("webhook", "delete", id, "--yes");
       expect(result.deleted).toBe(true);
-      expect(result.id).toBe(createdWebhookId);
+      expect(result.id).toBe(id);
     });
 
-    it("returns 404 when fetching the deleted webhook", () => {
-      if (createdWebhookId === undefined) return;
+    it("returns 404 when fetching the deleted webhook", (ctx) => {
+      skipIfUpstreamSkipped(lifecycleSkip, ctx);
+      const id = assertLifecycleState(createdWebhookId, "createdWebhookId");
 
-      const result = cliRaw(["--output", "json", "webhook", "show", createdWebhookId]);
+      const result = cliRaw(["--output", "json", "webhook", "show", id]);
       expect(result.ok).toBe(false);
+      // Narrow CliResult to the failure branch so `result.stderr` is accessible
+      // — not a silent skip (the prior `expect(result.ok).toBe(false)` already
+      // failed the test if `result.ok` were true).
       if (result.ok) return;
       expect(qontoHttpStatus(result.stderr)).toBe(404);
     });

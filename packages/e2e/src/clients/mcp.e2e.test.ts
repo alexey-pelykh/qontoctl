@@ -5,7 +5,15 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { ClientListResponseSchema, ClientSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { CLI_PATH, firstTextFromMcpResult } from "../helpers.js";
+import {
+  CLI_PATH,
+  firstTextFromMcpResult,
+  type LifecycleSkipCarrier,
+  assertLifecycleState,
+  skipIfToolError,
+  skipIfUpstreamSkipped,
+  skipMissingFixture,
+} from "../helpers.js";
 import { cliEnv, hasApiKeyCredentials } from "../sandbox.js";
 
 describe.skipIf(!hasApiKeyCredentials())("MCP client tools (e2e)", () => {
@@ -29,14 +37,15 @@ describe.skipIf(!hasApiKeyCredentials())("MCP client tools (e2e)", () => {
   });
 
   describe("client_list", () => {
-    it("returns a list of clients with expected structure", async () => {
+    it("returns a list of clients with expected structure", async (ctx) => {
       const result = await client.callTool({
         name: "client_list",
         arguments: {},
       });
 
-      // Sandbox may not have clients — skip gracefully on tool error
-      if (result.isError === true) return;
+      // Sandbox may not expose the clients module — surface as visible
+      // feature-not-supported skip (#605).
+      skipIfToolError(result, ctx, "feature-not-supported", "client_list");
 
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as {
         clients: unknown[];
@@ -50,18 +59,18 @@ describe.skipIf(!hasApiKeyCredentials())("MCP client tools (e2e)", () => {
   });
 
   describe("client_show", () => {
-    it("returns details for a specific client", async () => {
+    it("returns details for a specific client", async (ctx) => {
       const listResult = await client.callTool({
         name: "client_list",
         arguments: {},
       });
-      if (listResult.isError === true) return;
+      skipIfToolError(listResult, ctx, "feature-not-supported", "client_list");
 
       const listParsed = JSON.parse(firstTextFromMcpResult(listResult)) as {
         clients: { id: string }[];
       };
       if (listParsed.clients.length === 0) {
-        return;
+        skipMissingFixture(ctx, "no clients in sandbox to resolve an id for client_show");
       }
 
       const clientId = (listParsed.clients[0] as { id: string }).id;
@@ -98,6 +107,7 @@ describe.skipIf(!hasApiKeyCredentials())("MCP client tools (e2e)", () => {
   // operations through callTool, asserting the MCP wrapper contract on top
   // of the underlying API contract.
   describe("client CRUD lifecycle (MCP)", () => {
+    const lifecycleSkip: LifecycleSkipCarrier = { reason: undefined };
     let createdClientId: string | undefined;
 
     it("creates a client via callTool", async () => {
@@ -111,7 +121,10 @@ describe.skipIf(!hasApiKeyCredentials())("MCP client tools (e2e)", () => {
         },
       });
 
-      if (result.isError === true) return;
+      // Suite is api-key-gated, and api-key supports clients. A create error
+      // here is the #496 class — assert loudly rather than silently mask
+      // (was: `if (result.isError === true) return;`, removed under #605).
+      expect(result.isError, `client_create failed: ${firstTextFromMcpResult(result)}`).toBeFalsy();
 
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as Record<string, unknown>;
       ClientSchema.parse(parsed);
@@ -120,34 +133,36 @@ describe.skipIf(!hasApiKeyCredentials())("MCP client tools (e2e)", () => {
       createdClientId = parsed["id"] as string;
     });
 
-    it("updates the created client via callTool", async () => {
-      if (createdClientId === undefined) return;
+    it("updates the created client via callTool", async (ctx) => {
+      skipIfUpstreamSkipped(lifecycleSkip, ctx);
+      const id = assertLifecycleState(createdClientId, "createdClientId");
 
       const result = await client.callTool({
         name: "client_update",
         arguments: {
-          id: createdClientId,
+          id,
           name: "E2E MCP Updated Client",
         },
       });
 
       expect(result.isError).toBeFalsy();
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as Record<string, unknown>;
-      expect(parsed).toHaveProperty("id", createdClientId);
+      expect(parsed).toHaveProperty("id", id);
     });
 
-    it("deletes the created client via callTool", async () => {
-      if (createdClientId === undefined) return;
+    it("deletes the created client via callTool", async (ctx) => {
+      skipIfUpstreamSkipped(lifecycleSkip, ctx);
+      const id = assertLifecycleState(createdClientId, "createdClientId");
 
       const result = await client.callTool({
         name: "client_delete",
-        arguments: { id: createdClientId },
+        arguments: { id },
       });
 
       expect(result.isError).toBeFalsy();
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as Record<string, unknown>;
       expect(parsed).toHaveProperty("deleted", true);
-      expect(parsed).toHaveProperty("id", createdClientId);
+      expect(parsed).toHaveProperty("id", id);
     });
   });
 });

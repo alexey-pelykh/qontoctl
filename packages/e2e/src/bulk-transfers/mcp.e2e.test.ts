@@ -6,7 +6,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { BulkTransferListResponseSchema, BulkTransferSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { CLI_PATH, firstTextFromMcpResult } from "../helpers.js";
+import { CLI_PATH, firstTextFromMcpResult, skipIfToolError, skipMissingFixture } from "../helpers.js";
 import { cliEnv, hasOAuthCredentials, hasStagingToken, pinAuthPreference } from "../sandbox.js";
 
 /**
@@ -98,7 +98,7 @@ describe.skipIf(!hasOAuthCredentials())("bulk-transfer MCP tools (e2e)", () => {
       }
     }
 
-    it("creates a bulk transfer with inline SCA mock-decision approval", async () => {
+    it("creates a bulk transfer with inline SCA mock-decision approval", async (ctx) => {
       const beneficiaryResult = await client.callTool({
         name: "beneficiary_list",
         arguments: { per_page: 1 },
@@ -106,12 +106,16 @@ describe.skipIf(!hasOAuthCredentials())("bulk-transfer MCP tools (e2e)", () => {
       const beneficiaryParsed = JSON.parse(firstTextFromMcpResult(beneficiaryResult)) as {
         beneficiaries: { id: string }[];
       };
-      if (beneficiaryParsed.beneficiaries.length === 0) return;
+      if (beneficiaryParsed.beneficiaries.length === 0) {
+        skipMissingFixture(ctx, "no beneficiaries in sandbox for bulk_transfer_create");
+      }
       const beneficiaryId = (beneficiaryParsed.beneficiaries[0] as { id: string }).id;
 
       const accountResult = await client.callTool({ name: "account_list", arguments: {} });
       const accountParsed = JSON.parse(firstTextFromMcpResult(accountResult)) as { id: string }[];
-      if (accountParsed.length === 0) return;
+      if (accountParsed.length === 0) {
+        skipMissingFixture(ctx, "no bank accounts in sandbox for bulk_transfer_create");
+      }
       const bankAccountId = (accountParsed[0] as { id: string }).id;
 
       // Kick off the tool call (blocks while CLI polls SCA session).
@@ -181,16 +185,18 @@ describe.skipIf(!hasOAuthCredentials())("bulk-transfer MCP tools (e2e)", () => {
   });
 
   describe("bulk_transfer_show", () => {
-    it("shows a bulk transfer by ID", async () => {
+    it("shows a bulk transfer by ID", async (ctx) => {
       const listResult = await client.callTool({
         name: "bulk_transfer_list",
         arguments: { per_page: 1 },
       });
-      if (listResult.isError === true) return;
+      skipIfToolError(listResult, ctx, "feature-not-supported", "bulk_transfer_list");
 
       const listParsed = JSON.parse(firstTextFromMcpResult(listResult)) as BulkTransferListResponse;
       const first = listParsed.bulk_transfers[0];
-      if (first === undefined) return;
+      if (first === undefined) {
+        skipMissingFixture(ctx, "no bulk transfers in sandbox to resolve an id for bulk_transfer_show");
+      }
 
       const result = await client.callTool({
         name: "bulk_transfer_show",

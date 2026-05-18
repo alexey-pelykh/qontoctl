@@ -5,7 +5,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { TerminalListResponseSchema, TerminalSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { CLI_PATH, firstTextFromMcpResult } from "../helpers.js";
+import { CLI_PATH, firstTextFromMcpResult, skipIfToolError } from "../helpers.js";
 import { cliEnv, hasOAuthCredentials, pinAuthPreference } from "../sandbox.js";
 
 interface TerminalItem {
@@ -57,9 +57,9 @@ describe.skipIf(!hasOAuthCredentials())("terminal MCP tools (e2e)", () => {
   });
 
   describe("terminal_list", () => {
-    it("returns a list of terminals with the expected structure", async () => {
+    it("returns a list of terminals with the expected structure", async (ctx) => {
       const result = await client.callTool({ name: "terminal_list", arguments: {} });
-      if (result.isError === true) return;
+      skipIfToolError(result, ctx, "feature-not-supported", "terminal_list");
 
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as TerminalListResponse;
       TerminalListResponseSchema.parse(parsed);
@@ -68,12 +68,12 @@ describe.skipIf(!hasOAuthCredentials())("terminal MCP tools (e2e)", () => {
       expect(Array.isArray(parsed.terminals)).toBe(true);
     });
 
-    it("supports pagination", async () => {
+    it("supports pagination", async (ctx) => {
       const result = await client.callTool({
         name: "terminal_list",
         arguments: { per_page: 1, page: 1 },
       });
-      if (result.isError === true) return;
+      skipIfToolError(result, ctx, "feature-not-supported", "terminal_list");
 
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as TerminalListResponse;
       expect(parsed.terminals.length).toBeLessThanOrEqual(1);
@@ -82,9 +82,9 @@ describe.skipIf(!hasOAuthCredentials())("terminal MCP tools (e2e)", () => {
   });
 
   describe("terminal_payment_create", () => {
-    it("either initiates a payment or surfaces a known sandbox-feature gating error", async () => {
+    it("either initiates a payment or surfaces a known sandbox-feature gating error", async (ctx) => {
       const listResult = await client.callTool({ name: "terminal_list", arguments: { per_page: 1 } });
-      if (listResult.isError === true) return;
+      skipIfToolError(listResult, ctx, "feature-not-supported", "terminal_list");
 
       const parsedList = JSON.parse(firstTextFromMcpResult(listResult)) as TerminalListResponse;
       const first = parsedList.terminals[0];

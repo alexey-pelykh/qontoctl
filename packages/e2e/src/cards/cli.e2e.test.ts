@@ -6,7 +6,7 @@ import { randomUUID } from "node:crypto";
 import { promisify } from "node:util";
 import { CardSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
-import { CLI_PATH, cli, cliJson } from "../helpers.js";
+import { CLI_PATH, cli, cliJson, skipMissingFixture } from "../helpers.js";
 import { cliEnv, hasOAuthCredentials, hasStagingToken, pinAuthPreference } from "../sandbox.js";
 import { SCA_POLL_URL_RE } from "../sca-helpers.js";
 
@@ -64,11 +64,13 @@ describe.skipIf(!hasOAuthCredentials())("card CLI commands (e2e)", () => {
       }
     });
 
-    it("outputs CSV format", () => {
+    it("outputs CSV format", (ctx) => {
       // CSV formatter emits no output for an empty list, so there is no header
       // row to assert against — skip when the sandbox has zero cards.
       const cards = cliJson<CardItem[]>("card", "list", "--per-page", "5");
-      if (cards[0] === undefined) return;
+      if (cards[0] === undefined) {
+        skipMissingFixture(ctx, "no cards in sandbox for CSV output assertion");
+      }
 
       const output = cli("card", "list", "--output", "csv", "--per-page", "5");
       const lines = output.trim().split("\n");
@@ -78,11 +80,13 @@ describe.skipIf(!hasOAuthCredentials())("card CLI commands (e2e)", () => {
       expect(header).toContain("status");
     });
 
-    it("outputs YAML format", () => {
+    it("outputs YAML format", (ctx) => {
       // YAML formatter emits `[]` for an empty list, so there is no `id:`
       // field to assert against — skip when the sandbox has zero cards.
       const cards = cliJson<CardItem[]>("card", "list", "--per-page", "2");
-      if (cards[0] === undefined) return;
+      if (cards[0] === undefined) {
+        skipMissingFixture(ctx, "no cards in sandbox for YAML output assertion");
+      }
 
       const output = cli("card", "list", "--output", "yaml", "--per-page", "2");
       expect(output).toContain("id:");
@@ -90,12 +94,14 @@ describe.skipIf(!hasOAuthCredentials())("card CLI commands (e2e)", () => {
   });
 
   describe("card show", () => {
-    it("shows a card by ID", () => {
+    it("shows a card by ID", (ctx) => {
       // Pick the first card from the list as a known-good ID. If the org has
       // no cards in the sandbox, skip — we cannot exercise show without one.
       const cards = cliJson<CardItem[]>("card", "list", "--per-page", "1");
       const first = cards[0];
-      if (first === undefined) return;
+      if (first === undefined) {
+        skipMissingFixture(ctx, "no cards in sandbox to resolve an id for card show");
+      }
 
       const card = cliJson<CardItem>("card", "show", first.id);
       CardSchema.parse(card);
@@ -104,10 +110,12 @@ describe.skipIf(!hasOAuthCredentials())("card CLI commands (e2e)", () => {
       expect(card).toHaveProperty("card_level");
     });
 
-    it("supports table output", () => {
+    it("supports table output", (ctx) => {
       const cards = cliJson<CardItem[]>("card", "list", "--per-page", "1");
       const first = cards[0];
-      if (first === undefined) return;
+      if (first === undefined) {
+        skipMissingFixture(ctx, "no cards in sandbox to resolve an id for card show table output");
+      }
 
       const output = cli("card", "show", first.id);
       expect(output).toContain(first.id);
@@ -115,7 +123,7 @@ describe.skipIf(!hasOAuthCredentials())("card CLI commands (e2e)", () => {
   });
 
   describe("card iframe-url", () => {
-    it("returns a secure iframe URL for an existing card", () => {
+    it("returns a secure iframe URL for an existing card", (ctx) => {
       // Pick the first non-virtual live card — the data_view endpoint
       // returns 400 for virtual cards in the sandbox (empirical 2026-05-12;
       // probed across 5 virtual cards, all returning `400 unknown`). The
@@ -127,7 +135,9 @@ describe.skipIf(!hasOAuthCredentials())("card CLI commands (e2e)", () => {
       // before #556 and the no-op semantics are preserved here.
       const cards = cliJson<CardItem[]>("card", "list", "--status", "live");
       const first = cards.find((c) => c.card_level !== "virtual" && c.card_level !== "virtual_partner");
-      if (first === undefined) return;
+      if (first === undefined) {
+        skipMissingFixture(ctx, "no non-virtual live card in sandbox for iframe-url");
+      }
 
       const result = cliJson<{ iframe_url: string }>("card", "iframe-url", first.id);
       expect(result).toHaveProperty("iframe_url");

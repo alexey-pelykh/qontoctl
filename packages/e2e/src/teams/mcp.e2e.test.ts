@@ -5,7 +5,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { TeamListResponseSchema, TeamSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { CLI_PATH, firstTextFromMcpResult } from "../helpers.js";
+import { CLI_PATH, firstTextFromMcpResult, skipIfToolError, skipMissingFixture } from "../helpers.js";
 import { cliEnv, hasOAuthCredentials, pinAuthPreference } from "../sandbox.js";
 
 interface TeamItem {
@@ -45,13 +45,13 @@ describe.skipIf(!hasOAuthCredentials())("team MCP tools (e2e)", () => {
   });
 
   describe("team_list", () => {
-    it("returns a list of teams with expected structure", async () => {
+    it("returns a list of teams with expected structure", async (ctx) => {
       const result = await client.callTool({
         name: "team_list",
         arguments: {},
       });
 
-      if (result.isError === true) return;
+      skipIfToolError(result, ctx, "feature-not-supported", "team_list");
 
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as TeamListResponse;
       TeamListResponseSchema.parse(parsed);
@@ -60,30 +60,32 @@ describe.skipIf(!hasOAuthCredentials())("team MCP tools (e2e)", () => {
       expect(Array.isArray(parsed.teams)).toBe(true);
     });
 
-    it("supports pagination", async () => {
+    it("supports pagination", async (ctx) => {
       const result = await client.callTool({
         name: "team_list",
         arguments: { per_page: 2, page: 1 },
       });
 
-      if (result.isError === true) return;
+      skipIfToolError(result, ctx, "feature-not-supported", "team_list");
 
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as TeamListResponse;
       expect(parsed.teams.length).toBeLessThanOrEqual(2);
       expect(parsed.meta.current_page).toBe(1);
     });
 
-    it("validates team schema", async () => {
+    it("validates team schema", async (ctx) => {
       const result = await client.callTool({
         name: "team_list",
         arguments: { per_page: 1 },
       });
 
-      if (result.isError === true) return;
+      skipIfToolError(result, ctx, "feature-not-supported", "team_list");
 
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as TeamListResponse;
       const first = parsed.teams[0];
-      if (first === undefined) return;
+      if (first === undefined) {
+        skipMissingFixture(ctx, "no teams in sandbox to validate per-team schema");
+      }
 
       TeamSchema.parse(first);
       expect(first).toHaveProperty("id");
@@ -101,14 +103,17 @@ describe.skipIf(!hasOAuthCredentials())("team MCP tools (e2e)", () => {
   // 401 surfaced through the MCP wrapper as `result.isError === true`. We
   // treat that as a skip rather than a spurious failure.
   describe("team_create", () => {
-    it("creates a team via callTool (skips on OAuth scope gap)", async () => {
+    it("creates a team via callTool (skips on OAuth scope gap)", async (ctx) => {
       const teamName = `E2E MCP Test Team ${String(Date.now())}`;
       const result = await client.callTool({
         name: "team_create",
         arguments: { name: teamName },
       });
 
-      if (result.isError === true) return;
+      // POST /v2/teams returns HTTP 401 when the OAuth token lacks the
+      // team-management scope (header comment above). Surface as visible
+      // feature-not-supported skip — the gating is environmental, not a bug.
+      skipIfToolError(result, ctx, "feature-not-supported", "team_create (OAuth scope gap)");
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as TeamItem;
       TeamSchema.parse(parsed);
       expect(parsed).toHaveProperty("id");

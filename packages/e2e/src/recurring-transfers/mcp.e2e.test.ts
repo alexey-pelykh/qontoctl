@@ -6,7 +6,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { RecurringTransferListResponseSchema, RecurringTransferSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { CLI_PATH, firstTextFromMcpResult } from "../helpers.js";
+import { CLI_PATH, firstTextFromMcpResult, skipMissingFixture } from "../helpers.js";
 import { cliEnv, hasOAuthCredentials, hasStagingToken, pinAuthPreference } from "../sandbox.js";
 
 /**
@@ -100,7 +100,7 @@ describe.skipIf(!hasOAuthCredentials())("recurring-transfer MCP tools (e2e)", ()
   // SCA orchestration is required for recurring_transfer_create against the
   // Qonto sandbox. Skip when no staging token (sandbox routing) is present.
   describe.skipIf(!hasStagingToken())("recurring_transfer_create (sandbox SCA)", () => {
-    it("creates a recurring transfer with inline SCA mock-decision approval", async () => {
+    it("creates a recurring transfer with inline SCA mock-decision approval", async (ctx) => {
       const beneficiaryResult = await client.callTool({
         name: "beneficiary_list",
         arguments: { per_page: 1 },
@@ -108,12 +108,16 @@ describe.skipIf(!hasOAuthCredentials())("recurring-transfer MCP tools (e2e)", ()
       const beneficiaryParsed = JSON.parse(firstTextFromMcpResult(beneficiaryResult)) as {
         beneficiaries: { id: string }[];
       };
-      if (beneficiaryParsed.beneficiaries.length === 0) return;
+      if (beneficiaryParsed.beneficiaries.length === 0) {
+        skipMissingFixture(ctx, "no beneficiaries in sandbox for recurring_transfer_create");
+      }
       const beneficiaryId = (beneficiaryParsed.beneficiaries[0] as { id: string }).id;
 
       const accountResult = await client.callTool({ name: "account_list", arguments: {} });
       const accountParsed = JSON.parse(firstTextFromMcpResult(accountResult)) as { id: string }[];
-      if (accountParsed.length === 0) return;
+      if (accountParsed.length === 0) {
+        skipMissingFixture(ctx, "no bank accounts in sandbox for recurring_transfer_create");
+      }
       const accountId = (accountParsed[0] as { id: string }).id;
 
       const futureDate = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] as string;
@@ -166,7 +170,7 @@ describe.skipIf(!hasOAuthCredentials())("recurring-transfer MCP tools (e2e)", ()
   // triggers SCA, we approve it; if it doesn't, the token-capture times out
   // harmlessly while the cancel call resolves successfully on the happy path.
   describe.skipIf(!hasStagingToken())("recurring_transfer_cancel (sandbox SCA)", () => {
-    it("creates a recurring transfer with SCA approval and then cancels it", async () => {
+    it("creates a recurring transfer with SCA approval and then cancels it", async (ctx) => {
       const beneficiaryResult = await client.callTool({
         name: "beneficiary_list",
         arguments: { per_page: 1 },
@@ -174,12 +178,16 @@ describe.skipIf(!hasOAuthCredentials())("recurring-transfer MCP tools (e2e)", ()
       const beneficiaryParsed = JSON.parse(firstTextFromMcpResult(beneficiaryResult)) as {
         beneficiaries: { id: string }[];
       };
-      if (beneficiaryParsed.beneficiaries.length === 0) return;
+      if (beneficiaryParsed.beneficiaries.length === 0) {
+        skipMissingFixture(ctx, "no beneficiaries in sandbox for recurring_transfer_cancel");
+      }
       const beneficiaryId = (beneficiaryParsed.beneficiaries[0] as { id: string }).id;
 
       const accountResult = await client.callTool({ name: "account_list", arguments: {} });
       const accountParsed = JSON.parse(firstTextFromMcpResult(accountResult)) as { id: string }[];
-      if (accountParsed.length === 0) return;
+      if (accountParsed.length === 0) {
+        skipMissingFixture(ctx, "no bank accounts in sandbox for recurring_transfer_cancel");
+      }
       const accountId = (accountParsed[0] as { id: string }).id;
 
       const futureDate = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] as string;
@@ -282,14 +290,16 @@ describe.skipIf(!hasOAuthCredentials())("recurring-transfer MCP tools (e2e)", ()
   });
 
   describe("recurring_transfer_show", () => {
-    it("shows a recurring transfer by ID", async () => {
+    it("shows a recurring transfer by ID", async (ctx) => {
       const listResult = await client.callTool({
         name: "recurring_transfer_list",
         arguments: { per_page: 1 },
       });
       const listParsed = JSON.parse(firstTextFromMcpResult(listResult)) as RecurringTransferListResponse;
       const first = listParsed.recurring_transfers[0];
-      if (first === undefined) return;
+      if (first === undefined) {
+        skipMissingFixture(ctx, "no recurring transfers in sandbox to resolve an id for recurring_transfer_show");
+      }
 
       const result = await client.callTool({
         name: "recurring_transfer_show",

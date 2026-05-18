@@ -6,7 +6,14 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { InsuranceContractSchema, InsuranceDocumentSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { CLI_PATH, firstTextFromMcpResult } from "../helpers.js";
+import {
+  CLI_PATH,
+  firstTextFromMcpResult,
+  type LifecycleSkipCarrier,
+  assertLifecycleState,
+  skipIfToolError,
+  skipIfUpstreamSkipped,
+} from "../helpers.js";
 import { cliEnv, hasOAuthCredentials, pinAuthPreference } from "../sandbox.js";
 
 /**
@@ -44,9 +51,10 @@ describe.skipIf(!hasOAuthCredentials())("insurance MCP tools (e2e)", () => {
   });
 
   describe("insurance CRUD lifecycle", () => {
+    const lifecycleSkip: LifecycleSkipCarrier = { reason: undefined };
     let createdId: string | undefined;
 
-    it("creates an insurance contract", async () => {
+    it("creates an insurance contract", async (ctx) => {
       const result = await client.callTool({
         name: "insurance_create",
         arguments: {
@@ -63,7 +71,10 @@ describe.skipIf(!hasOAuthCredentials())("insurance MCP tools (e2e)", () => {
         },
       });
 
-      if (result.isError === true) return;
+      // Insurance is an OAuth feature that some sandbox orgs do not have
+      // provisioned. Surface as visible feature-not-supported skip and
+      // propagate to downstream tests via the lifecycle carrier (#605).
+      skipIfToolError(result, ctx, "feature-not-supported", "insurance_create", lifecycleSkip);
 
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as Record<string, unknown>;
       InsuranceContractSchema.parse(parsed);
@@ -72,34 +83,36 @@ describe.skipIf(!hasOAuthCredentials())("insurance MCP tools (e2e)", () => {
       createdId = parsed["id"] as string;
     });
 
-    it("shows the created insurance contract", async () => {
-      if (createdId === undefined) return;
+    it("shows the created insurance contract", async (ctx) => {
+      skipIfUpstreamSkipped(lifecycleSkip, ctx);
+      const id = assertLifecycleState(createdId, "createdId");
 
       const result = await client.callTool({
         name: "insurance_show",
-        arguments: { id: createdId },
+        arguments: { id },
       });
 
       expect(result.isError).toBeFalsy();
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as Record<string, unknown>;
       InsuranceContractSchema.parse(parsed);
-      expect(parsed).toHaveProperty("id", createdId);
+      expect(parsed).toHaveProperty("id", id);
     });
 
-    it("updates the created insurance contract", async () => {
-      if (createdId === undefined) return;
+    it("updates the created insurance contract", async (ctx) => {
+      skipIfUpstreamSkipped(lifecycleSkip, ctx);
+      const id = assertLifecycleState(createdId, "createdId");
 
       const result = await client.callTool({
         name: "insurance_update",
         arguments: {
-          id: createdId,
+          id,
           provider_slug: "allianz",
         },
       });
 
       expect(result.isError).toBeFalsy();
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as Record<string, unknown>;
-      expect(parsed).toHaveProperty("id", createdId);
+      expect(parsed).toHaveProperty("id", id);
       expect(parsed).toHaveProperty("provider_slug", "allianz");
     });
 
@@ -111,14 +124,15 @@ describe.skipIf(!hasOAuthCredentials())("insurance MCP tools (e2e)", () => {
     // fixture (`packages/e2e/fixtures/tiny.pdf`) landed with #G4A.
     let uploadedDocId: string | undefined;
 
-    it("uploads a document via insurance_upload_document", async () => {
-      if (createdId === undefined) return;
+    it("uploads a document via insurance_upload_document", async (ctx) => {
+      skipIfUpstreamSkipped(lifecycleSkip, ctx);
+      const id = assertLifecycleState(createdId, "createdId");
 
       // `type` is required by the Qonto API (one of contract, amendment,
       // invoice, other, policy, certificate — empirically observed values).
       const result = await client.callTool({
         name: "insurance_upload_document",
-        arguments: { contract_id: createdId, file_path: PDF_FIXTURE_PATH, type: "contract" },
+        arguments: { contract_id: id, file_path: PDF_FIXTURE_PATH, type: "contract" },
       });
 
       expect(result.isError).toBeFalsy();
@@ -130,38 +144,42 @@ describe.skipIf(!hasOAuthCredentials())("insurance MCP tools (e2e)", () => {
       uploadedDocId = parsed["id"] as string;
     });
 
-    it("insurance_show reflects the uploaded document", async () => {
-      if (createdId === undefined || uploadedDocId === undefined) return;
+    it("insurance_show reflects the uploaded document", async (ctx) => {
+      skipIfUpstreamSkipped(lifecycleSkip, ctx);
+      const id = assertLifecycleState(createdId, "createdId");
+      const docId = assertLifecycleState(uploadedDocId, "uploadedDocId");
 
       const result = await client.callTool({
         name: "insurance_show",
-        arguments: { id: createdId },
+        arguments: { id },
       });
 
       expect(result.isError).toBeFalsy();
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as Record<string, unknown>;
       InsuranceContractSchema.parse(parsed);
       const documents = (parsed["documents"] as readonly InsuranceDocumentRef[] | null | undefined) ?? [];
-      expect(documents.map((d) => d.id)).toContain(uploadedDocId);
+      expect(documents.map((d) => d.id)).toContain(docId);
     });
 
-    it("removes the document via insurance_remove_document", async () => {
-      if (createdId === undefined || uploadedDocId === undefined) return;
+    it("removes the document via insurance_remove_document", async (ctx) => {
+      skipIfUpstreamSkipped(lifecycleSkip, ctx);
+      const id = assertLifecycleState(createdId, "createdId");
+      const docId = assertLifecycleState(uploadedDocId, "uploadedDocId");
 
       const removeResult = await client.callTool({
         name: "insurance_remove_document",
-        arguments: { contract_id: createdId, document_id: uploadedDocId },
+        arguments: { contract_id: id, document_id: docId },
       });
       expect(removeResult.isError).toBeFalsy();
 
       const showResult = await client.callTool({
         name: "insurance_show",
-        arguments: { id: createdId },
+        arguments: { id },
       });
       expect(showResult.isError).toBeFalsy();
       const parsed = JSON.parse(firstTextFromMcpResult(showResult)) as Record<string, unknown>;
       const documents = (parsed["documents"] as readonly InsuranceDocumentRef[] | null | undefined) ?? [];
-      expect(documents.map((d) => d.id)).not.toContain(uploadedDocId);
+      expect(documents.map((d) => d.id)).not.toContain(docId);
     });
   });
 });

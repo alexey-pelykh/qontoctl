@@ -7,7 +7,7 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { TransferListResponseSchema, TransferSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { CLI_PATH, firstTextFromMcpResult } from "../helpers.js";
+import { CLI_PATH, firstTextFromMcpResult, skipMissingFixture } from "../helpers.js";
 import {
   cliEnv,
   getTransferProofId,
@@ -130,14 +130,16 @@ describe.skipIf(!hasApiKeyCredentials())("transfer MCP tools (e2e)", () => {
   });
 
   describe("transfer_show", () => {
-    it("shows a transfer by ID", async () => {
+    it("shows a transfer by ID", async (ctx) => {
       const listResult = await client.callTool({
         name: "transfer_list",
         arguments: { per_page: 1 },
       });
       const listParsed = JSON.parse(firstTextFromMcpResult(listResult)) as TransferListResponse;
       const firstTransfer = listParsed.transfers[0];
-      if (firstTransfer === undefined) return;
+      if (firstTransfer === undefined) {
+        skipMissingFixture(ctx, "no transfers in sandbox to resolve an id for transfer_show");
+      }
 
       const transferId = firstTransfer.id;
       const result = await client.callTool({

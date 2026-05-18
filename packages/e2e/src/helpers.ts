@@ -3,7 +3,7 @@
 
 import { execFileSync, type ExecFileSyncOptions } from "node:child_process";
 import { resolve } from "node:path";
-import { expect } from "vitest";
+import { expect, type TestContext } from "vitest";
 import { cliEnv } from "./sandbox.js";
 
 /**
@@ -250,4 +250,262 @@ export function firstTextFromMcpResult(result: { content: unknown }): string {
   const entry = content[0] as McpTextContent;
   expect(entry.type).toBe("text");
   return entry.text;
+}
+
+// ---------------------------------------------------------------------------
+// Visible-skip helpers (R-FV-1…R-FV-5, R-SR-1, R-SR-2 — see #605, epic #603,
+// `docs/designs/e2e-test-reliability.md` §6.1).
+//
+// The pre-#605 suite used a two-stage silent mask — `if (result.isError ===
+// true) return;` swallowed tool errors, leaving the CRUD chain's shared
+// `createdId` undefined, then `if (createdId === undefined) return;`
+// swallowed every downstream test. Three semantically distinct outcomes
+// ("couldn't execute", "executed and found a bug", "executed correctly")
+// collapsed into one green dot. This pattern hid #496 for ~2 weeks.
+//
+// The helpers below replace the silent pattern with *visible* skips —
+// every non-execution surfaces in the vitest report with a recorded reason
+// drawn from the {@link SkipKind} taxonomy. The CI guard
+// `scripts/check-no-silent-skip.js` bans reintroduction of the raw return.
+//
+// Deviation from design §6.1 (documented for reviewers): the design sketched
+// helpers as `(...): boolean` returning a "should-stop" flag for the caller
+// to `return` on. Vitest's `ctx.skip(reason)` actually THROWS a
+// `PendingError` (verified against @vitest/runner@4.1.1
+// `chunk-artifact.js:2349-2357`), so the `if (helper(...)) return;`
+// indirection is impossible without re-implementing the skip mechanism. The
+// helpers below throw via `ctx.skip(...)` and set the optional lifecycle
+// carrier BEFORE the throw — preserving the design's
+// lifecycle-propagation intent at the cost of one syntactic indirection.
+// ---------------------------------------------------------------------------
+
+/**
+ * Triage taxonomy for E2E test skips (R-SR-2). Every visible skip carries
+ * one of these prefixes in its reason string, enabling future trend
+ * analysis (e.g. "% of runs that skipped due to sandbox preconditions").
+ *
+ * - `feature-not-supported` — the Qonto sandbox does not expose the
+ *   feature this test exercises (commonly: 404 on `*_list`). The CLI/MCP
+ *   surface is presumed correct; the test cannot reach it.
+ * - `sandbox-precondition` — the sandbox accepts the call shape but the
+ *   resource is in a state that violates an undocumented precondition
+ *   (commonly: 412 on a `*_update` that requires a related entity first).
+ *   These feed the L3 catalog tracked under epic #603 (Wave B / #606).
+ * - `missing-fixture` — a list returned successfully but contained zero
+ *   items, so the test has no seed data to exercise its scenario.
+ *   Distinct from `feature-not-supported`: the feature works; the org is
+ *   empty.
+ */
+export type SkipKind = "feature-not-supported" | "sandbox-precondition" | "missing-fixture";
+
+/**
+ * Shared, mutable record that propagates a skip reason through a CRUD
+ * lifecycle `describe` block. The first test in the chain populates
+ * `reason` (via {@link skipIfToolError}'s `carrier` parameter or directly);
+ * subsequent tests check it via {@link skipIfUpstreamSkipped} and skip
+ * themselves with the same reason prefixed by `upstream-skipped:`.
+ *
+ * Construct one per chain at module scope inside the enclosing `describe`:
+ *
+ * ```ts
+ * describe("quote CRUD lifecycle", () => {
+ *   const lifecycleSkip: LifecycleSkipCarrier = { reason: undefined };
+ *   let createdQuoteId: string | undefined;
+ *
+ *   it("creates", async (ctx) => {
+ *     skipIfToolError(listResult, ctx, "feature-not-supported", "quote_list", lifecycleSkip);
+ *     // ...
+ *   });
+ *
+ *   it("updates", async (ctx) => {
+ *     skipIfUpstreamSkipped(lifecycleSkip, ctx);
+ *     // ...
+ *   });
+ * });
+ * ```
+ *
+ * Sequential E2E execution (`fileParallelism: false` in
+ * `vitest.e2e.config.ts`) guarantees the chain runs in declaration order
+ * within a single worker — no concurrency guards needed.
+ */
+export interface LifecycleSkipCarrier {
+  reason: string | undefined;
+}
+
+/**
+ * Tool-result shape with an `isError` flag (MCP `CallToolResult`-compatible).
+ * Helpers below accept this loose contract so they apply to both MCP
+ * `client.callTool` results and any other shape that signals errors via
+ * boolean.
+ */
+interface ToolResultLike {
+  readonly isError?: boolean;
+}
+
+/**
+ * Mark the current test as skipped (visible in the vitest report) when a
+ * tool/CLI result represents a known, *triaged* failure — not a bug.
+ * Optionally populates a {@link LifecycleSkipCarrier} so subsequent
+ * CRUD-chain tests can propagate the same reason via
+ * {@link skipIfUpstreamSkipped}.
+ *
+ * Throws via vitest's `ctx.skip(reason)` (returns `never` on the skip path).
+ * Returns `void` on the no-skip path so callers can chain. Setting the
+ * carrier happens BEFORE the throw, preserving downstream propagation.
+ *
+ * Triage discipline (per design §6.1):
+ *
+ * - `feature-not-supported` — sandbox lacks the feature. No catalog entry
+ *   needed. Example: `quote_list` returns 404 because the test org has no
+ *   quotes module enabled.
+ * - `sandbox-precondition` — request shape is valid; resource state is not.
+ *   Flag the site for the L3 catalog (#606). Example: `quote_update`
+ *   returns 412 `quote_has_no_attachment`.
+ * - `missing-fixture` — pass via the lifecycle pattern when an upstream
+ *   list returned successfully but empty. For in-test empty-fixture skips
+ *   (no upstream context), call {@link skipMissingFixture} directly.
+ *
+ * `unexpected-error` is intentionally NOT in {@link SkipKind} — that case
+ * is the #496 class and MUST surface as a failure via
+ * `expect(result.isError).toBeFalsy()`. Never skip on it.
+ *
+ * @param result  Tool result with an `isError` boolean.
+ * @param ctx     The vitest test context (`async (ctx) => { ... }`).
+ * @param kind    The {@link SkipKind} triage category.
+ * @param detail  Short, human-readable identifier (typically the tool/CLI
+ *                operation name, e.g. `"quote_list"`). Appears in the
+ *                vitest report after the kind prefix.
+ * @param carrier Optional CRUD-chain carrier; populated with the same
+ *                reason that's passed to `ctx.skip` before the throw.
+ */
+export function skipIfToolError(
+  result: ToolResultLike,
+  ctx: TestContext,
+  kind: SkipKind,
+  detail: string,
+  carrier?: LifecycleSkipCarrier,
+): void {
+  if (result.isError !== true) return;
+  const reason = `${kind}: ${detail}`;
+  if (carrier !== undefined) {
+    carrier.reason = reason;
+  }
+  ctx.skip(reason);
+}
+
+/**
+ * Mark the current test as skipped (visible in the vitest report) when an
+ * upstream test in a CRUD lifecycle chain has already skipped, propagating
+ * the original reason so the chain's downstream entries stay legible in
+ * the report.
+ *
+ * Throws via vitest's `ctx.skip(reason)` on the skip path; returns `void`
+ * when no upstream skip is recorded so the caller can continue.
+ *
+ * The propagated reason is prefixed with `upstream-skipped:` so the report
+ * makes the cascade obvious:
+ *
+ * ```
+ * ✓ creates a quote                                    [pass]
+ * ↓ updates the created quote — upstream-skipped:
+ *                                feature-not-supported: quote_list
+ * ↓ deletes the created quote   — upstream-skipped:
+ *                                feature-not-supported: quote_list
+ * ```
+ *
+ * @param carrier The carrier populated by the upstream test.
+ * @param ctx     The vitest test context.
+ */
+export function skipIfUpstreamSkipped(carrier: LifecycleSkipCarrier, ctx: TestContext): void {
+  if (carrier.reason === undefined) return;
+  ctx.skip(`upstream-skipped: ${carrier.reason}`);
+}
+
+/**
+ * Mark the current test as skipped (visible in the vitest report) because
+ * a required fixture is absent in the sandbox — typically a successful
+ * list-call returning zero items. Throws via vitest's `ctx.skip()`;
+ * returns `never` so TypeScript narrows variables after the call.
+ *
+ * Use for in-test empty-fixture skips that have no upstream CRUD context:
+ *
+ * ```ts
+ * const cards = cliJson<CardItem[]>("card", "list", "--per-page", "1");
+ * const first = cards[0];
+ * if (first === undefined) skipMissingFixture(ctx, "no cards in sandbox");
+ * // first: CardItem  (TS narrows via `never` return)
+ * ```
+ *
+ * The defensive `throw` after `ctx.skip()` is unreachable in practice
+ * (vitest's `PendingError` always throws) but guarantees the `never`
+ * return type at the type-system level even if vitest internals change.
+ *
+ * When called from a CRUD lifecycle chain's first step where downstream
+ * tests should propagate the missing-fixture skip, pass the chain's
+ * {@link LifecycleSkipCarrier} so subsequent {@link skipIfUpstreamSkipped}
+ * calls cascade the reason. The carrier is populated BEFORE the throw.
+ *
+ * For lifecycle-chain skips, use {@link skipIfUpstreamSkipped}. For
+ * tool-error skips, use {@link skipIfToolError}.
+ *
+ * @param ctx     The vitest test context.
+ * @param detail  Short, human-readable description of the missing fixture
+ *                (e.g. `"no cards in sandbox"`). Appears in the vitest
+ *                report after the `missing-fixture:` prefix.
+ * @param carrier Optional CRUD-chain carrier; populated with the same
+ *                reason that's passed to `ctx.skip` before the throw.
+ */
+export function skipMissingFixture(ctx: TestContext, detail: string, carrier?: LifecycleSkipCarrier): never {
+  const reason = `missing-fixture: ${detail}`;
+  if (carrier !== undefined) {
+    carrier.reason = reason;
+  }
+  ctx.skip(reason);
+  throw new Error("unreachable: ctx.skip should have thrown PendingError");
+}
+
+/**
+ * Defensive invariant check for CRUD-chain downstream tests: when
+ * {@link skipIfUpstreamSkipped} returns (chain still alive), the
+ * upstream-populated state variable MUST be defined. If it is `undefined`
+ * despite a clean lifecycle carrier, the upstream test failed
+ * assertively (rather than skipping cleanly) — throw loudly here rather
+ * than crashing on a property access several lines down with an opaque
+ * `Cannot read property of undefined` error.
+ *
+ * Also serves as a TypeScript narrowing point: returns the value with
+ * `undefined` excluded so callers can use it directly without `!`
+ * non-null assertions or `as` casts.
+ *
+ * Usage:
+ *
+ * ```ts
+ * let createdClientId: string | undefined;
+ *
+ * it("creates", async (ctx) => {
+ *   const result = await client.callTool({ name: "client_create", arguments: {...} });
+ *   expect(result.isError, ...).toBeFalsy();
+ *   createdClientId = parsed.id;
+ * });
+ *
+ * it("updates", async (ctx) => {
+ *   skipIfUpstreamSkipped(lifecycleSkip, ctx);
+ *   const id = assertLifecycleState(createdClientId, "createdClientId");
+ *   // id: string  (TS narrowed)
+ *   ...
+ * });
+ * ```
+ *
+ * @param value Lifecycle-chain shared state variable (typed `T | undefined`).
+ * @param name  Identifier of the variable, for the error message.
+ * @returns     `value`, narrowed to `T`.
+ */
+export function assertLifecycleState<T>(value: T | undefined, name: string): T {
+  if (value === undefined) {
+    throw new Error(
+      `invariant violation: lifecycle carrier clean but '${name}' not populated by upstream test ` +
+        `(upstream likely failed assertively — inspect prior test outcomes for the actual failure)`,
+    );
+  }
+  return value;
 }

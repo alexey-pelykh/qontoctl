@@ -5,7 +5,15 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { WebhookSubscriptionListResponseSchema, WebhookSubscriptionSchema } from "@qontoctl/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { CLI_PATH, firstTextFromMcpResult } from "../helpers.js";
+import {
+  CLI_PATH,
+  firstTextFromMcpResult,
+  type LifecycleSkipCarrier,
+  assertLifecycleState,
+  skipIfToolError,
+  skipIfUpstreamSkipped,
+  skipMissingFixture,
+} from "../helpers.js";
 import { cliEnv, hasOAuthCredentials, pinAuthPreference } from "../sandbox.js";
 
 interface WebhookItem {
@@ -52,13 +60,13 @@ describe.skipIf(!hasOAuthCredentials())("webhook MCP tools (e2e)", () => {
   });
 
   describe("webhook_list", () => {
-    it("returns a list of webhooks with expected structure", async () => {
+    it("returns a list of webhooks with expected structure", async (ctx) => {
       const result = await client.callTool({
         name: "webhook_list",
         arguments: {},
       });
 
-      if (result.isError === true) return;
+      skipIfToolError(result, ctx, "feature-not-supported", "webhook_list");
 
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as WebhookListResponse;
       WebhookSubscriptionListResponseSchema.parse(parsed);
@@ -67,13 +75,13 @@ describe.skipIf(!hasOAuthCredentials())("webhook MCP tools (e2e)", () => {
       expect(Array.isArray(parsed.subscriptions)).toBe(true);
     });
 
-    it("supports pagination", async () => {
+    it("supports pagination", async (ctx) => {
       const result = await client.callTool({
         name: "webhook_list",
         arguments: { per_page: 2, page: 1 },
       });
 
-      if (result.isError === true) return;
+      skipIfToolError(result, ctx, "feature-not-supported", "webhook_list");
 
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as WebhookListResponse;
       expect(parsed.subscriptions.length).toBeLessThanOrEqual(2);
@@ -82,16 +90,18 @@ describe.skipIf(!hasOAuthCredentials())("webhook MCP tools (e2e)", () => {
   });
 
   describe("webhook_show", () => {
-    it("shows a webhook by ID", async () => {
+    it("shows a webhook by ID", async (ctx) => {
       const listResult = await client.callTool({
         name: "webhook_list",
         arguments: { per_page: 1 },
       });
-      if (listResult.isError === true) return;
+      skipIfToolError(listResult, ctx, "feature-not-supported", "webhook_list");
 
       const listParsed = JSON.parse(firstTextFromMcpResult(listResult)) as WebhookListResponse;
       const first = listParsed.subscriptions[0];
-      if (first === undefined) return;
+      if (first === undefined) {
+        skipMissingFixture(ctx, "no webhooks in sandbox to resolve an id for webhook_show");
+      }
 
       const result = await client.callTool({
         name: "webhook_show",
@@ -112,6 +122,7 @@ describe.skipIf(!hasOAuthCredentials())("webhook MCP tools (e2e)", () => {
   // round-trip but exercises the operations through callTool so the MCP wrapper
   // contract is asserted on top of the underlying API contract.
   describe("webhook CRUD lifecycle (MCP)", () => {
+    const lifecycleSkip: LifecycleSkipCarrier = { reason: undefined };
     let createdWebhookId: string | undefined;
 
     it("creates a webhook via callTool", async () => {
@@ -132,8 +143,9 @@ describe.skipIf(!hasOAuthCredentials())("webhook MCP tools (e2e)", () => {
       createdWebhookId = parsed.id;
     });
 
-    it("updates the webhook by widening the event filter", async () => {
-      if (createdWebhookId === undefined) return;
+    it("updates the webhook by widening the event filter", async (ctx) => {
+      skipIfUpstreamSkipped(lifecycleSkip, ctx);
+      const id = assertLifecycleState(createdWebhookId, "createdWebhookId");
 
       // The Qonto API treats PUT as full-replacement (not partial) — sending
       // only `types` returns "HTTP 400: CallbackURL is missing", so the URL
@@ -143,7 +155,7 @@ describe.skipIf(!hasOAuthCredentials())("webhook MCP tools (e2e)", () => {
       const result = await client.callTool({
         name: "webhook_update",
         arguments: {
-          id: createdWebhookId,
+          id,
           callback_url: TEST_CALLBACK_URL,
           types: ["v1/transactions", "v1/cards"],
         },
@@ -152,30 +164,32 @@ describe.skipIf(!hasOAuthCredentials())("webhook MCP tools (e2e)", () => {
       expect(result.isError).toBeFalsy();
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as WebhookItem;
       WebhookSubscriptionSchema.parse(parsed);
-      expect(parsed.id).toBe(createdWebhookId);
+      expect(parsed.id).toBe(id);
       expect(parsed.types).toEqual(expect.arrayContaining(["v1/transactions", "v1/cards"]));
     });
 
-    it("deletes the webhook via callTool", async () => {
-      if (createdWebhookId === undefined) return;
+    it("deletes the webhook via callTool", async (ctx) => {
+      skipIfUpstreamSkipped(lifecycleSkip, ctx);
+      const id = assertLifecycleState(createdWebhookId, "createdWebhookId");
 
       const result = await client.callTool({
         name: "webhook_delete",
-        arguments: { id: createdWebhookId },
+        arguments: { id },
       });
 
       expect(result.isError).toBeFalsy();
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as { deleted: boolean; id: string };
       expect(parsed.deleted).toBe(true);
-      expect(parsed.id).toBe(createdWebhookId);
+      expect(parsed.id).toBe(id);
     });
 
-    it("returns 404 when fetching the deleted webhook", async () => {
-      if (createdWebhookId === undefined) return;
+    it("returns 404 when fetching the deleted webhook", async (ctx) => {
+      skipIfUpstreamSkipped(lifecycleSkip, ctx);
+      const id = assertLifecycleState(createdWebhookId, "createdWebhookId");
 
       const result = await client.callTool({
         name: "webhook_show",
-        arguments: { id: createdWebhookId },
+        arguments: { id },
       });
 
       expect(result.isError).toBe(true);
