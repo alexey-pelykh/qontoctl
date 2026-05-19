@@ -679,3 +679,209 @@ describe("unwrapForDescent — ZodReadonly nested-descent regression (#622)", ()
     expect(diff.missing_fields.map((m) => m.field)).toContain("config.required");
   });
 });
+
+// ---------------------------------------------------------------------------
+// walkKeys + unwrap helpers — ZodPipe direction regressions (#623)
+//
+// Same wrapper-short-circuit class as #616 / #622, but for the *direction*
+// inside `ZodPipe`. PR #619 made `walkKeys` descend `def.in` because
+// `.transform(fn)` produces `ZodPipe { in: source, out: ZodTransform }`. That
+// is correct for `.transform()` but inverted for `z.preprocess(fn, target)`
+// which produces `ZodPipe { in: ZodTransform, out: target }` — the target
+// (which carries any `.nullable()` / `.optional()`) lives on `def.out`. With
+// the #619-era code, a field declared `z.preprocess(fn, z.string().nullable())`
+// would land on ZodTransform inside `walkKeys` and short-circuit the loop,
+// dropping the inner `.nullable()` and emitting a false-positive
+// `strictness_mismatch` for a genuinely-nullable preprocessed field.
+//
+// Empirically zero false positives today (no current @qontoctl/core schema
+// uses field-level `z.preprocess`), but the same wrapper-short-circuit class
+// as #616 / #620 / #622 — fix the latent gap before it lands. Audit also
+// extends to `unwrapForDescent` (pre-fix descended `def.out` unconditionally
+// → landed on ZodTransform for `.transform()` → falls through as leaf →
+// skipped nested-element drift inside `ClientInvoiceSchema.items`-shaped
+// fields) and `unwrapToObject` (pre-fix tried `def.out` first, but ZodTransform
+// IS a ZodType → entered the wrong side → exhausted the 16-step budget →
+// returned `null`, refusing a top-level `z.object({...}).transform(fn)`).
+//
+// Real introspection only, no mocks (#616 REQ-A5 discipline reasserted).
+// ---------------------------------------------------------------------------
+
+describe("walkKeys — ZodPipe direction regressions (#623)", () => {
+  // REQ-D1: `z.preprocess(fn, z.string().nullable())` — preprocess is the
+  // canonical RED case. Pre-fix: walkKeys descended def.in (ZodTransform) →
+  // loop short-circuits → both flags false → WRONG. Post-fix: detects
+  // ZodTransform on def.in → descends def.out → reaches `.nullable()`.
+  it("REQ-D1: z.preprocess(fn, z.string().nullable()) is nullable", () => {
+    const schema = z
+      .object({
+        f: z.preprocess((v) => v, z.string().nullable()),
+      })
+      .strip();
+    expect(walkKeys(schema).get("f")).toEqual({ isNullable: true, isOptional: false });
+  });
+
+  // REQ-D1: `z.preprocess(fn, z.string().optional().default(null))` — both
+  // strictness flags must propagate through the preprocess target side.
+  it("REQ-D1: z.preprocess(fn, z.string().nullable().optional().default(null)) is nullable + optional", () => {
+    const schema = z
+      .object({
+        f: z.preprocess((v) => v, z.string().nullable().optional().default(null)),
+      })
+      .strip();
+    expect(walkKeys(schema).get("f")).toEqual({ isNullable: true, isOptional: true });
+  });
+
+  // REQ-D1 regression guard: `.transform()` direction (the #619 case) must
+  // still work post-fix. Direction selection picks def.in when def.out is
+  // ZodTransform, mirroring the original PR #619 behavior.
+  it("REQ-D1 regression: z.array(...).nullable().transform(...) still preserves nullability", () => {
+    const schema = z
+      .object({
+        items: z
+          .array(z.object({ id: z.string() }).strip())
+          .nullable()
+          .transform((v) => v ?? []),
+      })
+      .strip();
+    expect(walkKeys(schema).get("items")).toMatchObject({ isNullable: true });
+  });
+
+  // REQ-D1: bare `z.pipe(A, B)` — neither side is a ZodTransform. Convention:
+  // descend def.in (input side is what the raw payload is validated against).
+  // Pre-fix #619 behavior was already def.in for this case; pinned to guard
+  // against the direction-aware refactor regressing the convention.
+  it("REQ-D1: bare z.pipe(z.<T>().nullable(), z.<T>()) descends def.in (input-side)", () => {
+    const schema = z
+      .object({
+        f: z.pipe(z.string().nullable(), z.string()),
+      })
+      .strip();
+    expect(walkKeys(schema).get("f")).toEqual({ isNullable: true, isOptional: false });
+  });
+
+  // BUT NOT: a genuinely non-nullable preprocessed field returning null is
+  // still flagged as a strictness mismatch. The direction-aware fix must not
+  // silence drift — only restore visibility into the correct side of the pipe.
+  it("BUT NOT: a non-nullable preprocessed field returning null is still flagged", () => {
+    const schema = z
+      .object({
+        f: z.preprocess((v) => v, z.string()),
+      })
+      .strip();
+    const diff = diffSchema(schema, { f: null });
+    expect(diff.strictness_mismatches.map((m) => m.field)).toContain("f");
+  });
+});
+
+describe("unwrapToObject — ZodPipe direction regressions (#623)", () => {
+  // REQ-D2: top-level `z.preprocess(fn, z.object({...}))` — target object on
+  // def.out must be reachable. Pre-fix this happened to work because the
+  // helper tried def.out first; pinned as a regression guard for the
+  // direction-aware refactor.
+  it("REQ-D2: descends a top-level z.preprocess(fn, z.object({...})) to its ZodObject", () => {
+    const schema = z.preprocess((v) => v, z.object({ id: z.string() }).strip());
+    const unwrapped = unwrapToObject(schema as unknown as z.ZodType);
+    expect(unwrapped).not.toBeNull();
+    expect(unwrapped).toBeInstanceOf(z.ZodObject);
+    expect(walkKeys(unwrapped!).get("id")).toEqual({ isNullable: false, isOptional: false });
+  });
+
+  // REQ-D2: top-level `z.object({...}).transform(fn)` — source object on
+  // def.in must be reachable. Pre-fix: def.out was ZodTransform (IS a ZodType)
+  // → helper descended to ZodTransform → loop exhausted 16 iterations →
+  // returned null → probe refused the schema. Post-fix: direction-aware
+  // descent picks def.in when def.out is ZodTransform.
+  it("REQ-D2: descends a top-level z.object({...}).transform(fn) to its source ZodObject", () => {
+    const schema = z
+      .object({ id: z.string() })
+      .strip()
+      .transform((v) => v);
+    const unwrapped = unwrapToObject(schema as unknown as z.ZodType);
+    expect(unwrapped).not.toBeNull();
+    expect(unwrapped).toBeInstanceOf(z.ZodObject);
+    expect(walkKeys(unwrapped!).get("id")).toEqual({ isNullable: false, isOptional: false });
+  });
+
+  // REQ-D2: bare top-level `z.pipe(z.object({...}), z.object({...}))` —
+  // convention descends def.in (input-side validation target).
+  it("REQ-D2: descends a bare z.pipe(z.object({...}), z.object({...})) to def.in ZodObject", () => {
+    const schema = z.pipe(z.object({ id: z.string() }).strip(), z.object({ id: z.string() }).strip());
+    const unwrapped = unwrapToObject(schema as unknown as z.ZodType);
+    expect(unwrapped).not.toBeNull();
+    expect(unwrapped).toBeInstanceOf(z.ZodObject);
+    expect(walkKeys(unwrapped!).get("id")).toEqual({ isNullable: false, isOptional: false });
+  });
+
+  // BUT NOT: a top-level `z.preprocess(fn, z.array(...))` resolves through
+  // ZodPipe to ZodArray — not ZodObject — so the helper still returns null,
+  // honoring the probe's object-shaped-only contract.
+  it("BUT NOT: returns null for a top-level z.preprocess(fn, z.array(...))", () => {
+    const schema = z.preprocess((v) => v, z.array(z.string()));
+    expect(unwrapToObject(schema as unknown as z.ZodType)).toBeNull();
+  });
+});
+
+describe("unwrapForDescent — ZodPipe direction regressions (#623)", () => {
+  // REQ-D3: a nested `z.preprocess(fn, z.object({...}))` field must have its
+  // keys walked. Pre-fix this worked (def.out was already preferred), so this
+  // is a regression guard for the direction-aware refactor.
+  it("REQ-D3: diffSchema surfaces extras inside a nested z.preprocess(fn, z.object({...}))", () => {
+    const schema = z
+      .object({
+        config: z.preprocess((v) => v, z.object({ x: z.string() }).strip()),
+      })
+      .strip();
+    const diff = diffSchema(schema, { config: { x: "ok", unknown_nested: "val" } });
+    expect(diff.extra_fields.map((f) => f.field)).toContain("config.unknown_nested");
+  });
+
+  // REQ-D3: a nested `.transform()` over an object must have its keys walked.
+  // Pre-fix: unwrapForDescent descended def.out (ZodTransform), bailed out as
+  // a leaf → diffSchema treated the field as a leaf → silently invisible
+  // (false-negative class — the symmetric counterpart that #620 / #622 fixed
+  // for ZodDefault / ZodReadonly). Post-fix: descends def.in.
+  it("REQ-D3: diffSchema surfaces extras inside a nested z.object({...}).transform(fn)", () => {
+    const schema = z
+      .object({
+        config: z
+          .object({ x: z.string() })
+          .strip()
+          .transform((v) => v),
+      })
+      .strip();
+    const diff = diffSchema(schema, { config: { x: "ok", unknown_nested: "val" } });
+    expect(diff.extra_fields.map((f) => f.field)).toContain("config.unknown_nested");
+  });
+
+  // REQ-D3: a nested `.transform()` over an array must surface element-level
+  // drift via `items[].field` path qualification. Mirrors the
+  // `ClientInvoiceSchema.items` shape (`z.array(...).nullable().transform(...)`)
+  // for which walkKeys correctly captured nullability post-#619 but
+  // unwrapForDescent silently treated the array as a leaf.
+  it("REQ-D3: diffSchema surfaces extras inside a nested z.array(...).transform(fn) elements", () => {
+    const schema = z
+      .object({
+        items: z
+          .array(z.object({ id: z.string() }).strip())
+          .nullable()
+          .transform((v) => v ?? []),
+      })
+      .strip();
+    const diff = diffSchema(schema, { items: [{ id: "1", extra: "val" }] });
+    expect(diff.extra_fields.map((f) => f.field)).toContain("items[].extra");
+  });
+
+  // BUT NOT: genuine missing-required drift inside a preprocess-wrapped
+  // nested object is still flagged. The fix must restore visibility into the
+  // wrapped subtree without silencing legitimate findings.
+  it("BUT NOT: missing required field inside preprocess-wrapped nested object is still flagged", () => {
+    const schema = z
+      .object({
+        config: z.preprocess((v) => v, z.object({ required: z.string(), opt: z.string().optional() }).strip()),
+      })
+      .strip();
+    const diff = diffSchema(schema, { config: {} });
+    expect(diff.missing_fields.map((m) => m.field)).toContain("config.required");
+  });
+});

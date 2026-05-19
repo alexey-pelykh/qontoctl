@@ -143,12 +143,45 @@ interface EndpointsFile {
 // ---------------------------------------------------------------------------
 
 /**
+ * Pick the structural side of a `ZodPipe` for strictness extraction / nested
+ * descent (#623). Direction is determined by which side holds a `ZodTransform`:
+ *
+ *   - `.transform(fn)` ⇒ `ZodPipe { in: source, out: ZodTransform }` ⇒ `def.in`
+ *   - `z.preprocess(fn, target)` ⇒ `ZodPipe { in: ZodTransform, out: target }` ⇒ `def.out`
+ *   - bare `z.pipe(A, B)` ⇒ neither side is a ZodTransform ⇒ `def.in` by
+ *     convention (the raw response is validated against the input side).
+ *
+ * Returns `null` when no descent target is available (malformed pipe), letting
+ * callers `break` out of their unwrap loop instead of recursing forever.
+ *
+ * Shared by `walkKeys`, `unwrapForDescent`, and `unwrapToObject` to keep the
+ * three unwrap paths in lockstep (helper-parity discipline reasserted from
+ * #620 / #622).
+ */
+function selectPipeStrictnessSide(pipe: z.ZodType): z.ZodType | null {
+  const def = (pipe as unknown as { _zod?: { def?: { in?: unknown; out?: unknown } } })._zod?.def;
+  if (def === undefined) return null;
+  const pipeIn = def.in;
+  const pipeOut = def.out;
+  const inIsTransform = pipeIn instanceof z.ZodTransform;
+  const outIsTransform = pipeOut instanceof z.ZodTransform;
+  // `z.preprocess(fn, target)` — descend the target on `def.out`.
+  if (inIsTransform && !outIsTransform && pipeOut instanceof z.ZodType) return pipeOut;
+  // `.transform(fn)` — descend the source on `def.in`. Also the default for
+  // bare `z.pipe(A, B)` (neither side is a ZodTransform): the input-side is
+  // what the raw payload is validated against.
+  if (pipeIn instanceof z.ZodType) return pipeIn;
+  return null;
+}
+
+/**
  * Extract the field map from a Zod object schema, capturing nullable / optional
  * flags. Unwraps `ZodOptional` / `ZodNullable` / `ZodDefault` / `ZodReadonly`
- * (via the Zod 4 `_zod.def.innerType` chain) and `ZodPipe` (via `_zod.def.in`)
- * iteratively, order-independent, so `.nullable().optional()`,
- * `.default(null)`, `.readonly()`, and `.transform()` chains all classify
- * correctly (#616, #622).
+ * (via the Zod 4 `_zod.def.innerType` chain) and `ZodPipe` (via
+ * direction-aware descent of `_zod.def.in` or `_zod.def.out`) iteratively,
+ * order-independent, so `.nullable().optional()`, `.default(null)`,
+ * `.readonly()`, `.transform()`, and `z.preprocess()` chains all classify
+ * correctly (#616, #622, #623).
  *
  * Schemas not satisfying `instanceof z.ZodObject` should be rejected by the
  * caller before invoking this helper — the function assumes a `.shape` field.
@@ -177,14 +210,25 @@ export function walkKeys(schema: z.ZodObject<z.ZodRawShape>): Map<string, KeySpe
     //                  is not lost when readonly is the outermost or a
     //                  sandwiched wrapper (e.g. `z.array(...).nullable()
     //                  .readonly()`, latent for QuoteSchema.items shape — #622).
-    //   ZodPipe      → `.transform(fn)` produces a pipe whose `in` side is the
-    //                  schema the raw response is validated against; descend
-    //                  into `in` so an upstream `.nullable()` is not lost
-    //                  (e.g. `z.array(...).nullable().transform(...)`, the
-    //                  ClientInvoiceSchema.items shape).
+    //   ZodPipe      → direction-aware (#623). Both `.transform(fn)` and
+    //                  `z.preprocess(fn, target)` produce ZodPipe but with the
+    //                  ZodTransform on opposite sides:
+    //                    - `.transform()` ⇒ `{ in: source, out: ZodTransform }`
+    //                      → descend `def.in` (source carries strictness).
+    //                    - `z.preprocess()` ⇒ `{ in: ZodTransform, out: target }`
+    //                      → descend `def.out` (target carries strictness).
+    //                    - bare `z.pipe(A, B)` (no ZodTransform either side) ⇒
+    //                      descend `def.in` by convention — the raw response
+    //                      is validated against the input side first.
+    //                  Direction-blind descent into `def.in` (the #619 fix's
+    //                  initial shape) was correct for `.transform()` but would
+    //                  silently land on ZodTransform for `z.preprocess()`,
+    //                  short-circuiting the loop and dropping any nested
+    //                  `.nullable()` / `.optional()` on the target schema.
     // Without ZodDefault / ZodReadonly / ZodPipe handling the outermost
     // wrapper short-circuits the loop, leaving both flags false → false-
-    // positive drift (#616) OR upstream strictness silently dropped (#622).
+    // positive drift (#616) OR upstream strictness silently dropped
+    // (#622, #623).
     for (let i = 0; i < 16; i++) {
       if (inner instanceof z.ZodOptional) {
         isOptional = true;
@@ -208,9 +252,9 @@ export function walkKeys(schema: z.ZodObject<z.ZodRawShape>): Map<string, KeySpe
         continue;
       }
       if (inner instanceof z.ZodPipe) {
-        const pipeIn = (inner as unknown as { _zod: { def: { in?: unknown } } })._zod.def.in;
-        if (!(pipeIn instanceof z.ZodType)) break;
-        inner = pipeIn;
+        const next = selectPipeStrictnessSide(inner);
+        if (next === null) break;
+        inner = next;
         continue;
       }
       break;
@@ -334,6 +378,14 @@ function walkDiff(
  * invisible (false-negative class — `.readonly()` is mutability-only, so the
  * wrapper carries no strictness, but descent into the inner type must still
  * happen for diff visibility).
+ *
+ * ZodPipe direction (#623, sibling of #622): direction-aware descent via
+ * {@link selectPipeStrictnessSide} so `.transform(fn)` descends `def.in` (the
+ * source) while `z.preprocess(fn, target)` descends `def.out` (the target).
+ * Pre-fix, the helper unconditionally descended `def.out`, which landed on
+ * `ZodTransform` for `.transform()` chains — neither ZodObject nor ZodArray,
+ * so `walkDiff` treated the field as a leaf and skipped nested-element drift
+ * (latent for `ClientInvoiceSchema.items` shape post-#619).
  */
 function unwrapForDescent(schema: z.ZodType): z.ZodType {
   let inner: z.ZodType = schema;
@@ -347,14 +399,10 @@ function unwrapForDescent(schema: z.ZodType): z.ZodType {
       inner = (inner as unknown as { _zod: { def: { innerType: z.ZodType } } })._zod.def.innerType;
       continue;
     }
-    const def = (inner as unknown as { _zod?: { def?: { out?: unknown; in?: unknown } } })._zod?.def;
-    if (
-      def !== undefined &&
-      def.out instanceof z.ZodType &&
-      !(inner instanceof z.ZodObject) &&
-      !(inner instanceof z.ZodArray)
-    ) {
-      inner = def.out;
+    if (inner instanceof z.ZodPipe) {
+      const next = selectPipeStrictnessSide(inner);
+      if (next === null) return inner;
+      inner = next;
       continue;
     }
     return inner;
@@ -527,9 +575,10 @@ function resolveSchema(name: string): z.ZodObject<z.ZodRawShape> {
 
 /**
  * Unwrap a Zod schema to its underlying ZodObject through ZodOptional /
- * ZodNullable / ZodDefault / ZodReadonly / ZodPipe (e.g.,
- * `z.preprocess(fn, object)` returns ZodPipe where `out` is the target
- * object). Returns `null` when the schema cannot be reduced to an object.
+ * ZodNullable / ZodDefault / ZodReadonly / ZodPipe (direction-aware via
+ * {@link selectPipeStrictnessSide} — `.transform()` descends `def.in`,
+ * `z.preprocess(fn, object)` descends `def.out`). Returns `null` when the
+ * schema cannot be reduced to an object.
  *
  * ZodDefault unwrap (#620, sibling of #616): a top-level schema declared
  * `z.object({...}).default({...})` wraps the ZodObject in a ZodDefault;
@@ -542,6 +591,14 @@ function resolveSchema(name: string): z.ZodObject<z.ZodRawShape> {
  * the underlying schema is object-shaped. No live production endpoint uses
  * this shape today, but the helper-parity gap is closed here to keep the
  * three unwrap paths in lockstep.
+ *
+ * ZodPipe direction (#623, sibling of #622): pre-fix the helper tried
+ * `def.out` first and only fell back to `def.in` when `def.out` was not a
+ * ZodType. For a top-level `z.object({...}).transform(fn)` schema,
+ * `def.out` was the `ZodTransform` (which IS a ZodType) → the loop landed
+ * on ZodTransform, exhausted its 16-step budget, and returned `null` —
+ * refusing to resolve a schema whose structural side was object-shaped on
+ * `def.in`. Direction-aware descent fixes both shapes symmetrically.
  *
  * Exported for use by the diff/walk pipeline AND by tests verifying schema
  * compatibility before invoking the probe against a live endpoint.
@@ -563,15 +620,10 @@ export function unwrapToObject(schema: z.ZodType): z.ZodObject<z.ZodRawShape> | 
       inner = (inner as unknown as { _zod: { def: { innerType: z.ZodType } } })._zod.def.innerType;
       continue;
     }
-    // ZodPipe (e.g., from z.preprocess(fn, target)) — the target is `.out`
-    const def = (inner as unknown as { _zod?: { def?: { out?: unknown; in?: unknown } } })._zod?.def;
-    if (def !== undefined && def.out instanceof z.ZodType) {
-      inner = def.out;
-      continue;
-    }
-    if (def !== undefined && def.in instanceof z.ZodType) {
-      // Some pipe forms have only `in` — try unwrapping that too as a fallback
-      inner = def.in;
+    if (inner instanceof z.ZodPipe) {
+      const next = selectPipeStrictnessSide(inner);
+      if (next === null) return null;
+      inner = next;
       continue;
     }
     return null;
