@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import { BeneficiarySchema, ClientInvoiceSchema, QuoteSchema } from "@qontoctl/core";
+import { BeneficiarySchema, ClientInvoiceSchema, QuoteSchema, SupplierInvoiceSchema } from "@qontoctl/core";
 import { describe, it, expect } from "vitest";
 import { z } from "zod";
 
@@ -883,5 +883,223 @@ describe("unwrapForDescent — ZodPipe direction regressions (#623)", () => {
       .strip();
     const diff = diffSchema(schema, { config: {} });
     expect(diff.missing_fields.map((m) => m.field)).toContain("config.required");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// diffSchema — #621 production-schema extra_fields regression
+//
+// #621 declared 40 previously-undeclared API fields across BeneficiarySchema
+// (1), QuoteSchema (2), ClientInvoiceSchema (17), and SupplierInvoiceSchema
+// (20). Each `it` block feeds the REAL @qontoctl/core schema a payload
+// containing the previously-extra field set (sourced from probe report
+// `.tmp/contract-probe/2026-05-18T14-47-13-127Z.json`) and asserts the
+// `extra_fields` bucket no longer flags those fields.
+//
+// Real probe path (unwrapToObject → diffSchema), no mocks. Mirrors the #616
+// regression pattern at the same file site (REQ-A5 discipline).
+//
+// BUT NOT: a genuinely-undeclared field (not in the #621 set) is still
+// flagged — the gate must keep working as designed.
+// ---------------------------------------------------------------------------
+
+describe("diffSchema — #621 production-schema extra_fields regression", () => {
+  it("BeneficiarySchema: previously-extra `currency` field is accepted (probe finding: list-beneficiaries)", () => {
+    const schema = unwrapToObject(BeneficiarySchema as unknown as z.ZodType);
+    expect(schema).not.toBeNull();
+    const diff = diffSchema(schema!, {
+      id: "ben_1",
+      name: "Acme Ltd",
+      iban: "FR7630006000011234567890189",
+      bic: "BNPAFRPP",
+      email: null,
+      activity_tag: null,
+      status: "validated",
+      trusted: true,
+      created_at: "2026-05-18T00:00:00.000Z",
+      updated_at: "2026-05-18T00:00:00.000Z",
+      currency: "EUR",
+    });
+    expect(diff.extra_fields.map((f) => f.field)).not.toContain("currency");
+  });
+
+  it("QuoteSchema: previously-extra `stamp_duty_amount` + `organization` fields are accepted (probe finding: list-quotes)", () => {
+    const schema = unwrapToObject(QuoteSchema as unknown as z.ZodType);
+    expect(schema).not.toBeNull();
+    const diff = diffSchema(schema!, {
+      id: "quote_1",
+      organization_id: "org_1",
+      number: "Q-1",
+      status: "approved",
+      currency: "EUR",
+      total_amount: { value: "10.00", currency: "EUR" },
+      total_amount_cents: 1000,
+      vat_amount: { value: "0.00", currency: "EUR" },
+      vat_amount_cents: 0,
+      issue_date: "2026-05-18",
+      expiry_date: "2026-06-18",
+      created_at: "2026-05-18T00:00:00.000Z",
+      items: [],
+      client: { id: "client_1", name: "Acme", type: "company" },
+      stamp_duty_amount: "0.00",
+      organization: { id: "org_1", name: "Acme Inc.", legal_country: "FR" },
+    });
+    for (const f of ["stamp_duty_amount", "organization"]) {
+      expect(diff.extra_fields.map((x) => x.field)).not.toContain(f);
+    }
+  });
+
+  it("ClientInvoiceSchema: all 17 previously-extra fields are accepted (probe finding: list-client-invoices)", () => {
+    const schema = unwrapToObject(ClientInvoiceSchema as unknown as z.ZodType);
+    expect(schema).not.toBeNull();
+    const diff = diffSchema(schema!, {
+      id: "ci_1",
+      organization_id: "org_1",
+      status: "paid",
+      currency: "EUR",
+      total_amount: { value: "100.00", currency: "EUR" },
+      total_amount_cents: 10000,
+      vat_amount: { value: "20.00", currency: "EUR" },
+      vat_amount_cents: 2000,
+      issue_date: "2026-05-18",
+      due_date: "2026-06-18",
+      created_at: "2026-05-18T00:00:00.000Z",
+      updated_at: "2026-05-18T00:00:00.000Z",
+      contact_email: null,
+      terms_and_conditions: null,
+      header: null,
+      footer: null,
+      items: [],
+      client: { id: "client_1", name: "Acme", type: "company" },
+      // #621 additions:
+      number: "INV-001",
+      purchase_order: "PO-42",
+      invoice_url: "https://example.com/invoice.pdf",
+      discount_conditions: "Net 30",
+      late_payment_penalties: "1.5% per month",
+      legal_fixed_compensation: "40 EUR",
+      amount_paid: { value: "100.00", currency: "EUR" },
+      performance_date: "2026-05-18",
+      performance_start_date: "2026-05-01",
+      performance_end_date: "2026-05-18",
+      finalized_at: "2026-05-18T00:00:00.000Z",
+      paid_at: "2026-05-19T00:00:00.000Z",
+      invoice_type: "invoice",
+      stamp_duty_amount: "0.00",
+      payment_methods: [],
+      credit_notes_ids: [],
+      organization: { id: "org_1", name: "Acme Inc." },
+    });
+    const expected = [
+      "number",
+      "purchase_order",
+      "invoice_url",
+      "discount_conditions",
+      "late_payment_penalties",
+      "legal_fixed_compensation",
+      "amount_paid",
+      "performance_date",
+      "performance_start_date",
+      "performance_end_date",
+      "finalized_at",
+      "paid_at",
+      "invoice_type",
+      "stamp_duty_amount",
+      "payment_methods",
+      "credit_notes_ids",
+      "organization",
+    ];
+    for (const f of expected) {
+      expect(diff.extra_fields.map((x) => x.field)).not.toContain(f);
+    }
+  });
+
+  it("SupplierInvoiceSchema: all 20 previously-extra fields are accepted (probe finding: list-supplier-invoices)", () => {
+    const schema = unwrapToObject(SupplierInvoiceSchema as unknown as z.ZodType);
+    expect(schema).not.toBeNull();
+    const diff = diffSchema(schema!, {
+      id: "si_1",
+      organization_id: "org_1",
+      status: "to_pay",
+      source_type: "upload",
+      source: "web",
+      attachment_id: "att_1",
+      display_attachment_id: "att_1",
+      file_name: "invoice.pdf",
+      is_einvoice: false,
+      created_at: "2026-05-18T00:00:00.000Z",
+      updated_at: "2026-05-18T00:00:00.000Z",
+      // #621 additions:
+      supplier_id: "sup_1",
+      issuer_name: null,
+      description: null,
+      total_amount_credit_notes: null,
+      initiator_id: "membership_1",
+      attachment_category: "supplier_invoice",
+      analyzed_at: "2026-05-18T00:00:00.000Z",
+      request_transfer: null,
+      self_invoice_id: null,
+      is_attachment_invoice: true,
+      is_attachment_non_financial: null,
+      has_duplicates: false,
+      available_actions: { pay: true, archive: false },
+      has_discrepancies: false,
+      einvoicing_lifecycle_events: null,
+      meta: { source_hint: "web" },
+      approval_workflow: null,
+      is_credit_note: false,
+      related_invoices: null,
+      has_suggested_credit_notes: false,
+    });
+    const expected = [
+      "supplier_id",
+      "issuer_name",
+      "description",
+      "total_amount_credit_notes",
+      "initiator_id",
+      "attachment_category",
+      "analyzed_at",
+      "request_transfer",
+      "self_invoice_id",
+      "is_attachment_invoice",
+      "is_attachment_non_financial",
+      "has_duplicates",
+      "available_actions",
+      "has_discrepancies",
+      "einvoicing_lifecycle_events",
+      "meta",
+      "approval_workflow",
+      "is_credit_note",
+      "related_invoices",
+      "has_suggested_credit_notes",
+    ];
+    for (const f of expected) {
+      expect(diff.extra_fields.map((x) => x.field)).not.toContain(f);
+    }
+  });
+
+  // BUT NOT: a genuinely undeclared field that is NOT in the #621 set still
+  // flags as extra_fields. The gate must keep working as designed; #621
+  // doesn't silence reporting, it only documents the disposition for the
+  // 40 specific fields enumerated above.
+  it("BUT NOT: a brand-new undeclared field (not in #621 set) is still flagged as extra_fields", () => {
+    const schema = unwrapToObject(BeneficiarySchema as unknown as z.ZodType);
+    expect(schema).not.toBeNull();
+    const diff = diffSchema(schema!, {
+      id: "ben_1",
+      name: "Acme Ltd",
+      iban: "FR7630006000011234567890189",
+      bic: "BNPAFRPP",
+      email: null,
+      activity_tag: null,
+      status: "validated",
+      trusted: true,
+      created_at: "2026-05-18T00:00:00.000Z",
+      updated_at: "2026-05-18T00:00:00.000Z",
+      currency: "EUR",
+      // Hypothetical brand-new undeclared field NOT in the #621 set:
+      brand_new_field_2027: "future-drift",
+    });
+    expect(diff.extra_fields.map((f) => f.field)).toContain("brand_new_field_2027");
   });
 });

@@ -11,6 +11,36 @@ export interface SupplierInvoiceAmount {
 
 /**
  * A supplier invoice as returned by the Qonto API.
+ *
+ * Many of the fields below — `supplier_id`, `issuer_name`, `description`,
+ * `total_amount_credit_notes`, `initiator_id`, `attachment_category`,
+ * `analyzed_at`, `request_transfer`, `self_invoice_id`,
+ * `is_attachment_invoice`, `is_attachment_non_financial`, `has_duplicates`,
+ * `available_actions`, `has_discrepancies`, `einvoicing_lifecycle_events`,
+ * `meta`, `approval_workflow`, `is_credit_note`, `related_invoices`,
+ * `has_suggested_credit_notes` — were surfaced as undeclared API drift by
+ * the contract probe (#621). They are declared permissively
+ * (`.nullable().optional()`) so the schema accepts the live response without
+ * making over-strong type guarantees:
+ *
+ * - Scalar string-shaped IDs (`supplier_id`, `initiator_id`, `self_invoice_id`)
+ *   and timestamp fields (`analyzed_at`) are typed as `string`.
+ * - Boolean flags (`is_attachment_invoice`, `is_attachment_non_financial`,
+ *   `has_duplicates`, `has_discrepancies`, `is_credit_note`,
+ *   `has_suggested_credit_notes`) are typed as `boolean`.
+ * - `total_amount_credit_notes` reuses {@link SupplierInvoiceAmount} — same
+ *   `{ value, currency }` shape as the other amount fields.
+ * - `available_actions`, `meta`, `approval_workflow` are workflow / metadata
+ *   objects with shapes that are undocumented and likely environment-specific;
+ *   declared as permissive `Record<string, unknown>`.
+ * - `einvoicing_lifecycle_events` and `related_invoices` are arrays whose
+ *   element shape is undocumented; declared as `readonly unknown[]`.
+ * - `request_transfer` is a workflow-related field of unclear shape; declared
+ *   as `unknown` (presence acknowledged; shape not constrained).
+ *
+ * Consumers requiring stronger typing on any of these fields should add a
+ * typed sub-schema in a follow-up PR once the API shape is documented or
+ * empirically pinned via a multi-sample probe run.
  */
 export interface SupplierInvoice {
   readonly id: string;
@@ -35,6 +65,26 @@ export interface SupplierInvoice {
   readonly is_einvoice: boolean;
   readonly created_at: string;
   readonly updated_at: string;
+  readonly supplier_id?: string | null | undefined;
+  readonly issuer_name?: string | null | undefined;
+  readonly description?: string | null | undefined;
+  readonly total_amount_credit_notes?: SupplierInvoiceAmount | null | undefined;
+  readonly initiator_id?: string | null | undefined;
+  readonly attachment_category?: string | null | undefined;
+  readonly analyzed_at?: string | null | undefined;
+  readonly request_transfer?: unknown;
+  readonly self_invoice_id?: string | null | undefined;
+  readonly is_attachment_invoice?: boolean | null | undefined;
+  readonly is_attachment_non_financial?: boolean | null | undefined;
+  readonly has_duplicates?: boolean | null | undefined;
+  readonly available_actions?: Readonly<Record<string, unknown>> | null | undefined;
+  readonly has_discrepancies?: boolean | null | undefined;
+  readonly einvoicing_lifecycle_events?: readonly unknown[] | null | undefined;
+  readonly meta?: Readonly<Record<string, unknown>> | null | undefined;
+  readonly approval_workflow?: Readonly<Record<string, unknown>> | null | undefined;
+  readonly is_credit_note?: boolean | null | undefined;
+  readonly related_invoices?: readonly unknown[] | null | undefined;
+  readonly has_suggested_credit_notes?: boolean | null | undefined;
 }
 
 /**

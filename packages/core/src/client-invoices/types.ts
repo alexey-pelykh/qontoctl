@@ -96,6 +96,27 @@ export interface ClientInvoiceUpload {
 
 /**
  * A Qonto client invoice.
+ *
+ * Many fields below — `number`, `purchase_order`, `invoice_url`,
+ * `discount_conditions`, `late_payment_penalties`, `legal_fixed_compensation`,
+ * `amount_paid`, `performance_date`, `performance_start_date`,
+ * `performance_end_date`, `finalized_at`, `paid_at`, `invoice_type`,
+ * `stamp_duty_amount`, `payment_methods`, `credit_notes_ids`, `organization` —
+ * were surfaced as undeclared API drift by the contract probe (#621). They
+ * are declared permissively (`.nullable().optional()`) so the schema accepts
+ * the live response without making over-strong type guarantees:
+ *
+ * - `number` coexists with the legacy `invoice_number` field; production
+ *   returns `number` as the canonical identifier and `invoice_number` may be
+ *   unset for newer invoices. Consumers should prefer `number` when present.
+ * - `amount_paid` reuses {@link ClientInvoiceAmount} — the API returns the
+ *   same `{ value, currency }` shape used for `total_amount`.
+ * - `payment_methods` and `credit_notes_ids` are kept permissive
+ *   (`unknown[]` / `string[]` respectively) — the payment-methods item shape
+ *   is undocumented and likely to evolve, while `credit_notes_ids` is the
+ *   conventional Qonto "array of UUID strings" pattern.
+ * - `organization` is the embedded org summary; shape kept permissive
+ *   (`Record<string, unknown>`) for the same reasons as Quote.organization.
  */
 export interface ClientInvoice {
   readonly id: string;
@@ -120,6 +141,23 @@ export interface ClientInvoice {
   readonly discount?: ClientInvoiceDiscount | null | undefined;
   readonly items: readonly ClientInvoiceItem[];
   readonly client: ClientInvoiceClient;
+  readonly number?: string | null | undefined;
+  readonly purchase_order?: string | null | undefined;
+  readonly invoice_url?: string | null | undefined;
+  readonly discount_conditions?: string | null | undefined;
+  readonly late_payment_penalties?: string | null | undefined;
+  readonly legal_fixed_compensation?: string | null | undefined;
+  readonly amount_paid?: ClientInvoiceAmount | null | undefined;
+  readonly performance_date?: string | null | undefined;
+  readonly performance_start_date?: string | null | undefined;
+  readonly performance_end_date?: string | null | undefined;
+  readonly finalized_at?: string | null | undefined;
+  readonly paid_at?: string | null | undefined;
+  readonly invoice_type?: string | null | undefined;
+  readonly stamp_duty_amount?: string | null | undefined;
+  readonly payment_methods?: readonly unknown[] | null | undefined;
+  readonly credit_notes_ids?: readonly string[] | null | undefined;
+  readonly organization?: Readonly<Record<string, unknown>> | null | undefined;
 }
 
 /**

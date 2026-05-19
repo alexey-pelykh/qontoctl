@@ -80,6 +80,18 @@ export interface QuoteClient {
 
 /**
  * A Qonto quote (commercial proposal).
+ *
+ * `stamp_duty_amount` is the Italian-market stamp-duty (marca da bollo) fiscal
+ * amount applied to the quote, returned as a decimal string per the API's
+ * monetary-amount convention. Permissive (`.nullable().optional()`) because
+ * the field is omitted for non-Italian markets where stamp duty does not apply
+ * (#621 schema completeness).
+ *
+ * `organization` is the embedded summary of the issuing organization. Shape
+ * is kept permissive (`Record<string, unknown>`) to follow the same minimal-
+ * coupling precedent as {@link Organization} — consumers that need typed
+ * org-summary fields should call the dedicated `/v2/organization` endpoint
+ * (#621).
  */
 export interface Quote {
   readonly id: string;
@@ -106,4 +118,6 @@ export interface Quote {
   readonly items: readonly QuoteItem[];
   readonly client: QuoteClient;
   readonly invoice_ids?: readonly string[] | undefined;
+  readonly stamp_duty_amount?: string | null | undefined;
+  readonly organization?: Readonly<Record<string, unknown>> | null | undefined;
 }

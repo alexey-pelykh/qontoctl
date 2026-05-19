@@ -153,6 +153,43 @@ export const ClientInvoiceSchema = z
       .nullable()
       .transform((v) => v ?? []),
     client: ClientInvoiceClientSchema,
+    // Additions for #621 (genuine extra_fields drift surfaced by contract probe).
+    // All declared `.nullable().optional()` so the schema accepts the live
+    // response without making over-strong type guarantees. Several of these
+    // fields (`number`, `purchase_order`, `invoice_url`, `finalized_at`,
+    // `paid_at`, `payment_methods`, `credit_notes_ids`, `organization`,
+    // `invoice_type`) appear in the docs' `required:` list quoted above, so a
+    // strict R-SS-2 reading would call for `.nullable()` (no `.optional()`).
+    // The deliberate departure: a single-sample probe is insufficient to
+    // assert per-field presence guarantees (e.g., `paid_at` is logically
+    // absent on unpaid invoices despite the docs listing it as required).
+    // These can tighten to `.nullable()` in a follow-up once multi-sample
+    // probe data confirms guaranteed presence. Per-field notes:
+    // - `number` is the canonical invoice identifier; coexists with the
+    //   legacy `invoice_number` field (consumers prefer `number` when present).
+    // - `amount_paid` reuses the standard `{ value, currency }` Amount shape.
+    // - `payment_methods` element shape is undocumented; `unknown[]` is safer
+    //   than an inferred-and-likely-wrong inner schema.
+    // - `credit_notes_ids` is the conventional Qonto "UUID-string array" pattern.
+    // - `organization` is the embedded org summary; shape kept permissive
+    //   (`z.record(...)`) — same minimal-coupling precedent as Quote.organization.
+    number: z.string().nullable().optional(),
+    purchase_order: z.string().nullable().optional(),
+    invoice_url: z.string().nullable().optional(),
+    discount_conditions: z.string().nullable().optional(),
+    late_payment_penalties: z.string().nullable().optional(),
+    legal_fixed_compensation: z.string().nullable().optional(),
+    amount_paid: ClientInvoiceAmountSchema.nullable().optional(),
+    performance_date: z.string().nullable().optional(),
+    performance_start_date: z.string().nullable().optional(),
+    performance_end_date: z.string().nullable().optional(),
+    finalized_at: z.string().nullable().optional(),
+    paid_at: z.string().nullable().optional(),
+    invoice_type: z.string().nullable().optional(),
+    stamp_duty_amount: z.string().nullable().optional(),
+    payment_methods: z.array(z.unknown()).nullable().optional(),
+    credit_notes_ids: z.array(z.string()).nullable().optional(),
+    organization: z.record(z.string(), z.unknown()).nullable().optional(),
   })
   .strip() satisfies z.ZodType<ClientInvoice>;
 
