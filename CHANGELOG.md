@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- **`qontoctl` (umbrella)**: stop overwriting the committed `packages/qontoctl/README.md` with the root `README.md` at pack time. The umbrella's `prepack` previously ran `cp ../../README.md ../../LICENSE .`, which silently discarded the detailed npm-facing README authored in #637 (full feature list including Cards, Webhooks, Payment Links, Insurance, International Transfers, plus the comprehensive MCP tools table) on every `pnpm pack` / `npm publish`. The committed file is now authoritative; npm visitors get the rich detail instead of the slim project-landing README. Local `pnpm pack` in `packages/qontoctl/` no longer leaves a dirty working tree. Matches the pattern already used by `core`, `cli`, and `mcp` (which only `cp ../../LICENSE .`) (#618).
+
 ## [2.0.2] — 2026-05-18
 
 ### Added
