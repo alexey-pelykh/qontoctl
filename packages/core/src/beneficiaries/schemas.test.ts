@@ -105,6 +105,49 @@ describe("BeneficiarySchema", () => {
     expect(result.iban).toBe(validBeneficiary.iban);
     expect(result.bic).toBe(validBeneficiary.bic);
   });
+
+  it("accepts flat top-level `currency` (regression: #621)", () => {
+    // Production returns `currency` as a flat top-level field per the
+    // SepaBeneficiary schema; surfaced by the contract probe (#621). The
+    // field is declared `.nullable().optional()` so absence in legacy
+    // beneficiaries does not fail validation.
+    const result = BeneficiarySchema.parse({ ...validBeneficiary, currency: "EUR" });
+    expect(result.currency).toBe("EUR");
+  });
+
+  it("hoists currency from nested bank_account (regression: #621)", () => {
+    // The Qonto sandbox wraps the currency under `bank_account.currency`.
+    // The schema's preprocess hoists it alongside `iban`/`bic` so that
+    // downstream consumers see a single flat `.currency` field regardless
+    // of environment.
+    const sandboxShape = {
+      id: "ben-4",
+      name: "Sandbox EUR",
+      status: "validated" as const,
+      trusted: true,
+      created_at: "2026-05-18T10:00:00.000Z",
+      updated_at: "2026-05-18T10:00:00.000Z",
+      bank_account: {
+        iban: "FR7630001007941234567890185",
+        bic: "QNTOFRP1XXX",
+        currency: "EUR",
+      },
+    };
+    const result = BeneficiarySchema.parse(sandboxShape);
+    expect(result.currency).toBe("EUR");
+    expect(result).not.toHaveProperty("bank_account");
+  });
+
+  it("flat top-level currency takes precedence over nested bank_account.currency", () => {
+    // Mirror of the iban/bic precedence test for #621.
+    const mixedShape = {
+      ...validBeneficiary,
+      currency: "EUR",
+      bank_account: { iban: "DIFFERENT", bic: "DIFFERENT", currency: "USD" },
+    };
+    const result = BeneficiarySchema.parse(mixedShape);
+    expect(result.currency).toBe("EUR");
+  });
 });
 
 describe("BeneficiaryResponseSchema", () => {

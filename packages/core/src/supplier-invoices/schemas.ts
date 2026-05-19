@@ -23,6 +23,16 @@ export const SupplierInvoiceAmountSchema = z
 
 /**
  * Schema for a supplier invoice returned by the Qonto API.
+ *
+ * Additions for #621 (genuine extra_fields drift surfaced by contract probe).
+ * All declared `.nullable().optional()` so the schema accepts the live
+ * response without making over-strong type guarantees. Best-guess types are
+ * applied per probe observation; complex shapes (`available_actions`, `meta`,
+ * `approval_workflow`, `einvoicing_lifecycle_events`, `related_invoices`,
+ * `request_transfer`) are kept permissive (record/array/unknown) because the
+ * API shape is undocumented and likely environment-specific. Consumers
+ * requiring richer typing should add typed sub-schemas in a follow-up PR
+ * once shapes are pinned via multi-sample probe runs.
  */
 export const SupplierInvoiceSchema = z
   .object({
@@ -48,6 +58,26 @@ export const SupplierInvoiceSchema = z
     is_einvoice: z.boolean(),
     created_at: z.string(),
     updated_at: z.string(),
+    supplier_id: z.string().nullable().optional(),
+    issuer_name: z.string().nullable().optional(),
+    description: z.string().nullable().optional(),
+    total_amount_credit_notes: SupplierInvoiceAmountSchema.nullable().optional(),
+    initiator_id: z.string().nullable().optional(),
+    attachment_category: z.string().nullable().optional(),
+    analyzed_at: z.string().nullable().optional(),
+    request_transfer: z.unknown().optional(),
+    self_invoice_id: z.string().nullable().optional(),
+    is_attachment_invoice: z.boolean().nullable().optional(),
+    is_attachment_non_financial: z.boolean().nullable().optional(),
+    has_duplicates: z.boolean().nullable().optional(),
+    available_actions: z.record(z.string(), z.unknown()).nullable().optional(),
+    has_discrepancies: z.boolean().nullable().optional(),
+    einvoicing_lifecycle_events: z.array(z.unknown()).nullable().optional(),
+    meta: z.record(z.string(), z.unknown()).nullable().optional(),
+    approval_workflow: z.record(z.string(), z.unknown()).nullable().optional(),
+    is_credit_note: z.boolean().nullable().optional(),
+    related_invoices: z.array(z.unknown()).nullable().optional(),
+    has_suggested_credit_notes: z.boolean().nullable().optional(),
   })
   .strip() satisfies z.ZodType<SupplierInvoice>;
 

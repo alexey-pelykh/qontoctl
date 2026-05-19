@@ -97,6 +97,20 @@ export const QuoteClientSchema = z
 // created_at, items, client, organization. Every other field MAY be
 // omitted entirely. Relaxed each non-required `.nullable()` field to
 // `.nullable().optional()` (#601, mirroring #604's L2 audit pattern).
+//
+// Additions for #621 (genuine extra_fields drift surfaced by contract probe).
+// Both declared `.nullable().optional()`. Note `organization` appears in the
+// docs' `required:` list quoted above, so a strict R-SS-2 reading would call
+// for `.nullable()` (no `.optional()`); the deliberate departure mirrors the
+// ClientInvoiceSchema #621 additions — a single-sample probe is insufficient
+// to assert per-field presence guarantees, and these can tighten to
+// `.nullable()` once multi-sample data confirms it. Per-field notes:
+// - `stamp_duty_amount`: Italian-market stamp-duty (marca da bollo) amount,
+//   returned as a decimal string. Permissive — absent for non-Italian markets.
+// - `organization`: embedded organization summary returned with every quote.
+//   Shape kept permissive (`z.record(z.string(), z.unknown())`) — same
+//   minimal-coupling precedent as `OrganizationSchema` itself. Consumers
+//   needing typed org fields should call `/v2/organization`.
 export const QuoteSchema = z
   .object({
     id: z.string(),
@@ -123,6 +137,8 @@ export const QuoteSchema = z
     items: z.array(QuoteItemSchema).readonly(),
     client: QuoteClientSchema,
     invoice_ids: z.array(z.string()).readonly().optional(),
+    stamp_duty_amount: z.string().nullable().optional(),
+    organization: z.record(z.string(), z.unknown()).nullable().optional(),
   })
   .strip() satisfies z.ZodType<Quote>;
 
