@@ -303,15 +303,20 @@ function walkDiff(
 
 /**
  * Unwrap a schema for nested-traversal purposes — descends through
- * ZodOptional / ZodNullable / ZodPipe to reach the underlying structural
- * schema (ZodObject, ZodArray, or leaf). Unlike {@link unwrapToObject} this
- * does NOT enforce that the result is an object — leaves and arrays are
+ * ZodOptional / ZodNullable / ZodDefault / ZodPipe to reach the underlying
+ * structural schema (ZodObject, ZodArray, or leaf). Unlike {@link unwrapToObject}
+ * this does NOT enforce that the result is an object — leaves and arrays are
  * legitimate descent targets.
+ *
+ * ZodDefault descent (#620, sibling of #616): a field declared
+ * `z.object({...}).default({...})` wraps the structural schema in a ZodDefault;
+ * without the ZodDefault branch the loop would short-circuit and the nested
+ * object's keys would be invisible to {@link diffSchema}.
  */
 function unwrapForDescent(schema: z.ZodType): z.ZodType {
   let inner: z.ZodType = schema;
   for (let i = 0; i < 16; i++) {
-    if (inner instanceof z.ZodOptional || inner instanceof z.ZodNullable) {
+    if (inner instanceof z.ZodOptional || inner instanceof z.ZodNullable || inner instanceof z.ZodDefault) {
       inner = (inner as unknown as { _zod: { def: { innerType: z.ZodType } } })._zod.def.innerType;
       continue;
     }
@@ -495,9 +500,14 @@ function resolveSchema(name: string): z.ZodObject<z.ZodRawShape> {
 
 /**
  * Unwrap a Zod schema to its underlying ZodObject through ZodOptional /
- * ZodNullable / ZodPipe (e.g., `z.preprocess(fn, object)` returns ZodPipe
- * where `out` is the target object). Returns `null` when the schema cannot
- * be reduced to an object.
+ * ZodNullable / ZodDefault / ZodPipe (e.g., `z.preprocess(fn, object)` returns
+ * ZodPipe where `out` is the target object). Returns `null` when the schema
+ * cannot be reduced to an object.
+ *
+ * ZodDefault unwrap (#620, sibling of #616): a top-level schema declared
+ * `z.object({...}).default({...})` wraps the ZodObject in a ZodDefault;
+ * without the ZodDefault branch the probe would refuse to resolve it,
+ * even though the underlying schema is object-shaped.
  *
  * Exported for use by the diff/walk pipeline AND by tests verifying schema
  * compatibility before invoking the probe against a live endpoint.
@@ -510,7 +520,7 @@ export function unwrapToObject(schema: z.ZodType): z.ZodObject<z.ZodRawShape> | 
     if (inner instanceof z.ZodObject) {
       return inner as z.ZodObject<z.ZodRawShape>;
     }
-    if (inner instanceof z.ZodOptional || inner instanceof z.ZodNullable) {
+    if (inner instanceof z.ZodOptional || inner instanceof z.ZodNullable || inner instanceof z.ZodDefault) {
       inner = (inner as unknown as { _zod: { def: { innerType: z.ZodType } } })._zod.def.innerType;
       continue;
     }

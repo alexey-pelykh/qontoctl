@@ -426,3 +426,89 @@ describe("diffSchema — #616 production-schema false-positive regression", () =
     expect(diff.missing_fields.map((m) => m.field)).not.toContain("items");
   });
 });
+
+// ---------------------------------------------------------------------------
+// unwrapToObject + unwrapForDescent — ZodDefault wrapper regressions (#620)
+//
+// Scope-Lock SL-1 of #616: the two non-walkKeys unwrap helpers also short-
+// circuit on a ZodDefault wrapper. `unwrapToObject` (top-level) refused to
+// resolve a `z.object({...}).default({...})` schema; `unwrapForDescent`
+// (nested-descent) returned the ZodDefault wrapper, which is neither ZodObject
+// nor ZodArray — so walkDiff treated the field as a leaf and never surfaced
+// drift inside the wrapped subtree. Both paths now mirror the #616 walkKeys
+// fix: capped iteration with an explicit ZodDefault branch that descends
+// `_zod.def.innerType`. Real introspection only, no mocks (#616 REQ-A5
+// discipline, also reasserted as a BUT-NOT here).
+// ---------------------------------------------------------------------------
+
+describe("unwrapToObject — ZodDefault top-level regression (#620)", () => {
+  // REQ-B1: a top-level `.default({...})` wrapper must resolve to its inner
+  // ZodObject. Pre-fix, the loop exhausted 16 iterations and returned null
+  // because ZodDefault exposes neither ZodOptional/Nullable nor `def.out`.
+  it("REQ-B1: descends a top-level .default({...}) wrapper to its inner ZodObject", () => {
+    const schema = z.object({ id: z.string() }).strip().default({ id: "" });
+    const unwrapped = unwrapToObject(schema as unknown as z.ZodType);
+    expect(unwrapped).not.toBeNull();
+    expect(unwrapped).toBeInstanceOf(z.ZodObject);
+    expect(walkKeys(unwrapped!).get("id")).toEqual({ isNullable: false, isOptional: false });
+  });
+
+  // REQ-B1: ZodDefault stacked with ZodOptional / ZodNullable must still resolve.
+  it("REQ-B1: descends .optional().nullable().default({...}) stacked wrappers", () => {
+    const schema = z.object({ id: z.string() }).strip().optional().nullable().default({ id: "" });
+    const unwrapped = unwrapToObject(schema as unknown as z.ZodType);
+    expect(unwrapped).not.toBeNull();
+    expect(walkKeys(unwrapped!).has("id")).toBe(true);
+  });
+
+  // BUT NOT: unwrapToObject only resolves to ZodObject. A top-level
+  // `.default([...])` over a ZodArray descends through ZodDefault to ZodArray,
+  // which is not ZodObject — the fall-through still returns null (the probe's
+  // documented contract: object-shaped schemas only).
+  it("BUT NOT: returns null for a top-level .default([...]) over a ZodArray", () => {
+    const schema = z.array(z.string()).default([]);
+    expect(unwrapToObject(schema as unknown as z.ZodType)).toBeNull();
+  });
+});
+
+describe("unwrapForDescent — ZodDefault nested-descent regression (#620)", () => {
+  // REQ-B2: a nested `.default({...})`-wrapped object must have its keys
+  // walked. Without the fix, diffSchema would silently treat `config` as a
+  // leaf and miss the nested `unknown_nested` extra field (false-negative
+  // drift — the symmetric counterpart to the #616 false-positive class).
+  it("REQ-B2: diffSchema surfaces extras inside a .default({...})-wrapped nested object", () => {
+    const schema = z
+      .object({
+        config: z.object({ x: z.string() }).strip().default({ x: "" }),
+      })
+      .strip();
+    const diff = diffSchema(schema, { config: { x: "ok", unknown_nested: "val" } });
+    expect(diff.extra_fields.map((f) => f.field)).toContain("config.unknown_nested");
+  });
+
+  // REQ-B2: same drift visibility for a `.default([...])`-wrapped nested array.
+  // `unwrapForDescent` accepts arrays as descent targets (unlike unwrapToObject),
+  // so an element-level extra must surface with the `items[].field` path.
+  it("REQ-B2: diffSchema surfaces extras inside a .default([...])-wrapped nested array", () => {
+    const schema = z
+      .object({
+        items: z.array(z.object({ id: z.string() }).strip()).default([]),
+      })
+      .strip();
+    const diff = diffSchema(schema, { items: [{ id: "1", extra: "val" }] });
+    expect(diff.extra_fields.map((f) => f.field)).toContain("items[].extra");
+  });
+
+  // BUT NOT: genuine missing-required drift inside a `.default({...})`-wrapped
+  // nested object is still flagged. The fix must restore visibility into the
+  // wrapped subtree without silencing legitimate findings.
+  it("BUT NOT: missing required field inside .default({...})-wrapped nested object is still flagged", () => {
+    const schema = z
+      .object({
+        config: z.object({ required: z.string(), opt: z.string().optional() }).strip().default({ required: "" }),
+      })
+      .strip();
+    const diff = diffSchema(schema, { config: {} });
+    expect(diff.missing_fields.map((m) => m.field)).toContain("config.required");
+  });
+});
