@@ -144,10 +144,11 @@ interface EndpointsFile {
 
 /**
  * Extract the field map from a Zod object schema, capturing nullable / optional
- * flags. Unwraps `ZodOptional` / `ZodNullable` / `ZodDefault` (via the Zod 4
- * `_zod.def.innerType` chain) and `ZodPipe` (via `_zod.def.in`) iteratively,
- * order-independent, so `.nullable().optional()`, `.default(null)`, and
- * `.transform()` chains all classify correctly (#616).
+ * flags. Unwraps `ZodOptional` / `ZodNullable` / `ZodDefault` / `ZodReadonly`
+ * (via the Zod 4 `_zod.def.innerType` chain) and `ZodPipe` (via `_zod.def.in`)
+ * iteratively, order-independent, so `.nullable().optional()`,
+ * `.default(null)`, `.readonly()`, and `.transform()` chains all classify
+ * correctly (#616, #622).
  *
  * Schemas not satisfying `instanceof z.ZodObject` should be rejected by the
  * caller before invoking this helper — the function assumes a `.shape` field.
@@ -163,20 +164,27 @@ export function walkKeys(schema: z.ZodObject<z.ZodRawShape>): Map<string, KeySpe
     let isOptional = false;
     // Unwrap strictness-affecting wrappers iteratively, in any order. The
     // iteration cap mirrors unwrapToObject (depth > 16 is implausible).
-    //   ZodOptional → accepts absence
-    //   ZodNullable → accepts null
-    //   ZodDefault  → `.default(v)` supplies a value when the input is absent,
-    //                 so the field accepts absence; descend to surface any
-    //                 nested `.nullable()` (e.g. `z.T().nullable().optional()
-    //                 .default(null)`, the BeneficiarySchema.email / QuoteSchema
-    //                 .discount shape).
-    //   ZodPipe     → `.transform(fn)` produces a pipe whose `in` side is the
-    //                 schema the raw response is validated against; descend
-    //                 into `in` so an upstream `.nullable()` is not lost
-    //                 (e.g. `z.array(...).nullable().transform(...)`, the
-    //                 ClientInvoiceSchema.items shape).
-    // Without ZodDefault / ZodPipe handling the outermost wrapper short-circuits
-    // the loop, leaving both flags false → false-positive drift (#616).
+    //   ZodOptional  → accepts absence
+    //   ZodNullable  → accepts null
+    //   ZodDefault   → `.default(v)` supplies a value when the input is absent,
+    //                  so the field accepts absence; descend to surface any
+    //                  nested `.nullable()` (e.g. `z.T().nullable().optional()
+    //                  .default(null)`, the BeneficiarySchema.email /
+    //                  QuoteSchema.discount shape).
+    //   ZodReadonly  → `.readonly()` affects only mutability (not null/absence
+    //                  acceptance); descend `_zod.def.innerType` without
+    //                  changing flags, so an inner `.nullable()` / `.optional()`
+    //                  is not lost when readonly is the outermost or a
+    //                  sandwiched wrapper (e.g. `z.array(...).nullable()
+    //                  .readonly()`, latent for QuoteSchema.items shape — #622).
+    //   ZodPipe      → `.transform(fn)` produces a pipe whose `in` side is the
+    //                  schema the raw response is validated against; descend
+    //                  into `in` so an upstream `.nullable()` is not lost
+    //                  (e.g. `z.array(...).nullable().transform(...)`, the
+    //                  ClientInvoiceSchema.items shape).
+    // Without ZodDefault / ZodReadonly / ZodPipe handling the outermost
+    // wrapper short-circuits the loop, leaving both flags false → false-
+    // positive drift (#616) OR upstream strictness silently dropped (#622).
     for (let i = 0; i < 16; i++) {
       if (inner instanceof z.ZodOptional) {
         isOptional = true;
@@ -190,6 +198,12 @@ export function walkKeys(schema: z.ZodObject<z.ZodRawShape>): Map<string, KeySpe
       }
       if (inner instanceof z.ZodDefault) {
         isOptional = true;
+        inner = (inner as unknown as { _zod: { def: { innerType: z.ZodType } } })._zod.def.innerType;
+        continue;
+      }
+      if (inner instanceof z.ZodReadonly) {
+        // No flag change — `.readonly()` is mutability-only; descend to
+        // surface any wrapped `.nullable()` / `.optional()` / `.default()`.
         inner = (inner as unknown as { _zod: { def: { innerType: z.ZodType } } })._zod.def.innerType;
         continue;
       }
@@ -303,20 +317,33 @@ function walkDiff(
 
 /**
  * Unwrap a schema for nested-traversal purposes — descends through
- * ZodOptional / ZodNullable / ZodDefault / ZodPipe to reach the underlying
- * structural schema (ZodObject, ZodArray, or leaf). Unlike {@link unwrapToObject}
- * this does NOT enforce that the result is an object — leaves and arrays are
- * legitimate descent targets.
+ * ZodOptional / ZodNullable / ZodDefault / ZodReadonly / ZodPipe to reach the
+ * underlying structural schema (ZodObject, ZodArray, or leaf). Unlike
+ * {@link unwrapToObject} this does NOT enforce that the result is an object —
+ * leaves and arrays are legitimate descent targets.
  *
  * ZodDefault descent (#620, sibling of #616): a field declared
  * `z.object({...}).default({...})` wraps the structural schema in a ZodDefault;
  * without the ZodDefault branch the loop would short-circuit and the nested
  * object's keys would be invisible to {@link diffSchema}.
+ *
+ * ZodReadonly descent (#622, sibling of #620): a field declared
+ * `z.array(...).readonly()` or `z.object({...}).readonly()` wraps the
+ * structural schema in a ZodReadonly; without the ZodReadonly branch the loop
+ * would short-circuit and drift inside the wrapped subtree would be silently
+ * invisible (false-negative class — `.readonly()` is mutability-only, so the
+ * wrapper carries no strictness, but descent into the inner type must still
+ * happen for diff visibility).
  */
 function unwrapForDescent(schema: z.ZodType): z.ZodType {
   let inner: z.ZodType = schema;
   for (let i = 0; i < 16; i++) {
-    if (inner instanceof z.ZodOptional || inner instanceof z.ZodNullable || inner instanceof z.ZodDefault) {
+    if (
+      inner instanceof z.ZodOptional ||
+      inner instanceof z.ZodNullable ||
+      inner instanceof z.ZodDefault ||
+      inner instanceof z.ZodReadonly
+    ) {
       inner = (inner as unknown as { _zod: { def: { innerType: z.ZodType } } })._zod.def.innerType;
       continue;
     }
@@ -500,14 +527,21 @@ function resolveSchema(name: string): z.ZodObject<z.ZodRawShape> {
 
 /**
  * Unwrap a Zod schema to its underlying ZodObject through ZodOptional /
- * ZodNullable / ZodDefault / ZodPipe (e.g., `z.preprocess(fn, object)` returns
- * ZodPipe where `out` is the target object). Returns `null` when the schema
- * cannot be reduced to an object.
+ * ZodNullable / ZodDefault / ZodReadonly / ZodPipe (e.g.,
+ * `z.preprocess(fn, object)` returns ZodPipe where `out` is the target
+ * object). Returns `null` when the schema cannot be reduced to an object.
  *
  * ZodDefault unwrap (#620, sibling of #616): a top-level schema declared
  * `z.object({...}).default({...})` wraps the ZodObject in a ZodDefault;
  * without the ZodDefault branch the probe would refuse to resolve it,
  * even though the underlying schema is object-shaped.
+ *
+ * ZodReadonly unwrap (#622, sibling of #620): a top-level schema declared
+ * `z.object({...}).readonly()` wraps the ZodObject in a ZodReadonly; without
+ * the ZodReadonly branch the probe would refuse to resolve it, even though
+ * the underlying schema is object-shaped. No live production endpoint uses
+ * this shape today, but the helper-parity gap is closed here to keep the
+ * three unwrap paths in lockstep.
  *
  * Exported for use by the diff/walk pipeline AND by tests verifying schema
  * compatibility before invoking the probe against a live endpoint.
@@ -520,7 +554,12 @@ export function unwrapToObject(schema: z.ZodType): z.ZodObject<z.ZodRawShape> | 
     if (inner instanceof z.ZodObject) {
       return inner as z.ZodObject<z.ZodRawShape>;
     }
-    if (inner instanceof z.ZodOptional || inner instanceof z.ZodNullable || inner instanceof z.ZodDefault) {
+    if (
+      inner instanceof z.ZodOptional ||
+      inner instanceof z.ZodNullable ||
+      inner instanceof z.ZodDefault ||
+      inner instanceof z.ZodReadonly
+    ) {
       inner = (inner as unknown as { _zod: { def: { innerType: z.ZodType } } })._zod.def.innerType;
       continue;
     }

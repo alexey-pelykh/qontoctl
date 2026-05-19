@@ -512,3 +512,170 @@ describe("unwrapForDescent — ZodDefault nested-descent regression (#620)", () 
     expect(diff.missing_fields.map((m) => m.field)).toContain("config.required");
   });
 });
+
+// ---------------------------------------------------------------------------
+// walkKeys + unwrap helpers — ZodReadonly wrapper regressions (#622)
+//
+// Same wrapper-short-circuit class as #616 / #620, but for `ZodReadonly`.
+// `.readonly()` affects only mutability — it does NOT change null/absence
+// acceptance. But because none of the existing branches in walkKeys /
+// unwrapForDescent / unwrapToObject match `ZodReadonly`, the loop short-
+// circuits on entry whenever ZodReadonly is the outermost wrapper, or when
+// ZodReadonly is sandwiched between an outer and inner strictness wrapper.
+//
+// Empirically zero false positives today (QuoteSchema.items and .invoice_ids
+// happen to not stack nullability inside `.readonly()`), but a future
+// declaration like `z.array(...).nullable().readonly()` would silently drop
+// the upstream `.nullable()`. Fix the latent gap before it lands.
+//
+// Real introspection only, no mocks (#616 REQ-A5 discipline reasserted).
+// ---------------------------------------------------------------------------
+
+describe("walkKeys — ZodReadonly wrapper regressions (#622)", () => {
+  // REQ-C1: bare `.readonly()` on a non-strictness inner type — no flag
+  // change. Mirrors QuoteSchema.items shape. Accidentally correct pre-fix
+  // (the break short-circuit happens to produce `{false, false}` which is
+  // the right answer when the inner type carries no strictness), but pinned
+  // so a future refactor can't regress it.
+  it("REQ-C1: z.array(...).readonly() is non-nullable + required", () => {
+    const schema = z.object({ items: z.array(z.string()).readonly() }).strip();
+    expect(walkKeys(schema).get("items")).toEqual({ isNullable: false, isOptional: false });
+  });
+
+  // REQ-C1: `.readonly().optional()` — `.optional()` outer wraps `.readonly()`.
+  // Mirrors QuoteSchema.invoice_ids shape. Pre-fix the loop unwraps `.optional()`
+  // (isOptional=true), descends to ZodReadonly, then breaks — accidentally
+  // correct because the inner type carries no nullability.
+  it("REQ-C1: z.array(...).readonly().optional() is required-optional, non-nullable", () => {
+    const schema = z.object({ invoice_ids: z.array(z.string()).readonly().optional() }).strip();
+    expect(walkKeys(schema).get("invoice_ids")).toEqual({ isNullable: false, isOptional: true });
+  });
+
+  // REQ-C1: `.nullable().readonly()` — readonly is OUTERMOST, wraps nullable.
+  // Pre-fix: loop enters, ZodReadonly doesn't match any branch → `break` on
+  // entry → both flags stay false → WRONG. The inner `.nullable()` is lost.
+  // This is the canonical latent failure case the issue describes.
+  it("REQ-C1: z.array(...).nullable().readonly() preserves nullability through outer readonly", () => {
+    const schema = z.object({ items: z.array(z.string()).nullable().readonly() }).strip();
+    expect(walkKeys(schema).get("items")).toEqual({ isNullable: true, isOptional: false });
+  });
+
+  // REQ-C1: `.readonly().nullable()` — nullable is OUTERMOST. Pre-fix: loop
+  // unwraps `.nullable()` (isNullable=true), descends to ZodReadonly, then
+  // breaks → accidentally correct. Pinned to guard against the fix breaking
+  // the working order.
+  it("REQ-C1: z.array(...).readonly().nullable() is nullable", () => {
+    const schema = z.object({ items: z.array(z.string()).readonly().nullable() }).strip();
+    expect(walkKeys(schema).get("items")).toEqual({ isNullable: true, isOptional: false });
+  });
+
+  // REQ-C1: `.nullable().readonly().optional()` — readonly is sandwiched.
+  // Pre-fix: loop unwraps `.optional()` (isOptional=true), descends to
+  // ZodReadonly, then breaks → upstream `.nullable()` is LOST → WRONG. Post-
+  // fix: descends through ZodReadonly to reach the inner `.nullable()`.
+  it("REQ-C1: z.array(...).nullable().readonly().optional() is nullable + optional", () => {
+    const schema = z.object({ items: z.array(z.string()).nullable().readonly().optional() }).strip();
+    expect(walkKeys(schema).get("items")).toEqual({ isNullable: true, isOptional: true });
+  });
+
+  // REQ-C1: real `QuoteSchema.items` and `.invoice_ids` — pin the observed-
+  // production shapes. Both happen to be accidentally-correct pre-fix; this
+  // is a status-quo regression guard, not a RED test.
+  it("REQ-C1: real QuoteSchema.items shape produces the expected flags", () => {
+    const schema = unwrapToObject(QuoteSchema as unknown as z.ZodType);
+    expect(schema).not.toBeNull();
+    expect(walkKeys(schema!).get("items")).toEqual({ isNullable: false, isOptional: false });
+  });
+
+  it("REQ-C1: real QuoteSchema.invoice_ids shape produces the expected flags", () => {
+    const schema = unwrapToObject(QuoteSchema as unknown as z.ZodType);
+    expect(schema).not.toBeNull();
+    expect(walkKeys(schema!).get("invoice_ids")).toEqual({ isNullable: false, isOptional: true });
+  });
+
+  // BUT NOT: a genuinely non-nullable readonly array that returns null is
+  // still flagged as a strictness mismatch. The fix must not silence drift —
+  // `.readonly()` is mutability-only, so `z.array(...).readonly()` is still
+  // non-nullable.
+  it("BUT NOT: a non-nullable z.array(...).readonly() field returning null is still flagged", () => {
+    const schema = z.object({ items: z.array(z.string()).readonly() }).strip();
+    const diff = diffSchema(schema, { items: null });
+    expect(diff.strictness_mismatches.map((m) => m.field)).toContain("items");
+  });
+});
+
+describe("unwrapToObject — ZodReadonly top-level regression (#622)", () => {
+  // REQ-C2: a top-level `.readonly()` wrapper must resolve to its inner
+  // ZodObject. Pre-fix: ZodReadonly matches none of the branches, `def.out`
+  // doesn't exist → returns null → the probe would refuse a hypothetical
+  // `z.object({...}).readonly()` schema reference even though it is object-
+  // shaped. No production schema uses this shape today, but the helper-
+  // parity gap is what the issue's SL-1 audit asks us to close.
+  it("REQ-C2: descends a top-level .readonly() wrapper to its inner ZodObject", () => {
+    const schema = z.object({ id: z.string() }).strip().readonly();
+    const unwrapped = unwrapToObject(schema as unknown as z.ZodType);
+    expect(unwrapped).not.toBeNull();
+    expect(unwrapped).toBeInstanceOf(z.ZodObject);
+    expect(walkKeys(unwrapped!).get("id")).toEqual({ isNullable: false, isOptional: false });
+  });
+
+  // REQ-C2: ZodReadonly stacked with ZodOptional / ZodNullable / ZodDefault
+  // must still resolve.
+  it("REQ-C2: descends .optional().nullable().readonly() stacked wrappers", () => {
+    const schema = z.object({ id: z.string() }).strip().optional().nullable().readonly();
+    const unwrapped = unwrapToObject(schema as unknown as z.ZodType);
+    expect(unwrapped).not.toBeNull();
+    expect(walkKeys(unwrapped!).has("id")).toBe(true);
+  });
+
+  // BUT NOT: unwrapToObject only resolves to ZodObject. A top-level
+  // `.readonly()` over a ZodArray descends through ZodReadonly to ZodArray,
+  // which is not ZodObject — the fall-through still returns null (the
+  // probe's documented object-shaped-only contract).
+  it("BUT NOT: returns null for a top-level z.array(...).readonly()", () => {
+    const schema = z.array(z.string()).readonly();
+    expect(unwrapToObject(schema as unknown as z.ZodType)).toBeNull();
+  });
+});
+
+describe("unwrapForDescent — ZodReadonly nested-descent regression (#622)", () => {
+  // REQ-C3: a nested `.readonly()`-wrapped object must have its keys walked.
+  // Without the fix, diffSchema would silently treat `config` as a leaf and
+  // miss the nested `unknown_nested` extra field (false-negative drift —
+  // the same symmetric counterpart to #616 that #620 fixed for ZodDefault).
+  it("REQ-C3: diffSchema surfaces extras inside a .readonly()-wrapped nested object", () => {
+    const schema = z
+      .object({
+        config: z.object({ x: z.string() }).strip().readonly(),
+      })
+      .strip();
+    const diff = diffSchema(schema, { config: { x: "ok", unknown_nested: "val" } });
+    expect(diff.extra_fields.map((f) => f.field)).toContain("config.unknown_nested");
+  });
+
+  // REQ-C3: same drift visibility for a `.readonly()`-wrapped nested array.
+  // Mirrors QuoteSchema.items shape: extras inside QuoteItemSchema elements
+  // would be silently invisible pre-fix.
+  it("REQ-C3: diffSchema surfaces extras inside a z.array(...).readonly() nested array", () => {
+    const schema = z
+      .object({
+        items: z.array(z.object({ id: z.string() }).strip()).readonly(),
+      })
+      .strip();
+    const diff = diffSchema(schema, { items: [{ id: "1", extra: "val" }] });
+    expect(diff.extra_fields.map((f) => f.field)).toContain("items[].extra");
+  });
+
+  // BUT NOT: genuine missing-required drift inside a `.readonly()`-wrapped
+  // nested object is still flagged. The fix must restore visibility into
+  // the wrapped subtree without silencing legitimate findings.
+  it("BUT NOT: missing required field inside .readonly()-wrapped nested object is still flagged", () => {
+    const schema = z
+      .object({
+        config: z.object({ required: z.string(), opt: z.string().optional() }).strip().readonly(),
+      })
+      .strip();
+    const diff = diffSchema(schema, { config: {} });
+    expect(diff.missing_fields.map((m) => m.field)).toContain("config.required");
+  });
+});
