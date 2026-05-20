@@ -36,4 +36,15 @@ export interface Client {
   readonly currency?: string | null | undefined;
   readonly created_at: string;
   readonly updated_at: string;
+  /**
+   * Additional email addresses associated with the client. Observed shape is
+   * undocumented; declared as `unknown[]` (parser-permissive). Surfaced by
+   * the post-#619/#624/#625/#626 contract-probe run.
+   */
+  readonly extra_emails?: readonly unknown[] | null | undefined;
+  /**
+   * Whether the client is reachable via e-invoicing. Surfaced by the
+   * post-#619/#624/#625/#626 contract-probe run.
+   */
+  readonly e_invoicing_reachable?: boolean | null | undefined;
 }

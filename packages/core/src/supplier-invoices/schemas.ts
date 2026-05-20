@@ -65,7 +65,7 @@ export const SupplierInvoiceSchema = z
     initiator_id: z.string().nullable().optional(),
     attachment_category: z.string().nullable().optional(),
     analyzed_at: z.string().nullable().optional(),
-    request_transfer: z.unknown().optional(),
+    request_transfer: z.unknown().nullable().optional(),
     self_invoice_id: z.string().nullable().optional(),
     is_attachment_invoice: z.boolean().nullable().optional(),
     is_attachment_non_financial: z.boolean().nullable().optional(),

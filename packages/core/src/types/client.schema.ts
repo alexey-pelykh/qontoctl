@@ -40,6 +40,12 @@ export const ClientSchema = z
     currency: z.string().nullable().optional(),
     created_at: z.string(),
     updated_at: z.string(),
+    // Post-#619/#624/#625/#626 contract-probe run additions (sandbox
+    // 2026-05-20). `extra_emails` items are kept as `z.unknown()` because
+    // observed shape is undocumented (could be strings or labelled objects);
+    // the parser-permissive declaration accepts either.
+    extra_emails: z.array(z.unknown()).nullable().optional(),
+    e_invoicing_reachable: z.boolean().nullable().optional(),
   })
   .strip() satisfies z.ZodType<Client>;
 

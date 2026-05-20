@@ -1,7 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import { BeneficiarySchema, ClientInvoiceSchema, QuoteSchema, SupplierInvoiceSchema } from "@qontoctl/core";
+import {
+  BeneficiarySchema,
+  CardSchema,
+  ClientInvoiceSchema,
+  ClientSchema,
+  OrganizationSchema,
+  QuoteSchema,
+  SupplierInvoiceSchema,
+} from "@qontoctl/core";
 import { describe, it, expect } from "vitest";
 import { z } from "zod";
 
@@ -1101,5 +1109,182 @@ describe("diffSchema — #621 production-schema extra_fields regression", () => 
       brand_new_field_2027: "future-drift",
     });
     expect(diff.extra_fields.map((f) => f.field)).toContain("brand_new_field_2027");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// diffSchema — post-#619/#624/#625/#626 production-schema regression
+//
+// After the full set of contract-probe introspection fixes (#619 walkKeys
+// ZodDefault+ZodPipe; #624 helper-parity ZodDefault; #625 ZodReadonly; #626
+// ZodPipe direction-aware) the probe surfaces MORE drift that was previously
+// invisible to its short-circuiting introspection. The first production-grade
+// run with all four fixes (sandbox 2026-05-20) flagged 19 additional fields
+// across OrganizationSchema (12), CardSchema (4), ClientSchema (2), and
+// SupplierInvoiceSchema.request_transfer (1, nullability).
+//
+// Each `it` feeds the REAL @qontoctl/core schema a payload containing the
+// previously-extra/nullable field set and asserts the probe's
+// `extra_fields` / `strictness_mismatches` buckets no longer flag them.
+// Mirrors the #621 pattern at the same file site (real introspection, no
+// mocks).
+//
+// BUT NOT: a brand-new undeclared field on one of these schemas is still
+// flagged — the gate must keep working as designed.
+// ---------------------------------------------------------------------------
+
+describe("diffSchema — post-#619/#624/#625/#626 production-schema regression", () => {
+  it("OrganizationSchema: all 12 previously-extra fields are accepted (probe finding: organization)", () => {
+    const schema = unwrapToObject(OrganizationSchema as unknown as z.ZodType);
+    expect(schema).not.toBeNull();
+    const diff = diffSchema(schema!, {
+      slug: "org-1",
+      legal_name: "Acme Inc.",
+      bank_accounts: [],
+      // post-#619/#624/#625/#626 additions:
+      id: "org_1",
+      name: "Acme",
+      locale: "fr",
+      legal_share_capital: 1000,
+      legal_country: "FR",
+      legal_registration_date: "2020-01-15",
+      legal_form: "SAS",
+      legal_address: "1 Rue de Paris, 75001 Paris",
+      address: { street: "1 Rue de Paris", city: "Paris", zip: "75001" },
+      legal_sector: "technology",
+      contract_signed_at: "2020-02-01T00:00:00.000Z",
+      legal_number: "FR123456789",
+    });
+    const expected = [
+      "id",
+      "name",
+      "locale",
+      "legal_share_capital",
+      "legal_country",
+      "legal_registration_date",
+      "legal_form",
+      "legal_address",
+      "address",
+      "legal_sector",
+      "contract_signed_at",
+      "legal_number",
+    ];
+    for (const f of expected) {
+      expect(diff.extra_fields.map((x) => x.field)).not.toContain(f);
+    }
+  });
+
+  it("CardSchema: all 4 previously-extra fields are accepted (probe finding: list-cards)", () => {
+    const schema = unwrapToObject(CardSchema as unknown as z.ZodType);
+    expect(schema).not.toBeNull();
+    const diff = diffSchema(schema!, {
+      id: "card-1",
+      nickname: "My Card",
+      status: "live",
+      pin_set: true,
+      last_activity_at: "2026-01-15T10:00:00Z",
+      ship_to_business: false,
+      atm_option: true,
+      nfc_option: true,
+      online_option: true,
+      foreign_option: false,
+      atm_monthly_limit: 1000,
+      atm_monthly_spent: 200,
+      atm_daily_limit: 500,
+      atm_daily_spent: 100,
+      atm_daily_limit_option: true,
+      payment_monthly_limit: 5000,
+      payment_monthly_spent: 1500,
+      payment_daily_limit: 2000,
+      payment_daily_spent: 300,
+      payment_daily_limit_option: true,
+      payment_transaction_limit: 1000,
+      payment_transaction_limit_option: false,
+      active_days: [1, 2, 3, 4, 5],
+      holder_id: "holder-1",
+      bank_account_id: "ba-1",
+      organization_id: "org-1",
+      updated_at: "2026-01-15T10:00:00Z",
+      created_at: "2025-12-01T09:00:00Z",
+      card_type: "debit",
+      card_level: "standard",
+      payment_lifespan_spent: 10000,
+      categories: [],
+      renewed: false,
+      renewal: false,
+      had_operation: true,
+      had_pin_operation: true,
+      card_design: "default",
+      upsold: false,
+      upsell: false,
+      reordered: false,
+      appearance: {
+        assets: { front_large: "a", front_small: "b", front_small_wallet: "c" },
+        theme: "dark",
+      },
+      has_only_user_liftable_locks: false,
+      // post-#619/#624/#625/#626 additions:
+      shipped_lost_at: null,
+      eligible_for_renewal: true,
+      eligible_for_upsell: false,
+      is_qcp: false,
+    });
+    const expected = ["shipped_lost_at", "eligible_for_renewal", "eligible_for_upsell", "is_qcp"];
+    for (const f of expected) {
+      expect(diff.extra_fields.map((x) => x.field)).not.toContain(f);
+    }
+  });
+
+  it("ClientSchema: both previously-extra fields are accepted (probe finding: list-clients)", () => {
+    const schema = unwrapToObject(ClientSchema as unknown as z.ZodType);
+    expect(schema).not.toBeNull();
+    const diff = diffSchema(schema!, {
+      id: "client_1",
+      kind: "company",
+      created_at: "2026-05-20T00:00:00.000Z",
+      updated_at: "2026-05-20T00:00:00.000Z",
+      // post-#619/#624/#625/#626 additions:
+      extra_emails: ["billing@acme.example", "ar@acme.example"],
+      e_invoicing_reachable: true,
+    });
+    for (const f of ["extra_emails", "e_invoicing_reachable"]) {
+      expect(diff.extra_fields.map((x) => x.field)).not.toContain(f);
+    }
+  });
+
+  it("SupplierInvoiceSchema: request_transfer null no longer triggers a strictness mismatch (probe finding: list-supplier-invoices)", () => {
+    const schema = unwrapToObject(SupplierInvoiceSchema as unknown as z.ZodType);
+    expect(schema).not.toBeNull();
+    const diff = diffSchema(schema!, {
+      id: "si_1",
+      organization_id: "org_1",
+      status: "to_pay",
+      source_type: "upload",
+      source: "web",
+      attachment_id: "att_1",
+      display_attachment_id: "att_1",
+      file_name: "invoice.pdf",
+      is_einvoice: false,
+      created_at: "2026-05-20T00:00:00.000Z",
+      updated_at: "2026-05-20T00:00:00.000Z",
+      // The field in question — null at runtime, schema is now z.unknown().nullable().optional():
+      request_transfer: null,
+    });
+    expect(diff.strictness_mismatches.map((m) => m.field)).not.toContain("request_transfer");
+  });
+
+  // BUT NOT: a brand-new undeclared field on OrganizationSchema is still
+  // flagged as extra_fields. The gate must keep working as designed; this
+  // batch only addresses the 19 specific fields enumerated above.
+  it("BUT NOT: a brand-new undeclared field on OrganizationSchema is still flagged as extra_fields", () => {
+    const schema = unwrapToObject(OrganizationSchema as unknown as z.ZodType);
+    expect(schema).not.toBeNull();
+    const diff = diffSchema(schema!, {
+      slug: "org-1",
+      bank_accounts: [],
+      // Hypothetical brand-new undeclared field NOT in the post-#619 set:
+      brand_new_org_field_2027: "future-drift",
+    });
+    expect(diff.extra_fields.map((f) => f.field)).toContain("brand_new_org_field_2027");
   });
 });
