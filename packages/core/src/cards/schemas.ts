@@ -106,6 +106,14 @@ export const CardSchema = z
     reordered: z.boolean(),
     appearance: CardAppearanceSchema,
     has_only_user_liftable_locks: z.boolean(),
+    // Post-#619/#624/#625/#626 contract-probe run additions (sandbox
+    // 2026-05-20). `shipped_lost_at` mirrors the existing `shipped_at` /
+    // `discard_on` date-string convention; the three booleans are observed
+    // permissively.
+    shipped_lost_at: z.string().nullable().optional(),
+    eligible_for_renewal: z.boolean().nullable().optional(),
+    eligible_for_upsell: z.boolean().nullable().optional(),
+    is_qcp: z.boolean().nullable().optional(),
   })
   .strip();
 

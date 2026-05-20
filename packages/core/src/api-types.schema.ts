@@ -29,11 +29,30 @@ export const BankAccountSchema = z
   .strip() satisfies z.ZodType<BankAccount>;
 
 // https://docs.qonto.com/api-reference/business-api/accounts-organizations/organizations/retrieve-the-authenticated-organization-and-list-bank-accounts
+//
+// Additions for the post-#619/#624/#625/#626 contract-probe run against
+// `/v2/organization` (sandbox 2026-05-20): 12 previously-undeclared fields the
+// API consistently returns. All declared `.nullable().optional()` so the
+// schema accepts production AND sandbox shapes without making over-strong type
+// guarantees; the `address` field is permissive (`Record<string, unknown>`)
+// because its sub-shape is undocumented and likely environment-specific.
 export const OrganizationSchema = z
   .object({
     slug: z.string(),
     legal_name: z.string().nullable().optional(),
     bank_accounts: z.array(BankAccountSchema).readonly(),
+    id: z.string().nullable().optional(),
+    name: z.string().nullable().optional(),
+    locale: z.string().nullable().optional(),
+    legal_share_capital: z.number().nullable().optional(),
+    legal_country: z.string().nullable().optional(),
+    legal_registration_date: z.string().nullable().optional(),
+    legal_form: z.string().nullable().optional(),
+    legal_address: z.string().nullable().optional(),
+    address: z.record(z.string(), z.unknown()).nullable().optional(),
+    legal_sector: z.string().nullable().optional(),
+    contract_signed_at: z.string().nullable().optional(),
+    legal_number: z.string().nullable().optional(),
   })
   .strip() satisfies z.ZodType<Organization>;
 
