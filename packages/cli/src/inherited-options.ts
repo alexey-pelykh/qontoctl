@@ -5,7 +5,7 @@ import { homedir } from "node:os";
 import { join, resolve as resolvePath } from "node:path";
 import type { Command } from "commander";
 import { Option } from "commander";
-import { AUTH_PREFERENCES } from "@qontoctl/core";
+import { AUTH_PREFERENCES, DEFAULT_AUTH_PREFERENCE } from "@qontoctl/core";
 import type { GlobalOptions } from "./options.js";
 
 /**
@@ -31,7 +31,7 @@ export function addInheritableOptions(cmd: Command): Command {
     .addOption(
       new Option(
         "--auth <mode>",
-        'authentication precedence (default: "oauth-first"); *-first modes fall back when primary is unavailable',
+        `authentication precedence (default: "${DEFAULT_AUTH_PREFERENCE}"); *-first modes fall back when primary is unavailable`,
       ).choices([...AUTH_PREFERENCES]),
     );
 }
