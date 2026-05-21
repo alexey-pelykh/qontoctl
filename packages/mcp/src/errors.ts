@@ -5,6 +5,7 @@ import {
   type HttpClient,
   ConfigError,
   AuthError,
+  OAuthNoTokenError,
   QontoApiError,
   QontoOAuthScopeError,
   QontoRateLimitError,
@@ -81,6 +82,26 @@ function formatAuthError(error: AuthError): CallToolResult {
   );
 }
 
+/**
+ * Dedicated formatter for {@link OAuthNoTokenError} (subclass of
+ * {@link AuthError}). The generic AuthError formatter directs the user to
+ * "Verify your API key credentials" — appropriate for genuine api-key
+ * failures but actively misleading when the actual cause is the OAuth-side
+ * lack of an access token. This handler points at the OAuth setup path and
+ * mentions the api-key-first MCP-args workaround for users who want to
+ * keep an api-key escape hatch without re-running `auth login`.
+ */
+function formatOAuthNoTokenError(error: OAuthNoTokenError): CallToolResult {
+  return textError(
+    [
+      `Authentication error: ${error.message}`,
+      "",
+      'Run "qontoctl auth login" to obtain an OAuth access token.',
+      'Alternatively, add "--auth api-key" or "--auth api-key-first" to the MCP server args (or set QONTOCTL_AUTH) when api-key credentials are configured.',
+    ].join("\n"),
+  );
+}
+
 function formatOAuthScopeError(error: QontoOAuthScopeError): CallToolResult {
   const details = error.errors.map((e) => `  - ${e.code}: ${e.detail}`).join("\n");
   return textError(
@@ -135,6 +156,8 @@ export async function withClient(
     return await handler(client);
   } catch (error: unknown) {
     if (error instanceof ConfigError) return formatConfigError(error);
+    // OAuthNoTokenError MUST be checked BEFORE AuthError (it is a subclass).
+    if (error instanceof OAuthNoTokenError) return formatOAuthNoTokenError(error);
     if (error instanceof AuthError) return formatAuthError(error);
     if (error instanceof QontoScaRequiredError) return formatScaPendingResponse(error.scaSessionToken, false);
     if (error instanceof QontoScaNotEnrolledError) return formatScaNotEnrolledError(error);

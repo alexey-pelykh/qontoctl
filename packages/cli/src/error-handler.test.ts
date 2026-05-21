@@ -5,6 +5,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   ConfigError,
   AuthError,
+  OAuthNoTokenError,
   QontoApiError,
   QontoOAuthScopeError,
   QontoRateLimitError,
@@ -53,6 +54,48 @@ describe("handleCliError", () => {
       expect(output).toContain("Missing organization slug");
       expect(output).toContain("Verify your API key credentials");
       expect(process.exitCode).toBe(1);
+    });
+  });
+
+  describe("OAuthNoTokenError (arm 4 — mode-specific messaging, #631 PR2)", () => {
+    // OAuthNoTokenError is a subclass of AuthError but must NOT fall through
+    // to the generic AuthError handler. The generic handler tells the user
+    // to "Verify your API key credentials" — actively misleading when the
+    // actual cause is OAuth-side (no access token). The dedicated handler
+    // points at `auth login` and the `--auth api-key`/`api-key-first`
+    // escape hatch.
+
+    it("points at auth login + api-key escape hatch (does NOT mention 'Verify your API key credentials')", () => {
+      const error = new OAuthNoTokenError('No OAuth access token available. Run "qontoctl auth login" first.');
+
+      handleCliError(error, false);
+
+      const output = stderrSpy.mock.calls[0]?.[0] as string;
+      expect(output).toContain("Authentication error:");
+      expect(output).toContain("No OAuth access token");
+      expect(output).toContain("qontoctl auth login");
+      // The escape hatch: when the user has api-key creds wired, they can
+      // bypass without re-running auth login.
+      expect(output).toMatch(/--auth api-key/);
+      // Critical AC-4 assertion: the misleading "Verify your API key
+      // credentials" secondary line MUST NOT appear on OAuth-side failures.
+      expect(output).not.toContain("Verify your API key credentials");
+      expect(process.exitCode).toBe(1);
+    });
+
+    it("is matched BEFORE generic AuthError handler (subclass dispatch order)", () => {
+      // Regression guard: if the dispatch order is ever flipped (generic
+      // AuthError check first), OAuthNoTokenError would fall through to
+      // the generic handler and re-introduce the arm 4 bug.
+      const error = new OAuthNoTokenError("No OAuth access token available");
+
+      handleCliError(error, false);
+
+      const output = stderrSpy.mock.calls[0]?.[0] as string;
+      // The OAuthNoTokenError-specific text appears; the generic
+      // AuthError text does not.
+      expect(output).toContain("qontoctl auth login");
+      expect(output).not.toContain("Verify your API key credentials");
     });
   });
 

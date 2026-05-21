@@ -4,6 +4,7 @@
 import {
   ConfigError,
   AuthError,
+  OAuthNoTokenError,
   QontoApiError,
   QontoOAuthScopeError,
   QontoRateLimitError,
@@ -22,6 +23,25 @@ import {
 export function handleCliError(error: unknown, debug: boolean): void {
   if (error instanceof ConfigError) {
     process.stderr.write(formatConfigError(error) + "\n");
+    process.exitCode = 1;
+    return;
+  }
+
+  // OAuthNoTokenError must be checked BEFORE AuthError (it is a subclass).
+  // The generic AuthError handler below directs the user to "Verify your API
+  // key credentials" — appropriate for api-key failures but actively misleading
+  // when the actual cause is OAuth-side (no access token). The dedicated
+  // handler points at the OAuth setup path AND mentions the api-key-first
+  // workaround for users who want to keep an api-key escape hatch.
+  if (error instanceof OAuthNoTokenError) {
+    process.stderr.write(
+      [
+        `Authentication error: ${error.message}`,
+        "",
+        'Run "qontoctl auth login" to obtain an OAuth access token.',
+        'Alternatively, use "--auth api-key" or "--auth api-key-first" (or set QONTOCTL_AUTH) when api-key credentials are configured.',
+      ].join("\n") + "\n",
+    );
     process.exitCode = 1;
     return;
   }

@@ -653,4 +653,163 @@ describe("createClient", () => {
       expect(ctorArgs?.scaMethod).toBeUndefined();
     });
   });
+
+  describe("fatal-config guard (#631 PR2 — selectAuthChain.fatal)", () => {
+    // In production `resolveConfig` rejects empty `organization-slug` /
+    // `secret-key` at config-load time before `selectAuthChain` runs.
+    // These tests bypass resolveConfig (it is mocked) to verify the
+    // defense-in-depth path in createClient: when the matrix flags a
+    // fatal configuration, createClient MUST throw ConfigError BEFORE
+    // any HttpClient is constructed, and NO fallback authorization is
+    // wired (the security-architect invariant — no silent OAuth fallback
+    // on an explicit api-key-first failure).
+
+    it("throws ConfigError with VALIDATION code when api-key-first selected + empty secret-key (AC-3)", async () => {
+      resolveConfigMock.mockResolvedValue({
+        config: {
+          apiKey: { organizationSlug: "org", secretKey: "" },
+          oauth: {
+            clientId: "client-id",
+            clientSecret: "client-secret",
+            accessToken: "access-token",
+            accessTokenExpiresAt: new Date(Date.now() + 3600_000).toISOString(),
+          },
+        },
+        endpoint: "https://thirdparty.qonto.com",
+        warnings: [],
+        oauthAccessTokenFromEnv: false,
+      });
+
+      const options: GlobalOptions = { output: "table", auth: "api-key-first" };
+      const error = await createClient(options).catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(Error);
+      expect((error as Error).name).toBe("ConfigError");
+      expect((error as Error).message).toContain("api-key-first");
+      expect((error as Error).message).toContain("empty-secret");
+      expect((error as Error).message).toContain("refusing to silently fall back to OAuth");
+      // Critically: HttpClient was NOT constructed — fallback to OAuth
+      // never got wired (the invariant the test exists to guard).
+      expect(HttpClientMock).not.toHaveBeenCalled();
+    });
+
+    it("throws ConfigError for api-key bare + empty secret-key", async () => {
+      resolveConfigMock.mockResolvedValue({
+        config: {
+          apiKey: { organizationSlug: "org", secretKey: "" },
+        },
+        endpoint: "https://thirdparty.qonto.com",
+        warnings: [],
+        oauthAccessTokenFromEnv: false,
+      });
+
+      const options: GlobalOptions = { output: "table", auth: "api-key" };
+      const error = await createClient(options).catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(Error);
+      expect((error as Error).name).toBe("ConfigError");
+      expect((error as Error).message).toContain('"api-key"');
+      expect((error as Error).message).toContain("empty-secret");
+      expect(HttpClientMock).not.toHaveBeenCalled();
+    });
+
+    it("throws ConfigError for api-key-first + empty organization-slug", async () => {
+      resolveConfigMock.mockResolvedValue({
+        config: {
+          apiKey: { organizationSlug: "", secretKey: "key" },
+          oauth: {
+            clientId: "client-id",
+            clientSecret: "client-secret",
+            accessToken: "access-token",
+            accessTokenExpiresAt: new Date(Date.now() + 3600_000).toISOString(),
+          },
+        },
+        endpoint: "https://thirdparty.qonto.com",
+        warnings: [],
+        oauthAccessTokenFromEnv: false,
+      });
+
+      const options: GlobalOptions = { output: "table", auth: "api-key-first" };
+      const error = await createClient(options).catch((e: unknown) => e);
+
+      expect((error as Error).name).toBe("ConfigError");
+      expect((error as Error).message).toContain("empty-slug");
+      expect(HttpClientMock).not.toHaveBeenCalled();
+    });
+
+    it("does NOT throw ConfigError for oauth-first + invalid api-key fallback (fatal? does not fire — user's primary is OAuth)", async () => {
+      // The fatal guard MUST NOT fire when the user explicitly chose OAuth
+      // as primary. An api-key configuration issue (in what is at most the
+      // fallback slot) is not fatal to a request flow whose primary
+      // credential is OAuth — the invariant is "respect the user's
+      // explicit primary."
+      //
+      // NOTE: createClient WILL still throw, but with AuthError (from the
+      // eager `buildApiKeyAuthorization` for the fallback slot), NOT with
+      // ConfigError. This is the existing pre-#631 behavior — we are NOT
+      // changing it. The point of this test is the discriminator: a
+      // ConfigError (from `selection.fatal`) would indicate the security-
+      // architect invariant fired spuriously for an oauth-first scenario,
+      // which would be a regression.
+      //
+      // In production this scenario is unreachable because resolveConfig
+      // rejects empty api-key fields at config-load time before
+      // selectAuthChain runs; the test bypasses that via the mock.
+      const oauthAuthFn = vi.fn().mockResolvedValue("Bearer at");
+      createOAuthAuthorizationMock.mockReturnValue(oauthAuthFn);
+      resolveConfigMock.mockResolvedValue({
+        config: {
+          apiKey: { organizationSlug: "org", secretKey: "" },
+          oauth: {
+            clientId: "client-id",
+            clientSecret: "client-secret",
+            accessToken: "access-token",
+            accessTokenExpiresAt: new Date(Date.now() + 3600_000).toISOString(),
+          },
+        },
+        endpoint: "https://thirdparty.qonto.com",
+        warnings: [],
+        oauthAccessTokenFromEnv: false,
+      });
+
+      const options: GlobalOptions = { output: "table", auth: "oauth-first" };
+      const error = await createClient(options).catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(Error);
+      // CRITICAL discriminator: AuthError (existing pre-#631 path), NOT
+      // ConfigError (which would indicate the fatal-config guard fired
+      // spuriously for an oauth-first user).
+      expect((error as Error).name).toBe("AuthError");
+      expect((error as Error).name).not.toBe("ConfigError");
+    });
+
+    it("does NOT throw for valid api-key-first config (regression guard for the happy path)", async () => {
+      // Sanity check: the fatal guard fires ONLY when apiKeyInvalidReason
+      // is set. The standard api-key-first happy path must not regress.
+      const oauthAuthFn = vi.fn().mockResolvedValue("Bearer at");
+      createOAuthAuthorizationMock.mockReturnValue(oauthAuthFn);
+      resolveConfigMock.mockResolvedValue({
+        config: {
+          apiKey: { organizationSlug: "org", secretKey: "valid-secret" },
+          oauth: {
+            clientId: "client-id",
+            clientSecret: "client-secret",
+            accessToken: "access-token",
+            accessTokenExpiresAt: new Date(Date.now() + 3600_000).toISOString(),
+          },
+        },
+        endpoint: "https://thirdparty.qonto.com",
+        warnings: [],
+        oauthAccessTokenFromEnv: false,
+      });
+
+      const options: GlobalOptions = { output: "table", auth: "api-key-first" };
+      await createClient(options); // does NOT throw
+
+      expect(HttpClientMock).toHaveBeenCalled();
+      const ctorArgs = HttpClientMock.mock.calls[0]?.[0] as HttpClientOptions | undefined;
+      expect(ctorArgs?.authorization).toBe("org:valid-secret");
+      expect(ctorArgs?.fallbackAuthorization).toBe(oauthAuthFn);
+    });
+  });
 });

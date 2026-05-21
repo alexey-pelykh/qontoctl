@@ -2,10 +2,12 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import {
+  type ApiKeyInvalidReason,
   type Authorization,
   type AuthSlot,
   type HttpClientLogger,
   type QontoctlConfig,
+  ConfigError,
   HttpClient,
   resolveConfig,
   resolveScaMethod,
@@ -18,6 +20,26 @@ import {
 } from "@qontoctl/core";
 import { buildResolveOptions } from "./inherited-options.js";
 import type { GlobalOptions } from "./options.js";
+
+/**
+ * Inspect an api-key credentials block for structural invalidity that
+ * `resolveConfig` would normally reject at config-load time, but which we
+ * also check here as defense-in-depth so the security-architect invariant
+ * from #631 (a user who explicitly chose api-key must never silently
+ * degrade to OAuth fallback on api-key failure) is encoded structurally
+ * at the client-construction layer too.
+ *
+ * Returns `undefined` when the api-key block is structurally valid or
+ * absent; returns a typed {@link ApiKeyInvalidReason} when present-but-
+ * invalid. The order (slug first, then secret) mirrors
+ * `buildApiKeyAuthorization`'s throw order so the messaging is consistent.
+ */
+function detectApiKeyInvalidReason(apiKey: QontoctlConfig["apiKey"]): ApiKeyInvalidReason | undefined {
+  if (apiKey === undefined) return undefined;
+  if (apiKey.organizationSlug === "") return "empty-slug";
+  if (apiKey.secretKey === "") return "empty-secret";
+  return undefined;
+}
 
 /**
  * Create an authenticated HttpClient from global CLI options.
@@ -35,8 +57,21 @@ import type { GlobalOptions } from "./options.js";
  * - `oauth-first` (default) — OAuth primary, api-key fallback when OAuth fails
  *
  * Both fallback paths trigger on HTTP 401/403 (when the auth header was built
- * successfully but the API rejected it) AND on auth-flow failures (e.g. OAuth
- * refresh-token expiry — see {@link import("@qontoctl/core").OAuthRefreshError}).
+ * successfully but the API rejected it) AND on auth-flow failures: OAuth
+ * refresh-token expiry (see {@link import("@qontoctl/core").OAuthRefreshError})
+ * AND missing OAuth access token at request time (see
+ * {@link import("@qontoctl/core").OAuthNoTokenError}, added in #631 PR2 so
+ * `oauth-first` falls back to api-key when the user has not yet run
+ * `qontoctl auth login`).
+ *
+ * **Fatal-config guard** (#631 PR2): when the resolved chain has
+ * {@link import("@qontoctl/core").AuthChainSelection.fatal} set — for example,
+ * `--auth api-key-first` with empty `secret-key` — this function throws a
+ * {@link ConfigError} BEFORE building any HTTP client, so the user sees a
+ * clear configuration error rather than a confusing late-stage auth failure
+ * (and there is no risk of the OAuth fallback engaging on an api-key
+ * configuration problem). In practice `resolveConfig` rejects empty credential
+ * fields at config-load time, so this branch is defense-in-depth.
  */
 export async function createClient(options: GlobalOptions): Promise<HttpClient> {
   const { config, endpoint, warnings, path, oauthAccessTokenFromEnv } = await resolveConfig(
@@ -48,13 +83,24 @@ export async function createClient(options: GlobalOptions): Promise<HttpClient> 
   }
 
   const preference = resolveAuthPreference(config, options.auth);
+  const apiKeyInvalidReason = detectApiKeyInvalidReason(config.apiKey);
   const selection = selectAuthChain(preference, {
     apiKey: config.apiKey !== undefined,
     oauth: config.oauth !== undefined,
+    ...(apiKeyInvalidReason !== undefined ? { apiKeyInvalidReason } : {}),
   });
 
   if (selection.noCredentials) {
     throw new Error("No credentials found in configuration");
+  }
+
+  // Fatal-config guard: when the user's explicit primary is api-key and the
+  // api-key credentials are present-but-invalid, refuse to construct an HTTP
+  // client at all. selectAuthChain.fatal encodes the security-architect
+  // invariant (#631 /council deliberation) that the user must see api-key
+  // configuration errors rather than silent degradation to OAuth fallback.
+  if (selection.fatal !== undefined) {
+    throw new ConfigError(selection.fatal.reason, "VALIDATION");
   }
 
   if (selection.warning !== undefined) {

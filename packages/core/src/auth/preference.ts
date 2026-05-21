@@ -58,6 +58,56 @@ export function resolveAuthPreference(config: QontoctlConfig, override?: AuthPre
 export type AuthSlot = "api-key" | "oauth" | null;
 
 /**
+ * Reasons the api-key credential block can be structurally invalid despite
+ * being structurally present (i.e., the `api-key:` block exists in config
+ * but one of its required fields is empty).
+ *
+ * In practice, `resolveConfig` rejects empty `organization-slug` /
+ * `secret-key` at config-load time before {@link selectAuthChain} runs, so
+ * this signal is rarely set in production. It is plumbed through anyway as
+ * defense-in-depth so the security-architect invariant from #631's
+ * `/council` deliberation — "a user who explicitly asked for api-key as
+ * primary must NEVER silently fall back to OAuth on api-key failure" — is
+ * encoded structurally at the matrix layer too, not only at the validation
+ * layer. A future refactor that defers or relaxes config-load validation
+ * would still trip the matrix-level guard.
+ */
+export type ApiKeyInvalidReason = "empty-slug" | "empty-secret";
+
+/**
+ * Inputs to {@link selectAuthChain} — describes which credential types are
+ * structurally present in the resolved config (and optionally signals that
+ * api-key credentials are present-but-structurally-invalid).
+ *
+ * The `apiKey` / `oauth` boolean fields preserve the original 16-case matrix
+ * shape (4 modes × 4 credential-presence states). The optional
+ * {@link apiKeyInvalidReason} signal, when set alongside `apiKey: true`,
+ * triggers {@link AuthChainSelection.fatal} population under preferences
+ * where api-key is the user's explicit primary (`api-key`, `api-key-first`).
+ *
+ * Callers in production code (CLI/MCP `createClient`) compute
+ * `apiKeyInvalidReason` by inspecting `config.apiKey.organizationSlug` /
+ * `secretKey` for empty strings; tests construct it directly to exercise
+ * the matrix.
+ */
+export interface AvailableCredentials {
+  /** Whether the `api-key:` block is structurally present in config. */
+  readonly apiKey: boolean;
+  /** Whether the `oauth:` block is structurally present in config. */
+  readonly oauth: boolean;
+  /**
+   * When set alongside `apiKey: true`, signals the api-key credentials are
+   * present-but-invalid. Triggers {@link AuthChainSelection.fatal} under
+   * `api-key` / `api-key-first` preferences (the modes where the user
+   * explicitly chose api-key as primary). Has NO effect under `oauth` /
+   * `oauth-first` — even if api-key would serve as the (un-asked-for)
+   * fallback, the user's explicit primary was OAuth, so an api-key
+   * configuration issue is not fatal to the request flow.
+   */
+  readonly apiKeyInvalidReason?: ApiKeyInvalidReason;
+}
+
+/**
  * Result of {@link selectAuthChain}: which credentials fill the primary and
  * fallback slots, plus a non-fatal warning describing any degrade.
  *
@@ -73,12 +123,38 @@ export type AuthSlot = "api-key" | "oauth" | null;
  *   credential and `warning` describes what happened. Callers print to stderr.
  * - `noCredentials` is `true` when neither api-key nor OAuth is configured —
  *   the caller MUST surface this as a fatal error (no chain can be built).
+ * - `fatal` is set when the auth chain is structurally unsafe and the caller
+ *   MUST throw a configuration error before constructing any HTTP client.
+ *   Currently populated under `api-key` / `api-key-first` when api-key
+ *   credentials are present-but-invalid (encoding the security-architect
+ *   invariant from #631 — see {@link ApiKeyInvalidReason}).
  */
 export interface AuthChainSelection {
   primary: AuthSlot;
   fallback: AuthSlot;
   warning?: string;
   noCredentials: boolean;
+  /**
+   * When set, the caller MUST throw a configuration error before building
+   * any HTTP client. Encodes the security-architect invariant from #631's
+   * `/council` deliberation: a user who explicitly asked for api-key as
+   * primary (`api-key` or `api-key-first`) must see api-key configuration
+   * errors, not silent degradation to OAuth fallback.
+   *
+   * `mode` is the {@link AuthPreference} the user requested (for error
+   * messaging); `reason` is a human-readable description of the structural
+   * problem (typically embedding the {@link ApiKeyInvalidReason}).
+   *
+   * `primary` / `fallback` are still populated normally so the matrix's
+   * shape stays observable to debugging tools — callers that ignore `fatal`
+   * see the same chain that would have been built without the guard. It is
+   * the explicit `fatal` check at construction time that gives the typed
+   * "do not proceed" signal.
+   */
+  fatal?: {
+    mode: AuthPreference;
+    reason: string;
+  };
 }
 
 /**
@@ -100,12 +176,20 @@ export interface AuthChainSelection {
  * a workflow that has only api-key creds shouldn't break just because the user
  * pinned `oauth` in a profile shared with another machine. The warning surfaces
  * the divergence so the operator can fix the config when convenient.
+ *
+ * **Fatal-config overlay** (security-architect invariant, #631 PR2): when the
+ * user's explicit primary is api-key (`api-key` or `api-key-first`) AND the
+ * api-key credentials are present-but-invalid
+ * ({@link AvailableCredentials.apiKeyInvalidReason} set), the returned
+ * {@link AuthChainSelection.fatal} field signals that the caller MUST throw
+ * a configuration error rather than proceeding. The primary/fallback slots
+ * remain populated for observability; the explicit `fatal` check is the gate.
+ * This does NOT trigger under `oauth` / `oauth-first` because the user's
+ * explicit primary was OAuth — an api-key configuration issue is not fatal
+ * to a request flow whose primary credential is OAuth.
  */
-export function selectAuthChain(
-  preference: AuthPreference,
-  available: { apiKey: boolean; oauth: boolean },
-): AuthChainSelection {
-  const { apiKey, oauth } = available;
+export function selectAuthChain(preference: AuthPreference, available: AvailableCredentials): AuthChainSelection {
+  const { apiKey, oauth, apiKeyInvalidReason } = available;
 
   if (!apiKey && !oauth) {
     return { primary: null, fallback: null, noCredentials: true };
@@ -114,7 +198,17 @@ export function selectAuthChain(
   switch (preference) {
     case "api-key": {
       if (apiKey) {
-        return { primary: "api-key", fallback: null, noCredentials: false };
+        const base: AuthChainSelection = { primary: "api-key", fallback: null, noCredentials: false };
+        if (apiKeyInvalidReason !== undefined) {
+          return {
+            ...base,
+            fatal: {
+              mode: "api-key",
+              reason: `auth preference "api-key" selected but api-key credentials are invalid (${apiKeyInvalidReason})`,
+            },
+          };
+        }
+        return base;
       }
       // Requested api-key only, but only OAuth available — degrade with warning.
       return {
@@ -126,10 +220,30 @@ export function selectAuthChain(
     }
     case "api-key-first": {
       if (apiKey && oauth) {
-        return { primary: "api-key", fallback: "oauth", noCredentials: false };
+        const base: AuthChainSelection = { primary: "api-key", fallback: "oauth", noCredentials: false };
+        if (apiKeyInvalidReason !== undefined) {
+          return {
+            ...base,
+            fatal: {
+              mode: "api-key-first",
+              reason: `auth preference "api-key-first" selected but api-key credentials are invalid (${apiKeyInvalidReason}); refusing to silently fall back to OAuth`,
+            },
+          };
+        }
+        return base;
       }
       if (apiKey) {
-        return { primary: "api-key", fallback: null, noCredentials: false };
+        const base: AuthChainSelection = { primary: "api-key", fallback: null, noCredentials: false };
+        if (apiKeyInvalidReason !== undefined) {
+          return {
+            ...base,
+            fatal: {
+              mode: "api-key-first",
+              reason: `auth preference "api-key-first" selected but api-key credentials are invalid (${apiKeyInvalidReason})`,
+            },
+          };
+        }
+        return base;
       }
       // Only OAuth available, but api-key was requested as primary — degrade.
       return {

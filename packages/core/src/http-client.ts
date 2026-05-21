@@ -4,6 +4,7 @@
 import { randomUUID } from "node:crypto";
 import { createRequire } from "node:module";
 
+import { OAuthNoTokenError } from "./auth/oauth.js";
 import { OAuthRefreshError } from "./auth/oauth-service.js";
 
 const require = createRequire(import.meta.url);
@@ -462,19 +463,36 @@ export class HttpClient {
       try {
         headers = await this.buildHeaders(!isFormData && options?.body !== undefined, options?.accept);
       } catch (err) {
-        // Auth-flow failures (OAuth refresh-token expiry, network failure during
-        // refresh) are recognized via the typed `OAuthRefreshError` so they can
-        // advance to the fallback authorization the same way an HTTP 401 would.
-        // Without this branch, a refresh failure would short-circuit out of the
-        // request entirely — the bug class #523 was opened to fix.
+        // Auth-flow failures are recognized via two typed error classes so
+        // they can advance to the fallback authorization the same way an
+        // HTTP 401 would:
         //
-        // Critical: we ONLY catch the typed error class here. A generic
-        // `AuthError` or any other throw still propagates so we never silently
-        // mask a misconfigured api-key (e.g. empty `secret-key` raises
-        // `AuthError` from `buildApiKeyAuthorization` — that is a configuration
-        // problem the user must see, not a fallback trigger).
-        if (err instanceof OAuthRefreshError && this.fallbackAuthorization !== undefined) {
-          this.logVerbose(`OAuth refresh failed (${err.message}); advancing to fallback authorization`);
+        //   1. `OAuthRefreshError` — OAuth refresh-token expiry or network
+        //      failure during refresh (the #523 case). Without this branch,
+        //      a refresh failure would short-circuit out of the request
+        //      entirely.
+        //
+        //   2. `OAuthNoTokenError` — OAuth credentials configured but no
+        //      access token present at request time (the #631 case — user
+        //      has set up `oauth.client-id`/`client-secret` but never ran
+        //      `qontoctl auth login`). Without this branch, the typed error
+        //      thrown by `buildOAuthAuthorization` would propagate fatally
+        //      even when the user has api-key creds that should serve as
+        //      the wired fallback under `oauth-first`.
+        //
+        // Critical: we ONLY catch these specific typed classes here. A
+        // generic `AuthError` (the parent class) or any other throw still
+        // propagates so we never silently mask a misconfigured api-key
+        // (e.g. empty `secret-key` raises plain `AuthError` from
+        // `buildApiKeyAuthorization` — that is a configuration problem the
+        // user must see, not a fallback trigger). The security-architect
+        // invariant from #631's `/council` deliberation: a user who
+        // explicitly asked for a specific credential type must see auth-
+        // configuration errors, not silent degradation.
+        const isFallbackTrigger = err instanceof OAuthRefreshError || err instanceof OAuthNoTokenError;
+        if (isFallbackTrigger && this.fallbackAuthorization !== undefined) {
+          const errName = err instanceof OAuthRefreshError ? "refresh" : "no-token";
+          this.logVerbose(`OAuth ${errName} (${err.message}); advancing to fallback authorization`);
           this.onFallback?.(method, path);
           usingFallback = true;
           headers = await this.buildHeaders(
