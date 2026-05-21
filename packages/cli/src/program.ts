@@ -3,7 +3,7 @@
 
 import { createRequire } from "node:module";
 import { Command, Option } from "commander";
-import { AUTH_PREFERENCES } from "@qontoctl/core";
+import { AUTH_PREFERENCES, DEFAULT_AUTH_PREFERENCE } from "@qontoctl/core";
 import { registerCompletionCommand } from "./completions/index.js";
 import { registerBeneficiaryCommands } from "./commands/beneficiary/index.js";
 import { registerCardCommands } from "./commands/card/index.js";
@@ -56,7 +56,7 @@ export function createProgram(): Command {
     .addOption(
       new Option(
         "--auth <mode>",
-        'authentication precedence (default: "oauth-first"); *-first modes fall back when primary is unavailable',
+        `authentication precedence (default: "${DEFAULT_AUTH_PREFERENCE}"); *-first modes fall back when primary is unavailable`,
       ).choices([...AUTH_PREFERENCES]),
     );
 

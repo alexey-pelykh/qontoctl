@@ -8,6 +8,7 @@ import {
   AUTH_PREFERENCES,
   buildDiagnoseClients,
   buildRedactionContext,
+  DEFAULT_AUTH_PREFERENCE,
   resolveAuthPreference,
   resolveConfig,
   runDiagnose,
@@ -74,7 +75,7 @@ export function registerDiagnoseCommand(program: Command): void {
     .addOption(
       new Option(
         "--auth <mode>",
-        'authentication precedence (default: "oauth-first"); *-first modes fall back when primary is unavailable',
+        `authentication precedence (default: "${DEFAULT_AUTH_PREFERENCE}"); *-first modes fall back when primary is unavailable`,
       ).choices([...AUTH_PREFERENCES]),
     );
 
