@@ -5,6 +5,7 @@ import { describe, it, expect } from "vitest";
 import {
   ConfigError,
   AuthError,
+  OAuthNoTokenError,
   QontoApiError,
   QontoOAuthScopeError,
   QontoRateLimitError,
@@ -65,6 +66,43 @@ describe("withClient", () => {
       const text = (result.content[0] as { type: "text"; text: string }).text;
       expect(text).toContain("Authentication error");
       expect(text).toContain("Missing organization slug");
+    });
+  });
+
+  describe("OAuthNoTokenError (arm 4 — #631 PR2)", () => {
+    // MCP-side parity with the CLI's mode-specific OAuthNoTokenError
+    // handler. Critical for MCP because MCP users cannot interactively
+    // run `qontoctl auth login` from within the MCP server; the escape
+    // hatch (`--auth api-key` in MCP args) is the practical workaround
+    // that this dedicated message surfaces.
+
+    it("points at auth login + MCP-args escape hatch (does NOT mention 'Verify your API key credentials')", async () => {
+      const factory = () =>
+        Promise.reject(new OAuthNoTokenError('No OAuth access token available. Run "qontoctl auth login" first.'));
+      const result = await withClient(factory, async () => ({
+        content: [{ type: "text" as const, text: "unreachable" }],
+      }));
+
+      expect(result.isError).toBe(true);
+      const text = (result.content[0] as { type: "text"; text: string }).text;
+      expect(text).toContain("Authentication error");
+      expect(text).toContain("No OAuth access token");
+      expect(text).toContain("qontoctl auth login");
+      expect(text).toMatch(/--auth api-key/);
+      // AC-4 invariant: no misleading "Verify your API key credentials" line.
+      expect(text).not.toContain("Verify your API key credentials");
+    });
+
+    it("is matched BEFORE generic AuthError handler (subclass dispatch order)", async () => {
+      // Regression guard: dispatch order flip would re-introduce arm 4 bug.
+      const factory = () => Promise.reject(new OAuthNoTokenError("No OAuth access token available"));
+      const result = await withClient(factory, async () => ({
+        content: [{ type: "text" as const, text: "unreachable" }],
+      }));
+
+      const text = (result.content[0] as { type: "text"; text: string }).text;
+      expect(text).toContain("qontoctl auth login");
+      expect(text).not.toContain("Verify your API key credentials");
     });
   });
 

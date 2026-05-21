@@ -140,20 +140,49 @@ Highest priority wins:
    strict checking).
 4. Built-in default `oauth-first`.
 
-### Both fallback paths
+### Three fallback paths
 
-When the resolved mode wires a fallback, the chain advances on **two** failure
+When the resolved mode wires a fallback, the chain advances on **three** failure
 classes:
 
 - **HTTP 401/403** with auth-related error code from the primary credential
   (existing behavior — preserved). Non-auth 401s (e.g., `vop_proof_token_missing`
   on a write) propagate directly without falling back, so legitimate
   per-endpoint authorization failures are not masked.
-- **Auth-flow failure** during header construction — most commonly an OAuth
-  refresh-token returning `invalid_grant` because the token has expired or
-  been revoked. The HTTP client recognizes the typed `OAuthRefreshError` and
-  advances to the fallback before the request is dispatched. Pre-`#523`
-  builds had no catch for this class — that gap is what `#523` fixes.
+- **OAuth refresh failure** during header construction — an OAuth refresh-token
+  returning `invalid_grant` because the token has expired or been revoked. The
+  HTTP client recognizes the typed `OAuthRefreshError` and advances to the
+  fallback before the request is dispatched. Pre-`#523` builds had no catch
+  for this class — that gap is what `#523` fixes.
+- **OAuth missing-token** at request time — OAuth credentials are configured
+  (`oauth.client-id`, `oauth.client-secret`) but no access token is present
+  (the user has not yet run `qontoctl auth login`). The HTTP client recognizes
+  the typed `OAuthNoTokenError` and advances to the fallback the same way it
+  does for refresh failures. This closes the gap from
+  [#631](https://github.com/alexey-pelykh/qontoctl/issues/631): pre-PR2 builds
+  threw a plain `AuthError` that propagated fatally even when the user had
+  wired api-key as the `oauth-first` fallback.
+
+### Fatal-config guard (api-key + invalid credentials)
+
+When the resolved mode is `api-key` or `api-key-first` AND the api-key
+credentials are structurally invalid (empty `organization-slug` or empty
+`secret-key`), QontoCtl refuses to construct an HTTP client and throws a
+`ConfigError` at request setup time. This encodes the security-architect
+invariant: **a user who explicitly chose api-key as their primary credential
+MUST see api-key configuration errors, not silent degradation to OAuth
+fallback**. Without this guard, an empty `secret-key` under `api-key-first`
+would silently fall through to OAuth — masking a security-relevant
+configuration problem rather than surfacing it.
+
+In practice, `resolveConfig` rejects empty credential fields at config-load
+time (before the auth chain runs), so the guard is defense-in-depth — a
+structural enforcement at the chain layer so a future refactor that relaxed
+the config-load validation could not silently re-introduce the silent-fallback
+failure mode. The complementary `oauth` / `oauth-first` invariant — that
+`oauth` bare-mode wires no fallback at all even when api-key credentials
+exist — is enforced by `selectAuthChain` returning `fallback: null` for those
+preferences in every credential state.
 
 ### Examples
 

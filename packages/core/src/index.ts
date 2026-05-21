@@ -65,13 +65,21 @@ export {
   exchangeCode,
   refreshAccessToken,
   revokeToken,
+  OAuthNoTokenError,
   OAuthRefreshError,
   isAuthPreference,
   resolveAuthPreference,
   selectAuthChain,
 } from "./auth/index.js";
 
-export type { AuthChainSelection, AuthSlot, CreateOAuthAuthorizationOptions, OAuthTokens } from "./auth/index.js";
+export type {
+  ApiKeyInvalidReason,
+  AuthChainSelection,
+  AuthSlot,
+  AvailableCredentials,
+  CreateOAuthAuthorizationOptions,
+  OAuthTokens,
+} from "./auth/index.js";
 
 export {
   API_BASE_URL,

@@ -12,6 +12,7 @@ import {
 } from "./http-client.js";
 import { OAuthRefreshError } from "./auth/oauth-service.js";
 import { AuthError } from "./auth/api-key.js";
+import { OAuthNoTokenError } from "./auth/oauth.js";
 import { binaryResponse } from "./testing/binary-response.js";
 import { jsonResponse } from "./testing/json-response.js";
 
@@ -1842,6 +1843,118 @@ describe("HttpClient", () => {
       // Idempotency key was generated up-front in fetchWithRetry and applied
       // to the (single) fallback request — without this, the fallback would
       // miss the safety net for retried writes.
+      expect(headers["X-Qonto-Idempotency-Key"]).toBeDefined();
+    });
+
+    // ---------------------------------------------------------------------
+    // Auth-flow fallback (OAuthNoTokenError) — closes arm 1 of #631:
+    // before this branch, an OAuth-credentials-configured-but-no-token
+    // case threw a plain AuthError that propagated fatally even when the
+    // user had wired api-key as the oauth-first fallback. Now the typed
+    // OAuthNoTokenError is caught pre-fetch alongside OAuthRefreshError
+    // and the request is dispatched with the fallback credential.
+    //
+    // The pattern mirrors the OAuthRefreshError tests above — same
+    // structure, same expectations — because the fallback semantics are
+    // identical; the discriminator is just which typed class triggered.
+    // ---------------------------------------------------------------------
+
+    it("falls back to api-key when OAuth auth callback throws OAuthNoTokenError pre-fetch (AC-1)", async () => {
+      const oauthAuth = vi.fn(() => {
+        throw new OAuthNoTokenError('No OAuth access token available. Run "qontoctl auth login" first.');
+      });
+      fetchSpy.mockReturnValue(jsonResponse({ data: "ok" }));
+
+      const onFallback = vi.fn();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: oauthAuth,
+        fallbackAuthorization: "slug:key",
+        onFallback,
+      });
+
+      const result = await client.get("/v2/organizations");
+
+      expect(result).toEqual({ data: "ok" });
+      // Critical: the request was dispatched ONCE — directly with fallback —
+      // not (failed primary then fallback retry). The OAuth attempt never
+      // reached the network because the auth callback threw.
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      const [, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      expect((init.headers as Record<string, string>)["Authorization"]).toBe("slug:key");
+      // AC-6: onFallback is called with method + path, giving the wiring
+      // for the stderr warning the CLI layer emits.
+      expect(onFallback).toHaveBeenCalledWith("GET", "/v2/organizations");
+    });
+
+    it("propagates OAuthNoTokenError when no fallback is configured (AC-2 invariant: oauth bare-mode)", async () => {
+      const oauthAuth = vi.fn(() => {
+        throw new OAuthNoTokenError('No OAuth access token available. Run "qontoctl auth login" first.');
+      });
+
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: oauthAuth,
+        // No fallbackAuthorization — `oauth` bare-mode wires none even when
+        // api-key creds exist. This is the security-architect invariant
+        // that `oauth` bare-mode must fail loud rather than silently
+        // degrade to api-key.
+      });
+
+      const error = await client.get("/v2/organizations").catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(OAuthNoTokenError);
+      // Subclass relationship preserved — generic AuthError catch sites
+      // still match (e.g., MCP error handler in earlier package versions).
+      expect(error).toBeInstanceOf(AuthError);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it("does NOT trigger HTTP 401 fallback when already on fallback after OAuthNoTokenError", async () => {
+      // Edge case parity with OAuthRefreshError: OAuthNoTokenError pre-fetch
+      // → fallback dispatched → API returns 401 (e.g., the api-key creds
+      // are also invalid). The 401 fallback path must NOT re-trigger
+      // (which would dispatch the same fallback creds a third time and
+      // confuse the error class).
+      const oauthAuth = vi.fn(() => {
+        throw new OAuthNoTokenError('No OAuth access token available. Run "qontoctl auth login" first.');
+      });
+      fetchSpy.mockReturnValue(
+        jsonResponse({ errors: [{ code: "unauthorized", detail: "Unauthorized" }] }, { status: 401 }),
+      );
+
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: oauthAuth,
+        fallbackAuthorization: "slug:bad-key",
+      });
+
+      const error = await client.get("/v2/organizations").catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(QontoApiError);
+      expect((error as QontoApiError).status).toBe(401);
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it("preserves idempotency key on auth-flow fallback for write requests (OAuthNoTokenError path)", async () => {
+      const oauthAuth = vi.fn(() => {
+        throw new OAuthNoTokenError('No OAuth access token available. Run "qontoctl auth login" first.');
+      });
+      fetchSpy.mockReturnValue(jsonResponse({ id: "123" }, { status: 201 }));
+
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: oauthAuth,
+        fallbackAuthorization: "slug:key",
+      });
+
+      await client.post("/v2/transfers", { amount: 100 });
+
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      const [, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      const headers = init.headers as Record<string, string>;
+      // Parity with OAuthRefreshError test: idempotency key must be
+      // applied to the fallback dispatch.
       expect(headers["X-Qonto-Idempotency-Key"]).toBeDefined();
     });
   });
