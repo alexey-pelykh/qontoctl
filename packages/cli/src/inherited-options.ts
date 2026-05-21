@@ -31,7 +31,7 @@ export function addInheritableOptions(cmd: Command): Command {
     .addOption(
       new Option(
         "--auth <mode>",
-        "authentication precedence: api-key (only), api-key-first, oauth (only), or oauth-first",
+        'authentication precedence (default: "oauth-first"); *-first modes fall back when primary is unavailable',
       ).choices([...AUTH_PREFERENCES]),
     );
 }

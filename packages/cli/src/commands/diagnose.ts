@@ -5,6 +5,7 @@ import { createRequire } from "node:module";
 import type { Command } from "commander";
 import { Option } from "commander";
 import {
+  AUTH_PREFERENCES,
   buildDiagnoseClients,
   buildRedactionContext,
   resolveAuthPreference,
@@ -73,8 +74,8 @@ export function registerDiagnoseCommand(program: Command): void {
     .addOption(
       new Option(
         "--auth <mode>",
-        "authentication precedence: api-key (only), api-key-first, oauth (only), or oauth-first",
-      ),
+        'authentication precedence (default: "oauth-first"); *-first modes fall back when primary is unavailable',
+      ).choices([...AUTH_PREFERENCES]),
     );
 
   diagnose.action(async (_options: unknown, cmd: Command) => {

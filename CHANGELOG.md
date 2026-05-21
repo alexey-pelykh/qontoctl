@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- **`@qontoctl/cli`**: `qontoctl --help` now annotates the `--auth` flag with `(default: "oauth-first")`, mirroring the existing `-o, --output (default: "table")` annotation. Previously the default was discoverable only via `qontoctl diagnose` (which reports `authMode: "oauth-first"` in its evidence block) — users running `--help` saw only the choices list with no indication which mode applied when the flag was omitted. The description text also gains a semantic crib (`*-first modes fall back when primary is unavailable`) so the distinction between bare-mode and `*-first` mode is visible at the flag level. Applied at all three `--auth` option-definition sites (`program.ts`, `inherited-options.ts`, `commands/diagnose.ts`). The `diagnose` command's `--auth` Option also gains a `.choices([...AUTH_PREFERENCES])` call — the previous description text inlined the valid values, and the new format delegates rendering to Commander, so this restores the `(choices: ...)` enumeration in `qontoctl diagnose --help` (parity with the other two sites; mode-name typos now rejected at parse time at this site too). `program.opts().auth` continues to resolve to `undefined` when the flag is omitted, preserving the `CLI flag > env > config > built-in default` precedence chain in `resolveAuthPreference` (#631).
+
 ## [2.0.3] — 2026-05-20
 
 ### Added
