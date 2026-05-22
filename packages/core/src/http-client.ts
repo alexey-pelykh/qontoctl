@@ -184,14 +184,28 @@ const STAGING_TOKEN_HEADER = "X-Qonto-Staging-Token";
  * Covers three classes of sensitive data:
  * - Financial data (IBAN, BIC, balances) that must not appear in logs.
  * - Authentication and SCA tokens that grant API access if leaked.
- * - Personally identifiable information (recipient emails) carried in
- *   request bodies — notably the `send_to` array on quote / client-invoice
- *   send endpoints (see #637-#639) and the singular `email` field on
- *   beneficiaries and clients.
+ * - Personally identifiable information (PII) carried in request and
+ *   response bodies:
+ *   - Recipient and contact emails — the `send_to` array on quote /
+ *     client-invoice send endpoints (#637-#639) and the singular `email`
+ *     field on beneficiaries, clients, and memberships (#644).
+ *   - Natural-person identification fields on `Client`,
+ *     `ClientInvoiceClient`, `QuoteClient`, and `CreditNoteClient` —
+ *     `first_name`, `last_name`, `tax_identification_number`,
+ *     `phone_number`, and the address components (`address`,
+ *     `street_address`, `city`, `zip_code`, `country_code`,
+ *     `province_code`). The `name` field of a corporate entity and
+ *     `vat_number` are intentionally NOT in this set — they are
+ *     visible-by-design for operational debugging of B2B records; a
+ *     judgment call documented at #647.
  *
- * Header names are stored lowercase; matching is case-insensitive so the
- * same set redacts both body fields (snake_case) and HTTP header names
- * (which arrive in mixed case from `Headers` / our own builders).
+ * Matching is exact-name (case-insensitive); header names stored
+ * lowercase. Exact-name semantics mean future schema additions with
+ * synonyms (e.g., `email_address` for `email`, `tax_id` for
+ * `tax_identification_number`) would skip redaction silently — the
+ * trade-off vs an allowlist-of-safe-fields + catch-all design is logged
+ * as a security LOW finding in the #645 / #647 review chain and may
+ * evolve in a future PR.
  */
 const SENSITIVE_FIELDS: ReadonlySet<string> = new Set([
   // Financial body fields
@@ -210,6 +224,22 @@ const SENSITIVE_FIELDS: ReadonlySet<string> = new Set([
   // PII: recipient and contact emails (#644)
   "send_to",
   "email",
+  // PII: natural-person identification fields (#647)
+  "first_name",
+  "last_name",
+  "tax_identification_number",
+  "phone_number",
+  // PII: address components — top-level (`address`) and nested
+  // (`street_address`, `city`, `zip_code`, `country_code`,
+  // `province_code`) on `Client.billing_address` / `delivery_address`
+  // and equivalents on `ClientInvoiceClient`, `QuoteClient`,
+  // `CreditNoteClient` (#647)
+  "address",
+  "street_address",
+  "city",
+  "zip_code",
+  "country_code",
+  "province_code",
 ]);
 
 function redactSensitiveFields(value: unknown): unknown {
