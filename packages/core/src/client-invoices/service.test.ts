@@ -426,20 +426,33 @@ describe("sendClientInvoice", () => {
     vi.restoreAllMocks();
   });
 
-  it("sends a client invoice via POST", async () => {
+  it("sends a client invoice via POST with the JSON-serialised payload and Content-Type application/json", async () => {
     fetchSpy.mockReturnValue(Promise.resolve(new Response(null, { status: 204 })));
 
-    await sendClientInvoice(client, "inv-1");
+    const payload = {
+      send_to: ["a@example.com", "b@example.com"],
+      copy_to_self: true,
+      email_title: "Invoice for ACME",
+      email_body: "Please find the attached invoice.",
+    };
+    await sendClientInvoice(client, "inv-1", payload);
 
     const [url, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
     expect(url.pathname).toBe("/v2/client_invoices/inv-1/send");
     expect(opts.method).toBe("POST");
+    expect(JSON.parse(opts.body as string)).toEqual(payload);
+    const headers = new Headers(opts.headers as HeadersInit);
+    expect(headers.get("content-type")).toBe("application/json");
   });
 
   it("encodes special characters in the ID", async () => {
     fetchSpy.mockReturnValue(Promise.resolve(new Response(null, { status: 204 })));
 
-    await sendClientInvoice(client, "a/b");
+    await sendClientInvoice(client, "a/b", {
+      send_to: ["a@example.com"],
+      copy_to_self: true,
+      email_title: "X",
+    });
 
     const [url] = fetchSpy.mock.calls[0] as [URL];
     expect(url.pathname).toBe("/v2/client_invoices/a%2Fb/send");

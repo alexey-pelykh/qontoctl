@@ -11,6 +11,7 @@ import type {
   ClientInvoiceUpload,
   CreateClientInvoiceParams,
   ListClientInvoicesParams,
+  SendClientInvoiceRequestPayload,
   UpdateClientInvoiceParams,
 } from "./types.js";
 const ClientInvoiceUploadResponseSchema = z.object({ upload: ClientInvoiceUploadSchema });
@@ -131,9 +132,31 @@ export async function finalizeClientInvoice(client: HttpClient, id: string): Pro
 
 /**
  * Send a client invoice to the client via email.
+ *
+ * BREAKING (#637): this function requires a third `payload` argument
+ * (see {@link SendClientInvoiceRequestPayload}). Earlier versions called
+ * `POST .../send` with no body, which the Qonto API rejected with HTTP 422
+ * `invalid_body: EOF` — the parallel-bug class to #636 arm 1 on the quotes
+ * side. Consumers must adjust call sites to provide `send_to` and
+ * `email_title` at minimum; see the migration note shipped with #639.
+ *
+ * Issues `POST /v2/client_invoices/{id}/send` with the payload serialised as
+ * the JSON request body. The HTTP client sets `Content-Type:
+ * application/json` automatically because the request carries a body (see
+ * `http-client.ts#buildHeaders`). Validation against
+ * {@link SendClientInvoiceRequestPayload} is the caller's responsibility —
+ * this service passes the payload through verbatim to keep request shaping
+ * at the call site (MCP tool / CLI command) where the end-user-facing error
+ * surface lives.
+ *
+ * Reference: https://docs.qonto.com/api-reference/business-api/expense-management/client-quotes-notes/client-invoices/send-a-client-invoice.md
  */
-export async function sendClientInvoice(client: HttpClient, id: string): Promise<void> {
-  await client.requestVoid("POST", `/v2/client_invoices/${encodeURIComponent(id)}/send`);
+export async function sendClientInvoice(
+  client: HttpClient,
+  id: string,
+  payload: SendClientInvoiceRequestPayload,
+): Promise<void> {
+  await client.requestVoid("POST", `/v2/client_invoices/${encodeURIComponent(id)}/send`, { body: payload });
 }
 
 /**

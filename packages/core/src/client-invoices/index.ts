@@ -28,6 +28,7 @@ export type {
   ClientInvoiceClient,
   ClientInvoiceUpload,
   CreateClientInvoiceParams,
+  SendClientInvoiceRequestPayload,
   UpdateClientInvoiceParams,
   ListClientInvoicesParams,
 } from "./types.js";
@@ -42,4 +43,5 @@ export {
   ClientInvoiceSchema,
   ClientInvoiceResponseSchema,
   ClientInvoiceListResponseSchema,
+  SendClientInvoiceRequestPayloadSchema,
 } from "./schemas.js";

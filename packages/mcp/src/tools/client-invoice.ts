@@ -275,7 +275,13 @@ export function registerClientInvoiceTools(server: McpServer, getClient: () => P
     },
     async ({ id }) =>
       withClient(getClient, async (client) => {
-        await sendClientInvoice(client, id);
+        // TODO(#639): expose `send_to` / `email_title` / `email_body` /
+        // `copy_to_self` in this tool's inputSchema and forward them as the
+        // payload. The placeholder below keeps the breaking sendClientInvoice
+        // signature (introduced in #637) compile-green; runtime behaviour is
+        // already broken (HTTP 422 from Qonto for an effectively-empty send),
+        // and #639 lands the proper wiring + E2E triage sharpening.
+        await sendClientInvoice(client, id, { send_to: [], copy_to_self: true, email_title: "" });
 
         return {
           content: [

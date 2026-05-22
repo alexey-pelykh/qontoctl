@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
+import type { z } from "zod";
+
+import type { SendClientInvoiceRequestPayloadSchema } from "./schemas.js";
+
 /**
  * An amount with value and currency as returned by the Qonto API.
  */
@@ -209,6 +213,26 @@ export interface UpdateClientInvoiceParams {
   readonly items?: readonly ClientInvoiceItemParams[] | undefined;
   readonly discount?: ClientInvoiceDiscountParams | undefined;
 }
+
+/**
+ * Payload for `POST /v2/client_invoices/{id}/send`.
+ *
+ * Identical shape to `SendQuoteRequestPayload` — both endpoints accept the
+ * same OpenAPI `SendRequestPayload` schema (`send_to`, `copy_to_self`,
+ * `email_title`, `email_body`).
+ *
+ * Inferred from {@link SendClientInvoiceRequestPayloadSchema} via `z.infer`,
+ * so the type reflects the schema's POST-PARSE shape. In particular,
+ * `copy_to_self` carries the schema's `.default(true)` and is therefore
+ * required at the TS layer even though the API treats it as optional with
+ * a documented server default of `true`. Direct callers may pass
+ * `copy_to_self: true` explicitly, or run the input through
+ * `SendClientInvoiceRequestPayloadSchema.parse(...)` to have the default
+ * materialised.
+ *
+ * Reference: https://docs.qonto.com/api-reference/business-api/expense-management/client-quotes-notes/client-invoices/send-a-client-invoice.md
+ */
+export type SendClientInvoiceRequestPayload = z.infer<typeof SendClientInvoiceRequestPayloadSchema>;
 
 /**
  * Parameters for listing client invoices.

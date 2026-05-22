@@ -211,3 +211,39 @@ export const ClientInvoiceListResponseSchema = z
     meta: PaginationMetaSchema,
   })
   .strip();
+
+/**
+ * Zod schema for the `POST /v2/client_invoices/{id}/send` request body.
+ *
+ * Mirrors the Qonto OpenAPI `SendClientInvoiceRequestPayload` shape exactly:
+ *
+ * ```yaml
+ * SendClientInvoiceRequestPayload:
+ *   type: object
+ *   required: [send_to, email_title]
+ *   properties:
+ *     send_to:      { type: array, items: { type: string, format: email } }
+ *     copy_to_self: { type: boolean, default: true }
+ *     email_title:  { type: string }
+ *     email_body:   { type: string }
+ * ```
+ *
+ * Identical shape to the quotes-side `SendQuoteRequestPayloadSchema`.
+ * `copy_to_self` applies the documented server-side default on parse so
+ * consumers may omit it. No additional client-side validation (e.g.
+ * non-empty `send_to`, non-empty `email_title`) is layered here — those
+ * constraints belong to the MCP-tool / CLI-command boundaries that wrap
+ * this schema (see #639).
+ *
+ * Unknown fields are stripped on parse to keep request bodies minimal.
+ *
+ * Reference: https://docs.qonto.com/api-reference/business-api/expense-management/client-quotes-notes/client-invoices/send-a-client-invoice.md
+ */
+export const SendClientInvoiceRequestPayloadSchema = z
+  .object({
+    send_to: z.array(z.email()),
+    copy_to_self: z.boolean().default(true),
+    email_title: z.string(),
+    email_body: z.string().optional(),
+  })
+  .strip();

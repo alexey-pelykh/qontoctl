@@ -12,6 +12,7 @@ import {
   ClientInvoiceClientSchema,
   ClientInvoiceUploadSchema,
   ClientInvoiceSchema,
+  SendClientInvoiceRequestPayloadSchema,
 } from "./schemas.js";
 
 describe("ClientInvoiceAmountSchema", () => {
@@ -444,6 +445,69 @@ describe("ClientInvoiceAddressSchema (#601 L2 audit)", () => {
       expect(() => ClientInvoiceAddressSchema.parse(input)).not.toThrow();
     },
   );
+});
+
+describe("SendClientInvoiceRequestPayloadSchema", () => {
+  it("parses a valid payload (all four fields)", () => {
+    const data = {
+      send_to: ["a@example.com", "b@example.com"],
+      copy_to_self: false,
+      email_title: "Invoice for ACME",
+      email_body: "Please find the attached invoice.",
+    };
+    expect(SendClientInvoiceRequestPayloadSchema.parse(data)).toEqual(data);
+  });
+
+  it("applies default copy_to_self=true when omitted; email_body remains optional", () => {
+    const result = SendClientInvoiceRequestPayloadSchema.parse({
+      send_to: ["a@example.com"],
+      email_title: "Invoice for ACME",
+    });
+    expect(result.copy_to_self).toBe(true);
+    expect(result.email_body).toBeUndefined();
+  });
+
+  it("rejects payload missing send_to with a ZodError citing the send_to path", () => {
+    let captured: unknown;
+    try {
+      SendClientInvoiceRequestPayloadSchema.parse({ email_title: "X" });
+    } catch (err) {
+      captured = err;
+    }
+    expect(captured).toBeInstanceOf(z.ZodError);
+    const zodError = captured as z.ZodError;
+    expect(zodError.issues.some((issue) => issue.path[0] === "send_to")).toBe(true);
+  });
+
+  it("rejects payload missing email_title with a ZodError citing the email_title path", () => {
+    let captured: unknown;
+    try {
+      SendClientInvoiceRequestPayloadSchema.parse({ send_to: ["a@example.com"] });
+    } catch (err) {
+      captured = err;
+    }
+    expect(captured).toBeInstanceOf(z.ZodError);
+    const zodError = captured as z.ZodError;
+    expect(zodError.issues.some((issue) => issue.path[0] === "email_title")).toBe(true);
+  });
+
+  it("rejects payload with a non-email string in send_to", () => {
+    expect(() =>
+      SendClientInvoiceRequestPayloadSchema.parse({
+        send_to: ["not-an-email"],
+        email_title: "X",
+      }),
+    ).toThrow();
+  });
+
+  it("strips unknown fields", () => {
+    const result = SendClientInvoiceRequestPayloadSchema.parse({
+      send_to: ["a@example.com"],
+      email_title: "X",
+      bogus_extra: "should be stripped",
+    });
+    expect(result).not.toHaveProperty("bogus_extra");
+  });
 });
 
 describe("ClientInvoiceClientSchema (#601 L2 audit)", () => {

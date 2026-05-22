@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- **`@qontoctl/core`**: new `packages/core/src/quotes/` service-layer module — `sendQuote(client, id, payload): Promise<void>` issues `POST /v2/quotes/{id}/send` with the JSON-serialised payload as the request body. Establishes the service seam quotes previously lacked (the existing `quote_list` / `quote_create` etc. MCP tools and CLI commands called `HttpClient.requestVoid` / `HttpClient.get` directly), bringing quotes into structural parity with `client-invoices/`. Foundation for #638 (which wires the MCP `quote_send` tool + CLI `quote send` command through this service to close the historical `quote_send` HTTP 422 `invalid_body: EOF` bug). The Qonto API contract requires `send_to` and `email_title`; `copy_to_self` defaults to `true` server-side and `email_body` is optional (#637).
+- **`@qontoctl/core`**: `SendQuoteRequestPayload` TS type + `SendQuoteRequestPayloadSchema` Zod schema, mirroring the Qonto OpenAPI `SendQuoteRequestPayload` shape exactly (`send_to: string[]`, `copy_to_self: boolean` with schema-level `.default(true)`, `email_title: string`, optional `email_body: string`). Unknown fields stripped on parse. No additional client-side validation (`min(1)` etc.) is layered at the core boundary — those belong to the MCP-tool / CLI-command inputSchemas that wrap this schema (see #638, #639). Both type and schema exported from `@qontoctl/core` (#637).
+- **`@qontoctl/core`**: `SendClientInvoiceRequestPayload` TS type + `SendClientInvoiceRequestPayloadSchema` Zod schema — identical shape to the quotes-side payload, since both endpoints accept the same OpenAPI `SendRequestPayload` schema. Both type and schema exported from `@qontoctl/core` (#637).
+
+### Changed
+
+- **`@qontoctl/core`**: **BREAKING** — `sendClientInvoice(client, id)` is now `sendClientInvoice(client, id, payload: SendClientInvoiceRequestPayload)`. Earlier versions called `POST /v2/client_invoices/{id}/send` with no body, which the Qonto API rejects with HTTP 422 `invalid_body: EOF` — the parallel-bug class to the `quote_send` 422/EOF surfaced during the #636 investigation. The new signature accepts the payload required by the Qonto contract; consumers must adjust call sites to provide `send_to` and `email_title` at minimum. TypeScript surfaces a compile error at the prior call shape, making the migration mechanical. The internal MCP tool (`client_invoice_send`) and CLI command (`client-invoice send`) call sites are temporarily wired with placeholder payloads to keep this PR compile-green; #639 lands the proper end-user flag wiring + migration guide (#637).
+
 ## [2.0.4] — 2026-05-22
 
 ### Added
