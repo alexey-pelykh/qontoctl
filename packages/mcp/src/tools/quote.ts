@@ -4,7 +4,7 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { HttpClient } from "@qontoctl/core";
-import { parseResponse, QuoteResponseSchema, QuoteListResponseSchema } from "@qontoctl/core";
+import { parseResponse, QuoteResponseSchema, QuoteListResponseSchema, sendQuote } from "@qontoctl/core";
 import { withClient } from "../errors.js";
 
 export function registerQuoteTools(server: McpServer, getClient: () => Promise<HttpClient>): void {
@@ -229,14 +229,24 @@ export function registerQuoteTools(server: McpServer, getClient: () => Promise<H
   server.registerTool(
     "quote_send",
     {
-      description: "Send a quote to the client via email",
+      description:
+        "Send a quote to the client via email. Requires `send_to` (one or more recipient emails) and `email_title`; `copy_to_self` BCCs the authenticated user (defaults to true server-side).",
       inputSchema: {
         id: z.string().describe("Quote ID (UUID)"),
+        send_to: z.array(z.email()).min(1).describe("Recipient email addresses (at least one required)"),
+        email_title: z.string().min(1).describe("Email subject (required)"),
+        email_body: z.string().optional().describe("Email body text (optional)"),
+        copy_to_self: z.boolean().optional().describe("BCC the authenticated user (default: true server-side)"),
       },
     },
-    async ({ id }) =>
+    async ({ id, send_to, email_title, email_body, copy_to_self }) =>
       withClient(getClient, async (client) => {
-        await client.requestVoid("POST", `/v2/quotes/${encodeURIComponent(id)}/send`);
+        await sendQuote(client, id, {
+          send_to,
+          email_title,
+          ...(email_body !== undefined ? { email_body } : {}),
+          ...(copy_to_self !== undefined ? { copy_to_self } : { copy_to_self: true }),
+        });
 
         return {
           content: [

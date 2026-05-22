@@ -176,24 +176,48 @@ describe.skipIf(!hasOAuthCredentials())("MCP quote tools (e2e)", () => {
       expect(parsed).toHaveProperty("id", id);
     });
 
-    it("attempts to send the created quote via callTool (skips on missing mailbox)", async (ctx) => {
+    it("sends the created quote via callTool (#638)", async (ctx) => {
       skipIfUpstreamSkipped(lifecycleSkip, ctx);
       const id = assertLifecycleState(createdQuoteId, "createdQuoteId");
 
+      // precondition: docs/qonto-sandbox-preconditions.md#post-v2-quotes-id-send
+      // Since #638 the call carries a typed payload (`send_to`, `email_title`).
+      // Empirical probe (2026-05-22, see PR #638 description): the API accepts
+      // the send regardless of the quote's client mailbox state — the prior
+      // "client mailbox" precondition was an artefact of the empty-body call
+      // shape. Any error here (including the historical 422/EOF if reintroduced
+      // or a malformed-payload regression) must surface as a failure, not skip.
       const result = await client.callTool({
         name: "quote_send",
-        arguments: { id },
+        arguments: {
+          id,
+          send_to: ["e2e-recipient@example.com"],
+          email_title: "E2E test quote — safe to ignore",
+          copy_to_self: false,
+        },
       });
 
-      // precondition: docs/qonto-sandbox-preconditions.md#post-v2-quotes-id-send
-      // Send may fail with a 4xx if the quote's client lacks a mailbox.
-      // Triage as sandbox-precondition rather than assert so the lifecycle's
-      // downstream delete step still runs.
-      skipIfToolError(result, ctx, "sandbox-precondition", "quote_send requires client mailbox — see #606");
+      expect(result.isError, `quote_send failed: ${firstTextFromMcpResult(result)}`).toBeFalsy();
 
       const parsed = JSON.parse(firstTextFromMcpResult(result)) as Record<string, unknown>;
       expect(parsed).toHaveProperty("sent", true);
       expect(parsed).toHaveProperty("id", id);
+    });
+
+    it("rejects a quote_send call missing send_to via input schema (#638)", async () => {
+      // Schema-level regression guard for the #638 bug class: omitting `send_to`
+      // must be rejected by the MCP wrapper BEFORE any HTTP call. If a future
+      // refactor drops the `send_to` constraint, this test fails — preventing
+      // a silent return to the empty-body 422/EOF failure mode.
+      const result = await client.callTool({
+        name: "quote_send",
+        arguments: {
+          id: "00000000-0000-0000-0000-000000000000",
+          email_title: "Subject",
+        },
+      });
+
+      expect(result.isError).toBe(true);
     });
 
     it("deletes the created quote via callTool (skips if already sent)", async (ctx) => {

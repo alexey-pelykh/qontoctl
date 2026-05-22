@@ -3,6 +3,7 @@
 
 import { Command, Option } from "commander";
 import type { Quote, QueryParams } from "@qontoctl/core";
+import { sendQuote } from "@qontoctl/core";
 import { createClient } from "../client.js";
 import { fetchPaginated } from "../pagination.js";
 import { formatOutput } from "../formatters/index.js";
@@ -177,13 +178,44 @@ export function createQuoteCommand(): Command {
   });
 
   // --- send ---
-  const send = quote.command("send <id>").description("Send quote to client via email");
+  const send = quote
+    .command("send <id>")
+    .description("Send quote to client via email")
+    .option("--to <email...>", "Recipient email (repeatable; at least one required)")
+    .option("--title <subject>", "Email subject (required)")
+    .option("--body <text>", "Email body (optional)")
+    .option("--no-copy-self", "Do not BCC the authenticated user (default: copy)");
   addInheritableOptions(send);
   send.action(async (id: string, _options: unknown, cmd: Command) => {
-    const opts = resolveGlobalOptions<GlobalOptions>(cmd);
+    // `--no-copy-self` materialises as a `copySelf` boolean with default `true`.
+    const opts = resolveGlobalOptions<
+      GlobalOptions & {
+        to?: readonly string[] | undefined;
+        title?: string | undefined;
+        body?: string | undefined;
+        copySelf: boolean;
+      }
+    >(cmd);
+
+    if (opts.to === undefined || opts.to.length === 0) {
+      process.stderr.write("Error: --to is required (one or more recipient emails).\n");
+      process.exitCode = 1;
+      return;
+    }
+    if (opts.title === undefined || opts.title.length === 0) {
+      process.stderr.write("Error: --title is required (email subject).\n");
+      process.exitCode = 1;
+      return;
+    }
+
     const client = await createClient(opts);
 
-    await client.requestVoid("POST", `/v2/quotes/${encodeURIComponent(id)}/send`);
+    await sendQuote(client, id, {
+      send_to: [...opts.to],
+      email_title: opts.title,
+      copy_to_self: opts.copySelf,
+      ...(opts.body !== undefined ? { email_body: opts.body } : {}),
+    });
 
     if (opts.output === "json" || opts.output === "yaml") {
       process.stdout.write(formatOutput({ sent: true, id }, opts.output) + "\n");

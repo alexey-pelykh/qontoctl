@@ -100,23 +100,35 @@ diagnosed during [#602] / [#603] root-cause analysis (2026-05-17).
 
 #### `POST /v2/quotes/{id}/send` {#post-v2-quotes-id-send}
 
-**Precondition**: The quote's `client` must have a non-empty `email`
-attribute so Qonto can deliver the quote. Client records created via the
-sandbox UI without an email satisfy `POST /v2/clients` but fail
-`POST /v2/quotes/{id}/send`.
+**Status**: ⚠️ **Stale precondition — no longer applies as of [#638]
+(empirical re-probe 2026-05-22).** Kept for historical context per the
+Maintenance convention (do not delete sandbox-flip entries).
 
-**Failure signature**: HTTP 4xx from `quote_send`. The exact error key
-depends on whether the client is missing an email entirely or has an
-unrouteable address; the test triages on `isError` and skips with a
-`sandbox-precondition` reason regardless.
+**Original precondition** (pre-#638): The quote's `client` must have a
+non-empty `email` attribute. Quotes whose client lacked an email returned
+HTTP 4xx from `quote_send`.
 
-**Remediation in tests**: Either pre-create a client with a known-good
-email in the suite's `beforeAll`, or skip with `skipIfToolError(result,
-ctx, "sandbox-precondition", "quote_send requires client mailbox — see
-#606")`. The current quotes MCP test uses the skip path; the CLI test does
-not exercise `send` for this reason.
+**Empirical update (2026-05-22, [#638])**: The original precondition was
+an artefact of the empty-body call shape (the call shape that produced
+`invalid_body: EOF` per [#636] arm 1, since the request body was where
+recipient emails belonged). With the typed
+{@link SendQuoteRequestPayload} payload now required by the contract
+(`send_to` array + `email_title`), the API uses `send_to` as the
+recipient list and accepts the call regardless of the quote's client
+mailbox state. Probe details: a freshly-created `individual` client with
+no `email` attribute was bound to a draft quote, and `POST
+/v2/quotes/{id}/send` with a valid `send_to` returned 200 — see PR #638
+description for the raw transcript.
 
-**Discovered**: [#606] (catalogued from [#605] L1 sweep, 2026-05-17).
+**Test triage**: As of [#638], the E2E test for `quote_send` asserts
+success (`expect(result.isError).toBeFalsy()`); any failure (including a
+historical regression to 422/EOF) surfaces as a test failure rather than
+a `sandbox-precondition` skip. No precondition skip path remains for
+this endpoint.
+
+**Discovered**: [#606] original cataloguing (2026-05-17, based on
+empty-body call shape). [#638] empirical re-probe (2026-05-22) confirmed
+the precondition no longer applies under the typed-payload call shape.
 
 #### `DELETE /v2/quotes/{id}` {#delete-v2-quotes-id}
 
@@ -419,4 +431,6 @@ _documentation_ of each blocker now lives here.
 [#605]: https://github.com/alexey-pelykh/qontoctl/issues/605
 [#606]: https://github.com/alexey-pelykh/qontoctl/issues/606
 [#607]: https://github.com/alexey-pelykh/qontoctl/issues/607
+[#636]: https://github.com/alexey-pelykh/qontoctl/issues/636
+[#638]: https://github.com/alexey-pelykh/qontoctl/issues/638
 [Solution Design §7.2 R-SP-3]: ./designs/e2e-test-reliability.md

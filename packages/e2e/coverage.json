@@ -261,9 +261,9 @@
       "notes": ""
     },
     "cli:packages/cli/src/commands/quote.ts": {
-      "status": "pending",
-      "tests": [],
-      "notes": ""
+      "status": "covered",
+      "tests": ["packages/e2e/src/quotes/cli.e2e.test.ts"],
+      "notes": "OAuth-gated quote CRUD lifecycle + `quote send` end-to-end (--to / --title / --body / --no-copy-self) covered via the live sandbox. Send asserts success per sharpened triage (#638) — the prior `client mailbox` precondition was an empty-body artefact and no longer applies once the typed `SendQuoteRequestPayload` is sent."
     },
     "cli:packages/cli/src/commands/recurring-transfer/cancel.ts": {
       "status": "pending",
@@ -746,9 +746,9 @@
       "notes": "E2E exercises GET /v2/products via CLI and MCP. Sandbox tenants without products surface an empty list; tests assert shape only when empty."
     },
     "core:packages/core/src/quotes/service.ts#sendQuote": {
-      "status": "pending",
-      "tests": [],
-      "notes": "Foundation introduced by #637; E2E coverage lands with #638 (quote_send MCP/CLI wiring + sharpened sandbox-precondition triage)."
+      "status": "covered",
+      "tests": ["packages/e2e/src/quotes/cli.e2e.test.ts", "packages/e2e/src/quotes/mcp.e2e.test.ts"],
+      "notes": "Foundation introduced by #637; E2E coverage lands with #638 (quote_send MCP/CLI wiring + sharpened sandbox-precondition triage). Send asserts success per the sharpened triage — empirical re-probe (2026-05-22) confirmed the prior client-mailbox precondition no longer applies once the typed `SendQuoteRequestPayload` is sent."
     },
     "core:packages/core/src/recurring-transfers/service.ts#cancelRecurringTransfer": {
       "status": "pending",
@@ -1371,9 +1371,9 @@
       "notes": ""
     },
     "mcp:quote_send": {
-      "status": "pending",
-      "tests": [],
-      "notes": ""
+      "status": "covered",
+      "tests": ["packages/e2e/src/quotes/mcp.e2e.test.ts"],
+      "notes": "OAuth-gated end-to-end coverage as the third step of the quote CRUD lifecycle (create → update → send → delete). Asserts success with a typed `send_to` / `email_title` payload per #638; empirical re-probe (2026-05-22) confirmed the prior client-mailbox precondition no longer applies. The Zod inputSchema rejects empty `send_to` before any HTTP call, providing a regression guard against the #636 arm-1 empty-body 422/EOF."
     },
     "mcp:quote_show": {
       "status": "pending",

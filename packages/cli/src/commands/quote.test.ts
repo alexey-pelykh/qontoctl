@@ -385,12 +385,15 @@ describe("quote commands", () => {
   });
 
   describe("quote send", () => {
-    it("sends a quote in json format", async () => {
+    it("sends a quote in json format with required flags (#638)", async () => {
       fetchSpy.mockImplementation(() => Promise.resolve(new Response(null, { status: 204 })));
 
       const program = createTestProgram();
 
-      await program.parseAsync(["--output", "json", "quote", "send", "qt-123"], { from: "user" });
+      await program.parseAsync(
+        ["--output", "json", "quote", "send", "qt-123", "--to", "recipient@example.com", "--title", "Quote for ACME"],
+        { from: "user" },
+      );
 
       expect(stdoutSpy).toHaveBeenCalled();
       const output = stdoutSpy.mock.calls[0]?.[0] as string;
@@ -398,16 +401,82 @@ describe("quote commands", () => {
       expect(parsed).toHaveProperty("sent", true);
     });
 
-    it("calls the correct API endpoint", async () => {
+    it("POSTs the correct endpoint and JSON payload (#638)", async () => {
       fetchSpy.mockImplementation(() => Promise.resolve(new Response(null, { status: 204 })));
 
       const program = createTestProgram();
 
-      await program.parseAsync(["quote", "send", "qt-123"], { from: "user" });
+      await program.parseAsync(
+        [
+          "quote",
+          "send",
+          "qt-123",
+          "--to",
+          "a@example.com",
+          "--to",
+          "b@example.com",
+          "--title",
+          "Quote for ACME",
+          "--body",
+          "Please find attached.",
+        ],
+        { from: "user" },
+      );
 
       const [url, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
       expect(url.pathname).toBe("/v2/quotes/qt-123/send");
       expect(opts.method).toBe("POST");
+
+      const headers = opts.headers as Record<string, string>;
+      expect(headers["Content-Type"]).toBe("application/json");
+
+      const body = JSON.parse(opts.body as string) as Record<string, unknown>;
+      expect(body).toEqual({
+        send_to: ["a@example.com", "b@example.com"],
+        email_title: "Quote for ACME",
+        email_body: "Please find attached.",
+        copy_to_self: true,
+      });
+    });
+
+    it("honors --no-copy-self (#638)", async () => {
+      fetchSpy.mockImplementation(() => Promise.resolve(new Response(null, { status: 204 })));
+
+      const program = createTestProgram();
+
+      await program.parseAsync(
+        ["quote", "send", "qt-123", "--to", "a@example.com", "--title", "Quote", "--no-copy-self"],
+        { from: "user" },
+      );
+
+      const [, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      const body = JSON.parse(opts.body as string) as Record<string, unknown>;
+      expect(body["copy_to_self"]).toBe(false);
+      expect(body).not.toHaveProperty("email_body");
+    });
+
+    it("exits with error to stderr when --to is missing (#638)", async () => {
+      const program = createTestProgram();
+
+      await program.parseAsync(["quote", "send", "qt-123", "--title", "Quote"], { from: "user" });
+
+      expect(stderrSpy).toHaveBeenCalled();
+      const errorOutput = stderrSpy.mock.calls[0]?.[0] as string;
+      expect(errorOutput).toContain("--to");
+      expect(process.exitCode).toBe(1);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it("exits with error to stderr when --title is missing (#638)", async () => {
+      const program = createTestProgram();
+
+      await program.parseAsync(["quote", "send", "qt-123", "--to", "a@example.com"], { from: "user" });
+
+      expect(stderrSpy).toHaveBeenCalled();
+      const errorOutput = stderrSpy.mock.calls[0]?.[0] as string;
+      expect(errorOutput).toContain("--title");
+      expect(process.exitCode).toBe(1);
+      expect(fetchSpy).not.toHaveBeenCalled();
     });
   });
 });
