@@ -97,10 +97,12 @@ repository secrets:
 | `QONTOCTL_SECRET_KEY`        | api-key secret   |
 
 The OAuth-flow suite (`auth/oauth-flow`) is **local-only by design** — it is
-not wired to CI, and it never will be without a structural retrofit (see
-[`docs/oauth-flow-e2e.md`](./oauth-flow-e2e.md) § Why this suite is local-only
-and [#591](https://github.com/alexey-pelykh/qontoctl/issues/591) for the
-mock-OAuth-server exploration).
+not wired to CI, and it stays that way. A mock-OAuth-server retrofit was
+explored in [#591](https://github.com/alexey-pelykh/qontoctl/issues/591) and
+declined — replaying recorded fixtures duplicates the existing CI unit
+coverage of the OAuth client and forfeits the live-sandbox fidelity that is
+the suite's reason to exist. See
+[`docs/oauth-flow-e2e.md`](./oauth-flow-e2e.md) § Why this suite is local-only.
 
 > **Note on `QONTOCTL_REFRESH_TOKEN`**: this env var is **no longer read by
 > qontoctl at runtime** (see issue #495). Refresh tokens are runtime-mutable

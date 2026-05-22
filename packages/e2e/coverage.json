@@ -443,12 +443,12 @@
     "core:packages/core/src/auth/oauth-service.ts#exchangeCode": {
       "status": "accepted_gap",
       "tests": [],
-      "notes": "Authorization-code flow requires browser interaction (user authentication + consent at the Qonto authorization endpoint); cannot be automated headlessly without significant test infrastructure (mock OAuth server or headless-browser harness). The runtime path is covered by the `auth login` CLI command exercised manually during sandbox/production setup; `refreshAccessToken` and `revokeToken` exercise the same shared `requestTokens` helper (#460). See docs/oauth-flow-e2e.md for the documented gap. Mock OAuth server retrofit for potential future CI coverage tracked at #591."
+      "notes": "Authorization-code flow requires browser interaction (user authentication + consent at the Qonto authorization endpoint); cannot be automated headlessly without a headless-browser harness. The runtime path is covered by the `auth login` CLI command exercised manually during sandbox/production setup; the token-exchange request itself is unit-tested in `oauth-service.test.ts`, and `refreshAccessToken` / `revokeToken` exercise the same shared `requestTokens` helper (#460). See docs/oauth-flow-e2e.md for the documented gap. The mock-OAuth-server retrofit for CI coverage was explored in #591 and declined: redundant with the `oauth-service.test.ts` unit coverage, and loses live-sandbox fidelity."
     },
     "core:packages/core/src/auth/oauth-service.ts#refreshAccessToken": {
       "status": "covered",
       "tests": ["packages/e2e/src/auth/oauth-flow.e2e.test.ts"],
-      "notes": "OAuth + sandbox + e2e refresh token gate; **local-only** (CI is intentionally out of scope — Qonto rotates refresh tokens per RFC 6749 §6 on every exchange, so seeded CI secrets are infeasible). One-time-use rotation: re-issue via `qontoctl auth login` before each run. See docs/oauth-flow-e2e.md. Mock OAuth server retrofit for potential future CI coverage tracked at #591."
+      "notes": "OAuth + sandbox + e2e refresh token gate; **local-only** (CI is intentionally out of scope — Qonto rotates refresh tokens per RFC 6749 §6 on every exchange, so seeded CI secrets are infeasible). One-time-use rotation: re-issue via `qontoctl auth login` before each run. See docs/oauth-flow-e2e.md. The mock-OAuth-server retrofit for CI coverage was explored in #591 and declined: redundant with the `oauth-service.test.ts` unit coverage, and loses live-sandbox fidelity."
     },
     "core:packages/core/src/auth/oauth-service.ts#revokeToken": {
       "status": "covered",
