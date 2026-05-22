@@ -745,6 +745,11 @@
       "tests": ["packages/e2e/src/products/cli.e2e.test.ts", "packages/e2e/src/products/mcp.e2e.test.ts"],
       "notes": "E2E exercises GET /v2/products via CLI and MCP. Sandbox tenants without products surface an empty list; tests assert shape only when empty."
     },
+    "core:packages/core/src/quotes/service.ts#sendQuote": {
+      "status": "pending",
+      "tests": [],
+      "notes": "Foundation introduced by #637; E2E coverage lands with #638 (quote_send MCP/CLI wiring + sharpened sandbox-precondition triage)."
+    },
     "core:packages/core/src/recurring-transfers/service.ts#cancelRecurringTransfer": {
       "status": "pending",
       "tests": [],

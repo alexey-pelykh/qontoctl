@@ -300,6 +300,7 @@ export type {
   ClientInvoiceClient,
   ClientInvoiceUpload,
   CreateClientInvoiceParams,
+  SendClientInvoiceRequestPayload,
   UpdateClientInvoiceParams,
   ListClientInvoicesParams,
 } from "./client-invoices/index.js";
@@ -314,7 +315,12 @@ export {
   ClientInvoiceSchema,
   ClientInvoiceResponseSchema,
   ClientInvoiceListResponseSchema,
+  SendClientInvoiceRequestPayloadSchema,
 } from "./client-invoices/index.js";
+
+export { sendQuote } from "./quotes/index.js";
+export type { SendQuoteRequestPayload } from "./quotes/index.js";
+export { SendQuoteRequestPayloadSchema } from "./quotes/index.js";
 
 export {
   listWebhooks,

@@ -256,7 +256,13 @@ export function createClientInvoiceCommand(): Command {
     const opts = resolveGlobalOptions<GlobalOptions>(cmd);
     const client = await createClient(opts);
 
-    await sendClientInvoice(client, id);
+    // TODO(#639): expose `--to <email...>` / `--title <subject>` /
+    // `--body <text>` / `--no-copy-self` flags and forward them as the payload.
+    // The placeholder below keeps the breaking sendClientInvoice signature
+    // (introduced in #637) compile-green; runtime behaviour is already broken
+    // (HTTP 422 from Qonto for an effectively-empty send), and #639 lands the
+    // proper wiring + E2E triage sharpening.
+    await sendClientInvoice(client, id, { send_to: [], copy_to_self: true, email_title: "" });
 
     if (opts.output === "json" || opts.output === "yaml") {
       process.stdout.write(formatOutput({ sent: true, id }, opts.output) + "\n");
