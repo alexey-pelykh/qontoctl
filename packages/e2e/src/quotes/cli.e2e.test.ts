@@ -135,6 +135,18 @@ describe.skipIf(!hasOAuthCredentials())("quote commands (e2e)", () => {
     // (#636 arm 1); the new triage surfaces any send failure as a test
     // failure. Sent quotes are not cleaned up here — the sandbox is reset
     // periodically.
+    //
+    // Parallel-endpoint cross-link (#643): The `client_invoice_send` test
+    // (packages/e2e/src/client-invoices/{cli,mcp}.e2e.test.ts) targets the
+    // parallel `POST /v2/client_invoices/{id}/send` endpoint, which accepts
+    // the same OpenAPI `SendRequestPayload` shape. That test is structurally
+    // different — env-gated via `QONTOCTL_E2E_SEND_EMAIL=true` AND retains a
+    // defensive sandbox-precondition triage path — because (a) its parent
+    // suite runs in CI's api-key context (vs this suite's OAuth-only parent
+    // gate), and (b) the analogous empirical re-probe is blocked by
+    // `client_invoice_create`'s invoicing-IBAN precondition (#539), leaving
+    // the precondition status unverified on that side. See #643 for the
+    // cross-endpoint reconciliation rationale.
     it("sends a draft quote end-to-end with --to + --title", () => {
       // Reuse an existing quote's client_id so we exercise the send path
       // against a real sandbox client.
