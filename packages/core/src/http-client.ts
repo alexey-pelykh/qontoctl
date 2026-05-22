@@ -181,9 +181,13 @@ const STAGING_TOKEN_HEADER = "X-Qonto-Staging-Token";
 /**
  * Field and header names redacted from debug log output.
  *
- * Covers two classes of secrets:
+ * Covers three classes of sensitive data:
  * - Financial data (IBAN, BIC, balances) that must not appear in logs.
  * - Authentication and SCA tokens that grant API access if leaked.
+ * - Personally identifiable information (recipient emails) carried in
+ *   request bodies — notably the `send_to` array on quote / client-invoice
+ *   send endpoints (see #637-#639) and the singular `email` field on
+ *   beneficiaries and clients.
  *
  * Header names are stored lowercase; matching is case-insensitive so the
  * same set redacts both body fields (snake_case) and HTTP header names
@@ -203,6 +207,9 @@ const SENSITIVE_FIELDS: ReadonlySet<string> = new Set([
   // Authentication and environment headers
   "authorization",
   "x-qonto-staging-token",
+  // PII: recipient and contact emails (#644)
+  "send_to",
+  "email",
 ]);
 
 function redactSensitiveFields(value: unknown): unknown {
@@ -522,7 +529,15 @@ export class HttpClient {
       );
       this.logDebug(`Request headers: ${JSON.stringify(redactSensitiveFields(headers))}`);
       if (body !== undefined) {
-        this.logDebug(isFormData ? "Request body: [FormData]" : `Request body: ${body as string}`);
+        // Redact request body for debug logging only — `body` (the
+        // stringified form sent to fetch) stays untouched. FormData
+        // requests are logged as a placeholder because their parts may be
+        // binary and are not JSON-redactable.
+        this.logDebug(
+          isFormData
+            ? "Request body: [FormData]"
+            : `Request body: ${JSON.stringify(redactSensitiveFields(options?.body))}`,
+        );
       }
 
       const startTime = performance.now();
