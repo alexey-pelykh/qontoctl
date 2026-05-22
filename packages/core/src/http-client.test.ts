@@ -1011,6 +1011,111 @@ describe("HttpClient", () => {
       expect(bodyLog).toContain('"other":"ok"');
     });
 
+    it("redacts PII fields (send_to, email) in request body debug logs (#644)", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ data: "ok" }));
+      const logger = createMockLogger();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+        logger,
+      });
+
+      await client.post("/v2/quotes/quote-1/send", {
+        send_to: ["recipient-a@example.com", "recipient-b@example.com"],
+        copy_to_self: true,
+        email_title: "Your quote",
+        email_body: "Body text",
+      });
+
+      const requestBodyLogCalls = logger.debug.mock.calls.filter(
+        (call: string[]) => typeof call[0] === "string" && call[0].startsWith("Request body:"),
+      );
+      expect(requestBodyLogCalls.length).toBeGreaterThan(0);
+      const bodyLog = requestBodyLogCalls[0]?.[0] as string;
+      expect(bodyLog).not.toContain("recipient-a@example.com");
+      expect(bodyLog).not.toContain("recipient-b@example.com");
+      expect(bodyLog).toContain('"send_to":"[REDACTED]"');
+      // Non-PII fields remain visible
+      expect(bodyLog).toContain('"copy_to_self":true');
+      expect(bodyLog).toContain('"email_title":"Your quote"');
+    });
+
+    it("redacts singular email field in request body debug logs (#644)", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ data: "ok" }));
+      const logger = createMockLogger();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+        logger,
+      });
+
+      await client.post("/v2/beneficiaries", {
+        name: "ACME Corp",
+        iban: "FR7630001007941234567890185",
+        email: "ops@acme.example",
+      });
+
+      const requestBodyLogCalls = logger.debug.mock.calls.filter(
+        (call: string[]) => typeof call[0] === "string" && call[0].startsWith("Request body:"),
+      );
+      expect(requestBodyLogCalls.length).toBeGreaterThan(0);
+      const bodyLog = requestBodyLogCalls[0]?.[0] as string;
+      expect(bodyLog).not.toContain("ops@acme.example");
+      expect(bodyLog).not.toContain("FR7630001007941234567890185");
+      expect(bodyLog).toContain('"email":"[REDACTED]"');
+      expect(bodyLog).toContain('"iban":"[REDACTED]"');
+      expect(bodyLog).toContain('"name":"ACME Corp"');
+    });
+
+    it("redacts pre-existing sensitive fields (iban, bic, balance) in request body debug logs (#644)", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ data: "ok" }));
+      const logger = createMockLogger();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+        logger,
+      });
+
+      await client.post("/v2/some-endpoint", {
+        iban: "FR7630001007941234567890185",
+        bic: "BNPAFRPPXXX",
+        balance: 12345.67,
+        label: "internal",
+      });
+
+      const requestBodyLogCalls = logger.debug.mock.calls.filter(
+        (call: string[]) => typeof call[0] === "string" && call[0].startsWith("Request body:"),
+      );
+      const bodyLog = requestBodyLogCalls[0]?.[0] as string;
+      expect(bodyLog).not.toContain("FR7630001007941234567890185");
+      expect(bodyLog).not.toContain("BNPAFRPPXXX");
+      expect(bodyLog).not.toContain("12345.67");
+      expect(bodyLog).toContain('"iban":"[REDACTED]"');
+      expect(bodyLog).toContain('"bic":"[REDACTED]"');
+      expect(bodyLog).toContain('"balance":"[REDACTED]"');
+      expect(bodyLog).toContain('"label":"internal"');
+    });
+
+    it("logs FormData request bodies as [FormData] placeholder (no JSON redaction needed)", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ id: "att-1" }, { status: 201 }));
+      const logger = createMockLogger();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+        logger,
+      });
+
+      const form = new FormData();
+      form.append("file", new Blob(["binary"], { type: "application/pdf" }), "doc.pdf");
+      await client.postFormData("/v2/attachments", form);
+
+      const requestBodyLogCalls = logger.debug.mock.calls.filter(
+        (call: string[]) => typeof call[0] === "string" && call[0].startsWith("Request body:"),
+      );
+      expect(requestBodyLogCalls.length).toBeGreaterThan(0);
+      expect(requestBodyLogCalls[0]?.[0]).toBe("Request body: [FormData]");
+    });
+
     it("redacts Authorization header in debug logs", async () => {
       fetchSpy.mockReturnValue(jsonResponse({}));
       const logger = createMockLogger();
