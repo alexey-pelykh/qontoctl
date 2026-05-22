@@ -179,84 +179,144 @@ const SCA_SESSION_TOKEN_HEADER = "X-Qonto-Sca-Session-Token";
 const STAGING_TOKEN_HEADER = "X-Qonto-Staging-Token";
 
 /**
- * Field and header names redacted from debug log output.
+ * Field and header names whose leaf values are safe to emit verbatim in
+ * debug-log output. Every primitive leaf whose key is NOT in this set is
+ * replaced with `[REDACTED]` by {@link redactSensitiveFields}.
  *
- * Covers three classes of sensitive data:
- * - Financial data (IBAN, BIC, balances) that must not appear in logs.
- * - Authentication and SCA tokens that grant API access if leaked.
- * - Personally identifiable information (PII) carried in request and
- *   response bodies:
- *   - Recipient and contact emails — the `send_to` array on quote /
- *     client-invoice send endpoints (#637-#639) and the singular `email`
- *     field on beneficiaries, clients, and memberships (#644).
- *   - Natural-person identification fields on `Client`,
- *     `ClientInvoiceClient`, `QuoteClient`, and `CreditNoteClient` —
- *     `first_name`, `last_name`, `tax_identification_number`,
- *     `phone_number`, and the address components (`address`,
- *     `street_address`, `city`, `zip_code`, `country_code`,
- *     `province_code`). The `name` field of a corporate entity and
- *     `vat_number` are intentionally NOT in this set — they are
- *     visible-by-design for operational debugging of B2B records; a
- *     judgment call documented at #647.
+ * ## Why an allowlist (and not a denylist)
  *
- * Matching is exact-name (case-insensitive); header names stored
- * lowercase. Exact-name semantics mean future schema additions with
- * synonyms (e.g., `email_address` for `email`, `tax_id` for
- * `tax_identification_number`) would skip redaction silently — the
- * trade-off vs an allowlist-of-safe-fields + catch-all design is logged
- * as a security LOW finding in the #645 / #647 review chain and may
- * evolve in a future PR.
+ * Redaction previously used a `SENSITIVE_FIELDS` *denylist*: named fields were
+ * masked, every other value was logged verbatim. That model fails OPEN — any
+ * future Qonto schema field with a synonym of an already-sensitive name
+ * (`email_address` for `email`, `tax_id` for `tax_identification_number`,
+ * `phone` / `mobile` for `phone_number`, …) would silently skip redaction and
+ * leak PII into debug logs, with nothing in code or tests to flag it. The
+ * denylist had to be manually chased on every API-surface change.
+ *
+ * Issue #650 weighed three replacements:
+ *
+ *   - **A — allowlist + catch-all redaction (this design).** Enumerate the
+ *     small set of provably-non-sensitive keys; redact every other leaf. New
+ *     schema fields are redacted *by default*. The failure mode inverts from
+ *     "a PII field leaks silently" (invisible, dangerous) to "a safe field is
+ *     over-redacted" (a visible test failure, harmless). Fails CLOSED.
+ *   - **B — hybrid denylist + PII-shaped-key heuristics** (`/email/i`,
+ *     `/phone/i`, …). Rejected: still fails OPEN for any PII field whose key
+ *     does not match a hardcoded pattern (`ssn`, `national_id`,
+ *     `date_of_birth`, `passport_number`, …). It narrows the gap but does not
+ *     close the silent-leak class #650 exists to eliminate.
+ *   - **C — value-shape heuristics** (redact values shaped like emails /
+ *     IBANs / phone numbers). Rejected: cannot cover non-shaped PII — names,
+ *     cities, zip codes (the natural-person surface #647 protects) have no
+ *     recognizable value shape — and risks false positives on reference codes.
+ *
+ * Option A was chosen: it is the only design that makes redaction the default
+ * and converts the dangerous invisible failure mode into a safe visible one.
+ *
+ * ## The over-redaction trade-off
+ *
+ * Catch-all redaction makes debug logs terser. This allowlist therefore keeps
+ * genuinely-operational, never-PII keys readable so debugging does not
+ * regress: resource identity and lifecycle fields (`id`, `kind`, `status`,
+ * timestamps), money metadata (`amount`, `currency`), and the HTTP transport
+ * headers that carry no secret. It also preserves the visible-by-design
+ * carve-out from #647 — a corporate entity's `name` and its `vat_number` are
+ * not natural-person PII and stay readable for operational debugging of B2B
+ * records (natural persons are identified by `first_name` / `last_name`,
+ * which are absent here and therefore redacted).
+ *
+ * Adding a key here is a deliberate, reviewable assertion that the field is
+ * safe to log — the inverse of the old denylist, where *forgetting* to add a
+ * field was a silent leak. When in doubt, leave a key out: the cost is a
+ * terse debug line, not a PII leak.
+ *
+ * Matching is exact-name and case-insensitive; HTTP header names are compared
+ * lowercase.
  */
-const SENSITIVE_FIELDS: ReadonlySet<string> = new Set([
-  // Financial body fields
-  "iban",
-  "bic",
-  "balance",
-  "balance_cents",
-  "authorized_balance",
-  "authorized_balance_cents",
-  // SCA session token (body field and header form)
-  "sca_session_token",
-  "x-qonto-sca-session-token",
-  // Authentication and environment headers
-  "authorization",
-  "x-qonto-staging-token",
-  // PII: recipient and contact emails (#644)
-  "send_to",
-  "email",
-  // PII: natural-person identification fields (#647)
-  "first_name",
-  "last_name",
-  "tax_identification_number",
-  "phone_number",
-  // PII: address components — top-level (`address`) and nested
-  // (`street_address`, `city`, `zip_code`, `country_code`,
-  // `province_code`) on `Client.billing_address` / `delivery_address`
-  // and equivalents on `ClientInvoiceClient`, `QuoteClient`,
-  // `CreditNoteClient` (#647)
-  "address",
-  "street_address",
-  "city",
-  "zip_code",
-  "country_code",
-  "province_code",
+const LOGGABLE_FIELDS: ReadonlySet<string> = new Set([
+  // Resource identity, classification, and lifecycle — opaque identifiers,
+  // enumerations, and timestamps. Never PII; the backbone of a useful log.
+  "id",
+  "slug",
+  "kind",
+  "status",
+  "created_at",
+  "updated_at",
+  // Money metadata — the magnitude and currency of the operation in hand
+  // (the caller already knows these). Standing `balance` fields are NOT
+  // listed and therefore stay redacted.
+  "amount",
+  "currency",
+  // Localization.
+  "locale",
+  // Non-sensitive operational flags.
+  "copy_to_self",
+  // Business identifiers visible-by-design for operational debugging of B2B
+  // records — carve-out established at #647.
+  "name",
+  "vat_number",
+  // HTTP transport headers known to carry no secret or PII (compared
+  // lowercase). The sensitive request headers — `authorization`,
+  // `x-qonto-staging-token`, `x-qonto-sca-session-token` — are deliberately
+  // absent and therefore redacted.
+  "user-agent",
+  "accept",
+  "content-type",
+  "content-length",
+  "date",
+  "etag",
+  "x-request-id",
+  "x-qonto-idempotency-key",
+  "x-qonto-2fa-preference",
 ]);
 
+/**
+ * Returns a redacted deep copy of `value` for safe debug-log emission: every
+ * primitive leaf whose key is not in {@link LOGGABLE_FIELDS} is replaced with
+ * `[REDACTED]`.
+ *
+ * The walk always descends through objects and arrays, so the *structure* of
+ * the payload stays visible — only leaf values are masked. An object's
+ * properties are each judged by their own key; an array inherits the
+ * redaction decision of the key that holds it (its elements have no key of
+ * their own), so e.g. `send_to: ["a@x.com", "b@x.com"]` logs as
+ * `send_to: ["[REDACTED]", "[REDACTED]"]`. `null` leaves are kept as-is —
+ * they carry nothing to leak. A top-level primitive input — one with no key
+ * to vouch for it — is redacted as well, in keeping with the fail-closed
+ * default; in practice the call sites only ever pass objects.
+ *
+ * The input is never mutated. All five debug-log call sites — request body,
+ * response body, request headers, response headers, and the primary-auth-
+ * error body — share this one function by reference.
+ */
 function redactSensitiveFields(value: unknown): unknown {
+  return redactNode(value, true);
+}
+
+/**
+ * Recursive worker for {@link redactSensitiveFields}.
+ *
+ * @param redactLeaf - whether a primitive `value` should be redacted. Set by
+ *   the holding key's {@link LOGGABLE_FIELDS} membership and inherited by
+ *   array elements (which have no key of their own).
+ */
+function redactNode(value: unknown, redactLeaf: boolean): unknown {
   if (value === null || value === undefined) {
     return value;
   }
   if (Array.isArray(value)) {
-    return value.map((item: unknown) => redactSensitiveFields(item));
+    return value.map((item: unknown) => redactNode(item, redactLeaf));
   }
   if (typeof value === "object") {
+    // Each property is re-judged by its own key — the holding key's decision
+    // does not carry into a nested object.
     const result: Record<string, unknown> = {};
     for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
-      result[key] = SENSITIVE_FIELDS.has(key.toLowerCase()) ? "[REDACTED]" : redactSensitiveFields(val);
+      result[key] = redactNode(val, !LOGGABLE_FIELDS.has(key.toLowerCase()));
     }
     return result;
   }
-  return value;
+  return redactLeaf ? "[REDACTED]" : value;
 }
 
 function buildUserAgent(): string {
