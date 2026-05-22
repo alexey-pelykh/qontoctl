@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.0.5] — 2026-05-22
+
 ### Added
 
 - **`@qontoctl/core`**: new `packages/core/src/quotes/` service-layer module — `sendQuote(client, id, payload): Promise<void>` issues `POST /v2/quotes/{id}/send` with the JSON-serialised payload as the request body. Establishes the service seam quotes previously lacked (the existing `quote_list` / `quote_create` etc. MCP tools and CLI commands called `HttpClient.requestVoid` / `HttpClient.get` directly), bringing quotes into structural parity with `client-invoices/`. Foundation for #638 (which wires the MCP `quote_send` tool + CLI `quote send` command through this service to close the historical `quote_send` HTTP 422 `invalid_body: EOF` bug). The Qonto API contract requires `send_to` and `email_title`; `copy_to_self` defaults to `true` server-side and `email_body` is optional (#637).
