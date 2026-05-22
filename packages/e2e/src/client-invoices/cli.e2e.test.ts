@@ -4,7 +4,7 @@
 import { resolve } from "node:path";
 import { ClientInvoiceSchema, ClientInvoiceUploadSchema } from "@qontoctl/core";
 import { describe, expect, it } from "vitest";
-import { cli } from "../helpers.js";
+import { cli, cliRaw, qontoHttpStatus } from "../helpers.js";
 import { hasApiKeyCredentials } from "../sandbox.js";
 
 /**
@@ -378,13 +378,57 @@ describe.skipIf(!hasApiKeyCredentials())("client-invoice commands (e2e)", () => 
         expect(parsed).toHaveProperty("status", "unpaid");
       });
 
-      it("sends the finalized invoice to the client via email", () => {
+      it("sends the finalized invoice to the client via email", (ctx) => {
         if (sendInvoiceId === undefined) {
           return;
         }
 
-        const output = cli("--output", "json", "client-invoice", "send", sendInvoiceId);
-        const parsed = JSON.parse(output) as Record<string, unknown>;
+        // precondition: docs/qonto-sandbox-preconditions.md#post-v2-client-invoices-id-send
+        // Recipient is overridable so a sandbox-validated mailbox can be wired
+        // in via env without touching the test; default keeps the test
+        // self-contained when no override is set.
+        const sendTo = process.env["QONTOCTL_E2E_SEND_EMAIL_TO"] ?? "e2e-test-639@example.com";
+
+        // Use cliRaw so we can inspect a non-zero exit shape before asserting
+        // success — sharpened triage (#639, parallel to #638): the only
+        // legitimate skip is the documented sandbox-precondition (client lacks
+        // a routable mailbox); anything else (e.g. the historical HTTP 422
+        // `invalid_body: EOF` from an empty-body POST) must fail the test.
+        const result = cliRaw([
+          "--output",
+          "json",
+          "client-invoice",
+          "send",
+          sendInvoiceId,
+          "--to",
+          sendTo,
+          "--title",
+          "E2E #639 send test — safe to ignore",
+          "--no-copy-self",
+        ]);
+
+        if (!result.ok) {
+          const status = qontoHttpStatus(result.stderr);
+          // Sandbox-precondition signatures for the missing/unroutable mailbox
+          // case: Qonto returns a 4xx mentioning the client's email or
+          // contact_email. Surface anything else (e.g. 422 `invalid_body: EOF`)
+          // loudly via the throw below.
+          if (
+            status !== undefined &&
+            status >= 400 &&
+            status < 500 &&
+            /client.*(mailbox|email)|contact_email|missing.*email|no.*recipient|invalid.*email/i.test(result.stderr)
+          ) {
+            ctx.skip(
+              `sandbox-precondition: client-invoice send requires a routable recipient mailbox — see docs/qonto-sandbox-preconditions.md#post-v2-client-invoices-id-send`,
+            );
+          }
+          throw new Error(
+            `client-invoice send failed (regression guard for #639): exit=${String(result.status)}\n--- stderr ---\n${result.stderr}\n--- stdout ---\n${result.stdout}`,
+          );
+        }
+
+        const parsed = JSON.parse(result.stdout) as Record<string, unknown>;
         expect(parsed).toHaveProperty("sent", true);
         expect(parsed).toHaveProperty("id", sendInvoiceId);
       });

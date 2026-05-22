@@ -358,7 +358,20 @@ describe("client-invoice commands", () => {
 
       const program = createTestProgram();
 
-      await program.parseAsync(["--output", "json", "client-invoice", "send", "inv-123"], { from: "user" });
+      await program.parseAsync(
+        [
+          "--output",
+          "json",
+          "client-invoice",
+          "send",
+          "inv-123",
+          "--to",
+          "recipient@example.com",
+          "--title",
+          "Invoice INV-001",
+        ],
+        { from: "user" },
+      );
 
       expect(stdoutSpy).toHaveBeenCalled();
       const output = stdoutSpy.mock.calls[0]?.[0] as string;
@@ -371,11 +384,96 @@ describe("client-invoice commands", () => {
 
       const program = createTestProgram();
 
-      await program.parseAsync(["client-invoice", "send", "inv-123"], { from: "user" });
+      await program.parseAsync(["client-invoice", "send", "inv-123", "--to", "a@example.com", "--title", "Invoice"], {
+        from: "user",
+      });
 
       const [url, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
       expect(url.pathname).toBe("/v2/client_invoices/inv-123/send");
       expect(opts.method).toBe("POST");
+    });
+
+    // Guard for #639 (parallel to #636 arm 1): the prior empty-body POST
+    // produced HTTP 422 `invalid_body: EOF` from Qonto. Assert the body
+    // content + Content-Type header verbatim so a future regression to a
+    // void POST surfaces as a unit-test failure rather than a sandbox 422.
+    it("serializes --to (variadic), --title, --body, and copy_to_self into the JSON body", async () => {
+      fetchSpy.mockImplementation(() => Promise.resolve(new Response(null, { status: 204 })));
+
+      const program = createTestProgram();
+
+      await program.parseAsync(
+        [
+          "client-invoice",
+          "send",
+          "inv-123",
+          "--to",
+          "a@example.com",
+          "--to",
+          "b@example.com",
+          "--title",
+          "Invoice for ACME",
+          "--body",
+          "Please find attached.",
+        ],
+        { from: "user" },
+      );
+
+      const [, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      expect(opts.method).toBe("POST");
+      const headers = opts.headers as Record<string, string>;
+      expect(headers["Content-Type"]).toBe("application/json");
+      const body = JSON.parse(opts.body as string) as Record<string, unknown>;
+      expect(body).toEqual({
+        send_to: ["a@example.com", "b@example.com"],
+        email_title: "Invoice for ACME",
+        copy_to_self: true,
+        email_body: "Please find attached.",
+      });
+    });
+
+    it("sets copy_to_self: false when --no-copy-self is passed", async () => {
+      fetchSpy.mockImplementation(() => Promise.resolve(new Response(null, { status: 204 })));
+
+      const program = createTestProgram();
+
+      await program.parseAsync(
+        ["client-invoice", "send", "inv-123", "--to", "a@example.com", "--title", "Invoice", "--no-copy-self"],
+        { from: "user" },
+      );
+
+      const [, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      const body = JSON.parse(opts.body as string) as Record<string, unknown>;
+      expect(body["copy_to_self"]).toBe(false);
+      expect(body).not.toHaveProperty("email_body");
+    });
+
+    it("exits with error to stderr when --to is missing", async () => {
+      const program = createTestProgram();
+
+      await program.parseAsync(["client-invoice", "send", "inv-123", "--title", "Invoice"], {
+        from: "user",
+      });
+
+      expect(stderrSpy).toHaveBeenCalled();
+      const errorOutput = stderrSpy.mock.calls[0]?.[0] as string;
+      expect(errorOutput).toContain("--to");
+      expect(process.exitCode).toBe(1);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it("exits with error to stderr when --title is missing", async () => {
+      const program = createTestProgram();
+
+      await program.parseAsync(["client-invoice", "send", "inv-123", "--to", "a@example.com"], {
+        from: "user",
+      });
+
+      expect(stderrSpy).toHaveBeenCalled();
+      const errorOutput = stderrSpy.mock.calls[0]?.[0] as string;
+      expect(errorOutput).toContain("--title");
+      expect(process.exitCode).toBe(1);
+      expect(fetchSpy).not.toHaveBeenCalled();
     });
   });
 

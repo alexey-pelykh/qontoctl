@@ -349,7 +349,11 @@ describe("client-invoice MCP tools", () => {
 
       const result = await mcpClient.callTool({
         name: "client_invoice_send",
-        arguments: { id: "ci-123" },
+        arguments: {
+          id: "ci-123",
+          send_to: ["recipient@example.com"],
+          email_title: "Invoice INV-001",
+        },
       });
 
       const content = result.content as { type: string; text: string }[];
@@ -365,12 +369,97 @@ describe("client-invoice MCP tools", () => {
 
       await mcpClient.callTool({
         name: "client_invoice_send",
-        arguments: { id: "ci-123" },
+        arguments: {
+          id: "ci-123",
+          send_to: ["recipient@example.com"],
+          email_title: "Invoice INV-001",
+        },
       });
 
       const [url, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
       expect(url.pathname).toBe("/v2/client_invoices/ci-123/send");
       expect(opts.method).toBe("POST");
+    });
+
+    // Guard for #639 (parallel to #636 arm 1): the prior empty-body POST
+    // produced HTTP 422 `invalid_body: EOF` from Qonto. Now that the tool
+    // forwards `send_to` / `email_title` / `email_body` / `copy_to_self` as the
+    // request body, assert the body content and Content-Type header verbatim
+    // so a future regression to "void POST" surfaces as a unit-test failure
+    // rather than a sandbox-only 422.
+    it("serializes the request body with send_to, email_title, copy_to_self (default true), and email_body", async () => {
+      fetchSpy.mockReturnValue(new Response(null, { status: 204 }));
+
+      await mcpClient.callTool({
+        name: "client_invoice_send",
+        arguments: {
+          id: "ci-123",
+          send_to: ["a@example.com", "b@example.com"],
+          email_title: "Invoice for ACME",
+          email_body: "Please find attached.",
+        },
+      });
+
+      const [, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      expect(opts.method).toBe("POST");
+      const headers = opts.headers as Record<string, string>;
+      expect(headers["Content-Type"]).toBe("application/json");
+      const body = JSON.parse(opts.body as string) as Record<string, unknown>;
+      expect(body).toEqual({
+        send_to: ["a@example.com", "b@example.com"],
+        email_title: "Invoice for ACME",
+        copy_to_self: true,
+        email_body: "Please find attached.",
+      });
+    });
+
+    it("honors copy_to_self: false when explicitly set", async () => {
+      fetchSpy.mockReturnValue(new Response(null, { status: 204 }));
+
+      await mcpClient.callTool({
+        name: "client_invoice_send",
+        arguments: {
+          id: "ci-123",
+          send_to: ["recipient@example.com"],
+          email_title: "Invoice INV-001",
+          copy_to_self: false,
+        },
+      });
+
+      const [, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      const body = JSON.parse(opts.body as string) as Record<string, unknown>;
+      expect(body["copy_to_self"]).toBe(false);
+      expect(body).not.toHaveProperty("email_body");
+    });
+
+    it("rejects calls missing send_to via Zod inputSchema", async () => {
+      const result = await mcpClient.callTool({
+        name: "client_invoice_send",
+        arguments: { id: "ci-123", email_title: "X" },
+      });
+
+      expect(result.isError).toBe(true);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it("rejects calls with empty send_to array via Zod inputSchema (min(1))", async () => {
+      const result = await mcpClient.callTool({
+        name: "client_invoice_send",
+        arguments: { id: "ci-123", send_to: [], email_title: "X" },
+      });
+
+      expect(result.isError).toBe(true);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it("rejects calls missing email_title via Zod inputSchema", async () => {
+      const result = await mcpClient.callTool({
+        name: "client_invoice_send",
+        arguments: { id: "ci-123", send_to: ["a@example.com"] },
+      });
+
+      expect(result.isError).toBe(true);
+      expect(fetchSpy).not.toHaveBeenCalled();
     });
   });
 

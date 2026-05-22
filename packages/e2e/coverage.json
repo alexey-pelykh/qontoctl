@@ -121,9 +121,9 @@
       "notes": ""
     },
     "cli:packages/cli/src/commands/client-invoice.ts": {
-      "status": "pending",
-      "tests": [],
-      "notes": ""
+      "status": "covered",
+      "tests": ["packages/e2e/src/client-invoices/cli.e2e.test.ts"],
+      "notes": "Client-invoice CLI exercised end-to-end via the CRUD lifecycle (#455), the upload round-trip (#449 Group 4c), the lifecycle state-transitions chain (#457), the empty-items-draft regression (#575), and — opt-in via QONTOCTL_E2E_SEND_EMAIL=true — the send path with the new payload-required signature (#639). Send-path sharpened triage (#639, parallel to #638): only the documented sandbox-precondition (client lacks a routable mailbox; HTTP 4xx mentioning client email / contact_email) skips with reason; any other failure (including the historical HTTP 422 `invalid_body: EOF`) fails the test."
     },
     "cli:packages/cli/src/commands/client.ts": {
       "status": "pending",
@@ -633,7 +633,7 @@
     "core:packages/core/src/client-invoices/service.ts#sendClientInvoice": {
       "status": "covered",
       "tests": ["packages/e2e/src/client-invoices/cli.e2e.test.ts", "packages/e2e/src/client-invoices/mcp.e2e.test.ts"],
-      "notes": "Lifecycle state-transitions E2E (#457) AC #3: send path covered separately from the main state machine. Opt-in via QONTOCTL_E2E_SEND_EMAIL=true env var since the path requires email-safe sandbox config (a no-bounce test mailbox). Default behavior: describe block skips, leaving the test reachable but inert."
+      "notes": "Lifecycle state-transitions E2E (#457) AC #3: send path covered separately from the main state machine. Opt-in via QONTOCTL_E2E_SEND_EMAIL=true env var since the path requires email-safe sandbox config (a no-bounce test mailbox). Recipient overridable via QONTOCTL_E2E_SEND_EMAIL_TO. Signature is now `sendClientInvoice(client, id, payload: SendClientInvoiceRequestPayload)` (BREAKING #637); send-path body assertions verify `send_to` + `email_title` + `copy_to_self` are serialized verbatim (#639 — parallel-bug fix to #638 quote_send). Sharpened triage: only the documented sandbox-precondition (client lacks a routable mailbox) skips; everything else (including the historical HTTP 422 `invalid_body: EOF`) fails loudly."
     },
     "core:packages/core/src/client-invoices/service.ts#unmarkClientInvoicePaid": {
       "status": "covered",
@@ -1138,7 +1138,7 @@
     "mcp:client_invoice_send": {
       "status": "covered",
       "tests": ["packages/e2e/src/client-invoices/mcp.e2e.test.ts"],
-      "notes": "Lifecycle state-transitions E2E (#457) AC #3 MCP: opt-in via QONTOCTL_E2E_SEND_EMAIL=true env var since the path requires email-safe sandbox config (a no-bounce test mailbox). Default behavior: describe block skips, leaving the test reachable but inert."
+      "notes": "Lifecycle state-transitions E2E (#457) AC #3 MCP: opt-in via QONTOCTL_E2E_SEND_EMAIL=true env var since the path requires email-safe sandbox config (a no-bounce test mailbox). Recipient overridable via QONTOCTL_E2E_SEND_EMAIL_TO. Tool inputSchema now requires `send_to` + `email_title` (#639 — parallel-bug fix to #638 quote_send): unit tests assert request body verbatim; E2E sharpened triage skips only on the documented sandbox-precondition (client lacks a routable mailbox), with the historical HTTP 422 `invalid_body: EOF` now a regression-fail."
     },
     "mcp:client_invoice_show": {
       "status": "pending",

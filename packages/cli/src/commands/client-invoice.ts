@@ -250,19 +250,48 @@ export function createClientInvoiceCommand(): Command {
   });
 
   // --- send ---
-  const send = invoice.command("send <id>").description("Send client invoice to client via email");
+  // `--to` is variadic (`<email...>`) per commander.js convention: repeating the
+  // flag (`--to a@x.com --to b@x.com`) or space-separating values both collect
+  // into the same array. `--no-copy-self` is commander's standard negation
+  // syntax: omitting the flag defaults `opts.copySelf` to `true`, passing it
+  // sets it to `false`, matching the Qonto API's server-side default.
+  const send = invoice
+    .command("send <id>")
+    .description("Send finalized client invoice to recipients via email")
+    .addOption(new Option("--to <email...>", "recipient email (repeatable; at least one required)"))
+    .addOption(new Option("--title <subject>", "email subject (required)"))
+    .addOption(new Option("--body <text>", "email body (optional)"))
+    .addOption(new Option("--no-copy-self", "do not BCC the authenticated user (default: copy)"));
   addInheritableOptions(send);
   send.action(async (id: string, _options: unknown, cmd: Command) => {
-    const opts = resolveGlobalOptions<GlobalOptions>(cmd);
+    const opts = resolveGlobalOptions<
+      GlobalOptions & {
+        readonly to?: readonly string[] | undefined;
+        readonly title?: string | undefined;
+        readonly body?: string | undefined;
+        readonly copySelf?: boolean | undefined;
+      }
+    >(cmd);
+
+    if (opts.to === undefined || opts.to.length === 0) {
+      process.stderr.write("client-invoice send: --to <email> is required (repeatable; at least one).\n");
+      process.exitCode = 1;
+      return;
+    }
+    if (opts.title === undefined || opts.title.trim() === "") {
+      process.stderr.write("client-invoice send: --title <subject> is required.\n");
+      process.exitCode = 1;
+      return;
+    }
+
     const client = await createClient(opts);
 
-    // TODO(#639): expose `--to <email...>` / `--title <subject>` /
-    // `--body <text>` / `--no-copy-self` flags and forward them as the payload.
-    // The placeholder below keeps the breaking sendClientInvoice signature
-    // (introduced in #637) compile-green; runtime behaviour is already broken
-    // (HTTP 422 from Qonto for an effectively-empty send), and #639 lands the
-    // proper wiring + E2E triage sharpening.
-    await sendClientInvoice(client, id, { send_to: [], copy_to_self: true, email_title: "" });
+    await sendClientInvoice(client, id, {
+      send_to: [...opts.to],
+      email_title: opts.title,
+      copy_to_self: opts.copySelf ?? true,
+      ...(opts.body !== undefined ? { email_body: opts.body } : {}),
+    });
 
     if (opts.output === "json" || opts.output === "yaml") {
       process.stdout.write(formatOutput({ sent: true, id }, opts.output) + "\n");

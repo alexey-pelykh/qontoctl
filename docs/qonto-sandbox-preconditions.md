@@ -137,6 +137,42 @@ sandbox; this is an accepted trade-off pending a sandbox cleanup pass.
 
 ### Client Invoices
 
+#### `POST /v2/client_invoices/{id}/send` {#post-v2-client-invoices-id-send}
+
+**Precondition**: The client invoice must be finalized (`status: unpaid`),
+and the recipient address supplied in the `send_to` payload must be a
+routable mailbox. The legacy contact-email path (the invoice's embedded
+`client.email`) is no longer authoritative: the Qonto OpenAPI contract
+takes the recipient list from the request body's `send_to` field, with
+`copy_to_self` (default `true`) BCCing the authenticated user. The
+sandbox accepts the body shape but rejects when no recipient resolves to
+a deliverable address.
+
+**Failure signature**: HTTP 4xx from `client_invoice_send` with an error
+mentioning the recipient mailbox / client email. The exact error key
+depends on whether the recipient is absent, malformed, or unrouteable;
+the E2E test triages on a tight regex over the error text and skips
+ONLY on that signature — any other error (including the historical
+HTTP 422 `invalid_body: EOF` that surfaced before #639 wired the
+payload) fails the test as a regression guard.
+
+**Remediation in tests**: The `client_invoice_send` E2E describe block
+is opt-in via `QONTOCTL_E2E_SEND_EMAIL=true` (it requires a no-bounce
+sandbox mailbox to assert success). When enabled, override the
+recipient with `QONTOCTL_E2E_SEND_EMAIL_TO=<address>` if the default
+`e2e-test-639@example.com` is not routable in your sandbox. The
+sharpened triage is implemented in
+`packages/e2e/src/client-invoices/{cli,mcp}.e2e.test.ts` —
+sandbox-precondition matches skip with the
+`sandbox-precondition: client_invoice_send requires a routable
+recipient mailbox` reason; anything else (including the regression
+shape) fails. See [#638](https://github.com/alexey-pelykh/qontoctl/issues/638) for the parallel
+quote-side fix using the same triage pattern.
+
+**Discovered**: Parallel-bug class to #636 arm 1
+(`quote_send` HTTP 422/EOF), surfaced during the #636 investigation
+and fixed in #639.
+
 #### `POST /v2/client_invoices` {#post-v2-client-invoices}
 
 **Precondition**: The organization must have an _invoicing IBAN_
