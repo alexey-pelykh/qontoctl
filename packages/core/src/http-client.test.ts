@@ -1116,6 +1116,122 @@ describe("HttpClient", () => {
       expect(requestBodyLogCalls[0]?.[0]).toBe("Request body: [FormData]");
     });
 
+    it("redacts natural-person PII fields (first_name, last_name, tax_identification_number, phone_number) in request body debug logs (#647)", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ id: "client-1" }, { status: 201 }));
+      const logger = createMockLogger();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+        logger,
+      });
+
+      await client.post("/v2/clients", {
+        kind: "individual",
+        first_name: "Jean",
+        last_name: "Dupont",
+        tax_identification_number: "FR12345678901",
+        phone_number: "+33612345678",
+        locale: "fr",
+      });
+
+      const requestBodyLogCalls = logger.debug.mock.calls.filter(
+        (call: string[]) => typeof call[0] === "string" && call[0].startsWith("Request body:"),
+      );
+      expect(requestBodyLogCalls.length).toBeGreaterThan(0);
+      const bodyLog = requestBodyLogCalls[0]?.[0] as string;
+      expect(bodyLog).not.toContain("Jean");
+      expect(bodyLog).not.toContain("Dupont");
+      expect(bodyLog).not.toContain("FR12345678901");
+      expect(bodyLog).not.toContain("+33612345678");
+      expect(bodyLog).toContain('"first_name":"[REDACTED]"');
+      expect(bodyLog).toContain('"last_name":"[REDACTED]"');
+      expect(bodyLog).toContain('"tax_identification_number":"[REDACTED]"');
+      expect(bodyLog).toContain('"phone_number":"[REDACTED]"');
+      // Non-PII fields remain visible
+      expect(bodyLog).toContain('"kind":"individual"');
+      expect(bodyLog).toContain('"locale":"fr"');
+    });
+
+    it("redacts address components (address, street_address, city, zip_code, country_code, province_code) at top level and nested in request body debug logs (#647)", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ id: "client-1" }, { status: 201 }));
+      const logger = createMockLogger();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+        logger,
+      });
+
+      await client.post("/v2/clients", {
+        kind: "company",
+        name: "ACME Corp",
+        address: "10 Rue de Rivoli",
+        city: "Paris",
+        zip_code: "75001",
+        country_code: "FR",
+        province_code: "75",
+        billing_address: {
+          street_address: "20 Rue Saint-Honoré",
+          city: "Paris",
+          zip_code: "75008",
+          country_code: "FR",
+          province_code: "75",
+        },
+      });
+
+      const requestBodyLogCalls = logger.debug.mock.calls.filter(
+        (call: string[]) => typeof call[0] === "string" && call[0].startsWith("Request body:"),
+      );
+      expect(requestBodyLogCalls.length).toBeGreaterThan(0);
+      const bodyLog = requestBodyLogCalls[0]?.[0] as string;
+      expect(bodyLog).not.toContain("10 Rue de Rivoli");
+      expect(bodyLog).not.toContain("20 Rue Saint-Honoré");
+      expect(bodyLog).not.toContain("Paris");
+      expect(bodyLog).not.toContain("75001");
+      expect(bodyLog).not.toContain("75008");
+      // Top-level address components redacted
+      expect(bodyLog).toContain('"address":"[REDACTED]"');
+      expect(bodyLog).toContain('"city":"[REDACTED]"');
+      expect(bodyLog).toContain('"zip_code":"[REDACTED]"');
+      expect(bodyLog).toContain('"country_code":"[REDACTED]"');
+      expect(bodyLog).toContain('"province_code":"[REDACTED]"');
+      // Nested address components inside billing_address redacted via recursive walk
+      // (the `billing_address` key itself is not in SENSITIVE_FIELDS, so the walker
+      // descends into it and redacts the matching child keys)
+      expect(bodyLog).toContain('"street_address":"[REDACTED]"');
+      // Non-PII fields remain visible
+      expect(bodyLog).toContain('"kind":"company"');
+      expect(bodyLog).toContain('"name":"ACME Corp"');
+    });
+
+    it("preserves visible-by-design fields (name, vat_number) in request body debug logs to avoid over-redaction (#647)", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ id: "client-1" }, { status: 201 }));
+      const logger = createMockLogger();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+        logger,
+      });
+
+      await client.post("/v2/clients", {
+        kind: "company",
+        name: "ACME Corp",
+        vat_number: "FR12345678901",
+        locale: "en",
+      });
+
+      const requestBodyLogCalls = logger.debug.mock.calls.filter(
+        (call: string[]) => typeof call[0] === "string" && call[0].startsWith("Request body:"),
+      );
+      expect(requestBodyLogCalls.length).toBeGreaterThan(0);
+      const bodyLog = requestBodyLogCalls[0]?.[0] as string;
+      // Corporate name and vat_number are operational-debug fields, not PII;
+      // they must NOT be redacted (judgment call documented at #647).
+      expect(bodyLog).toContain('"name":"ACME Corp"');
+      expect(bodyLog).toContain('"vat_number":"FR12345678901"');
+      expect(bodyLog).toContain('"kind":"company"');
+      expect(bodyLog).toContain('"locale":"en"');
+    });
+
     it("redacts Authorization header in debug logs", async () => {
       fetchSpy.mockReturnValue(jsonResponse({}));
       const logger = createMockLogger();
