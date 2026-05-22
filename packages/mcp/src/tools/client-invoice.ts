@@ -268,20 +268,24 @@ export function registerClientInvoiceTools(server: McpServer, getClient: () => P
   server.registerTool(
     "client_invoice_send",
     {
-      description: "Send a client invoice to the client via email",
+      description:
+        "Send a finalized client invoice to the client via email. Requires `send_to` (one or more recipient emails) and `email_title`; optional `email_body` and `copy_to_self` (default `true`).",
       inputSchema: {
         id: z.string().describe("Client invoice ID (UUID)"),
+        send_to: z.array(z.email()).min(1).describe("Recipient email addresses (at least one required)"),
+        email_title: z.string().min(1).describe("Email subject (required)"),
+        email_body: z.string().optional().describe("Email body (optional)"),
+        copy_to_self: z.boolean().optional().describe("BCC the authenticated user (defaults to true server-side)"),
       },
     },
-    async ({ id }) =>
+    async ({ id, send_to, email_title, email_body, copy_to_self }) =>
       withClient(getClient, async (client) => {
-        // TODO(#639): expose `send_to` / `email_title` / `email_body` /
-        // `copy_to_self` in this tool's inputSchema and forward them as the
-        // payload. The placeholder below keeps the breaking sendClientInvoice
-        // signature (introduced in #637) compile-green; runtime behaviour is
-        // already broken (HTTP 422 from Qonto for an effectively-empty send),
-        // and #639 lands the proper wiring + E2E triage sharpening.
-        await sendClientInvoice(client, id, { send_to: [], copy_to_self: true, email_title: "" });
+        await sendClientInvoice(client, id, {
+          send_to,
+          email_title,
+          copy_to_self: copy_to_self ?? true,
+          ...(email_body !== undefined ? { email_body } : {}),
+        });
 
         return {
           content: [

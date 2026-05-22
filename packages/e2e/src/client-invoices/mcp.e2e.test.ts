@@ -471,12 +471,45 @@ describe.skipIf(!hasApiKeyCredentials())("MCP client invoice tools (e2e)", () =>
         skipIfUpstreamSkipped(lifecycleSkip, ctx);
         const id = assertLifecycleState(sendInvoiceId, "sendInvoiceId");
 
+        // precondition: docs/qonto-sandbox-preconditions.md#post-v2-client-invoices-id-send
+        // Recipient is overridable so a sandbox-validated mailbox can be wired
+        // in via env without touching the test; default keeps the test
+        // self-contained when no override is set.
+        const sendTo = process.env["QONTOCTL_E2E_SEND_EMAIL_TO"] ?? "e2e-test-639@example.com";
+
         const result = await client.callTool({
           name: "client_invoice_send",
-          arguments: { id },
+          arguments: {
+            id,
+            send_to: [sendTo],
+            email_title: "E2E #639 send test — safe to ignore",
+            copy_to_self: false,
+          },
         });
 
-        expect(result.isError).toBeFalsy();
+        // Sharpened triage (#639, parallel to #638's quote_send): the pre-fix
+        // empty-body POST produced HTTP 422 `invalid_body: EOF`. Now that the
+        // tool forwards a real payload, the documented sandbox-precondition
+        // (client lacks a routable mailbox) is the only legitimate skip
+        // reason; anything else (including the historical 422/EOF) must
+        // surface as a failure rather than be swallowed as "sandbox state".
+        if (result.isError === true) {
+          const text = firstTextFromMcpResult(result);
+          // Sandbox-precondition signatures observed for the missing/unroutable
+          // mailbox case: Qonto returns an error mentioning the client's email
+          // or invoice contact_email. Surface anything else (e.g. 422
+          // `invalid_body: EOF`) loudly via the assertion below.
+          if (/client.*(mailbox|email)|contact_email|missing.*email|no.*recipient|invalid.*email/i.test(text)) {
+            ctx.skip(
+              `sandbox-precondition: client_invoice_send requires a routable recipient mailbox — see docs/qonto-sandbox-preconditions.md#post-v2-client-invoices-id-send`,
+            );
+          }
+          expect(
+            result.isError,
+            `unexpected client_invoice_send failure (regression guard for #639): ${text}`,
+          ).toBeFalsy();
+        }
+
         const parsed = JSON.parse(firstTextFromMcpResult(result)) as Record<string, unknown>;
         expect(parsed).toHaveProperty("sent", true);
         expect(parsed).toHaveProperty("id", id);

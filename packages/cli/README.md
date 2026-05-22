@@ -95,7 +95,7 @@ npm install @qontoctl/cli
 | `client-invoice update <id>`                                                                                      | Update a draft client invoice                                |
 | `client-invoice delete <id>`                                                                                      | Delete a draft client invoice                                |
 | `client-invoice finalize <id>`                                                                                    | Finalize client invoice and assign number                    |
-| `client-invoice send <id>`                                                                                        | Send client invoice to client via email                      |
+| `client-invoice send <id> --to <email...> --title <subject> [--body <text>] [--no-copy-self]`                     | Send finalized client invoice to recipients via email        |
 | `client-invoice mark-paid <id>`                                                                                   | Mark client invoice as paid                                  |
 | `client-invoice unmark-paid <id>`                                                                                 | Unmark client invoice paid status                            |
 | `client-invoice cancel <id>`                                                                                      | Cancel a finalized client invoice                            |
