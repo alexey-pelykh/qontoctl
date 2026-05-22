@@ -15,5 +15,5 @@ import { parseResponse } from "../response.js";
 export async function getEInvoicingSettings(client: HttpClient): Promise<EInvoicingSettings> {
   const endpointPath = "/v2/einvoicing/settings";
   const response = await client.get(endpointPath);
-  return parseResponse(EInvoicingSettingsSchema, response, endpointPath) as EInvoicingSettings;
+  return parseResponse(EInvoicingSettingsSchema, response, endpointPath);
 }

@@ -62,7 +62,7 @@ export function resolveConfigFilePath(options?: LoadOptions): string {
     return options.path;
   }
 
-  const env = options?.env ?? (process.env as Record<string, string | undefined>);
+  const env = options?.env ?? process.env;
   const envPath = env[CONFIG_FILE_ENV];
   if (envPath !== undefined && envPath !== "") {
     return envPath;

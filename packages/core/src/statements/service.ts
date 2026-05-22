@@ -37,7 +37,7 @@ export function buildStatementQueryParams(params: ListStatementsParams): QueryPa
 export async function getStatement(client: HttpClient, id: string): Promise<Statement> {
   const endpointPath = `/v2/statements/${encodeURIComponent(id)}`;
   const response = await client.get(endpointPath);
-  return parseResponse(StatementResponseSchema, response, endpointPath).statement as Statement;
+  return parseResponse(StatementResponseSchema, response, endpointPath).statement;
 }
 
 /**
@@ -55,8 +55,5 @@ export async function listStatements(
   }
   const endpointPath = "/v2/statements";
   const response = await client.get(endpointPath, Object.keys(query).length > 0 ? query : undefined);
-  return parseResponse(StatementListResponseSchema, response, endpointPath) as {
-    statements: Statement[];
-    meta: PaginationMeta;
-  };
+  return parseResponse(StatementListResponseSchema, response, endpointPath);
 }

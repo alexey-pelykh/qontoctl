@@ -108,7 +108,7 @@ export function applyEnvOverlay(
     env?: Record<string, string | undefined> | undefined;
   },
 ): EnvOverlayResult {
-  const env = options?.env ?? (process.env as Record<string, string | undefined>);
+  const env = options?.env ?? process.env;
   const prefix = buildPrefix(options?.profile);
 
   const orgSlug = env[`${prefix}_${ORG_SLUG_SUFFIX}`];
