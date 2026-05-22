@@ -190,6 +190,12 @@ export const ClientInvoiceSchema = z
     payment_methods: z.array(z.unknown()).nullable().optional(),
     credit_notes_ids: z.array(z.string()).nullable().optional(),
     organization: z.record(z.string(), z.unknown()).nullable().optional(),
+    // Addition for v2.0.4 (contract probe live run 2026-05-22). Observed as
+    // `null` on `/v2/client_invoices` — runtime shape beyond null is undocumented,
+    // so declared as permissive `z.unknown()` per the #621/#630 precedent for
+    // single-sample probe findings. Tighten to a concrete shape (likely Amount)
+    // in a follow-up once multi-sample evidence confirms the populated form.
+    deposit_amount: z.unknown().nullable().optional(),
   })
   .strip() satisfies z.ZodType<ClientInvoice>;
 

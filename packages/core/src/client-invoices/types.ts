@@ -158,6 +158,7 @@ export interface ClientInvoice {
   readonly payment_methods?: readonly unknown[] | null | undefined;
   readonly credit_notes_ids?: readonly string[] | null | undefined;
   readonly organization?: Readonly<Record<string, unknown>> | null | undefined;
+  readonly deposit_amount?: unknown;
 }
 
 /**

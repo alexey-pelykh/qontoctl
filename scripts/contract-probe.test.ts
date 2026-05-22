@@ -997,6 +997,8 @@ describe("diffSchema — #621 production-schema extra_fields regression", () => 
       payment_methods: [],
       credit_notes_ids: [],
       organization: { id: "org_1", name: "Acme Inc." },
+      // v2.0.4 addition (contract probe 2026-05-22):
+      deposit_amount: null,
     });
     const expected = [
       "number",
@@ -1016,6 +1018,7 @@ describe("diffSchema — #621 production-schema extra_fields regression", () => 
       "payment_methods",
       "credit_notes_ids",
       "organization",
+      "deposit_amount",
     ];
     for (const f of expected) {
       expect(diff.extra_fields.map((x) => x.field)).not.toContain(f);
