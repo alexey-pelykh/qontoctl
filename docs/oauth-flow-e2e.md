@@ -10,7 +10,7 @@ The OAuth-flow suite therefore runs **locally only**. The same code path ships t
 
 Project policy (per [CLAUDE.md § E2E Testing](../CLAUDE.md)) requires running the full `pnpm test:e2e` suite locally before pushing any E2E-touching PR — that's where this suite is exercised.
 
-A structural retrofit (mock OAuth server that decouples coverage from live OAuth-flow) is tracked at [#591](https://github.com/alexey-pelykh/qontoctl/issues/591).
+A mock-OAuth-server retrofit (record sandbox responses, replay them in CI) was explored in [#591](https://github.com/alexey-pelykh/qontoctl/issues/591) and **declined**: replaying recorded fixtures duplicates the existing CI unit coverage of the OAuth client (`packages/core/src/auth/oauth-service.test.ts` exercises request construction, Zod response parsing, and every HTTP error path against a stubbed `fetch`; `oauth-authorization-factory.test.ts` exercises rotation-handling — adopt / persist / preserve, readOnly mode — against a stubbed `refreshAccessToken`), and a replay mock forfeits the live-sandbox fidelity that is this suite's whole purpose. Mocking the Qonto API in E2E is additionally out of scope per the [e2e-test-reliability PRD](./prds/e2e-test-reliability.md). This suite is local-only **by design**, not pending a retrofit.
 
 ## Running locally
 
@@ -50,11 +50,11 @@ The `_LONG` suffix is a maintainer-facing reminder that this token does not flow
 
 ## Scope: what this covers and what stays excluded
 
-| OAuth function       | E2E coverage status              | Notes                                                                                                                                               |
-| -------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `refreshAccessToken` | Covered (this suite, local-only) | Asserts new access token + rotated refresh token + positive expiry against sandbox token endpoint.                                                  |
-| `revokeToken`        | Covered (this suite, local-only) | Asserts revoked access token returns 401 on subsequent sandbox API call.                                                                            |
-| `exchangeCode`       | `accepted_gap` (no E2E coverage) | Browser-interactive; same retrofit path as the CI gap — mock OAuth server, tracked at [#591](https://github.com/alexey-pelykh/qontoctl/issues/591). |
+| OAuth function       | E2E coverage status              | Notes                                                                                                                                                                                          |
+| -------------------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `refreshAccessToken` | Covered (this suite, local-only) | Asserts new access token + rotated refresh token + positive expiry against sandbox token endpoint.                                                                                             |
+| `revokeToken`        | Covered (this suite, local-only) | Asserts revoked access token returns 401 on subsequent sandbox API call.                                                                                                                       |
+| `exchangeCode`       | `accepted_gap` (no E2E coverage) | Authorization-code flow requires browser interaction (user authentication + consent); not headlessly automatable. The token-exchange request itself is unit-tested in `oauth-service.test.ts`. |
 
 ## Recommended cadence
 
@@ -68,4 +68,4 @@ Run before any release candidate where end-to-end OAuth coverage matters — see
 - [#449](https://github.com/alexey-pelykh/qontoctl/issues/449) — umbrella issue for E2E coverage
 - [#460](https://github.com/alexey-pelykh/qontoctl/issues/460) — original OAuth-flow E2E issue (closed; merged via #590)
 - [#495](https://github.com/alexey-pelykh/qontoctl/issues/495) — why `QONTOCTL_REFRESH_TOKEN` was removed as a runtime env var (the rotation constraint that defines this suite's local-only scope)
-- [#591](https://github.com/alexey-pelykh/qontoctl/issues/591) — explore mock OAuth server for potential future CI coverage
+- [#591](https://github.com/alexey-pelykh/qontoctl/issues/591) — mock-OAuth-server exploration for CI coverage (declined; this suite is local-only by design)
