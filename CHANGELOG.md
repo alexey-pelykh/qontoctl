@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.0.4] — 2026-05-22
+
 ### Added
 
 - **`@qontoctl/core`**: new `OAuthNoTokenError` typed-error subclass of `AuthError` thrown by `buildOAuthAuthorization` when OAuth credentials are present but the access token is empty (no value yet — pre-login state or post-revoke). Subclass discrimination enables both (a) widening the HTTP client's fallback gate to cover the "OAuth wired but never logged in" case alongside `OAuthRefreshError` (was the third missing fallback arm — see § Fixed), and (b) mode-specific error formatting at the CLI/MCP edge that points users at `qontoctl auth login` and the `--auth api-key` escape hatch (was previously surfacing the generic AuthError handler's misleading "Verify your API key credentials" hint). Exported from `@qontoctl/core` (#631).
