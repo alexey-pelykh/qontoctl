@@ -126,6 +126,18 @@ historical regression to 422/EOF) surfaces as a test failure rather than
 a `sandbox-precondition` skip. No precondition skip path remains for
 this endpoint.
 
+**Parallel-endpoint cross-link ([#643])**: The
+[`POST /v2/client_invoices/{id}/send`](#post-v2-client-invoices-id-send)
+endpoint accepts the same OpenAPI `SendRequestPayload` shape and is the
+parallel of this entry. Its E2E test retains a defensive
+sandbox-precondition triage because the analogous empirical re-probe is
+blocked by [`POST /v2/client_invoices`](#post-v2-client-invoices)'s
+invoicing-IBAN precondition ([#539]) — `client_invoice_create` cannot
+reach a finalized invoice in the current sandbox, so the send path is
+unreachable for probing. By symmetry the precondition is likely stale
+on that side too, but unverified. The asymmetric triage discipline is
+the cross-endpoint reconciliation tracked in [#643].
+
 **Discovered**: [#606] original cataloguing (2026-05-17, based on
 empty-body call shape). [#638] empirical re-probe (2026-05-22) confirmed
 the precondition no longer applies under the typed-payload call shape.
@@ -181,9 +193,25 @@ recipient mailbox` reason; anything else (including the regression
 shape) fails. See [#638](https://github.com/alexey-pelykh/qontoctl/issues/638) for the parallel
 quote-side fix using the same triage pattern.
 
+**Parallel-probe asymmetry with `quote_send` ([#643])**: The parallel
+[`POST /v2/quotes/{id}/send`](#post-v2-quotes-id-send) endpoint accepts
+the same OpenAPI `SendRequestPayload` shape. Its sandbox-precondition
+was empirically re-probed in [#638] (2026-05-22) and found stale — the
+historical mailbox precondition was an artefact of the empty-body call
+shape. The analogous re-probe on this endpoint is blocked: the parent
+[`POST /v2/client_invoices`](#post-v2-client-invoices) requires an
+invoicing IBAN ([#539]) that the public Qonto API does not expose, so
+the send path is structurally unreachable for probing in the current
+sandbox. By symmetry of the `SendRequestPayload` shape, the
+precondition is likely stale here too, but unverified. The defensive
+triage in the E2E test is retained pending re-probe; when [#539]
+unblocks, re-probe send-side and consider removing the triage to
+match the `quote_send` parallel. See [#643] for the cross-endpoint
+reconciliation rationale.
+
 **Discovered**: Parallel-bug class to #636 arm 1
 (`quote_send` HTTP 422/EOF), surfaced during the #636 investigation
-and fixed in #639.
+and fixed in #639. Cross-endpoint reconciliation documented in [#643].
 
 #### `POST /v2/client_invoices` {#post-v2-client-invoices}
 
@@ -433,4 +461,5 @@ _documentation_ of each blocker now lives here.
 [#607]: https://github.com/alexey-pelykh/qontoctl/issues/607
 [#636]: https://github.com/alexey-pelykh/qontoctl/issues/636
 [#638]: https://github.com/alexey-pelykh/qontoctl/issues/638
+[#643]: https://github.com/alexey-pelykh/qontoctl/issues/643
 [Solution Design §7.2 R-SP-3]: ./designs/e2e-test-reliability.md

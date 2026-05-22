@@ -392,6 +392,22 @@ describe.skipIf(!hasApiKeyCredentials())("MCP client invoice tools (e2e)", () =>
   // When enabled, exercises create → finalize → send → cancel (cleanup);
   // the send is the assertion under test, the surrounding lifecycle is
   // scaffolding to reach a sendable state.
+  //
+  // Parallel-probe asymmetry with `quote_send` (#643): The parallel
+  // `POST /v2/quotes/{id}/send` MCP test (packages/e2e/src/quotes/
+  // mcp.e2e.test.ts) is structurally tighter — no env gate AND no
+  // sandbox-precondition triage path — because its precondition was
+  // empirically re-probed on 2026-05-22 (#638) and confirmed stale under
+  // the typed-payload contract. This test retains both the env gate AND
+  // a defensive sandbox-precondition triage path because the analogous
+  // re-probe is blocked by `client_invoice_create`'s invoicing-IBAN
+  // precondition (#539) — `create` cannot reach a finalized invoice in
+  // the current sandbox, so `send` is structurally unreachable for
+  // probing. By symmetry of the OpenAPI `SendRequestPayload` shape, the
+  // precondition is likely stale here too, but unverified. When #539
+  // unblocks, re-probe send-side and consider removing the triage to
+  // match the `quote_send` parallel. See #643 for the cross-endpoint
+  // reconciliation rationale.
   describe.skipIf(process.env["QONTOCTL_E2E_SEND_EMAIL"] !== "true")(
     "client_invoice_send (#457 AC #3, MCP, opt-in via QONTOCTL_E2E_SEND_EMAIL=true)",
     () => {

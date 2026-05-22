@@ -187,6 +187,13 @@ describe.skipIf(!hasOAuthCredentials())("MCP quote tools (e2e)", () => {
       // "client mailbox" precondition was an artefact of the empty-body call
       // shape. Any error here (including the historical 422/EOF if reintroduced
       // or a malformed-payload regression) must surface as a failure, not skip.
+      //
+      // Parallel-endpoint cross-link (#643): the parallel `client_invoice_send`
+      // MCP test (packages/e2e/src/client-invoices/mcp.e2e.test.ts) retains a
+      // defensive sandbox-precondition triage path because its empirical
+      // re-probe is blocked by `client_invoice_create`'s invoicing-IBAN
+      // precondition (#539). The triage asymmetry is the cross-endpoint
+      // reconciliation documented in #643.
       const result = await client.callTool({
         name: "quote_send",
         arguments: {
