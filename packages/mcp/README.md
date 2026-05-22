@@ -163,7 +163,7 @@ Add to your Claude Desktop configuration (`claude_desktop_config.json`):
 | `quote_create`                                  | Create a new quote with client and line items                                                                   |
 | `quote_update`                                  | Update an existing quote                                                                                        |
 | `quote_delete`                                  | Delete a quote                                                                                                  |
-| `quote_send`                                    | Send a quote to the client via email                                                                            |
+| `quote_send`                                    | Send a quote via email — requires `send_to[]` and `email_title`                                                 |
 | **Credit Notes**                                |                                                                                                                 |
 | `credit_note_list`                              | List credit notes in the organization                                                                           |
 | `credit_note_show`                              | Show details of a specific credit note                                                                          |

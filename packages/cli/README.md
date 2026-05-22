@@ -106,7 +106,7 @@ npm install @qontoctl/cli
 | `quote create`                                                                                                    | Create a new quote                                           |
 | `quote update <id>`                                                                                               | Update a quote                                               |
 | `quote delete <id>`                                                                                               | Delete a quote                                               |
-| `quote send <id>`                                                                                                 | Send quote to client via email                               |
+| `quote send <id>`                                                                                                 | Send quote via email (`--to` + `--title` required)           |
 | `credit-note list`                                                                                                | List credit notes                                            |
 | `credit-note show <id>`                                                                                           | Show credit note details                                     |
 | `supplier-invoice list`                                                                                           | List supplier invoices                                       |

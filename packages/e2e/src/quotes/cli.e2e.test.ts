@@ -125,23 +125,25 @@ describe.skipIf(!hasOAuthCredentials())("quote commands (e2e)", () => {
     });
   });
 
-  describe("quote send", () => {
-    // Sending a quote requires the client to have a valid mailbox. The
-    // sandbox often lacks email infrastructure for arbitrary clients, so
-    // this test is best-effort: create a draft quote, attempt to send it,
-    // and skip on the "no mailbox" / validation-failure shape returned by
-    // the Qonto API. Sent quotes typically cannot be deleted, so we do not
-    // attempt cleanup — the sandbox is reset periodically.
-    it("sends a draft quote (skips on missing client mailbox)", () => {
-      // Find a client to use for the quote.
-      let quotes: { client: { id: string } }[];
-      try {
-        const listOutput = cli("--output", "json", "quote", "list");
-        quotes = JSON.parse(listOutput) as { client: { id: string } }[];
-      } catch {
-        return;
-      }
+  describe("quote send (#638)", () => {
+    // Since #638 the `quote send` command carries a typed `--to` / `--title`
+    // payload that the Qonto API requires. Empirical probe (2026-05-22, see
+    // PR #638 description): the API accepts the send regardless of the quote's
+    // client mailbox state — the prior "client mailbox" precondition was an
+    // artefact of the empty-body call shape. The previous try/catch that
+    // absorbed any non-zero exit as a skip masked the historical 422/EOF
+    // (#636 arm 1); the new triage surfaces any send failure as a test
+    // failure. Sent quotes are not cleaned up here — the sandbox is reset
+    // periodically.
+    it("sends a draft quote end-to-end with --to + --title", () => {
+      // Reuse an existing quote's client_id so we exercise the send path
+      // against a real sandbox client.
+      const listOutput = cli("--output", "json", "quote", "list");
+      const quotes = JSON.parse(listOutput) as { client: { id: string } }[];
       if (quotes.length === 0) {
+        // No clients in the sandbox to reuse — cannot construct a draft.
+        // Surface as a skip via early return; sequential E2E execution means
+        // this only fires when the sandbox is freshly empty.
         return;
       }
 
@@ -165,30 +167,49 @@ describe.skipIf(!hasOAuthCredentials())("quote commands (e2e)", () => {
         ],
       });
 
-      let quoteId: string;
-      try {
-        const createOutput = cli("--output", "json", "quote", "create", "--body", body);
-        quoteId = (JSON.parse(createOutput) as { id: string }).id;
-      } catch {
-        // Sandbox may reject creation for environmental reasons (no clients
-        // with emails, missing org setup, etc.) — skip rather than fail.
-        return;
-      }
+      const createOutput = cli("--output", "json", "quote", "create", "--body", body);
+      const quoteId = (JSON.parse(createOutput) as { id: string }).id;
 
+      // The send carries valid `send_to` + `email_title` per the Qonto
+      // contract (#638). Failures here surface as test failures via
+      // execFileSync's throw-on-non-zero behaviour — exactly the discipline
+      // that caught #636 arm 1 once the masking try/catch was removed.
+      const sendOutput = cli(
+        "--output",
+        "json",
+        "quote",
+        "send",
+        quoteId,
+        "--to",
+        "e2e-recipient@example.com",
+        "--title",
+        "E2E test quote — safe to ignore",
+        "--no-copy-self",
+      );
+      const parsed = JSON.parse(sendOutput) as Record<string, unknown>;
+      expect(parsed).toHaveProperty("sent", true);
+      expect(parsed).toHaveProperty("id", quoteId);
+    });
+
+    it("exits non-zero with stderr guidance when --to is missing (#638)", () => {
       try {
-        const sendOutput = cli("--output", "json", "quote", "send", quoteId);
-        const parsed = JSON.parse(sendOutput) as Record<string, unknown>;
-        expect(parsed).toHaveProperty("sent", true);
-        expect(parsed).toHaveProperty("id", quoteId);
+        cli("quote", "send", "00000000-0000-0000-0000-000000000000", "--title", "Subject");
+        expect.fail("Expected command to exit with non-zero code");
       } catch (error: unknown) {
-        // Most common failure: client has no mailbox / email address. The
-        // Qonto API returns a 4xx with a body indicating the missing field.
-        // We accept the error path as a valid skip — the test asserts that
-        // either the send succeeds OR fails with a recognizable shape.
-        const execError = error as { status?: number; stderr?: Buffer };
-        const status = execError.status;
-        // Non-zero exit means the API returned an error; treat as skip.
-        expect(typeof status === "number" && status > 0).toBe(true);
+        const execError = error as { status: number; stderr: Buffer };
+        expect(execError.status).toBe(1);
+        expect(execError.stderr.toString()).toContain("--to");
+      }
+    });
+
+    it("exits non-zero with stderr guidance when --title is missing (#638)", () => {
+      try {
+        cli("quote", "send", "00000000-0000-0000-0000-000000000000", "--to", "a@example.com");
+        expect.fail("Expected command to exit with non-zero code");
+      } catch (error: unknown) {
+        const execError = error as { status: number; stderr: Buffer };
+        expect(execError.status).toBe(1);
+        expect(execError.stderr.toString()).toContain("--title");
       }
     });
   });

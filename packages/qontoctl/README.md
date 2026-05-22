@@ -306,7 +306,7 @@ The path is captured at server startup. See [`docs/configuration.md`](docs/confi
 | `quote_create`                                  | Create a new quote with client and line items                                                                   |
 | `quote_update`                                  | Update an existing quote                                                                                        |
 | `quote_delete`                                  | Delete a quote                                                                                                  |
-| `quote_send`                                    | Send a quote to the client via email                                                                            |
+| `quote_send`                                    | Send a quote via email — requires `send_to[]` and `email_title`                                                 |
 | **Credit Notes**                                |                                                                                                                 |
 | `credit_note_list`                              | List credit notes in the organization                                                                           |
 | `credit_note_show`                              | Show details of a specific credit note                                                                          |
@@ -481,7 +481,7 @@ The pending response's textual format is stable, so callers that need to extract
 | `quote create`                                                                                | Create a new quote                                                                 |
 | `quote update <id>`                                                                           | Update a quote                                                                     |
 | `quote delete <id>`                                                                           | Delete a quote                                                                     |
-| `quote send <id>`                                                                             | Send quote to client via email                                                     |
+| `quote send <id>`                                                                             | Send quote via email (`--to` + `--title` required)                                 |
 | `credit-note list`                                                                            | List credit notes                                                                  |
 | `credit-note show <id>`                                                                       | Show credit note details                                                           |
 | `supplier-invoice list`                                                                       | List supplier invoices                                                             |

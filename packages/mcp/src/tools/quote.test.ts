@@ -318,7 +318,11 @@ describe("quote MCP tools", () => {
 
       const result = await mcpClient.callTool({
         name: "quote_send",
-        arguments: { id: "q-123" },
+        arguments: {
+          id: "q-123",
+          send_to: ["recipient@example.com"],
+          email_title: "Quote for ACME",
+        },
       });
 
       const content = result.content as { type: string; text: string }[];
@@ -329,17 +333,93 @@ describe("quote MCP tools", () => {
       expect(parsed.id).toBe("q-123");
     });
 
-    it("sends POST to the correct endpoint", async () => {
+    it("sends POST to the correct endpoint with JSON payload (#638)", async () => {
       fetchSpy.mockReturnValue(new Response(null, { status: 204 }));
 
       await mcpClient.callTool({
         name: "quote_send",
-        arguments: { id: "q-123" },
+        arguments: {
+          id: "q-123",
+          send_to: ["a@example.com", "b@example.com"],
+          email_title: "Quote for ACME",
+          email_body: "Please find attached our quote.",
+          copy_to_self: false,
+        },
       });
 
       const [url, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
       expect(url.pathname).toBe("/v2/quotes/q-123/send");
       expect(opts.method).toBe("POST");
+
+      const headers = opts.headers as Record<string, string>;
+      expect(headers["Content-Type"]).toBe("application/json");
+
+      const body = JSON.parse(opts.body as string) as Record<string, unknown>;
+      expect(body).toEqual({
+        send_to: ["a@example.com", "b@example.com"],
+        email_title: "Quote for ACME",
+        email_body: "Please find attached our quote.",
+        copy_to_self: false,
+      });
+    });
+
+    it("defaults copy_to_self to true when omitted (#638)", async () => {
+      fetchSpy.mockReturnValue(new Response(null, { status: 204 }));
+
+      await mcpClient.callTool({
+        name: "quote_send",
+        arguments: {
+          id: "q-123",
+          send_to: ["recipient@example.com"],
+          email_title: "Quote",
+        },
+      });
+
+      const [, opts] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+      const body = JSON.parse(opts.body as string) as Record<string, unknown>;
+      expect(body["copy_to_self"]).toBe(true);
+      expect(body).not.toHaveProperty("email_body");
+    });
+
+    it("rejects missing send_to via input schema validation (#638)", async () => {
+      const result = await mcpClient.callTool({
+        name: "quote_send",
+        arguments: {
+          id: "q-123",
+          email_title: "Quote",
+        },
+      });
+
+      // Zod validation rejects before the handler runs — no HTTP call made.
+      expect(result.isError).toBe(true);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it("rejects empty send_to via input schema validation (#638)", async () => {
+      const result = await mcpClient.callTool({
+        name: "quote_send",
+        arguments: {
+          id: "q-123",
+          send_to: [],
+          email_title: "Quote",
+        },
+      });
+
+      expect(result.isError).toBe(true);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it("rejects missing email_title via input schema validation (#638)", async () => {
+      const result = await mcpClient.callTool({
+        name: "quote_send",
+        arguments: {
+          id: "q-123",
+          send_to: ["recipient@example.com"],
+        },
+      });
+
+      expect(result.isError).toBe(true);
+      expect(fetchSpy).not.toHaveBeenCalled();
     });
   });
 });
