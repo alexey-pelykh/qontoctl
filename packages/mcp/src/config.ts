@@ -37,6 +37,11 @@ const CONFIG_FILE_ENV = "QONTOCTL_CONFIG_FILE";
 export function buildMcpResolveOptions(
   env?: Record<string, string | undefined>,
 ): Pick<ResolveOptions, "path"> | undefined {
+  // Explicit cast at the env-source boundary — documents intent that `process.env`
+  // is consumed as a `Record<string, string | undefined>`. typescript-eslint 8.59
+  // sees this as redundant given NodeJS.ProcessEnv's index signature, but the
+  // explicit form is preserved for readers tracing the env-source contract.
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
   const source = env ?? (process.env as Record<string, string | undefined>);
   const configPath = source[CONFIG_FILE_ENV];
   if (configPath === undefined || configPath === "") {

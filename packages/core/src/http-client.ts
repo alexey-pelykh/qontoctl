@@ -735,12 +735,7 @@ export class HttpClient {
   }
 
   private extractErrors(body: unknown): readonly QontoApiErrorEntry[] {
-    if (
-      typeof body === "object" &&
-      body !== null &&
-      "errors" in body &&
-      Array.isArray((body as { errors: unknown }).errors)
-    ) {
+    if (typeof body === "object" && body !== null && "errors" in body && Array.isArray(body.errors)) {
       return (body as { errors: unknown[] }).errors.map((entry: unknown) => {
         const e = entry as Record<string, unknown>;
         const base = {

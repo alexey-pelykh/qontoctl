@@ -310,7 +310,7 @@ function describeSearchLocations(
   if (profile !== undefined) {
     return `Checked ~/.qontoctl/${profile}.yaml and QONTOCTL_${profile.toUpperCase().replaceAll("-", "_")}_* env vars.`;
   }
-  const envFile = (env ?? (process.env as Record<string, string | undefined>))["QONTOCTL_CONFIG_FILE"];
+  const envFile = (env ?? process.env)["QONTOCTL_CONFIG_FILE"];
   if (envFile !== undefined) {
     return `Checked QONTOCTL_CONFIG_FILE="${envFile}" and QONTOCTL_* env vars.`;
   }

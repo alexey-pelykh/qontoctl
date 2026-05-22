@@ -5,7 +5,7 @@ import { z } from "zod";
 
 export function parseResponse<T extends z.ZodType>(schema: T, response: unknown, endpointPath: string): z.infer<T> {
   try {
-    return schema.parse(response) as z.infer<T>;
+    return schema.parse(response);
   } catch (error) {
     if (error instanceof z.ZodError) {
       const issues = error.issues

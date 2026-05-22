@@ -114,7 +114,7 @@ export function buildResolveOptions(
   }
   // `--config` is set. Warn on any silent-override of an ambient source.
   const stream = options?.stderr ?? process.stderr;
-  const env = options?.env ?? (process.env as Record<string, string | undefined>);
+  const env = options?.env ?? process.env;
   const home = options?.home ?? homedir();
   const configResolved = resolvePath(config);
 

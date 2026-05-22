@@ -61,7 +61,7 @@ export function registerDiagnoseCommand(program: Command): void {
     .addOption(
       new Option("--diagnose-output <format>", "diagnose-specific output format")
         .choices(["table", "json"])
-        .default(undefined as unknown as string),
+        .default(undefined),
     )
     .addOption(new Option("--ascii", "use ASCII fallback markers instead of unicode (✓/⚠/✗/—)"))
     .addOption(

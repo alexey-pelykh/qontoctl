@@ -18,6 +18,10 @@ function toCsvValue(value: unknown): string {
   if (typeof value === "object") {
     return escapeCsvField(JSON.stringify(value));
   }
+  // Narrow to non-stringifiable-as-object primitives. typescript-eslint sees this
+  // as redundant because `String()` accepts any input; the cast is preserved as
+  // documentation that the residual type is intentionally a safe primitive set.
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
   return escapeCsvField(String(value as number | boolean | bigint));
 }
 
