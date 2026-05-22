@@ -894,7 +894,7 @@ describe("HttpClient", () => {
     });
 
     it("logs request body and response body in debug mode", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ data: "ok" }));
+      fetchSpy.mockReturnValue(jsonResponse({ id: "tr-1", status: "completed" }));
       const logger = createMockLogger();
       const client = new TestableHttpClient({
         baseUrl: "https://thirdparty.qonto.com",
@@ -907,7 +907,7 @@ describe("HttpClient", () => {
       expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining("Request body"));
       expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining('"amount":100'));
       expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining("Response body"));
-      expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining('"data":"ok"'));
+      expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining('"id":"tr-1"'));
     });
 
     it("logs request headers in debug mode", async () => {
@@ -991,7 +991,7 @@ describe("HttpClient", () => {
     });
 
     it("redacts sca_session_token body field in response body debug logs", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ outer: { sca_session_token: "leaky-token-XYZ", other: "ok" } }));
+      fetchSpy.mockReturnValue(jsonResponse({ outer: { sca_session_token: "leaky-token-XYZ", status: "ok" } }));
       const logger = createMockLogger();
       const client = new TestableHttpClient({
         baseUrl: "https://thirdparty.qonto.com",
@@ -1008,7 +1008,7 @@ describe("HttpClient", () => {
       const bodyLog = bodyLogCalls[0]?.[0] as string;
       expect(bodyLog).not.toContain("leaky-token-XYZ");
       expect(bodyLog).toContain('"sca_session_token":"[REDACTED]"');
-      expect(bodyLog).toContain('"other":"ok"');
+      expect(bodyLog).toContain('"status":"ok"');
     });
 
     it("redacts PII fields (send_to, email) in request body debug logs (#644)", async () => {
@@ -1034,10 +1034,15 @@ describe("HttpClient", () => {
       const bodyLog = requestBodyLogCalls[0]?.[0] as string;
       expect(bodyLog).not.toContain("recipient-a@example.com");
       expect(bodyLog).not.toContain("recipient-b@example.com");
-      expect(bodyLog).toContain('"send_to":"[REDACTED]"');
-      // Non-PII fields remain visible
+      // The allowlist walk descends into the array and redacts each element
+      // individually (the elements have no key to vouch for them).
+      expect(bodyLog).toContain('"send_to":["[REDACTED]","[REDACTED]"]');
+      // email_title is not provably never-PII (a subject line can carry a
+      // recipient's name), so the allowlist redacts it; the copy_to_self
+      // boolean flag is allowlisted and stays visible.
+      expect(bodyLog).not.toContain("Your quote");
+      expect(bodyLog).toContain('"email_title":"[REDACTED]"');
       expect(bodyLog).toContain('"copy_to_self":true');
-      expect(bodyLog).toContain('"email_title":"Your quote"');
     });
 
     it("redacts singular email field in request body debug logs (#644)", async () => {
@@ -1080,7 +1085,7 @@ describe("HttpClient", () => {
         iban: "FR7630001007941234567890185",
         bic: "BNPAFRPPXXX",
         balance: 12345.67,
-        label: "internal",
+        status: "pending",
       });
 
       const requestBodyLogCalls = logger.debug.mock.calls.filter(
@@ -1093,7 +1098,7 @@ describe("HttpClient", () => {
       expect(bodyLog).toContain('"iban":"[REDACTED]"');
       expect(bodyLog).toContain('"bic":"[REDACTED]"');
       expect(bodyLog).toContain('"balance":"[REDACTED]"');
-      expect(bodyLog).toContain('"label":"internal"');
+      expect(bodyLog).toContain('"status":"pending"');
     });
 
     it("logs FormData request bodies as [FormData] placeholder (no JSON redaction needed)", async () => {
@@ -1194,9 +1199,9 @@ describe("HttpClient", () => {
       expect(bodyLog).toContain('"zip_code":"[REDACTED]"');
       expect(bodyLog).toContain('"country_code":"[REDACTED]"');
       expect(bodyLog).toContain('"province_code":"[REDACTED]"');
-      // Nested address components inside billing_address redacted via recursive walk
-      // (the `billing_address` key itself is not in SENSITIVE_FIELDS, so the walker
-      // descends into it and redacts the matching child keys)
+      // Nested address components inside billing_address redacted via recursive
+      // walk — the walker always descends into objects so each child key is
+      // judged independently against LOGGABLE_FIELDS.
       expect(bodyLog).toContain('"street_address":"[REDACTED]"');
       // Non-PII fields remain visible
       expect(bodyLog).toContain('"kind":"company"');
@@ -1230,6 +1235,101 @@ describe("HttpClient", () => {
       expect(bodyLog).toContain('"vat_number":"FR12345678901"');
       expect(bodyLog).toContain('"kind":"company"');
       expect(bodyLog).toContain('"locale":"en"');
+    });
+
+    it("redacts unknown and synonym field names by default — no allowlist edit required (#650)", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ id: "client-1" }, { status: 201 }));
+      const logger = createMockLogger();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+        logger,
+      });
+
+      // None of these key names are enumerated anywhere in the redaction
+      // mechanism — they are synonyms / future-schema variants of fields the
+      // old denylist covered by exact name. The allowlist model redacts them
+      // anyway, simply because they are not marked safe-to-log. `date` IS
+      // allowlisted, yet `date_of_birth` still redacts: matching is exact, not
+      // prefix-based.
+      await client.post("/v2/clients", {
+        kind: "individual",
+        email_address: "jean.dupont@example.com",
+        tax_id: "FR99887766554",
+        phone: "+33611223344",
+        mobile: "+33655443322",
+        national_id: "1840675120036",
+        date_of_birth: "1984-06-15",
+        metadata: { customer_email: "nested@example.com" },
+      });
+
+      const requestBodyLogCalls = logger.debug.mock.calls.filter(
+        (call: string[]) => typeof call[0] === "string" && call[0].startsWith("Request body:"),
+      );
+      expect(requestBodyLogCalls.length).toBeGreaterThan(0);
+      const bodyLog = requestBodyLogCalls[0]?.[0] as string;
+      expect(bodyLog).not.toContain("jean.dupont@example.com");
+      expect(bodyLog).not.toContain("FR99887766554");
+      expect(bodyLog).not.toContain("+33611223344");
+      expect(bodyLog).not.toContain("+33655443322");
+      expect(bodyLog).not.toContain("1840675120036");
+      expect(bodyLog).not.toContain("1984-06-15");
+      expect(bodyLog).not.toContain("nested@example.com");
+      expect(bodyLog).toContain('"email_address":"[REDACTED]"');
+      expect(bodyLog).toContain('"tax_id":"[REDACTED]"');
+      expect(bodyLog).toContain('"phone":"[REDACTED]"');
+      expect(bodyLog).toContain('"mobile":"[REDACTED]"');
+      expect(bodyLog).toContain('"national_id":"[REDACTED]"');
+      expect(bodyLog).toContain('"date_of_birth":"[REDACTED]"');
+      // Synonyms redact at depth too — the walk descends into nested objects.
+      expect(bodyLog).toContain('"customer_email":"[REDACTED]"');
+      // The allowlisted enum stays visible so the log is still useful.
+      expect(bodyLog).toContain('"kind":"individual"');
+    });
+
+    it("keeps visible-by-design operational fields readable while redacting PII in the same object (#650)", async () => {
+      fetchSpy.mockReturnValue(
+        jsonResponse({
+          id: "client-42",
+          kind: "company",
+          status: "active",
+          name: "ACME Corp",
+          vat_number: "FR12345678901",
+          locale: "en",
+          currency: "EUR",
+          created_at: "2026-05-22T10:00:00Z",
+          first_name: "Jean",
+        }),
+      );
+      const logger = createMockLogger();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+        logger,
+      });
+
+      await client.get("/v2/clients/client-42");
+
+      const bodyLogCalls = logger.debug.mock.calls.filter(
+        (call: string[]) => typeof call[0] === "string" && call[0].includes("Response body"),
+      );
+      expect(bodyLogCalls.length).toBeGreaterThan(0);
+      const bodyLog = bodyLogCalls[0]?.[0] as string;
+      // Operational fields the allowlist deliberately keeps visible so
+      // catch-all redaction does not regress debug usefulness — IDs,
+      // status/kind enums, money metadata, timestamps, and the #647
+      // visible-by-design corporate name / vat_number carve-out.
+      expect(bodyLog).toContain('"id":"client-42"');
+      expect(bodyLog).toContain('"kind":"company"');
+      expect(bodyLog).toContain('"status":"active"');
+      expect(bodyLog).toContain('"name":"ACME Corp"');
+      expect(bodyLog).toContain('"vat_number":"FR12345678901"');
+      expect(bodyLog).toContain('"locale":"en"');
+      expect(bodyLog).toContain('"currency":"EUR"');
+      expect(bodyLog).toContain('"created_at":"2026-05-22T10:00:00Z"');
+      // ...but a natural-person field sitting in the same object still redacts.
+      expect(bodyLog).not.toContain("Jean");
+      expect(bodyLog).toContain('"first_name":"[REDACTED]"');
     });
 
     it("redacts Authorization header in debug logs", async () => {
