@@ -220,10 +220,38 @@ const STAGING_TOKEN_HEADER = "X-Qonto-Staging-Token";
  * regress: resource identity and lifecycle fields (`id`, `kind`, `status`,
  * timestamps), money metadata (`amount`, `currency`), and the HTTP transport
  * headers that carry no secret. It also preserves the visible-by-design
- * carve-out from #647 — a corporate entity's `name` and its `vat_number` are
- * not natural-person PII and stay readable for operational debugging of B2B
- * records (natural persons are identified by `first_name` / `last_name`,
- * which are absent here and therefore redacted).
+ * carve-out from #647 for a business's `vat_number` — a corporate tax
+ * identifier with no natural-person analog (an individual's personal tax id is
+ * `tax_identification_number`, which is absent from this set and therefore
+ * redacted), so it stays globally readable for operational debugging of B2B
+ * records.
+ *
+ * ## `name` is gated per-object, not globally loggable (#653)
+ *
+ * `name` is deliberately NOT in this set. A corporate entity's `name` is safe
+ * to log, but the same key holds a *natural person* on records that decompose
+ * differently — a SEPA / international beneficiary or an inline transfer
+ * beneficiary (the account holder, frequently an individual), or an
+ * `individual` / `freelancer` client (which the API may return with `name`
+ * populated rather than `first_name` / `last_name`). A single global `name`
+ * entry failed the same way the old denylist did: one rule spanning
+ * heterogeneous semantics across endpoint families, leaking the person cases.
+ *
+ * Instead {@link redactNode} keeps `name` readable only when the *same object*
+ * asserts a corporate identity in its own keys — `kind === "company"` or
+ * `type === "company"` (the discriminator the `Client` / `QuoteClient` /
+ * `ClientInvoiceClient` / `CreditNoteClient` schemas carry). The marker is
+ * re-evaluated at every object level, so a corporate holder never vouches for
+ * a `name` nested beneath it (e.g. a `contact.name`). Everything else fails
+ * closed: beneficiaries, individual / freelancer clients, organizations,
+ * teams, labels, and bank-account nicknames all redact `name`, while their
+ * `id` / `slug` / `status` keep the record identifiable in logs. The
+ * discriminator value is compared case-insensitively; its keys are read per
+ * Qonto's documented lowercase `kind` / `type` contract (a non-lowercase key
+ * would simply fail closed and over-redact `name`). Accepted residual: a
+ * record that simultaneously asserts `kind: "company"` and carries a
+ * natural-person `name` in the same object would log that name — no documented
+ * Qonto shape does this, and the record is the caller's own outbound data.
  *
  * Adding a key here is a deliberate, reviewable assertion that the field is
  * safe to log — the inverse of the old denylist, where *forgetting* to add a
@@ -251,9 +279,15 @@ const LOGGABLE_FIELDS: ReadonlySet<string> = new Set([
   "locale",
   // Non-sensitive operational flags.
   "copy_to_self",
-  // Business identifiers visible-by-design for operational debugging of B2B
-  // records — carve-out established at #647.
-  "name",
+  // Entity-kind discriminator (`individual` / `company` / `freelancer`) — an
+  // enum, never PII; allowlisted so the per-object `name` gate's decision
+  // stays auditable in the log (#653). (`kind`, its synonym, is already
+  // allowlisted above as a classification field.)
+  "type",
+  // Business tax identifier, visible-by-design for operational debugging of
+  // B2B records — corporate-only by definition, no natural-person analog
+  // (carve-out established at #647). `name` is intentionally NOT here: it is
+  // gated per-object in `redactNode`, not globally loggable (#653).
   "vat_number",
   // HTTP transport headers known to carry no secret or PII (compared
   // lowercase). The sensitive request headers — `authorization`,
@@ -273,7 +307,9 @@ const LOGGABLE_FIELDS: ReadonlySet<string> = new Set([
 /**
  * Returns a redacted deep copy of `value` for safe debug-log emission: every
  * primitive leaf whose key is not in {@link LOGGABLE_FIELDS} is replaced with
- * `[REDACTED]`.
+ * `[REDACTED]`. The `name` key is the one exception — gated per-object on a
+ * corporate-entity marker rather than globally allowlisted (see
+ * {@link isCorporateEntity} and the {@link LOGGABLE_FIELDS} note, #653).
  *
  * The walk always descends through objects and arrays, so the *structure* of
  * the payload stays visible — only leaf values are masked. An object's
@@ -285,9 +321,11 @@ const LOGGABLE_FIELDS: ReadonlySet<string> = new Set([
  * to vouch for it — is redacted as well, in keeping with the fail-closed
  * default; in practice the call sites only ever pass objects.
  *
- * The input is never mutated. All five debug-log call sites — request body,
- * response body, request headers, response headers, and the primary-auth-
- * error body — share this one function by reference.
+ * The input is never mutated. Every debug-log call site shares this one
+ * function by reference — the five categories (request body, response body,
+ * request headers, response headers, primary-auth-error body), with the
+ * header pair recurring on the fallback-auth path — so redaction, including
+ * the per-object `name` gate, applies uniformly across all of them.
  */
 function redactSensitiveFields(value: unknown): unknown {
   return redactNode(value, true);
@@ -308,15 +346,38 @@ function redactNode(value: unknown, redactLeaf: boolean): unknown {
     return value.map((item: unknown) => redactNode(item, redactLeaf));
   }
   if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    // `name` is loggable only when THIS object asserts a corporate identity in
+    // its own keys — re-evaluated per object so a corporate holder never
+    // vouches for a `name` nested beneath it (#653). See {@link LOGGABLE_FIELDS}.
+    const nameIsLoggable = isCorporateEntity(record);
     // Each property is re-judged by its own key — the holding key's decision
     // does not carry into a nested object.
     const result: Record<string, unknown> = {};
-    for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
-      result[key] = redactNode(val, !LOGGABLE_FIELDS.has(key.toLowerCase()));
+    for (const [key, val] of Object.entries(record)) {
+      const lowerKey = key.toLowerCase();
+      const keyIsLoggable = lowerKey === "name" ? nameIsLoggable : LOGGABLE_FIELDS.has(lowerKey);
+      result[key] = redactNode(val, !keyIsLoggable);
     }
     return result;
   }
   return redactLeaf ? "[REDACTED]" : value;
+}
+
+/**
+ * Whether a walked object asserts a corporate-entity identity in its own keys,
+ * which gates whether a sibling `name` is loggable (#653). True iff this
+ * object's own `kind` or `type` equals `"company"` (value compared
+ * case-insensitively) — the discriminator the `Client` / `QuoteClient` /
+ * `ClientInvoiceClient` / `CreditNoteClient` schemas carry. Read from the
+ * object's own keys only; never inherited into nested objects.
+ */
+function isCorporateEntity(record: Record<string, unknown>): boolean {
+  return isCompanyMarker(record["kind"]) || isCompanyMarker(record["type"]);
+}
+
+function isCompanyMarker(value: unknown): boolean {
+  return typeof value === "string" && value.toLowerCase() === "company";
 }
 
 function buildUserAgent(): string {
