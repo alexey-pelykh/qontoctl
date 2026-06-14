@@ -1069,7 +1069,12 @@ describe("HttpClient", () => {
       expect(bodyLog).not.toContain("FR7630001007941234567890185");
       expect(bodyLog).toContain('"email":"[REDACTED]"');
       expect(bodyLog).toContain('"iban":"[REDACTED]"');
-      expect(bodyLog).toContain('"name":"ACME Corp"');
+      // #653: a beneficiary `name` (the account holder — corporate here, but
+      // structurally indistinguishable from a natural person, no `kind`/`type`
+      // marker) now redacts. The prior assertion that it stayed visible
+      // encoded the leak this issue closes.
+      expect(bodyLog).not.toContain("ACME Corp");
+      expect(bodyLog).toContain('"name":"[REDACTED]"');
     });
 
     it("redacts pre-existing sensitive fields (iban, bic, balance) in request body debug logs (#644)", async () => {
@@ -1330,6 +1335,327 @@ describe("HttpClient", () => {
       // ...but a natural-person field sitting in the same object still redacts.
       expect(bodyLog).not.toContain("Jean");
       expect(bodyLog).toContain('"first_name":"[REDACTED]"');
+    });
+
+    it("redacts beneficiary `name` (natural-person account holder) in request body debug logs (#653)", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ id: "ben-1" }, { status: 201 }));
+      const logger = createMockLogger();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+        logger,
+      });
+
+      // A SEPA beneficiary `name` is the account holder — frequently a natural
+      // person (paying a freelancer / contractor). The record carries no
+      // `kind`/`type` corporate marker, so `name` redacts.
+      await client.post("/v2/beneficiaries", {
+        name: "Jean Dupont",
+        iban: "FR7630001007941234567890185",
+      });
+
+      const requestBodyLogCalls = logger.debug.mock.calls.filter(
+        (call: string[]) => typeof call[0] === "string" && call[0].startsWith("Request body:"),
+      );
+      expect(requestBodyLogCalls.length).toBeGreaterThan(0);
+      const bodyLog = requestBodyLogCalls[0]?.[0] as string;
+      expect(bodyLog).not.toContain("Jean Dupont");
+      expect(bodyLog).toContain('"name":"[REDACTED]"');
+      expect(bodyLog).toContain('"iban":"[REDACTED]"');
+    });
+
+    it("redacts nested inline transfer-beneficiary `name` in request body debug logs (#653)", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ id: "tr-1" }, { status: 201 }));
+      const logger = createMockLogger();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+        logger,
+      });
+
+      await client.post("/v2/transfers", {
+        beneficiary: { name: "Marie Lefebvre", iban: "FR7630001007941234567890185" },
+        amount: "100.00",
+        currency: "EUR",
+      });
+
+      const requestBodyLogCalls = logger.debug.mock.calls.filter(
+        (call: string[]) => typeof call[0] === "string" && call[0].startsWith("Request body:"),
+      );
+      expect(requestBodyLogCalls.length).toBeGreaterThan(0);
+      const bodyLog = requestBodyLogCalls[0]?.[0] as string;
+      expect(bodyLog).not.toContain("Marie Lefebvre");
+      expect(bodyLog).toContain('"name":"[REDACTED]"');
+      // Allowlisted operational fields on the same body stay visible.
+      expect(bodyLog).toContain('"amount":"100.00"');
+      expect(bodyLog).toContain('"currency":"EUR"');
+    });
+
+    it("redacts international-beneficiary `name` and unknown keys in response body debug logs (#653)", async () => {
+      fetchSpy.mockReturnValue(
+        jsonResponse({
+          id: "intl-1",
+          name: "Wei Zhang",
+          currency: "USD",
+          routing_number: "021000021",
+        }),
+      );
+      const logger = createMockLogger();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+        logger,
+      });
+
+      await client.get("/v2/international_beneficiaries/intl-1");
+
+      const bodyLogCalls = logger.debug.mock.calls.filter(
+        (call: string[]) => typeof call[0] === "string" && call[0].includes("Response body"),
+      );
+      expect(bodyLogCalls.length).toBeGreaterThan(0);
+      const bodyLog = bodyLogCalls[0]?.[0] as string;
+      expect(bodyLog).not.toContain("Wei Zhang");
+      expect(bodyLog).toContain('"name":"[REDACTED]"');
+      // Unknown keys (the `[key: string]: unknown` index-signature surface) fail
+      // closed under the allowlist — they need no `name`-specific handling.
+      expect(bodyLog).not.toContain("021000021");
+      expect(bodyLog).toContain('"routing_number":"[REDACTED]"');
+      expect(bodyLog).toContain('"id":"intl-1"');
+      expect(bodyLog).toContain('"currency":"USD"');
+    });
+
+    it("redacts individual-client `name` (no corporate marker) in request body debug logs (#653)", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ id: "client-1" }, { status: 201 }));
+      const logger = createMockLogger();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+        logger,
+      });
+
+      // An `individual` client may arrive with `name` populated rather than
+      // first/last; `kind !== "company"`, so `name` redacts.
+      await client.post("/v2/clients", {
+        kind: "individual",
+        name: "Sophie Martin",
+        first_name: "Sophie",
+        last_name: "Martin",
+      });
+
+      const requestBodyLogCalls = logger.debug.mock.calls.filter(
+        (call: string[]) => typeof call[0] === "string" && call[0].startsWith("Request body:"),
+      );
+      expect(requestBodyLogCalls.length).toBeGreaterThan(0);
+      const bodyLog = requestBodyLogCalls[0]?.[0] as string;
+      expect(bodyLog).not.toContain("Sophie Martin");
+      expect(bodyLog).toContain('"name":"[REDACTED]"');
+      expect(bodyLog).toContain('"first_name":"[REDACTED]"');
+      expect(bodyLog).toContain('"last_name":"[REDACTED]"');
+      // The `kind` enum stays visible so the log shows WHY `name` was redacted.
+      expect(bodyLog).toContain('"kind":"individual"');
+    });
+
+    it("redacts freelancer-client `name` discriminated by `type` (non-company) in response body debug logs (#653)", async () => {
+      fetchSpy.mockReturnValue(
+        jsonResponse({ client: { id: "qc-1", type: "freelancer", name: "Paul Bernard", first_name: "Paul" } }),
+      );
+      const logger = createMockLogger();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+        logger,
+      });
+
+      await client.get("/v2/quotes/quote-1");
+
+      const bodyLogCalls = logger.debug.mock.calls.filter(
+        (call: string[]) => typeof call[0] === "string" && call[0].includes("Response body"),
+      );
+      expect(bodyLogCalls.length).toBeGreaterThan(0);
+      const bodyLog = bodyLogCalls[0]?.[0] as string;
+      expect(bodyLog).not.toContain("Paul Bernard");
+      expect(bodyLog).toContain('"name":"[REDACTED]"');
+      expect(bodyLog).toContain('"first_name":"[REDACTED]"');
+      // `type` is allowlisted and shows the non-company discriminator value.
+      expect(bodyLog).toContain('"type":"freelancer"');
+    });
+
+    it("redacts only the non-company `name` in a mixed clients array (per-object re-evaluation) (#653)", async () => {
+      fetchSpy.mockReturnValue(
+        jsonResponse({
+          clients: [
+            { id: "c1", kind: "company", name: "ACME Corp" },
+            { id: "c2", kind: "individual", name: "Elise Moreau", first_name: "Elise" },
+          ],
+        }),
+      );
+      const logger = createMockLogger();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+        logger,
+      });
+
+      await client.get("/v2/clients");
+
+      const bodyLogCalls = logger.debug.mock.calls.filter(
+        (call: string[]) => typeof call[0] === "string" && call[0].includes("Response body"),
+      );
+      expect(bodyLogCalls.length).toBeGreaterThan(0);
+      const bodyLog = bodyLogCalls[0]?.[0] as string;
+      // Element 1 (company) keeps its corporate name...
+      expect(bodyLog).toContain('"name":"ACME Corp"');
+      // ...element 2 (individual) redacts — each array element is judged on its
+      // own `kind`, with no inheritance across siblings.
+      expect(bodyLog).not.toContain("Elise Moreau");
+      expect(bodyLog).toContain('"name":"[REDACTED]"');
+    });
+
+    it("does not let a company holder vouch for a `name` nested beneath it (#653)", async () => {
+      fetchSpy.mockReturnValue(
+        jsonResponse({
+          kind: "company",
+          name: "ACME Corp",
+          contact: { name: "Henri Rousseau" },
+        }),
+      );
+      const logger = createMockLogger();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+        logger,
+      });
+
+      await client.get("/v2/clients/c1");
+
+      const bodyLogCalls = logger.debug.mock.calls.filter(
+        (call: string[]) => typeof call[0] === "string" && call[0].includes("Response body"),
+      );
+      expect(bodyLogCalls.length).toBeGreaterThan(0);
+      const bodyLog = bodyLogCalls[0]?.[0] as string;
+      // Top-level corporate name visible...
+      expect(bodyLog).toContain('"name":"ACME Corp"');
+      // ...but the nested object asserts no corporate marker of its own, so its
+      // `name` redacts (company-ness never propagates into a child object).
+      expect(bodyLog).not.toContain("Henri Rousseau");
+      expect(bodyLog).toContain('"name":"[REDACTED]"');
+    });
+
+    it('keeps `name` and shows the `type` discriminator for a type:"company" client (#653)', async () => {
+      // CreditNote / Quote / ClientInvoice embedded clients discriminate on
+      // `type` (not `kind`); `type === "company"` must keep the corporate `name`.
+      fetchSpy.mockReturnValue(
+        jsonResponse({ client: { id: "cn-1", type: "company", name: "Globex SA", first_name: "Ignored" } }),
+      );
+      const logger = createMockLogger();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+        logger,
+      });
+
+      await client.get("/v2/credit_notes/cn-1");
+
+      const bodyLogCalls = logger.debug.mock.calls.filter(
+        (call: string[]) => typeof call[0] === "string" && call[0].includes("Response body"),
+      );
+      expect(bodyLogCalls.length).toBeGreaterThan(0);
+      const bodyLog = bodyLogCalls[0]?.[0] as string;
+      expect(bodyLog).toContain('"name":"Globex SA"');
+      expect(bodyLog).toContain('"type":"company"');
+      // A stray natural-person field still redacts regardless of company-ness.
+      expect(bodyLog).not.toContain("Ignored");
+      expect(bodyLog).toContain('"first_name":"[REDACTED]"');
+    });
+
+    it('documents the accepted same-object residual: kind:"company" keeps a sibling `name` even if it is a person (#653)', async () => {
+      // ACCEPTED RESIDUAL (R3-smuggle): a record that asserts kind:"company"
+      // AND carries a natural-person `name` in the SAME object logs that name.
+      // No documented Qonto shape produces this (company records put the person
+      // in first_name/last_name, which still redact); the record is the
+      // caller's own outbound data, and path-gating would not fix it either.
+      // This test pins the behavior so a future reader re-decides consciously
+      // rather than "fixing" it silently.
+      fetchSpy.mockReturnValue(jsonResponse({ kind: "company", name: "Jean Dupont", first_name: "Jean" }));
+      const logger = createMockLogger();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+        logger,
+      });
+
+      await client.get("/v2/clients/c1");
+
+      const bodyLogCalls = logger.debug.mock.calls.filter(
+        (call: string[]) => typeof call[0] === "string" && call[0].includes("Response body"),
+      );
+      expect(bodyLogCalls.length).toBeGreaterThan(0);
+      const bodyLog = bodyLogCalls[0]?.[0] as string;
+      // first_name always redacts (never allowlisted)...
+      expect(bodyLog).toContain('"first_name":"[REDACTED]"');
+      // ...`name` survives because the same object claims kind:"company"
+      // (accepted residual — see comment above).
+      expect(bodyLog).toContain('"name":"Jean Dupont"');
+    });
+
+    it("over-redacts `name` on marker-less records (organization, bank account) while keeping identifiers (#653)", async () => {
+      // Accepted over-redaction: these records carry no kind/type marker, so
+      // `name` redacts. `id`/`slug`/`status` keep them identifiable — which
+      // prevents a future "name regression" report from re-adding a global
+      // `name` entry to LOGGABLE_FIELDS.
+      fetchSpy.mockReturnValue(
+        jsonResponse({
+          organization: {
+            slug: "acme",
+            name: "ACME Holdings",
+            bank_accounts: [{ id: "acc-1", name: "Main account", status: "active" }],
+          },
+        }),
+      );
+      const logger = createMockLogger();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+        logger,
+      });
+
+      await client.get("/v2/organization");
+
+      const bodyLogCalls = logger.debug.mock.calls.filter(
+        (call: string[]) => typeof call[0] === "string" && call[0].includes("Response body"),
+      );
+      expect(bodyLogCalls.length).toBeGreaterThan(0);
+      const bodyLog = bodyLogCalls[0]?.[0] as string;
+      expect(bodyLog).not.toContain("ACME Holdings");
+      expect(bodyLog).not.toContain("Main account");
+      expect(bodyLog).toContain('"name":"[REDACTED]"');
+      // Identifiers stay visible for endpoint-level debugging.
+      expect(bodyLog).toContain('"slug":"acme"');
+      expect(bodyLog).toContain('"id":"acc-1"');
+      expect(bodyLog).toContain('"status":"active"');
+    });
+
+    it("keeps `vat_number` global while redacting an individual's `name` in the same object (#653)", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ kind: "individual", name: "Luc Girard", vat_number: "FR12345678901" }));
+      const logger = createMockLogger();
+      const client = new TestableHttpClient({
+        baseUrl: "https://thirdparty.qonto.com",
+        authorization: "slug:secret",
+        logger,
+      });
+
+      await client.get("/v2/clients/c1");
+
+      const bodyLogCalls = logger.debug.mock.calls.filter(
+        (call: string[]) => typeof call[0] === "string" && call[0].includes("Response body"),
+      );
+      expect(bodyLogCalls.length).toBeGreaterThan(0);
+      const bodyLog = bodyLogCalls[0]?.[0] as string;
+      // `vat_number` is corporate-only by definition — it stays global (visible)...
+      expect(bodyLog).toContain('"vat_number":"FR12345678901"');
+      // ...while the individual's `name` redacts (no corporate marker).
+      expect(bodyLog).not.toContain("Luc Girard");
+      expect(bodyLog).toContain('"name":"[REDACTED]"');
     });
 
     it("redacts Authorization header in debug logs", async () => {
