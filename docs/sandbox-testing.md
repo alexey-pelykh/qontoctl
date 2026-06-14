@@ -97,8 +97,10 @@ QONTOCTL_CONFIG_FILE="$PWD/.qontoctl.yaml" qontoctl mcp
 
 In MCP host configs, the same env var goes in the `env` block — see
 [`docs/configuration.md`](./configuration.md#mcp-client-wiring) for the
-full pattern. The MCP server has no CLI flags, so `QONTOCTL_CONFIG_FILE`
-is the only way to point it at a non-default file.
+full pattern. The standalone `qontoctl-mcp` binary has no CLI flags, so
+`QONTOCTL_CONFIG_FILE` is the only way to point it at a non-default file; the
+`qontoctl mcp` subcommand shown above additionally accepts `--config` /
+`--profile`.
 
 ## Approving sandbox SCA challenges
 

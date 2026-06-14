@@ -25,7 +25,13 @@ export { handleCliError } from "./error-handler.js";
 
 export { executeWithCliSca, type CliScaOptions } from "./sca.js";
 
-export { addInheritableOptions, addWriteOptions, resolveGlobalOptions } from "./inherited-options.js";
+export {
+  addInheritableOptions,
+  addWriteOptions,
+  buildResolveOptions,
+  resolveGlobalOptions,
+  type ConfigResolveSelection,
+} from "./inherited-options.js";
 
 export {
   createAttachmentCommand,

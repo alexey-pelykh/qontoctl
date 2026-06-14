@@ -3,7 +3,7 @@
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { HttpClient } from "@qontoctl/core";
+import { HttpClient, type ResolveOptions } from "@qontoctl/core";
 import { createServer } from "../server.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
@@ -19,21 +19,31 @@ export interface McpTestContext {
  *
  * Pass `stagingToken` to construct the underlying HttpClient in sandbox mode,
  * which flips `client.isSandbox` and routes requests through the sandbox host.
+ *
+ * Pass `resolveOptions` to simulate a server launched with `--profile` /
+ * `--config` (umbrella `qontoctl mcp`). It is threaded into `createServer`
+ * so the `diagnose` tool resolves config through the same base the data tools
+ * use (#658). The data-tool `getClient` here is a fixed stub, so
+ * `resolveOptions` only affects diagnose's own resolution path.
  */
 export async function connectInMemory(
   fetchSpy: ReturnType<typeof import("vitest").vi.fn>,
-  options?: { maxRetries?: number; stagingToken?: string },
+  options?: { maxRetries?: number; stagingToken?: string; resolveOptions?: Pick<ResolveOptions, "path" | "profile"> },
 ): Promise<McpTestContext> {
+  const { resolveOptions, ...httpOptions } = options ?? {};
   const httpClient = new HttpClient({
     baseUrl:
-      options?.stagingToken !== undefined
+      httpOptions.stagingToken !== undefined
         ? "https://thirdparty-sandbox.staging.qonto.co"
         : "https://thirdparty.qonto.com",
     authorization: "slug:secret",
-    ...options,
+    ...httpOptions,
   });
 
-  const server = createServer({ getClient: () => Promise.resolve(httpClient) });
+  const server = createServer({
+    getClient: () => Promise.resolve(httpClient),
+    ...(resolveOptions !== undefined ? { resolveOptions } : {}),
+  });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
 
   const mcpClient = new Client({ name: "test", version: "0.0.0" });

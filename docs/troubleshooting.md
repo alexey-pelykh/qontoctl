@@ -176,6 +176,12 @@ read-only:
 }
 ```
 
+When the server is launched with a profile — `qontoctl mcp --profile production`
+(or `--config <path>`) — `diagnose` resolves credentials through that same
+launch profile automatically, so the `profile` argument can be omitted; pass it
+only to probe a _different_ profile than the one the server was started with
+([#658](https://github.com/alexey-pelykh/qontoctl/issues/658)).
+
 Output is the same JSON shape as `qontoctl diagnose --diagnose-output json`.
 
 ## Relationship to `qontoctl auth status`

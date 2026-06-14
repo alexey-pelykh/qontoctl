@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- **`@qontoctl/mcp`** + **`qontoctl`**: the MCP `diagnose` tool now resolves credentials through the server's launch `--profile` / `--config`, in lockstep with every data tool. Previously `createServer` passed the profile-aware client factory to every register function **except** `registerDiagnoseTools`, and the diagnose tool built its own config resolution from `QONTOCTL_CONFIG_FILE` only (`buildMcpResolveOptions`) — blind to the `--profile` the umbrella `qontoctl mcp --profile <name>` was launched with. The net effect: under a profile launch with no top-level `~/.qontoctl.yaml`, `account_list` (and every other tool) authenticated correctly while `diagnose` (no args) reported `No credentials found` — the one tool you reach for to confirm health falsely signalling that the whole MCP integration was broken; it only worked when an explicit `profile` argument was passed to the tool call. `CreateServerOptions` now carries an optional `resolveOptions` (`Pick<ResolveOptions, "path" | "profile">`) captured at launch via the CLI's `buildResolveOptions` (the exact resolver-input transform `createClient` already applies for the data tools) and threaded into `registerDiagnoseTools`. The diagnose tool resolves through it, falling back to `QONTOCTL_CONFIG_FILE` for the standalone `qontoctl-mcp` binary, which has no CLI flags. An explicit `profile` tool argument still overrides the launch profile, and the launch profile is now surfaced in the diagnose report so a missing-profile situation is obvious. `buildResolveOptions` (and its `ConfigResolveSelection` type) is now exported from `@qontoctl/cli` (#658).
+- **Docs**: corrected the "the MCP server has no CLI flags" claim in `docs/configuration.md`, `docs/sandbox-testing.md`, and the `@qontoctl/mcp` `config.ts` comment — that holds only for the standalone `qontoctl-mcp` binary; the `qontoctl mcp` subcommand accepts `--config` / `--profile` (now honored by `diagnose`). `docs/troubleshooting.md` § Running via MCP notes that a profile-launched server resolves `diagnose` through that profile automatically (#658).
+
 ## [2.0.5] — 2026-05-22
 
 ### Added
