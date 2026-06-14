@@ -3,7 +3,7 @@
 
 import { createRequire } from "node:module";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { HttpClient } from "@qontoctl/core";
+import type { HttpClient, ResolveOptions } from "@qontoctl/core";
 import {
   registerAttachmentTools,
   registerAccountTools,
@@ -43,6 +43,18 @@ const packageJson = require("../package.json") as { version: string };
 
 export interface CreateServerOptions {
   readonly getClient: () => Promise<HttpClient>;
+  /**
+   * Base config-resolution selection captured at server launch — the same
+   * `{ path?, profile? }` the data-tool client factory (`getClient`) resolves
+   * through. Threaded into the `diagnose` tool so it resolves credentials via
+   * the launch `--profile` / `--config` instead of being blind to them (#658).
+   *
+   * Omitted by the standalone `qontoctl-mcp` entry point, which has no CLI
+   * flags — `diagnose` then falls back to reading `QONTOCTL_CONFIG_FILE`
+   * directly (via `buildMcpResolveOptions`), matching that entry point's own
+   * `getClient`.
+   */
+  readonly resolveOptions?: Pick<ResolveOptions, "path" | "profile">;
 }
 
 export function createServer(options?: CreateServerOptions): McpServer {
@@ -65,7 +77,7 @@ export function createServer(options?: CreateServerOptions): McpServer {
   registerClientTools(server, getClient);
   registerClientInvoiceTools(server, getClient);
   registerCreditNoteTools(server, getClient);
-  registerDiagnoseTools(server);
+  registerDiagnoseTools(server, options?.resolveOptions);
   registerEInvoicingTools(server, getClient);
   registerInsuranceTools(server, getClient);
   registerInternationalTools(server, getClient);

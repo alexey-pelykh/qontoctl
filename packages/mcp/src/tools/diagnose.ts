@@ -13,6 +13,7 @@ import {
   resolveConfig,
   runDiagnose,
   type DiagnoseContext,
+  type ResolveOptions,
 } from "@qontoctl/core";
 import { buildMcpResolveOptions } from "../config.js";
 
@@ -35,8 +36,20 @@ const packageJson = require("../../package.json") as { version: string };
  * `HttpClient` factory — diagnose specifically needs mode-pinned
  * clients (no fallback chain) so it can probe each credential mode
  * in isolation.
+ *
+ * @param resolveOptions - Base config-resolution selection captured at
+ *   server launch (the same `{ path?, profile? }` the data-tool client
+ *   factory resolves through). Threaded so diagnose resolves credentials
+ *   via the launch `--profile` / `--config` rather than being blind to
+ *   them (#658). When omitted (standalone `qontoctl-mcp` — no CLI flags),
+ *   diagnose falls back to `QONTOCTL_CONFIG_FILE` via
+ *   {@link buildMcpResolveOptions}, matching that entry point's `getClient`.
+ *   An explicit `profile` tool argument still overrides the launch profile.
  */
-export function registerDiagnoseTools(server: McpServer): void {
+export function registerDiagnoseTools(
+  server: McpServer,
+  resolveOptions?: Pick<ResolveOptions, "path" | "profile">,
+): void {
   server.registerTool(
     "diagnose",
     {
@@ -48,8 +61,13 @@ export function registerDiagnoseTools(server: McpServer): void {
     },
     async (args) => {
       try {
-        const { config, endpoint, path } = await resolveProfileConfig(args.profile);
-        const ctx = buildContext(args.profile, config, endpoint, path);
+        const { config, endpoint, path } = await resolveProfileConfig(args.profile, resolveOptions);
+        // Active profile for the report: the explicit tool argument when
+        // given, else the profile the server was launched with (threaded via
+        // resolveOptions), else "default". Surfacing the launch profile makes
+        // a missing-profile situation obvious in the output (#658).
+        const effectiveProfile = args.profile ?? resolveOptions?.profile;
+        const ctx = buildContext(effectiveProfile, config, endpoint, path);
         const report = await runDiagnose(ctx);
         const validated = DiagnosticReportSchema.parse(report);
         const redaction = buildRedactionContext(config);
@@ -94,10 +112,18 @@ function buildContext(
   };
 }
 
-async function resolveProfileConfig(profile: string | undefined) {
-  const base = buildMcpResolveOptions();
+async function resolveProfileConfig(
+  profile: string | undefined,
+  resolveOptions: Pick<ResolveOptions, "path" | "profile"> | undefined,
+) {
+  // Base selection: the launch options threaded from the server (umbrella
+  // `qontoctl mcp --profile`/`--config`), else the standalone entry point's
+  // QONTOCTL_CONFIG_FILE env. Either way diagnose resolves through the SAME
+  // base the data-tool client factory uses — that parity is the fix for #658.
+  const base = resolveOptions ?? buildMcpResolveOptions();
   return resolveConfig({
     ...(base ?? {}),
+    // An explicit tool-call `profile` overrides the launch profile.
     ...(profile !== undefined ? { profile } : {}),
   });
 }

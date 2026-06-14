@@ -152,3 +152,83 @@ describe("diagnose MCP tool", () => {
     expect(report.profile).toBe("default");
   });
 });
+
+describe("diagnose MCP tool — launch --profile / --config threading (#658)", () => {
+  let fetchSpy: ReturnType<typeof vi.fn>;
+  let tempDir: string;
+  let launchConfigPath: string;
+  let originalConfigEnv: string | undefined;
+
+  beforeEach(() => {
+    tempDir = mkdtempSync(join(tmpdir(), "qontoctl-diagnose-mcp-launch-"));
+    launchConfigPath = join(tempDir, "acme.yaml");
+    writeFileSync(
+      launchConfigPath,
+      [
+        "api-key:",
+        "  organization-slug: acme-org",
+        "  secret-key: acme-secret-key",
+        "auth:",
+        "  preference: api-key",
+        "",
+      ].join("\n"),
+    );
+    // Critically: NO QONTOCTL_CONFIG_FILE env. The fix must resolve through the
+    // threaded launch options, not the env fallback — unsetting the env is what
+    // makes this a faithful reproduction of the `--profile`-launch scenario
+    // (umbrella `qontoctl mcp --profile X` with no ambient env var).
+    originalConfigEnv = process.env["QONTOCTL_CONFIG_FILE"];
+    delete process.env["QONTOCTL_CONFIG_FILE"];
+
+    fetchSpy = vi.fn();
+    fetchSpy.mockReturnValue(
+      jsonResponse({ organization: { slug: "acme-org", legal_name: "Acme Co", bank_accounts: [] } }),
+    );
+    vi.stubGlobal("fetch", fetchSpy);
+  });
+
+  afterEach(() => {
+    if (originalConfigEnv === undefined) {
+      delete process.env["QONTOCTL_CONFIG_FILE"];
+    } else {
+      process.env["QONTOCTL_CONFIG_FILE"] = originalConfigEnv;
+    }
+    vi.restoreAllMocks();
+    rmSync(tempDir, { recursive: true, force: true });
+  });
+
+  it("resolves diagnose through the launch config when no tool arg and no env (the #658 regression)", async () => {
+    // Before the fix, registerDiagnoseTools received no launch options; with
+    // the env unset and no tool-arg profile it fell back to the home default
+    // and reported missing credentials. The threaded resolveOptions must now
+    // drive resolution — proven by configPath echoing the launch path.
+    const { mcpClient } = await connectInMemory(fetchSpy, { resolveOptions: { path: launchConfigPath } });
+    const result = await mcpClient.callTool({ name: "diagnose", arguments: {} });
+    expect(result.isError).not.toBe(true);
+    const report = JSON.parse(firstText(result)) as { configPath?: string };
+    expect(report.configPath).toBe(launchConfigPath);
+  });
+
+  it("surfaces the launch profile in the report when no tool arg is given", async () => {
+    const { mcpClient } = await connectInMemory(fetchSpy, {
+      resolveOptions: { path: launchConfigPath, profile: "acme" },
+    });
+    const result = await mcpClient.callTool({ name: "diagnose", arguments: {} });
+    expect(result.isError).not.toBe(true);
+    const report = JSON.parse(firstText(result)) as { profile: string; configPath?: string };
+    // Without the fix the report would show the default profile even though
+    // the server was launched with `--profile acme`.
+    expect(report.profile).toBe("acme");
+    expect(report.configPath).toBe(launchConfigPath);
+  });
+
+  it("lets an explicit profile tool argument override the launch profile", async () => {
+    const { mcpClient } = await connectInMemory(fetchSpy, {
+      resolveOptions: { path: launchConfigPath, profile: "acme" },
+    });
+    const result = await mcpClient.callTool({ name: "diagnose", arguments: { profile: "override" } });
+    expect(result.isError).not.toBe(true);
+    const report = JSON.parse(firstText(result)) as { profile: string };
+    expect(report.profile).toBe("override");
+  });
+});

@@ -41,11 +41,15 @@ match is selected:
   supplied alongside `QONTOCTL_CONFIG_FILE` or `--profile` and the resolved
   paths disagree, `--config` wins and a one-line stderr warning surfaces the
   override.
-- **MCP server** (`qontoctl mcp`): no CLI flags exist. The server captures
-  `QONTOCTL_CONFIG_FILE` at **startup** and passes it to the resolver as the
-  `path` option (priority 1 in the table). Subsequent `process.env` mutations
-  cannot redirect later loads. With no env var set, the resolver falls through
-  to the home default at priority 4.
+- **MCP server** (`qontoctl mcp`): accepts the same inheritable flags as the
+  CLI — `--config` / `--profile` (plus `--auth`) — captured **at startup** and
+  threaded to every tool, **including `diagnose`** ([#658](https://github.com/alexey-pelykh/qontoctl/issues/658)).
+  Resolution then follows the same 1 → 4 precedence as the CLI: `--config` (1),
+  else `QONTOCTL_CONFIG_FILE` (2), else the `--profile`-derived
+  `~/.qontoctl/{profile}.yaml` (3), else the home default (4). Options are
+  frozen at startup, so subsequent `process.env` mutations cannot redirect
+  later loads. The **standalone `qontoctl-mcp` binary** has no CLI flags —
+  `QONTOCTL_CONFIG_FILE` is its only file-selection mechanism.
 - **E2E test harness** (`pnpm test:e2e`): the harness in
   `packages/e2e/src/sandbox.ts` injects `QONTOCTL_CONFIG_FILE` into spawned
   CLI subprocesses, pointing at the repo's `.qontoctl.yaml` (gitignored).

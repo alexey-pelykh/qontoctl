@@ -6,13 +6,18 @@ import type { ResolveOptions } from "@qontoctl/core";
 const CONFIG_FILE_ENV = "QONTOCTL_CONFIG_FILE";
 
 /**
- * Build the `path` portion of {@link ResolveOptions} for the MCP server's
- * config load, sourced from the `QONTOCTL_CONFIG_FILE` env var.
+ * Build the `path` portion of {@link ResolveOptions} from the
+ * `QONTOCTL_CONFIG_FILE` env var — the config-file selection mechanism for
+ * the standalone `qontoctl-mcp` server, which has no CLI flags.
  *
- * The MCP server has no CLI flags, so the env var is its only mechanism for
- * pointing at a non-default config file (CI, multi-config dev workflows,
- * agent-driven setups). Reading the env explicitly at the MCP layer — and
- * passing it through as `path` — makes three properties true:
+ * For the standalone server the env var is the only file-selection mechanism
+ * (CI, multi-config dev workflows, agent-driven setups). The umbrella
+ * `qontoctl mcp` subcommand additionally accepts `--config` / `--profile`,
+ * resolves them via the CLI's `buildResolveOptions`, and threads the result
+ * to every tool — including `diagnose` (#658); this helper is the env-only
+ * fallback used when no such launch options are supplied. Reading the env
+ * explicitly at the MCP layer — and passing it through as `path` — makes
+ * three properties true:
  *
  *  1. **Symmetry with the CLI**: `qontoctl --config <path>` and
  *     `QONTOCTL_CONFIG_FILE=<path> qontoctl mcp` route through the same
