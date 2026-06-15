@@ -41,10 +41,13 @@ const packageJson = require("../../package.json") as { version: string };
  *   server launch (the same `{ path?, profile? }` the data-tool client
  *   factory resolves through). Threaded so diagnose resolves credentials
  *   via the launch `--profile` / `--config` rather than being blind to
- *   them (#658). When omitted (standalone `qontoctl-mcp` — no CLI flags),
- *   diagnose falls back to `QONTOCTL_CONFIG_FILE` via
- *   {@link buildMcpResolveOptions}, matching that entry point's `getClient`.
- *   An explicit `profile` tool argument still overrides the launch profile.
+ *   them (#658). The standalone `qontoctl-mcp` entry threads it too, from its
+ *   startup `QONTOCTL_CONFIG_FILE` capture, so diagnose stays in lockstep with
+ *   that entry's `getClient` (#661). When omitted (no selection at startup —
+ *   standalone started with `QONTOCTL_CONFIG_FILE` unset), diagnose falls back
+ *   to `QONTOCTL_CONFIG_FILE` via {@link buildMcpResolveOptions}, in lockstep
+ *   with `getClient`'s own `resolveConfig(undefined)` live-read. An explicit
+ *   `profile` tool argument still overrides the launch profile.
  */
 export function registerDiagnoseTools(
   server: McpServer,

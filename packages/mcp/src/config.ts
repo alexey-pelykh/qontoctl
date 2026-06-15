@@ -22,9 +22,13 @@ const CONFIG_FILE_ENV = "QONTOCTL_CONFIG_FILE";
  *  1. **Symmetry with the CLI**: `qontoctl --config <path>` and
  *     `QONTOCTL_CONFIG_FILE=<path> qontoctl mcp` route through the same
  *     `path`-option codepath in core's resolver.
- *  2. **Startup capture**: the config path is frozen at MCP startup; later
- *     mutations to `process.env.QONTOCTL_CONFIG_FILE` cannot redirect
- *     subsequent loads inside the running server.
+ *  2. **Startup capture (when set)**: if the env var is set at startup, the
+ *     config path is frozen here as `{ path }` — later mutations to
+ *     `process.env.QONTOCTL_CONFIG_FILE` cannot redirect subsequent loads
+ *     inside the running server. If it is *unset* at startup this returns
+ *     `undefined`, core's resolver live-reads `process.env` on each load, and
+ *     the data tools and `diagnose` then track any later mutation in lockstep
+ *     (#661).
  *  3. **Self-evident intent**: the MCP bootstrap reads as
  *     `resolveConfig(buildMcpResolveOptions())` rather than relying on
  *     core's implicit `process.env` fallback.
@@ -37,7 +41,8 @@ const CONFIG_FILE_ENV = "QONTOCTL_CONFIG_FILE";
  * @param env - Override the env source (testing). Defaults to `process.env`.
  * @returns `{ path }` when the env var is set to a non-empty string;
  *   `undefined` otherwise. Pass directly to `resolveConfig` — the resolver
- *   accepts `undefined` and falls back to its home/profile defaults.
+ *   accepts `undefined` and resolves from its own `process.env` overlay (live
+ *   `QONTOCTL_CONFIG_FILE`), then profile/home defaults.
  */
 export function buildMcpResolveOptions(
   env?: Record<string, string | undefined>,
