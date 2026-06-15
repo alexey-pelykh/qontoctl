@@ -48,11 +48,15 @@ export interface CreateServerOptions {
    * `{ path?, profile? }` the data-tool client factory (`getClient`) resolves
    * through. Threaded into the `diagnose` tool so it resolves credentials via
    * the launch `--profile` / `--config` instead of being blind to them (#658).
+   * The standalone `qontoctl-mcp` entry threads it too, from its startup
+   * `QONTOCTL_CONFIG_FILE` capture, so diagnose stays in lockstep with that
+   * entry's `getClient` (#661).
    *
-   * Omitted by the standalone `qontoctl-mcp` entry point, which has no CLI
-   * flags — `diagnose` then falls back to reading `QONTOCTL_CONFIG_FILE`
-   * directly (via `buildMcpResolveOptions`), matching that entry point's own
-   * `getClient`.
+   * Omitted only when there is no selection to thread — e.g. standalone
+   * `qontoctl-mcp` started with `QONTOCTL_CONFIG_FILE` unset — in which case
+   * `diagnose` falls back to reading `QONTOCTL_CONFIG_FILE` via
+   * `buildMcpResolveOptions`, in lockstep with `getClient`'s own
+   * `resolveConfig(undefined)` live-read.
    */
   readonly resolveOptions?: Pick<ResolveOptions, "path" | "profile">;
 }
