@@ -4,9 +4,9 @@
 
 import {
   addInheritableOptions,
+  buildClientFromGlobalOptions,
   buildResolveOptions,
   createAttachmentCommand,
-  createClient,
   createClientCommand,
   createClientInvoiceCommand,
   createCreditNoteCommand,
@@ -47,15 +47,17 @@ registerTransferCommands(program);
 const mcpCommand = program.command("mcp").description("Start MCP server on stdio (for Claude Desktop, Cursor, etc.)");
 addInheritableOptions(mcpCommand);
 mcpCommand.action(async () => {
-  // Capture the launch options once. Both the data-tool client factory and
-  // the diagnose tool resolve config through these same options, so diagnose
-  // honours the server's `--profile` / `--config` instead of being blind to
-  // them (#658). `buildResolveOptions` is the exact resolver-input transform
-  // `createClient` applies internally, keeping diagnose in lockstep with the
-  // data tools.
+  // Capture the launch options once. The server (createServer) builds ONE
+  // config resolver from `resolveOptions` that BOTH the data-tool client and
+  // the diagnose tool resolve through, so they cannot diverge on which config
+  // file to load (#663 — retiring the #658→#661 bug-class). `buildClient`
+  // receives that resolver's freshly-resolved config and turns it into an
+  // HttpClient via the CLI's `buildClientFromGlobalOptions` — honouring the
+  // launch `--profile` / `--config` / `--auth` / `--sca-method` flags, the same
+  // mapping `createClient` uses for CLI commands.
   const launchOptions = resolveGlobalOptions<GlobalOptions>(mcpCommand);
   await runStdioServer({
-    getClient: () => createClient(launchOptions),
+    buildClient: (result) => buildClientFromGlobalOptions(result, launchOptions),
     resolveOptions: buildResolveOptions(launchOptions),
   });
 });

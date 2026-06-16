@@ -193,12 +193,17 @@ Add to your Claude Desktop configuration (`claude_desktop_config.json`):
 
 ```ts
 import { createServer } from "@qontoctl/mcp";
+import { buildClientFromConfig } from "@qontoctl/core";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 
+// `createServer` owns config resolution: it builds ONE resolver (optionally
+// pinned by `resolveOptions`) that every tool — including `diagnose` — resolves
+// through, so they cannot diverge on which config file they load. You provide a
+// synchronous `buildClient` that turns a resolved config into an `HttpClient`;
+// `@qontoctl/core` ships the standard fallback-chain assembler.
 const server = createServer({
-    getClient: async () => {
-        // Return a configured HttpClient instance
-    },
+    buildClient: (config) => buildClientFromConfig(config),
+    // resolveOptions: { profile: "work" }, // or { path: "/path/to/config.yaml" }
 });
 
 const transport = new StdioServerTransport();

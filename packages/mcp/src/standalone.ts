@@ -1,138 +1,59 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Oleksii PELYKH
 
-import {
-  HttpClient,
-  buildApiKeyAuthorization,
-  createOAuthAuthorization,
-  resolveConfig,
-  resolveScaMethod,
-  resolveAuthPreference,
-  selectAuthChain,
-  OAUTH_TOKEN_URL,
-  OAUTH_TOKEN_SANDBOX_URL,
-  type Authorization,
-  type AuthSlot,
-} from "@qontoctl/core";
+import { buildClientFromConfig } from "@qontoctl/core";
 import { buildMcpResolveOptions } from "./config.js";
-import type { CreateServerOptions } from "./server.js";
+import type { BuildClient, CreateServerOptions } from "./server.js";
 
 /**
  * Assemble the {@link CreateServerOptions} for the standalone `qontoctl-mcp`
- * binary: the data-tool `getClient` factory **and** the `resolveOptions`
- * threaded into the `diagnose` tool.
+ * binary: the data-tool `buildClient` factory **and** the `resolveOptions`
+ * captured once at startup. {@link createServer} builds ONE resolver from
+ * `resolveOptions` that BOTH the data tools and the `diagnose` tool resolve
+ * through, so they cannot diverge on which config file to load (#663 — retiring
+ * the #658→#661 bug-class).
  *
- * Both derive from a single config selection captured once here —
- * `buildMcpResolveOptions(env)`. Capturing `QONTOCTL_CONFIG_FILE` at startup
- * (the env var is the only file-selection mechanism for this binary; no CLI
- * flags exist) mirrors the CLI's `--config` codepath (`resolveConfig({ path })`)
- * and freezes the resolution destination — later `process.env` mutations cannot
- * redirect subsequent loads.
+ * `buildClient` is the lean side of core's shared `buildClientFromConfig`: the
+ * standalone binary has no CLI flags, so it wires only the construction-time
+ * warning sink — no `--auth` / `--profile` / `--sca-method` override and no
+ * debug/verbose logger. (Auth preference still resolves from env > config >
+ * built-in default; the #631 fatal-config guard, fallback chain, SCA-method
+ * resolution, and staging-token routing all come from the shared helper.) The
+ * umbrella `qontoctl mcp` entry passes the full superset via the CLI's
+ * `buildClientFromGlobalOptions` instead.
  *
- * **Why `resolveOptions` is threaded (#661, sibling of #658).** Without it,
- * `createServer` ran `registerDiagnoseTools(server, undefined)`, so `diagnose`
- * re-derived its config selection via `buildMcpResolveOptions()` *fresh on
- * every call* while the data-tool `getClient` used the frozen capture — the two
- * could resolve different files if `QONTOCTL_CONFIG_FILE` was mutated after
- * startup. Threading the one frozen `mcpResolveOptions` into `diagnose` puts it
- * in lockstep with the data tools. (The umbrella `qontoctl mcp` entry threads
- * its own launch options the same way — `packages/qontoctl/src/cli.ts` — which
- * is the #658 fix; this is the standalone-entry sibling.)
- *
- * **Unset-at-startup case (the deliberate AC decision).** When
- * `QONTOCTL_CONFIG_FILE` is unset at startup, `mcpResolveOptions` is `undefined`
- * and `resolveOptions` is intentionally *omitted*, leaving `diagnose`'s
- * `resolveOptions ?? buildMcpResolveOptions()` fallback to read `process.env`
- * live. This is correct — NOT a gap — because `getClient` is *also* not frozen
- * in this case: `resolveConfig(undefined)` itself live-reads
- * `QONTOCTL_CONFIG_FILE` via core's `path > QONTOCTL_CONFIG_FILE > profile >
- * home` precedence. So both sides live-read together and stay in lockstep. A
- * sentinel that force-froze `diagnose` to the home default here would *break*
- * lockstep (diagnose pinned while `getClient` kept live-reading), so the
- * fallback is kept by design. The freeze is real only when the env var is set
- * at startup (then `path` beats env in core's precedence) — and in that case
- * the frozen `{ path }` is threaded, so both sides are pinned identically.
+ * **Startup capture + lockstep (#661).** `buildMcpResolveOptions(env)` captures
+ * `QONTOCTL_CONFIG_FILE` once. When it is SET at startup, `resolveOptions` is
+ * the frozen `{ path }` and the server's resolver pins both the data tools and
+ * `diagnose` to it — later `process.env` mutations cannot redirect subsequent
+ * loads. When it is UNSET, `resolveOptions` is omitted and the server's resolver
+ * live-reads `process.env` on every call (via `resolveConfig`'s
+ * `path > QONTOCTL_CONFIG_FILE > profile > home` precedence), so both sides
+ * live-read together and stay in lockstep. (Pre-#663 this lockstep had to be
+ * re-established at each entry point by threading `resolveOptions` into
+ * `diagnose`; #663 makes it structural — the server owns the one resolver.)
  *
  * @param env - Override the env source (testing). Defaults to `process.env`.
- *   Affects only the captured `mcpResolveOptions`; the `getClient` factory
- *   resolves through that captured value (and core's own `process.env` overlay)
- *   exactly as in production.
+ *   Affects only the captured `resolveOptions`; the resolver the server builds
+ *   from it also consults core's own `process.env` overlay exactly as in
+ *   production.
  */
 export function buildStandaloneServerOptions(env?: Record<string, string | undefined>): CreateServerOptions {
   const mcpResolveOptions = buildMcpResolveOptions(env);
 
-  const getClient = async (): Promise<HttpClient> => {
-    const { config, endpoint, path, oauthAccessTokenFromEnv } = await resolveConfig(mcpResolveOptions);
-
-    // No CLI flag in MCP — auth preference comes from env > config > default.
-    // resolveAuthPreference handles the env-overlaid config field.
-    const preference = resolveAuthPreference(config);
-    const selection = selectAuthChain(preference, {
-      apiKey: config.apiKey !== undefined,
-      oauth: config.oauth !== undefined,
-    });
-
-    if (selection.noCredentials) {
-      throw new Error("No credentials found in configuration");
-    }
-
-    if (selection.warning !== undefined) {
-      process.stderr.write(`Warning: ${selection.warning}\n`);
-    }
-
-    const oauthFactory = (): Authorization => {
-      if (config.oauth === undefined) {
-        throw new Error("Internal error: OAuth slot selected but no OAuth credentials available");
-      }
-      return createOAuthAuthorization({
-        oauth: config.oauth,
-        tokenUrl: config.oauth.stagingToken !== undefined ? OAUTH_TOKEN_SANDBOX_URL : OAUTH_TOKEN_URL,
-        ...(path !== undefined ? { path } : {}),
-        readOnly: oauthAccessTokenFromEnv,
-      });
-    };
-
-    const apiKeyFactory = (): Authorization => {
-      if (config.apiKey === undefined) {
-        throw new Error("Internal error: api-key slot selected but no api-key credentials available");
-      }
-      return buildApiKeyAuthorization(config.apiKey);
-    };
-
-    const buildSlot = (slot: AuthSlot): Authorization | undefined => {
-      if (slot === "oauth") return oauthFactory();
-      if (slot === "api-key") return apiKeyFactory();
-      return undefined;
-    };
-
-    const authorization = buildSlot(selection.primary);
-    if (authorization === undefined) {
-      throw new Error("Internal error: auth chain has no primary credential");
-    }
-    const fallbackAuthorization = buildSlot(selection.fallback);
-
-    // SCA method is resolved from env/config only — never as a tool input —
-    // so an LLM client cannot pick the SCA method, only an operator can.
-    const scaMethod = resolveScaMethod(config);
-
-    return new HttpClient({
-      baseUrl: endpoint,
-      authorization,
-      fallbackAuthorization,
-      onFallback: (method, p) => {
-        const label = selection.fallback === "oauth" ? "OAuth" : "api-key";
-        process.stderr.write(`Warning: primary authentication failed, falling back to ${label} for ${method} ${p}\n`);
-      },
-      stagingToken: config.oauth?.stagingToken,
-      ...(scaMethod !== undefined ? { scaMethod } : {}),
-    });
-  };
+  // Lean data-tool client: the shared core assembly with only the warning sink
+  // wired. The standalone binary has no CLI flags, so no logger / auth / profile
+  // / sca-method overrides are passed; everything else (auth-chain selection,
+  // #631 fatal guard, fallback, staging-token, SCA default) lives in the shared
+  // buildClientFromConfig — closing the auth-chain duplication with the CLI.
+  const buildClient: BuildClient = (result) =>
+    buildClientFromConfig(result, { onWarning: (message) => process.stderr.write(message) });
 
   return {
-    getClient,
-    // Thread the one startup-frozen selection into `diagnose` so it resolves in
-    // lockstep with `getClient` above. Omitted when unset at startup (both sides
-    // then live-read — see the doc comment's unset-at-startup rationale) (#661).
+    buildClient,
+    // Thread the startup-frozen selection so the server's resolver pins both the
+    // data tools and diagnose to it. Omitted when unset at startup (both sides
+    // then live-read — see the lockstep rationale above) (#661).
     ...(mcpResolveOptions !== undefined ? { resolveOptions: mcpResolveOptions } : {}),
   };
 }

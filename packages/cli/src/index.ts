@@ -19,7 +19,7 @@ export { fetchPage, fetchAllPages, fetchPaginated, type Page, type PaginatedResu
 
 export type { PaginationMeta } from "@qontoctl/core";
 
-export { createClient } from "./client.js";
+export { createClient, buildClientFromGlobalOptions } from "./client.js";
 
 export { handleCliError } from "./error-handler.js";
 
