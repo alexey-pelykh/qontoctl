@@ -6,8 +6,9 @@ import { buildStandaloneServerOptions } from "./standalone.js";
 import { runStdioServer } from "./stdio.js";
 
 // Standalone `qontoctl-mcp` entry point. The server options — the data-tool
-// `getClient` factory plus the `resolveOptions` threaded into `diagnose` — are
-// assembled once at startup, freezing the config-resolution destination and
-// keeping `diagnose` in lockstep with the data tools. See
-// `buildStandaloneServerOptions` for the freeze + lockstep rationale (#658, #661).
+// `buildClient` factory plus the `resolveOptions` captured at startup — are
+// assembled once, freezing the config-resolution destination. `createServer`
+// derives ONE resolver from `resolveOptions` that both the data tools and
+// `diagnose` resolve through, keeping them in lockstep. See
+// `buildStandaloneServerOptions` for the freeze + lockstep rationale (#658, #661, #663).
 await runStdioServer(buildStandaloneServerOptions());

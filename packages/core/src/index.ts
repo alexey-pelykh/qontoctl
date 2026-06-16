@@ -81,6 +81,9 @@ export type {
   OAuthTokens,
 } from "./auth/index.js";
 
+export { buildClientFromConfig } from "./client/index.js";
+export type { BuildClientOptions } from "./client/index.js";
+
 export {
   API_BASE_URL,
   CONFIG_DIR,

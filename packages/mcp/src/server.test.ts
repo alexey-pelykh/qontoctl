@@ -3,12 +3,17 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { HttpClient } from "@qontoctl/core";
 import { connectInMemory } from "./testing/mcp-helpers.js";
 import { createServer } from "./server.js";
 
 describe("createServer", () => {
   it("returns an McpServer instance", () => {
-    const server = createServer();
+    // buildClient is required (#663) but never invoked by this smoke test —
+    // pass a trivial stub factory.
+    const server = createServer({
+      buildClient: () => new HttpClient({ baseUrl: "https://thirdparty.qonto.com", authorization: "slug:secret" }),
+    });
     expect(server).toBeDefined();
     expect(typeof server.connect).toBe("function");
     expect(typeof server.close).toBe("function");

@@ -5,10 +5,11 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { HttpClient } from "@qontoctl/core";
+import { HttpClient, resolveConfig } from "@qontoctl/core";
 import { jsonResponse } from "@qontoctl/core/testing";
 import { connectServerOptionsInMemory } from "./testing/mcp-helpers.js";
 import { buildStandaloneServerOptions } from "./standalone.js";
+import type { CreateServerOptions } from "./server.js";
 
 interface TextContent {
   readonly type: string;
@@ -53,7 +54,24 @@ function writeOAuthConfig(path: string, opts?: { stagingToken?: string }): void 
   writeFileSync(path, lines.join("\n"), { mode: 0o600 });
 }
 
-describe("buildStandaloneServerOptions — diagnose/getClient config-resolution lockstep (#661)", () => {
+/**
+ * Wrap a server options' `buildClient` so the test can observe the path of the
+ * ConfigResult the server's single resolver hands the data-tool side — the
+ * structural assertion behind #663 (data tools and diagnose resolve the same
+ * file). The real `buildClient` still runs, so the data tool gets a working
+ * client.
+ */
+function captureDataToolPath(opts: CreateServerOptions, sink: { path?: string }): CreateServerOptions {
+  return {
+    ...opts,
+    buildClient: (result) => {
+      sink.path = result.path;
+      return opts.buildClient(result);
+    },
+  };
+}
+
+describe("buildStandaloneServerOptions — diagnose/data-tool config-resolution lockstep (#661, #663)", () => {
   let tempDir: string;
   let originalConfigEnv: string | undefined;
 
@@ -79,26 +97,24 @@ describe("buildStandaloneServerOptions — diagnose/getClient config-resolution 
 
   describe("resolveOptions threading", () => {
     it("threads the startup-frozen config selection into the server's resolveOptions (the #661 fix)", () => {
-      // Before the fix, index.ts built `runStdioServer({ getClient })` with no
-      // resolveOptions, so registerDiagnoseTools(server, undefined) ran and
-      // diagnose re-derived its selection per call. The standalone entry must
-      // now hand the frozen `{ path }` to the server.
+      // The standalone entry must hand the frozen `{ path }` to the server so
+      // createServer builds its single resolver from it (#663).
       const opts = buildStandaloneServerOptions({ QONTOCTL_CONFIG_FILE: "/startup/acme.yaml" });
       expect(opts.resolveOptions).toEqual({ path: "/startup/acme.yaml" });
     });
 
     it("omits resolveOptions when QONTOCTL_CONFIG_FILE is unset at startup (lockstep-by-live-read, by design)", () => {
-      // Deliberate AC#3 decision: with nothing to freeze, both getClient
-      // (resolveConfig(undefined)) and diagnose (?? buildMcpResolveOptions())
-      // live-read process.env together and stay in lockstep. A sentinel that
-      // froze diagnose to the home default here would BREAK that lockstep.
+      // With nothing to freeze, the server's resolver live-reads process.env on
+      // every call, so the data tools and diagnose live-read together and stay
+      // in lockstep. The standalone entry must NOT invent a frozen selection
+      // here — that would break the lockstep.
       const opts = buildStandaloneServerOptions({});
       expect(opts.resolveOptions).toBeUndefined();
     });
   });
 
-  describe("freeze parity after a post-startup QONTOCTL_CONFIG_FILE mutation (AC#2)", () => {
-    it("keeps diagnose and the data-tool getClient pinned to the startup config after the env mutates", async () => {
+  describe("config-resolution lockstep after a post-startup QONTOCTL_CONFIG_FILE mutation (AC#2)", () => {
+    it("keeps the data tools AND diagnose pinned to the startup config after the env mutates (frozen)", async () => {
       const startupConfig = join(tempDir, "startup.yaml");
       writeApiKeyConfig(startupConfig, "startup-org");
       const mutatedConfig = join(tempDir, "does-not-exist.yaml"); // never created
@@ -110,33 +126,63 @@ describe("buildStandaloneServerOptions — diagnose/getClient config-resolution 
       // Post-startup mutation: env now points at a different (nonexistent) path.
       process.env["QONTOCTL_CONFIG_FILE"] = mutatedConfig;
 
-      // Data-tool side: getClient is frozen to the startup config. If it had
-      // re-read the mutated env (the nonexistent path), resolveConfig would
-      // throw; resolving successfully proves it used the startup config.
-      await expect(opts.getClient()).resolves.toBeInstanceOf(HttpClient);
+      const sink: { path?: string } = {};
+      const { mcpClient } = await connectServerOptionsInMemory(captureDataToolPath(opts, sink));
 
-      // Diagnose side: drive the server from the SAME `opts` the entry produced
-      // — one buildStandaloneServerOptions() call feeds both the data-tool
-      // getClient (asserted above) and the diagnose resolveOptions — so this
-      // exercises the real standalone wiring end-to-end. diagnose must report
-      // the startup path, not the mutated env path. Before the fix (the entry
-      // never threaded resolveOptions) diagnose would have re-read the mutated
-      // env here and resolved the nonexistent path. fetch is stubbed in
-      // beforeEach; configPath comes from resolveConfig, not the org-slug body.
-      const { mcpClient } = await connectServerOptionsInMemory(opts);
-      const result = await mcpClient.callTool({ name: "diagnose", arguments: {} });
-      expect(result.isError).not.toBe(true);
-      const report = JSON.parse(firstText(result)) as { configPath?: string };
+      // Data-tool side: getClient → server.resolve → buildClient. If the
+      // resolver had re-read the mutated env (nonexistent), resolveConfig would
+      // throw and the tool would error; a clean result proves it used the
+      // frozen startup config.
+      const dataResult = await mcpClient.callTool({ name: "org_show", arguments: {} });
+      expect(dataResult.isError).not.toBe(true);
+      expect(sink.path).toBe(startupConfig);
+
+      // Diagnose side: same server, same resolver. Before #663 this lockstep had
+      // to be re-established by threading resolveOptions into diagnose; now the
+      // server owns the one resolver, so both sides resolve the startup config.
+      const diagResult = await mcpClient.callTool({ name: "diagnose", arguments: {} });
+      expect(diagResult.isError).not.toBe(true);
+      const report = JSON.parse(firstText(diagResult)) as { configPath?: string };
       expect(report.configPath).toBe(startupConfig);
+
+      // AC#1 — both sides resolved the SAME file (divergence structurally impossible).
+      expect(report.configPath).toBe(sink.path);
+    });
+
+    it("live-reads the mutated env for BOTH sides when unset at startup (live-read lockstep)", async () => {
+      const laterConfig = join(tempDir, "later.yaml");
+      writeApiKeyConfig(laterConfig, "later-org");
+
+      // Unset at startup → resolveOptions omitted → the server's resolver
+      // live-reads process.env on every call.
+      delete process.env["QONTOCTL_CONFIG_FILE"];
+      const opts = buildStandaloneServerOptions();
+      expect(opts.resolveOptions).toBeUndefined();
+
+      // Set the env AFTER startup — both sides must pick it up together.
+      process.env["QONTOCTL_CONFIG_FILE"] = laterConfig;
+
+      const sink: { path?: string } = {};
+      const { mcpClient } = await connectServerOptionsInMemory(captureDataToolPath(opts, sink));
+
+      const dataResult = await mcpClient.callTool({ name: "org_show", arguments: {} });
+      expect(dataResult.isError).not.toBe(true);
+      expect(sink.path).toBe(laterConfig);
+
+      const diagResult = await mcpClient.callTool({ name: "diagnose", arguments: {} });
+      expect(diagResult.isError).not.toBe(true);
+      const report = JSON.parse(firstText(diagResult)) as { configPath?: string };
+      expect(report.configPath).toBe(laterConfig);
+      expect(report.configPath).toBe(sink.path);
     });
   });
 
-  describe("getClient auth-chain construction", () => {
+  describe("buildClient auth-chain construction", () => {
     it("builds an HttpClient from an api-key config", async () => {
       const path = join(tempDir, "apikey.yaml");
       writeApiKeyConfig(path);
       const opts = buildStandaloneServerOptions({ QONTOCTL_CONFIG_FILE: path });
-      const client = await opts.getClient();
+      const client = opts.buildClient(await resolveConfig({ path }));
       expect(client).toBeInstanceOf(HttpClient);
       expect(client.isSandbox).toBe(false);
     });
@@ -145,7 +191,7 @@ describe("buildStandaloneServerOptions — diagnose/getClient config-resolution 
       const path = join(tempDir, "oauth.yaml");
       writeOAuthConfig(path);
       const opts = buildStandaloneServerOptions({ QONTOCTL_CONFIG_FILE: path });
-      await expect(opts.getClient()).resolves.toBeInstanceOf(HttpClient);
+      expect(opts.buildClient(await resolveConfig({ path }))).toBeInstanceOf(HttpClient);
     });
 
     it("builds a primary+fallback HttpClient when both credential types are present", async () => {
@@ -165,22 +211,26 @@ describe("buildStandaloneServerOptions — diagnose/getClient config-resolution 
         { mode: 0o600 },
       );
       const opts = buildStandaloneServerOptions({ QONTOCTL_CONFIG_FILE: path });
-      await expect(opts.getClient()).resolves.toBeInstanceOf(HttpClient);
+      expect(opts.buildClient(await resolveConfig({ path }))).toBeInstanceOf(HttpClient);
     });
 
     it("routes to the sandbox when a staging token is configured", async () => {
       const path = join(tempDir, "staging.yaml");
       writeOAuthConfig(path, { stagingToken: "test-staging-token" });
       const opts = buildStandaloneServerOptions({ QONTOCTL_CONFIG_FILE: path });
-      const client = await opts.getClient();
+      const client = opts.buildClient(await resolveConfig({ path }));
       expect(client.isSandbox).toBe(true);
     });
 
-    it("rejects when the resolved config has no credentials", async () => {
+    it("a data tool errors when the resolved config has no credentials", async () => {
+      // resolveConfig is the gate — it throws NO_CREDS before buildClient runs,
+      // so the server's getClient rejects and the tool reports an error.
       const path = join(tempDir, "empty.yaml");
       writeFileSync(path, ["auth:", "  preference: api-key", ""].join("\n"), { mode: 0o600 });
       const opts = buildStandaloneServerOptions({ QONTOCTL_CONFIG_FILE: path });
-      await expect(opts.getClient()).rejects.toThrow(/No credentials/);
+      const { mcpClient } = await connectServerOptionsInMemory(opts);
+      const result = await mcpClient.callTool({ name: "org_show", arguments: {} });
+      expect(result.isError).toBe(true);
     });
   });
 });

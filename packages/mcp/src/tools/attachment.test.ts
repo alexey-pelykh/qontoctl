@@ -6,9 +6,21 @@ import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { jsonResponse } from "@qontoctl/core/testing";
 import { connectInMemory } from "../testing/mcp-helpers.js";
 
-vi.mock("node:fs/promises", () => ({
-  readFile: vi.fn().mockResolvedValue(Buffer.from("fake-file-content")),
-}));
+// #663: the server now resolves config per request, so the data-tool getClient
+// reads the stub config (`.yaml`) via fs. Pass YAML reads through to the real
+// fs; only the attachment file-upload reads get the fake bytes this suite needs.
+vi.mock("node:fs/promises", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:fs/promises")>();
+  return {
+    ...actual,
+    readFile: vi.fn(async (path: unknown, ...rest: unknown[]) => {
+      if (typeof path === "string" && path.endsWith(".yaml")) {
+        return (actual.readFile as (...a: unknown[]) => Promise<Buffer>)(path, ...rest);
+      }
+      return Buffer.from("fake-file-content");
+    }),
+  };
+});
 
 function makeAttachment(overrides: Record<string, unknown> = {}) {
   return {
