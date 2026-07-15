@@ -195,11 +195,15 @@ export function getTransferProofId(): string {
 
 /**
  * Check whether a sandbox OAuth refresh token is available for the
- * OAuth-flow round-trip E2E suite — either via the
- * `QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG` env var (a dedicated test seed
- * surface, kept distinct from runtime refresh-token env vars per #495) or
- * via `oauth.refresh-token` in `.qontoctl.yaml` (local developer flow,
- * populated by `qontoctl auth login`).
+ * OAuth-flow round-trip E2E suite, via the dedicated
+ * `QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG` env var (a test seed surface, kept
+ * distinct from runtime refresh-token env vars per #495).
+ *
+ * There is intentionally **no** `.qontoctl.yaml` `oauth.refresh-token`
+ * fallback: the OAuth-flow suite rotates and revokes whatever refresh token
+ * it is handed, so falling back to the developer's main session token
+ * cannibalized that session mid-run (#671). Without the dedicated env var the
+ * suite skips cleanly, leaving the main session intact.
  *
  * Used by `describe.skipIf(... || !hasE2ERefreshToken())` on the
  * OAuth-flow E2E suite. Pair with `!hasOAuthCredentials()` and
@@ -209,21 +213,19 @@ export function getTransferProofId(): string {
  * The suite is **local-only by design**: Qonto rotates refresh tokens on
  * every `oauth/token` exchange (per RFC 6749 §6), so CI-seeded secrets
  * burn on every run. See [`docs/oauth-flow-e2e.md`](../../../docs/oauth-flow-e2e.md)
- * for the rationale and the local rotation workflow.
+ * for the rationale and the local seed-token workflow.
  */
 export function hasE2ERefreshToken(): boolean {
-  if (process.env["QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG"]) {
-    return true;
-  }
-  return Boolean(readConfigFileCredentials()?.refreshToken);
+  return Boolean(process.env["QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG"]);
 }
 
 /**
  * Retrieve the sandbox OAuth refresh token for the OAuth-flow round-trip
- * E2E suite. Resolution order: `QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG`
- * env var, then `oauth.refresh-token` in `.qontoctl.yaml`.
+ * E2E suite, from the dedicated `QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG` env
+ * var. There is intentionally no `.qontoctl.yaml` `oauth.refresh-token`
+ * fallback — see {@link hasE2ERefreshToken} and #671.
  *
- * Throws if no refresh token is available — callers should be guarded by
+ * Throws if the env var is unset — callers should be guarded by
  * {@link hasE2ERefreshToken}.
  */
 export function getE2ERefreshToken(): string {
@@ -231,13 +233,11 @@ export function getE2ERefreshToken(): string {
   if (envToken) {
     return envToken;
   }
-  const fileToken = readConfigFileCredentials()?.refreshToken;
-  if (fileToken) {
-    return fileToken;
-  }
   throw new Error(
-    "No E2E OAuth refresh token available " +
-      "(checked QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG env var and oauth.refresh-token in .qontoctl.yaml)",
+    "No E2E OAuth refresh token available: set QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG to a " +
+      "dedicated, disposable sandbox refresh token. The oauth-flow suite intentionally does NOT " +
+      "fall back to oauth.refresh-token in .qontoctl.yaml, because the suite rotates and revokes " +
+      "the token it is given — doing that to your main session token poisons it mid-run (#671).",
   );
 }
 

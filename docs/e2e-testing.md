@@ -50,12 +50,15 @@ commands/mcp-payment-links · quotes · recurring-transfers · teams · webhooks
 sca-continuation · auth/oauth-flow
 
 > The `auth/oauth-flow` suite has an **additional** gate beyond the
-> standard OAuth + staging-token check: it requires a seed refresh token
-> (`QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG` env var or `oauth.refresh-token`
-> in `.qontoctl.yaml`). The seed is consumed on every successful run, and
-> the suite is **local-only by design** — see
-> [`docs/oauth-flow-e2e.md`](./oauth-flow-e2e.md) for the rationale and
-> local rotation workflow.
+> standard OAuth + staging-token check: it requires a **dedicated** seed
+> refresh token in the `QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG` env var. It
+> deliberately does **not** fall back to `oauth.refresh-token` in
+> `.qontoctl.yaml` — the suite rotates and revokes the token it is given, so
+> using your main session's token poisoned that session mid-run (#671).
+> Without the env var the suite skips cleanly. The seed is consumed on every
+> successful run, and the suite is **local-only by design** — see
+> [`docs/oauth-flow-e2e.md`](./oauth-flow-e2e.md) for the rationale and local
+> seed-token workflow.
 
 **No credentials needed** (run anywhere):
 
@@ -112,8 +115,8 @@ the suite's reason to exist. See
 > credentials. For the OAuth-flow E2E suite specifically, see
 > [`docs/oauth-flow-e2e.md`](./oauth-flow-e2e.md) — the suite is local-only
 > by design and uses a dedicated `QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG`
-> env var (or `oauth.refresh-token` in `.qontoctl.yaml`) scoped to tests
-> only, not read by the runtime.
+> env var scoped to tests only, not read by the runtime (and with no
+> `.qontoctl.yaml` fallback, per #671).
 
 ## Running locally
 
