@@ -11,6 +11,8 @@ CLI and MCP server for the [Qonto](https://qonto.com) banking API.
 
 This project is brought to you by [Alexey Pelykh](https://github.com/alexey-pelykh).
 
+> **Unofficial project.** QontoCtl is independent and not affiliated with, endorsed by, or supported by Qonto. See the [Disclaimer](#disclaimer).
+
 ## What It Does
 
 QontoCtl lets AI assistants (Claude, etc.) interact with Qonto through the [Model Context Protocol](https://modelcontextprotocol.io). It can:
@@ -36,6 +38,32 @@ QontoCtl lets AI assistants (Claude, etc.) interact with Qonto through the [Mode
 - **Requests** — list organization requests
 - **Attachments** — upload and view attachments
 - **E-Invoicing** — retrieve e-invoicing settings
+
+## QontoCtl and Qonto's official MCP
+
+_QontoCtl is an independent, unofficial project — not affiliated with or endorsed by Qonto._
+
+Qonto ships its own [official MCP server](https://docs.qonto.com/mcp/overview) — hosted, free on every plan, and installable in a tap from Claude, ChatGPT, Cursor, and more. If you want to _talk to_ your finances — "show my balances", "chart last month's spending", "draft an invoice" — it's an excellent, well-made option.
+
+QontoCtl is built for a different job: **automating** Qonto, not just chatting with it.
+
+The official MCP is a hosted assistant you log into as a user. QontoCtl is a local, open-source toolkit — a CLI, an MCP server, and a library — that runs on your own machine with your own credentials, including as a headless service account.
+
+|                                                | Official MCP               | QontoCtl                              |
+| ---------------------------------------------- | -------------------------- | ------------------------------------- |
+| Runs headless — CI, cron, scripts, no chat     | Interactive only           | ✅ CLI + MCP + library                |
+| Authentication                                 | OAuth, per-user            | ✅ API key (service account) or OAuth |
+| Executes SEPA / internal / recurring transfers | Prepares approval requests | ✅ Yes, with SCA handled\*            |
+| API coverage                                   | Curated subset             | ✅ Comprehensive                      |
+| Self-hosted · your credentials · open source   | Qonto-hosted               | ✅ AGPL-3.0, local-first              |
+
+<sub>_Comparison based on Qonto's public MCP documentation as of July 2026._</sub>
+
+<sub>\* Transfers to untrusted payees still require your Strong Customer Authentication approval, as they must. QontoCtl handles the SCA continuation so scripted flows — to trusted beneficiaries and between your own accounts — complete without a human at the terminal.</sub>
+
+QontoCtl also supports multiple Qonto organizations from one setup via named profiles — handy for accountants, holding companies, and anyone running the books for several entities.
+
+**The official MCP talks to Qonto. QontoCtl automates it.** Many people will use both — the official MCP in a chat window, QontoCtl in a pipeline.
 
 ## Prerequisites
 
@@ -535,9 +563,9 @@ qontoctl --debug transaction list     # full headers and response bodies
 
 ## Disclaimer
 
-`qontoctl` is an **independent project** not affiliated with, endorsed by, or officially connected to **Qonto** or Qonto SAS.
+`qontoctl` is an **independent project** not affiliated with, endorsed by, or officially connected to **Qonto**. It runs on your own machine with your own credentials.
 
-Qonto is a trademark of Qonto SAS.
+"Qonto" and the Qonto logo are trademarks of Olinda SAS (the company operating Qonto); `qontoctl` uses the name only to describe the service it interoperates with.
 
 ## License
 
