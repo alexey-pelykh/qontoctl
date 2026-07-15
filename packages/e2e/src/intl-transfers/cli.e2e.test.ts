@@ -26,29 +26,49 @@ interface IntlQuote {
   readonly target_amount: number;
 }
 
+/**
+ * Sandbox-provisionable currencies probed in priority order when searching
+ * for an existing intl-beneficiary. `intl beneficiary list` requires
+ * `--currency` (a mandatory option), so each corridor must be queried
+ * explicitly.
+ */
+const PROBE_CURRENCIES = ["USD", "GBP", "CHF", "CAD", "AUD", "JPY", "HKD", "SGD"];
+
 describe.skipIf(!hasOAuthCredentials())("intl-transfer CLI commands (e2e)", () => {
   pinAuthPreference("oauth-first");
 
   describe("intl-transfer requirements", () => {
     it("returns requirements for a beneficiary", (ctx) => {
-      // First list intl beneficiaries to get an ID. The intl-beneficiary
-      // feature can be sandbox-gated; previously a bare try/catch swallowed
-      // ANY error (including auth failures — the #496 class). Use the
-      // 404-specific `skipIfNotFound` helper instead so genuine errors
-      // (401 auth failure, 5xx) still surface as test failures.
-      const stdout = skipIfNotFound("--output", "json", "intl-beneficiary", "list");
-      if (stdout === SKIP) {
-        skipMissingFixture(ctx, "intl-beneficiary list returned 404 — feature not enabled in sandbox");
+      // Find an intl beneficiary to derive requirements for. The command tree
+      // is `intl beneficiary list` (not `intl-beneficiary`), and `list`
+      // requires `--currency` (a mandatory option), so probe corridors in
+      // priority order. `skipIfNotFound` skips a 404 corridor (feature gated)
+      // while still surfacing genuine errors (401 auth, 5xx) as failures — the
+      // #496 class — instead of a bare try/catch swallowing everything.
+      let id: string | undefined;
+      for (const currency of PROBE_CURRENCIES) {
+        const stdout = skipIfNotFound("--output", "json", "intl", "beneficiary", "list", "--currency", currency);
+        if (stdout === SKIP) continue;
+        const beneficiaries = JSON.parse(stdout) as { id: string }[];
+        if (beneficiaries.length > 0 && beneficiaries[0] !== undefined) {
+          id = beneficiaries[0].id;
+          break;
+        }
       }
-      const beneficiaries = JSON.parse(stdout) as { id: string }[];
-      if (beneficiaries.length === 0) {
-        skipMissingFixture(ctx, "no international beneficiaries in sandbox for intl-transfer requirements");
+      if (id === undefined) {
+        skipMissingFixture(
+          ctx,
+          "no international beneficiaries in sandbox across probed corridors (or feature not enabled)",
+        );
       }
 
-      const id = (beneficiaries[0] as { id: string }).id;
-      const output = cli("--output", "json", "intl-transfer", "requirements", id);
+      // `<id>` is a beneficiary id; the endpoint is
+      // `/v2/international/transfers/{id}/requirements`. The JSON payload is the
+      // unwrapped requirements object, which carries `fields` (not a nested
+      // `requirements` key — the service already extracts `.requirements`).
+      const output = cli("--output", "json", "intl", "transfer", "requirements", id);
       const parsed = JSON.parse(output) as Record<string, unknown>;
-      expect(parsed).toHaveProperty("requirements");
+      expect(parsed).toHaveProperty("fields");
     });
   });
 });
@@ -79,14 +99,6 @@ describe.skipIf(!hasOAuthCredentials())("intl-transfer CLI commands (e2e)", () =
 // skips with a console warning rather than failing.
 describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("intl-transfer create (OAuth+sandbox SCA probe)", () => {
   pinAuthPreference("oauth-first");
-
-  /**
-   * Sandbox-provisionable currencies probed in priority order when
-   * searching for an existing intl-beneficiary. The Qonto API requires
-   * `--currency` on `intl beneficiary list`, so we have to query each
-   * corridor explicitly.
-   */
-  const PROBE_CURRENCIES = ["USD", "GBP", "CHF", "CAD", "AUD", "JPY", "HKD", "SGD"];
 
   function discoverIntlBeneficiary(): IntlBeneficiary | undefined {
     for (const currency of PROBE_CURRENCIES) {
@@ -142,7 +154,8 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken())("intl-transfer cre
         "--verbose",
         "--output",
         "json",
-        "intl-transfer",
+        "intl",
+        "transfer",
         "create",
         "--beneficiary",
         beneficiary.id,
