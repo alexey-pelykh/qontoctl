@@ -87,7 +87,12 @@ export const CardSchema = z
     updated_at: z.string(),
     created_at: z.string(),
     shipped_at: z.string().nullable().optional(),
-    card_type: z.enum(["debit", "prepaid"]),
+    // `card_type` is an open string, not a closed enum: Qonto surfaces card
+    // types beyond "debit"/"prepaid", and a strict enum fails the WHOLE card
+    // response on any unlisted value — breaking `card list`/`card show` for the
+    // entire account, not just the one card. Mirrors `CardTypeAppearancesSchema`
+    // below, which already models `card_type` as `z.string()`. (#672)
+    card_type: z.string(),
     card_level: z.enum(["standard", "plus", "metal", "virtual", "virtual_partner", "flash", "advertising"]),
     payment_lifespan_limit: z.number().nullable().optional(),
     payment_lifespan_spent: z.number(),

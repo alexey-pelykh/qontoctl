@@ -187,8 +187,13 @@ describe("CardSchema", () => {
     }
   });
 
-  it("validates card_type values", () => {
-    for (const card_type of ["debit", "prepaid"]) {
+  it("accepts card_type values beyond the former debit/prepaid enum (#672)", () => {
+    // `card_type` used to be `z.enum(["debit", "prepaid"])`, which failed the
+    // ENTIRE card response whenever Qonto returned any other value (breaking
+    // `card list`/`card show`). It is now an open string, matching
+    // `CardTypeAppearancesSchema`. The non-debit/prepaid values below would each
+    // throw under the old schema — this guards against a regression.
+    for (const card_type of ["debit", "prepaid", "flash", "advertising", "virtual"]) {
       const result = CardSchema.parse(makeCard({ card_type }));
       expect(result.card_type).toBe(card_type);
     }

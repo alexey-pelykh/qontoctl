@@ -77,7 +77,9 @@ export interface Card {
   readonly updated_at: string;
   readonly created_at: string;
   readonly shipped_at?: string | null | undefined;
-  readonly card_type: "debit" | "prepaid";
+  // Open string, not a closed union — Qonto surfaces card types beyond
+  // "debit"/"prepaid"; see `CardSchema.card_type` in ../cards/schemas.ts. (#672)
+  readonly card_type: string;
   readonly card_level: "standard" | "plus" | "metal" | "virtual" | "virtual_partner" | "flash" | "advertising";
   readonly payment_lifespan_limit?: number | null | undefined;
   readonly payment_lifespan_spent: number;
