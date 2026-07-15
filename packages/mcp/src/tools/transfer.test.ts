@@ -410,7 +410,7 @@ describe("transfer MCP tools", () => {
         expect(text).toContain("sca_session_token");
         // The dead-end formatter is NOT used.
         expect(text).not.toContain("Poll GET");
-        expect(text).not.toContain("/v2/sca/sessions/");
+        expect(text).not.toContain("/v2/sca_sessions/");
       });
 
       it("retries the operation with the supplied sca_session_token (no polling)", async () => {
@@ -472,8 +472,8 @@ describe("transfer MCP tools", () => {
             }
             return jsonResponse({ transfer: makeTransfer({ id: "txfr-poll-retry" }) });
           }
-          if (input.pathname.startsWith("/v2/sca/sessions/")) {
-            return jsonResponse({ sca_session: { status: "allow" } });
+          if (input.pathname.startsWith("/v2/sca_sessions/")) {
+            return jsonResponse({ result: "allow" });
           }
           return jsonResponse({});
         });
@@ -765,7 +765,7 @@ describe("transfer MCP tools", () => {
               headers: { "content-type": "application/json" },
             });
           }
-          if (input.pathname.startsWith("/v2/sca/sessions/")) {
+          if (input.pathname.startsWith("/v2/sca_sessions/")) {
             scaPollCount++;
           }
           return jsonResponse({});
@@ -784,7 +784,7 @@ describe("transfer MCP tools", () => {
         expect(text).toContain("sca_session_token");
         // The dead-end formatter is NOT used.
         expect(text).not.toContain("Poll GET");
-        expect(text).not.toContain("/v2/sca/sessions/");
+        expect(text).not.toContain("/v2/sca_sessions/");
         // Pure two-step: cancel POST hit once, no SCA polling, no retry.
         expect(postCount).toBe(1);
         expect(scaPollCount).toBe(0);
@@ -802,7 +802,7 @@ describe("transfer MCP tools", () => {
             postCount++;
             return new Response(null, { status: 204 });
           }
-          if (input.pathname.startsWith("/v2/sca/sessions/")) {
+          if (input.pathname.startsWith("/v2/sca_sessions/")) {
             scaPollCount++;
           }
           return jsonResponse({});
@@ -852,8 +852,8 @@ describe("transfer MCP tools", () => {
             }
             return new Response(null, { status: 204 });
           }
-          if (input.pathname.startsWith("/v2/sca/sessions/")) {
-            return jsonResponse({ sca_session: { status: "allow" } });
+          if (input.pathname.startsWith("/v2/sca_sessions/")) {
+            return jsonResponse({ result: "allow" });
           }
           return jsonResponse({});
         });

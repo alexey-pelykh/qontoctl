@@ -32,27 +32,27 @@ describe("SCA service", () => {
   });
 
   describe("getScaSession (production)", () => {
-    it("sends GET to the production /v2/sca/sessions/{token} endpoint", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "waiting" } }));
+    it("sends GET to the production /v2/sca_sessions/{token} endpoint", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ result: "waiting" }));
 
       await getScaSession(client, "tok-123");
 
       const [url, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
-      expect(url.pathname).toBe("/v2/sca/sessions/tok-123");
+      expect(url.pathname).toBe("/v2/sca_sessions/tok-123");
       expect(init.method).toBe("GET");
     });
 
     it("encodes the token in the URL", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "waiting" } }));
+      fetchSpy.mockReturnValue(jsonResponse({ result: "waiting" }));
 
       await getScaSession(client, "tok/special&chars");
 
       const [url] = fetchSpy.mock.calls[0] as [URL];
-      expect(url.pathname).toBe("/v2/sca/sessions/tok%2Fspecial%26chars");
+      expect(url.pathname).toBe("/v2/sca_sessions/tok%2Fspecial%26chars");
     });
 
     it("returns session with token and status", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "allow" } }));
+      fetchSpy.mockReturnValue(jsonResponse({ result: "allow" }));
 
       const session = await getScaSession(client, "tok-456");
 
@@ -60,7 +60,7 @@ describe("SCA service", () => {
     });
 
     it("returns waiting status", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "waiting" } }));
+      fetchSpy.mockReturnValue(jsonResponse({ result: "waiting" }));
 
       const session = await getScaSession(client, "tok-789");
 
@@ -68,7 +68,7 @@ describe("SCA service", () => {
     });
 
     it("returns deny status", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "deny" } }));
+      fetchSpy.mockReturnValue(jsonResponse({ result: "deny" }));
 
       const session = await getScaSession(client, "tok-abc");
 
@@ -178,7 +178,7 @@ describe("SCA service", () => {
     const noopSleep = () => Promise.resolve();
 
     it("returns immediately when session is allowed on first poll", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "allow" } }));
+      fetchSpy.mockReturnValue(jsonResponse({ result: "allow" }));
 
       const session = await pollScaSession(client, "tok-1", { sleep: noopSleep });
 
@@ -188,9 +188,9 @@ describe("SCA service", () => {
 
     it("polls until session is allowed", async () => {
       fetchSpy
-        .mockReturnValueOnce(jsonResponse({ sca_session: { status: "waiting" } }))
-        .mockReturnValueOnce(jsonResponse({ sca_session: { status: "waiting" } }))
-        .mockReturnValue(jsonResponse({ sca_session: { status: "allow" } }));
+        .mockReturnValueOnce(jsonResponse({ result: "waiting" }))
+        .mockReturnValueOnce(jsonResponse({ result: "waiting" }))
+        .mockReturnValue(jsonResponse({ result: "allow" }));
 
       const session = await pollScaSession(client, "tok-2", { sleep: noopSleep });
 
@@ -199,7 +199,7 @@ describe("SCA service", () => {
     });
 
     it("throws ScaDeniedError when session is denied", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "deny" } }));
+      fetchSpy.mockReturnValue(jsonResponse({ result: "deny" }));
 
       const error = await pollScaSession(client, "tok-3", { sleep: noopSleep }).catch((e: unknown) => e);
 
@@ -209,7 +209,7 @@ describe("SCA service", () => {
     });
 
     it("throws ScaTimeoutError when timeout is exceeded", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "waiting" } }));
+      fetchSpy.mockReturnValue(jsonResponse({ result: "waiting" }));
 
       const error = await pollScaSession(client, "tok-4", {
         timeoutMs: 0,
@@ -224,8 +224,8 @@ describe("SCA service", () => {
 
     it("calls onPoll callback with attempt number and elapsed time", async () => {
       fetchSpy
-        .mockReturnValueOnce(jsonResponse({ sca_session: { status: "waiting" } }))
-        .mockReturnValue(jsonResponse({ sca_session: { status: "allow" } }));
+        .mockReturnValueOnce(jsonResponse({ result: "waiting" }))
+        .mockReturnValue(jsonResponse({ result: "allow" }));
 
       const onPoll = vi.fn();
 
@@ -241,8 +241,8 @@ describe("SCA service", () => {
     it("uses custom interval for sleep between polls", async () => {
       const sleepCalls: number[] = [];
       fetchSpy
-        .mockReturnValueOnce(jsonResponse({ sca_session: { status: "waiting" } }))
-        .mockReturnValue(jsonResponse({ sca_session: { status: "allow" } }));
+        .mockReturnValueOnce(jsonResponse({ result: "waiting" }))
+        .mockReturnValue(jsonResponse({ result: "allow" }));
 
       await pollScaSession(client, "tok-6", {
         intervalMs: 5000,
@@ -259,8 +259,8 @@ describe("SCA service", () => {
       vi.useFakeTimers();
       try {
         fetchSpy
-          .mockReturnValueOnce(jsonResponse({ sca_session: { status: "waiting" } }))
-          .mockReturnValue(jsonResponse({ sca_session: { status: "allow" } }));
+          .mockReturnValueOnce(jsonResponse({ result: "waiting" }))
+          .mockReturnValue(jsonResponse({ result: "allow" }));
 
         const promise = pollScaSession(client, "tok-default", { intervalMs: 100 });
         await vi.advanceTimersByTimeAsync(200);
@@ -273,8 +273,8 @@ describe("SCA service", () => {
 
     it("throws ScaDeniedError after polling when deny comes", async () => {
       fetchSpy
-        .mockReturnValueOnce(jsonResponse({ sca_session: { status: "waiting" } }))
-        .mockReturnValue(jsonResponse({ sca_session: { status: "deny" } }));
+        .mockReturnValueOnce(jsonResponse({ result: "waiting" }))
+        .mockReturnValue(jsonResponse({ result: "deny" }));
 
       const error = await pollScaSession(client, "tok-7", { sleep: noopSleep }).catch((e: unknown) => e);
 

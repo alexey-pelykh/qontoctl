@@ -108,14 +108,15 @@ export async function executeWithSca<T>(
       if (pollError instanceof ScaDeniedError || pollError instanceof ScaTimeoutError) {
         throw pollError;
       }
-      // Anything else means the poll itself broke — e.g. the production
-      // SCA-session status endpoint (`GET /v2/sca/sessions/{token}`) returning
-      // a gateway 404 (see #669). The SCA challenge was already created and a
-      // push delivered to the user's device, so a raw failure here loses the
-      // token and strands them with an orphaned challenge behind a bare
-      // "not_found". Preserve the token + cause so callers can surface
-      // actionable recovery. Does NOT touch the polling URL / retry itself —
-      // this only makes the failure recoverable, not the poll succeed.
+      // Anything else means the poll itself broke — a transient network error,
+      // a 5xx, or an expired/invalid session (Qonto returns 412 for that). The
+      // SCA challenge was already created and a push delivered to the user's
+      // device, so a raw failure here loses the token and strands them with an
+      // orphaned challenge behind a bare error. Preserve the token + cause so
+      // callers can surface actionable recovery. (#669's specific cause — the
+      // wrong `/v2/sca/sessions/` polling path 404ing at the gateway — is now
+      // fixed in getScaSession; this layer remains the safety net for any
+      // *other* poll failure.)
       throw new ScaPollingFailedError(scaSessionToken, pollError);
     }
 

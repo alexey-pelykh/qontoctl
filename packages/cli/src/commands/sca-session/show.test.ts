@@ -46,13 +46,13 @@ describe("sca-session show command", () => {
   }
 
   it("fetches an SCA session by token (waiting status)", async () => {
-    fetchSpy.mockImplementation(() => jsonResponse({ sca_session: { status: "waiting" } }));
+    fetchSpy.mockImplementation(() => jsonResponse({ result: "waiting" }));
 
     await runCommand("tok-abc", "--output", "json");
 
     expect(fetchSpy).toHaveBeenCalled();
     const [url, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
-    expect(url.pathname).toBe("/v2/sca/sessions/tok-abc");
+    expect(url.pathname).toBe("/v2/sca_sessions/tok-abc");
     expect(init.method).toBe("GET");
 
     const parsed = JSON.parse(writtenOutput.join("")) as { token: string; status: string };
@@ -60,7 +60,7 @@ describe("sca-session show command", () => {
   });
 
   it("returns allow status", async () => {
-    fetchSpy.mockImplementation(() => jsonResponse({ sca_session: { status: "allow" } }));
+    fetchSpy.mockImplementation(() => jsonResponse({ result: "allow" }));
 
     await runCommand("tok-allow", "--output", "json");
 
@@ -69,7 +69,7 @@ describe("sca-session show command", () => {
   });
 
   it("returns deny status", async () => {
-    fetchSpy.mockImplementation(() => jsonResponse({ sca_session: { status: "deny" } }));
+    fetchSpy.mockImplementation(() => jsonResponse({ result: "deny" }));
 
     await runCommand("tok-deny", "--output", "json");
 
@@ -78,7 +78,7 @@ describe("sca-session show command", () => {
   });
 
   it("outputs yaml format", async () => {
-    fetchSpy.mockImplementation(() => jsonResponse({ sca_session: { status: "waiting" } }));
+    fetchSpy.mockImplementation(() => jsonResponse({ result: "waiting" }));
 
     await runCommand("tok-yaml", "--output", "yaml");
 
@@ -88,7 +88,7 @@ describe("sca-session show command", () => {
   });
 
   it("outputs table format with token and status columns", async () => {
-    fetchSpy.mockImplementation(() => jsonResponse({ sca_session: { status: "waiting" } }));
+    fetchSpy.mockImplementation(() => jsonResponse({ result: "waiting" }));
 
     await runCommand("tok-table");
 
@@ -98,12 +98,12 @@ describe("sca-session show command", () => {
   });
 
   it("encodes the token in the URL", async () => {
-    fetchSpy.mockImplementation(() => jsonResponse({ sca_session: { status: "waiting" } }));
+    fetchSpy.mockImplementation(() => jsonResponse({ result: "waiting" }));
 
     await runCommand("tok/with&chars", "--output", "json");
 
     const [url] = fetchSpy.mock.calls[0] as [URL];
-    expect(url.pathname).toBe("/v2/sca/sessions/tok%2Fwith%26chars");
+    expect(url.pathname).toBe("/v2/sca_sessions/tok%2Fwith%26chars");
   });
 
   it("propagates network/API errors", async () => {

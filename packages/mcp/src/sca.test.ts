@@ -65,7 +65,7 @@ describe("executeWithMcpSca", () => {
 
   describe("with wait > 0 (default 30s polling path)", () => {
     it("polls and retries with the SCA token on approval, returning formatSuccess", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "allow" } }));
+      fetchSpy.mockReturnValue(jsonResponse({ result: "allow" }));
       let callCount = 0;
 
       const result = await executeWithMcpSca(
@@ -87,7 +87,7 @@ describe("executeWithMcpSca", () => {
     });
 
     it("returns SCA-denied response when the user denies", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "deny" } }));
+      fetchSpy.mockReturnValue(jsonResponse({ result: "deny" }));
       let callCount = 0;
 
       const result = await executeWithMcpSca(
@@ -314,7 +314,7 @@ describe("executeWithMcpSca", () => {
       const realDateNow = Date.now;
       let now = 1_000_000;
       vi.spyOn(Date, "now").mockImplementation(() => now);
-      fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "waiting" } }));
+      fetchSpy.mockReturnValue(jsonResponse({ result: "waiting" }));
 
       const sleep = async () => {
         // Advance virtual time past timeoutMs so the next iteration trips the
@@ -342,7 +342,7 @@ describe("executeWithMcpSca", () => {
     });
 
     it("returns SCA-pending response when the post-poll retry raises a fresh 428", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "allow" } }));
+      fetchSpy.mockReturnValue(jsonResponse({ result: "allow" }));
       let callCount = 0;
 
       const result = await executeWithMcpSca(
@@ -371,7 +371,7 @@ describe("executeWithMcpSca", () => {
       // Force ScaDeniedError without going through the operation.
       // We intercept executeWithSca by having the operation throw 428,
       // then the poll fetch returns "deny".
-      fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "deny" } }));
+      fetchSpy.mockReturnValue(jsonResponse({ result: "deny" }));
 
       const result = await executeWithMcpSca(
         client,
@@ -405,7 +405,7 @@ describe("executeWithMcpSca", () => {
 
       const text = getText(result);
       expect(text).toContain("sca_session_show");
-      expect(text).not.toContain("/v2/sca/sessions/");
+      expect(text).not.toContain("/v2/sca_sessions/");
       expect(text).not.toContain("Poll GET");
     });
 
@@ -439,7 +439,7 @@ describe("executeWithMcpSca", () => {
       const realDateNow = Date.now;
       let now = 2_000_000;
       vi.spyOn(Date, "now").mockImplementation(() => now);
-      fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "waiting" } }));
+      fetchSpy.mockReturnValue(jsonResponse({ result: "waiting" }));
 
       const sleep = async () => {
         now += 100_000;
@@ -472,7 +472,7 @@ describe("executeWithMcpSca", () => {
     });
 
     it("denied response does not expose the session token", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "deny" } }));
+      fetchSpy.mockReturnValue(jsonResponse({ result: "deny" }));
 
       const result = await executeWithMcpSca(
         client,
@@ -489,7 +489,7 @@ describe("executeWithMcpSca", () => {
 
   describe("idempotency key", () => {
     it("forwards a stable idempotency key across both attempts in the polling path", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "allow" } }));
+      fetchSpy.mockReturnValue(jsonResponse({ result: "allow" }));
       const seenKeys: string[] = [];
       let called = false;
 
@@ -512,7 +512,7 @@ describe("executeWithMcpSca", () => {
     });
 
     it("forwards a supplied idempotency key in the polling path", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "allow" } }));
+      fetchSpy.mockReturnValue(jsonResponse({ result: "allow" }));
       const seenKeys: string[] = [];
       let called = false;
 
@@ -590,7 +590,7 @@ describe("executeWithMcpSca", () => {
       // We verify the default by observing that a fresh QontoScaRequiredError
       // engages the polling layer (fetchSpy is called for the SCA session
       // poll). With wait=undefined the wrapper uses 30s.
-      fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "allow" } }));
+      fetchSpy.mockReturnValue(jsonResponse({ result: "allow" }));
       let called = false;
 
       await executeWithMcpSca(

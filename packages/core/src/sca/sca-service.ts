@@ -11,33 +11,27 @@ import { ScaSessionStatusSchema } from "./schemas.js";
 /**
  * Retrieve the current status of an SCA session.
  *
- * In sandbox (when the `HttpClient` carries a staging token), SCA sessions are
- * created as **mocked** sessions and are only queryable at
- * `GET /v2/mocked_sca_sessions/{token}` — the production polling endpoint
- * (`GET /v2/sca/sessions/{token}`) returns 404 for mocked-session tokens.
+ * The production endpoint is `GET /v2/sca_sessions/{token}`. In sandbox (when the
+ * `HttpClient` carries a staging token) SCA sessions are created as **mocked**
+ * sessions, queryable at the `mocked_`-prefixed sibling
+ * `GET /v2/mocked_sca_sessions/{token}`. The two paths differ ONLY by that prefix
+ * and share one response shape:
+ * `{ result: "waiting" | "allow" | "deny", canceled_at: string | null }`.
  *
- * The two endpoints also use different response shapes:
- * - production: `{ sca_session: { status: "waiting" | "allow" | "deny" } }`
- * - mocked: `{ result: "waiting" | "allow" | "deny", canceled_at: string | null }`
- *
- * This function picks the right endpoint based on `client.isSandbox` and
- * normalizes both shapes into the {@link ScaSession} value.
+ * Historical note (#669): earlier code polled production at `GET
+ * /v2/sca/sessions/{token}` (slash) with a `{ sca_session: { status } }` shape.
+ * Both were unverified guesses from the initial SCA commit — the slash path has
+ * no gateway route and 404s, stranding SCA-gated writes with an orphaned
+ * challenge. The `mocked_sca_sessions` sibling (the only path ever exercised,
+ * in sandbox) already used the correct underscore/`{ result }` form.
  */
 export async function getScaSession(client: HttpClient, token: string): Promise<ScaSession> {
-  if (client.isSandbox) {
-    const endpointPath = `/v2/mocked_sca_sessions/${encodeURIComponent(token)}`;
-    const response = await client.get(endpointPath);
-    const parsed = parseResponse(z.object({ result: ScaSessionStatusSchema }), response, endpointPath);
-    return { token, status: parsed.result };
-  }
-  const endpointPath = `/v2/sca/sessions/${encodeURIComponent(token)}`;
+  const endpointPath = client.isSandbox
+    ? `/v2/mocked_sca_sessions/${encodeURIComponent(token)}`
+    : `/v2/sca_sessions/${encodeURIComponent(token)}`;
   const response = await client.get(endpointPath);
-  const parsed = parseResponse(
-    z.object({ sca_session: z.object({ status: ScaSessionStatusSchema }) }),
-    response,
-    endpointPath,
-  );
-  return { token, status: parsed.sca_session.status };
+  const parsed = parseResponse(z.object({ result: ScaSessionStatusSchema }), response, endpointPath);
+  return { token, status: parsed.result };
 }
 
 /**

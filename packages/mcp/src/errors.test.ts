@@ -217,7 +217,7 @@ describe("withClient", () => {
       const text = (result.content[0] as { type: "text"; text: string }).text;
       expect(text).toContain("sca_session_show");
       expect(text).toContain("sca_session_token");
-      expect(text).not.toContain("/v2/sca/sessions/");
+      expect(text).not.toContain("/v2/sca_sessions/");
       expect(text).not.toContain("Poll GET");
     });
 

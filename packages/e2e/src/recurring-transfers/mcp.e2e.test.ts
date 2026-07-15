@@ -11,11 +11,11 @@ import { cliEnv, hasOAuthCredentials, hasStagingToken, pinAuthPreference } from 
 
 /**
  * Pattern matching the SCA session polling URL the core HTTP client logs at
- * verbose level. Matches both production (`/v2/sca/sessions/{token}`) and
+ * verbose level. Matches both production (`/v2/sca_sessions/{token}`) and
  * sandbox-only mocked (`/v2/mocked_sca_sessions/{token}`) endpoints — the
  * core picks per `client.isSandbox`.
  */
-const SCA_POLL_URL_RE = /\/v2\/(?:sca\/sessions|mocked_sca_sessions)\/([A-Za-z0-9_-]+)(?=\s|$|\/)/;
+const SCA_POLL_URL_RE = /\/v2\/(?:sca_sessions|mocked_sca_sessions)\/([A-Za-z0-9_-]+)(?=\s|$|\/)/;
 
 interface RecurringTransferItem {
   readonly id: string;

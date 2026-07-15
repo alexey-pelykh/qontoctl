@@ -393,7 +393,7 @@ describe("recurring-transfer MCP tools", () => {
               headers: { "content-type": "application/json" },
             });
           }
-          if (input.pathname.startsWith("/v2/sca/sessions/")) {
+          if (input.pathname.startsWith("/v2/sca_sessions/")) {
             scaPollCount++;
           }
           return jsonResponse({});
@@ -412,7 +412,7 @@ describe("recurring-transfer MCP tools", () => {
         expect(text).toContain("sca_session_token");
         // The dead-end formatter is NOT used.
         expect(text).not.toContain("Poll GET");
-        expect(text).not.toContain("/v2/sca/sessions/");
+        expect(text).not.toContain("/v2/sca_sessions/");
         // Pure two-step: cancel POST hit once, no SCA polling, no retry.
         expect(postCount).toBe(1);
         expect(scaPollCount).toBe(0);
@@ -430,7 +430,7 @@ describe("recurring-transfer MCP tools", () => {
             postCount++;
             return new Response(null, { status: 204 });
           }
-          if (input.pathname.startsWith("/v2/sca/sessions/")) {
+          if (input.pathname.startsWith("/v2/sca_sessions/")) {
             scaPollCount++;
           }
           return jsonResponse({});
@@ -480,8 +480,8 @@ describe("recurring-transfer MCP tools", () => {
             }
             return new Response(null, { status: 204 });
           }
-          if (input.pathname.startsWith("/v2/sca/sessions/")) {
-            return jsonResponse({ sca_session: { status: "allow" } });
+          if (input.pathname.startsWith("/v2/sca_sessions/")) {
+            return jsonResponse({ result: "allow" });
           }
           return jsonResponse({});
         });

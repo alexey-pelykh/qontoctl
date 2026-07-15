@@ -10,10 +10,10 @@ import type { ScaSession } from "./types.js";
 export const ScaSessionStatusSchema = z.enum(["waiting", "allow", "deny"]);
 
 /**
- * Zod schema for an SCA session.
+ * Zod schema for the normalized SCA session value.
  *
- * Note: The API response contains only `status` inside the `sca_session` envelope.
- * The `token` field is added by the service layer from the request parameter.
+ * The `status` is derived from the API response's `result` field; the `token`
+ * is added by the service layer from the request parameter.
  */
 export const ScaSessionSchema = z
   .object({
