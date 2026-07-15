@@ -14,39 +14,34 @@ A mock-OAuth-server retrofit (record sandbox responses, replay them in CI) was e
 
 ## Running locally
 
-1. Log in to the Qonto sandbox OAuth app:
+The suite requires a **dedicated, disposable** sandbox refresh token in the `QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG` env var. It **rotates and revokes** the token it is handed, so this must never be your main working session's token. (It used to fall back to `oauth.refresh-token` in `.qontoctl.yaml`, which silently poisoned that session mid-run — the fallback was removed in [#671](https://github.com/alexey-pelykh/qontoctl/issues/671).) Without the env var the suite **skips cleanly**, leaving your main session intact.
+
+1. Mint a disposable sandbox refresh token by logging in against a throwaway sandbox profile — one you are willing to have rotated and revoked, kept separate from your everyday profile:
 
     ```sh
-    qontoctl auth login --profile sandbox
+    qontoctl auth login --profile sandbox-e2e
     ```
 
-    (Or whichever profile carries the sandbox OAuth credentials + staging token.)
+    (Any profile carrying sandbox OAuth credentials + a staging token works.)
 
-2. Run the full E2E suite — the suite picks up the freshly-issued refresh token from your profile via `oauth.refresh-token`:
+2. Export that profile's `oauth.refresh-token` value (from `~/.qontoctl/sandbox-e2e.yaml`) as the seed, then run the full E2E suite:
 
     ```sh
+    export QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG="<sandbox refresh token>"
     pnpm test:e2e
     ```
 
-3. The suite consumes the refresh token on success (Qonto rotates per exchange). To re-run, log in again:
+3. The suite consumes the seed on success (Qonto rotates per exchange). To re-run, mint a fresh token and re-export it:
 
     ```sh
-    qontoctl auth login --profile sandbox
+    qontoctl auth login --profile sandbox-e2e
+    export QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG="<fresh sandbox refresh token>"
     pnpm test:e2e
     ```
 
 This mirrors the rotation cadence experienced by any qontoctl runtime that uses OAuth — refresh tokens are runtime-mutable state and live for one exchange.
 
-## Optional: dedicated seed env var
-
-For local workflows where you want to keep your active profile's refresh token separate from the test seed, the suite also reads `QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG` as an override:
-
-```sh
-export QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG="<sandbox refresh token>"
-pnpm test:e2e
-```
-
-The `_LONG` suffix is a maintainer-facing reminder that this token does not flow through the runtime config-overlay chain (`QONTOCTL_REFRESH_TOKEN` was removed as a runtime env var in [#495](https://github.com/alexey-pelykh/qontoctl/issues/495) precisely because env-overlay semantics are incompatible with per-exchange rotation). It is still consumed on every successful run.
+The `_LONG` suffix is a maintainer-facing reminder that this token does not flow through the runtime config-overlay chain (`QONTOCTL_REFRESH_TOKEN` was removed as a runtime env var in [#495](https://github.com/alexey-pelykh/qontoctl/issues/495) precisely because env-overlay semantics are incompatible with per-exchange rotation). It is consumed on every successful run.
 
 ## Scope: what this covers and what stays excluded
 

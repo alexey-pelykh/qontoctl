@@ -7,7 +7,6 @@ import {
   refreshAccessToken,
   revokeToken,
   SANDBOX_BASE_URL,
-  saveOAuthTokens,
 } from "@qontoctl/core";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -24,12 +23,15 @@ import {
 // against the real Qonto sandbox OAuth server. Closes #460 (Group 8 of #449).
 //
 // Gate: requires OAuth client credentials, a staging token (sandbox routing),
-// AND a seed refresh token (`QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG` env var
-// or `oauth.refresh-token` in `.qontoctl.yaml`). The seed token is consumed
-// on each successful run (Qonto rotates refresh tokens on every refresh) —
-// see `docs/oauth-flow-e2e.md` for the rationale and the local rotation
-// workflow. This suite is local-only by design (CI is intentionally out of
-// scope).
+// AND a DEDICATED seed refresh token in the
+// `QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG` env var. There is intentionally no
+// `.qontoctl.yaml` `oauth.refresh-token` fallback: this suite rotates and
+// revokes the token it is handed, so seeding it from the developer's main
+// session poisoned that session mid-run (#671). Without the env var the suite
+// skips cleanly. The seed token is consumed on each successful run (Qonto
+// rotates refresh tokens on every refresh) — see `docs/oauth-flow-e2e.md` for
+// the rationale and the local seed-token workflow. This suite is local-only
+// by design (CI is intentionally out of scope).
 //
 // `exchangeCode` is intentionally NOT covered: the authorization-code flow
 // requires browser interaction (user authentication + consent) which cannot
@@ -93,23 +95,10 @@ describe.skipIf(!hasOAuthCredentials() || !hasStagingToken() || !hasE2ERefreshTo
 
       freshAccessToken = tokens.accessToken;
 
-      // Persist the rotated tokens back to .qontoctl.yaml so subsequent E2E
-      // suites (bank-accounts, beneficiaries, cards, etc.) use the live
-      // refresh token instead of the now-invalidated seed. Only persist when
-      // the seed came from the config file — when the dedicated env var was
-      // set, the file should remain untouched.
-      //
-      // accessTokenExpiresAt is set to epoch-0 so the OAuth factory
-      // force-refreshes on the next CLI call (this access token will be
-      // revoked by the revoke test below, but the refresh token remains
-      // valid for one more rotation).
-      if (!process.env["QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG"]) {
-        await saveOAuthTokens({
-          accessToken: tokens.accessToken,
-          refreshToken: tokens.refreshToken,
-          accessTokenExpiresAt: new Date(0).toISOString(),
-        });
-      }
+      // The rotated refresh token is intentionally NOT persisted anywhere. The
+      // seed is a dedicated, disposable `QONTOCTL_E2E_OAUTH_REFRESH_TOKEN_LONG`
+      // token — never the developer's `.qontoctl.yaml` session (#671) — so
+      // letting it rotate away affects nothing beyond this suite.
     });
 
     // AC: Given a freshly-issued access token from `refreshAccessToken`,
