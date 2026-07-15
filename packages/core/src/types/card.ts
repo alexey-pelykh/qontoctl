@@ -32,20 +32,9 @@ export interface Card {
   readonly id: string;
   readonly nickname: string;
   readonly embossed_name?: string | null | undefined;
-  readonly status:
-    | "pending"
-    | "live"
-    | "paused"
-    | "stolen"
-    | "lost"
-    | "pin_blocked"
-    | "discarded"
-    | "expired"
-    | "shipped_lost"
-    | "onhold"
-    | "order_canceled"
-    | "pre_expired"
-    | "abusive";
+  // Open string, not a closed union — Qonto can add card lifecycle states; see
+  // `CardSchema.status` in ../cards/schemas.ts. (#678, follow-up to #672)
+  readonly status: string;
   readonly pin_set: boolean;
   readonly mask_pan?: string | null | undefined;
   readonly exp_month?: string | null | undefined;
@@ -80,7 +69,9 @@ export interface Card {
   // Open string, not a closed union — Qonto surfaces card types beyond
   // "debit"/"prepaid"; see `CardSchema.card_type` in ../cards/schemas.ts. (#672)
   readonly card_type: string;
-  readonly card_level: "standard" | "plus" | "metal" | "virtual" | "virtual_partner" | "flash" | "advertising";
+  // Open string, not a closed union — Qonto can add card tiers; see
+  // `CardSchema.card_level` in ../cards/schemas.ts. (#678, follow-up to #672)
+  readonly card_level: string;
   readonly payment_lifespan_limit?: number | null | undefined;
   readonly payment_lifespan_spent: number;
   readonly pre_expires_at?: string | null | undefined;

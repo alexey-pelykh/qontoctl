@@ -41,21 +41,12 @@ export const CardSchema = z
     id: z.string(),
     nickname: z.string(),
     embossed_name: z.string().nullable().optional(),
-    status: z.enum([
-      "pending",
-      "live",
-      "paused",
-      "stolen",
-      "lost",
-      "pin_blocked",
-      "discarded",
-      "expired",
-      "shipped_lost",
-      "onhold",
-      "order_canceled",
-      "pre_expired",
-      "abusive",
-    ]),
+    // `status` is an open string, not a closed enum: Qonto can introduce new
+    // card lifecycle states, and a strict enum fails the WHOLE card response on
+    // any unlisted value — breaking `card list`/`card show` for the entire
+    // account, not just the one card. Follow-up to #672 (same fix for
+    // `card_type`). (#678)
+    status: z.string(),
     pin_set: z.boolean(),
     mask_pan: z.string().nullable().optional(),
     exp_month: z.string().nullable().optional(),
@@ -93,7 +84,11 @@ export const CardSchema = z
     // entire account, not just the one card. Mirrors `CardTypeAppearancesSchema`
     // below, which already models `card_type` as `z.string()`. (#672)
     card_type: z.string(),
-    card_level: z.enum(["standard", "plus", "metal", "virtual", "virtual_partner", "flash", "advertising"]),
+    // `card_level` is an open string, not a closed enum: Qonto can add card
+    // tiers, and a strict enum fails the WHOLE card response on any unlisted
+    // value. Mirrors `CardLevelAppearancesSchema` below, which already models
+    // `card_level` as `z.string()`. Follow-up to #672. (#678)
+    card_level: z.string(),
     payment_lifespan_limit: z.number().nullable().optional(),
     payment_lifespan_spent: z.number(),
     pre_expires_at: z.string().nullable().optional(),
@@ -104,6 +99,10 @@ export const CardSchema = z
     had_operation: z.boolean(),
     had_pin_operation: z.boolean(),
     card_design: z.string(),
+    // `type_of_print` (here) and `appearance.theme` stay CLOSED enums by design:
+    // print options and UI themes are low-churn sets, so strict validation is
+    // worth more than the small resilience risk of a future unlisted value —
+    // unlike the higher-churn `card_type`/`card_level`/`status`. (#678)
     type_of_print: z.enum(["print", "embossed"]).nullable().optional(),
     upsold: z.boolean(),
     upsell: z.boolean(),

@@ -157,31 +157,24 @@ describe("CardSchema", () => {
     expect(result.parent_card_summary).toEqual({ id: "card-0", last_digits: "5678" });
   });
 
-  it("validates all card status values", () => {
-    const statuses = [
-      "pending",
-      "live",
-      "paused",
-      "stolen",
-      "lost",
-      "pin_blocked",
-      "discarded",
-      "expired",
-      "shipped_lost",
-      "onhold",
-      "order_canceled",
-      "pre_expired",
-      "abusive",
-    ];
-    for (const status of statuses) {
+  it("accepts status values beyond the former enum (#678)", () => {
+    // `status` used to be a closed 13-value `z.enum([...])`; a new card lifecycle
+    // state from Qonto would fail the ENTIRE card response. It is now an open
+    // string. The last two values below would each throw under the old enum —
+    // this guards against a regression. Follow-up to #672 (same fix for `card_type`).
+    for (const status of ["pending", "live", "paused", "expired", "frozen", "some_new_state"]) {
       const result = CardSchema.parse(makeCard({ status }));
       expect(result.status).toBe(status);
     }
   });
 
-  it("validates card_level values", () => {
-    const levels = ["standard", "plus", "metal", "virtual", "virtual_partner", "flash", "advertising"];
-    for (const card_level of levels) {
+  it("accepts card_level values beyond the former enum (#678)", () => {
+    // `card_level` used to be a closed `z.enum([...])`, which failed the ENTIRE
+    // card response whenever Qonto returned a new tier (breaking `card list`/
+    // `card show`). It is now an open string, matching `CardLevelAppearancesSchema`.
+    // The last three values below would each throw under the old enum — this
+    // guards against a regression. Follow-up to #672 (same fix for `card_type`).
+    for (const card_level of ["standard", "metal", "flash", "titanium", "world_elite", "gold"]) {
       const result = CardSchema.parse(makeCard({ card_level }));
       expect(result.card_level).toBe(card_level);
     }
@@ -199,8 +192,10 @@ describe("CardSchema", () => {
     }
   });
 
-  it("rejects invalid status", () => {
-    expect(() => CardSchema.parse(makeCard({ status: "invalid" }))).toThrow();
+  it("rejects non-string status (open string, not z.any() — #678)", () => {
+    // Widening status to an open string (#678) must not degrade it to `z.any()`:
+    // a non-string value is still a malformed response and must be rejected.
+    expect(() => CardSchema.parse(makeCard({ status: 42 }))).toThrow();
   });
 
   it("strips extra fields", () => {
