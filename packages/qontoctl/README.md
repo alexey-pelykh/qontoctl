@@ -11,6 +11,8 @@ CLI and MCP server for the [Qonto](https://qonto.com) banking API.
 
 This project is brought to you by [Alexey Pelykh](https://github.com/alexey-pelykh).
 
+> **Unofficial project.** QontoCtl is independent and not affiliated with, endorsed by, or supported by Qonto. See the [Disclaimer](#disclaimer).
+
 ## What It Does
 
 QontoCtl lets AI assistants (Claude, etc.) interact with Qonto through the [Model Context Protocol](https://modelcontextprotocol.io). It can:
@@ -600,9 +602,9 @@ qontoctl --debug transaction list     # full headers and response bodies
 
 ## Disclaimer
 
-`qontoctl` is an **independent project** not affiliated with, endorsed by, or officially connected to **Qonto** or Qonto SAS.
+`qontoctl` is an **independent project** not affiliated with, endorsed by, or officially connected to **Qonto**. It runs on your own machine with your own credentials.
 
-Qonto is a trademark of Qonto SAS.
+"Qonto" and the Qonto logo are trademarks of Olinda SAS (the company operating Qonto); `qontoctl` uses the name only to describe the service it interoperates with.
 
 ## License
 
