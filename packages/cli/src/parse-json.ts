@@ -13,6 +13,6 @@ export function parseJson(input: string, context: string): unknown {
     return JSON.parse(input);
   } catch (error) {
     const detail = error instanceof SyntaxError ? `: ${error.message}` : "";
-    throw new Error(`Invalid JSON for ${context}${detail}`);
+    throw new Error(`Invalid JSON for ${context}${detail}`, { cause: error });
   }
 }

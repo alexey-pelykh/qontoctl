@@ -565,7 +565,6 @@ export function registerAuthCommands(program: Command): void {
     } catch (err) {
       if (spinnerActive) {
         s.stop(err instanceof Error ? `Login failed: ${err.message}` : "Login failed");
-        spinnerActive = false;
       }
       throw err;
     } finally {
