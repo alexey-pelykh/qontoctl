@@ -90,7 +90,7 @@ describe.skipIf(!hasApiKeyCredentials())("diagnose CLI (e2e)", () => {
       QONTOCTL_SECRET_KEY: "definitely-not-a-real-key-12345",
       QONTOCTL_AUTH: "api-key",
     };
-    let stdout = "";
+    let stdout: string;
     let exitCode = 0;
     try {
       stdout = execFileSync("node", [CLI_PATH, "diagnose", "--diagnose-output", "json"], {

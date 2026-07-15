@@ -14,7 +14,7 @@ export function parseResponse<T extends z.ZodType>(schema: T, response: unknown,
           return `${path}${issue.message}`;
         })
         .join("; ");
-      throw new Error(`Invalid API response from ${endpointPath}: ${issues}`);
+      throw new Error(`Invalid API response from ${endpointPath}: ${issues}`, { cause: error });
     }
     throw error;
   }
