@@ -26,7 +26,7 @@ describe("SCA session MCP tools", () => {
     });
 
     it("returns the session status as JSON text content", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "waiting" } }));
+      fetchSpy.mockReturnValue(jsonResponse({ result: "waiting" }));
 
       const result = await mcpClient.callTool({
         name: "sca_session_show",
@@ -42,8 +42,8 @@ describe("SCA session MCP tools", () => {
       expect(parsed).toEqual({ token: "tok-123", status: "waiting" });
     });
 
-    it("calls GET /v2/sca/sessions/<token>", async () => {
-      fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "allow" } }));
+    it("calls GET /v2/sca_sessions/<token>", async () => {
+      fetchSpy.mockReturnValue(jsonResponse({ result: "allow" }));
 
       await mcpClient.callTool({
         name: "sca_session_show",
@@ -51,14 +51,14 @@ describe("SCA session MCP tools", () => {
       });
 
       const [url, init] = fetchSpy.mock.calls[0] as [URL, RequestInit];
-      expect(url.pathname).toBe("/v2/sca/sessions/tok-456");
+      expect(url.pathname).toBe("/v2/sca_sessions/tok-456");
       expect(init.method).toBe("GET");
     });
 
     it("propagates each session status (waiting/allow/deny)", async () => {
       const statuses = ["waiting", "allow", "deny"] as const;
       for (const status of statuses) {
-        fetchSpy.mockReturnValueOnce(jsonResponse({ sca_session: { status } }));
+        fetchSpy.mockReturnValueOnce(jsonResponse({ result: status }));
 
         const result = await mcpClient.callTool({
           name: "sca_session_show",

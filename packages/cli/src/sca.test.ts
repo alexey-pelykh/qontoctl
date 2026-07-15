@@ -61,7 +61,7 @@ describe("executeWithCliSca", () => {
   });
 
   it("starts spinner when SCA is required", async () => {
-    fetchSpy.mockImplementation(() => jsonResponse({ sca_session: { status: "allow" } }));
+    fetchSpy.mockImplementation(() => jsonResponse({ result: "allow" }));
     const mockSpin = createMockSpinner();
     let called = false;
 
@@ -81,7 +81,7 @@ describe("executeWithCliSca", () => {
   });
 
   it("stops spinner with success message on approval", async () => {
-    fetchSpy.mockImplementation(() => jsonResponse({ sca_session: { status: "allow" } }));
+    fetchSpy.mockImplementation(() => jsonResponse({ result: "allow" }));
     const mockSpin = createMockSpinner();
     let called = false;
 
@@ -102,8 +102,8 @@ describe("executeWithCliSca", () => {
 
   it("updates spinner message with elapsed time on each poll", async () => {
     fetchSpy
-      .mockReturnValueOnce(jsonResponse({ sca_session: { status: "waiting" } }))
-      .mockReturnValue(jsonResponse({ sca_session: { status: "allow" } }));
+      .mockReturnValueOnce(jsonResponse({ result: "waiting" }))
+      .mockReturnValue(jsonResponse({ result: "allow" }));
     const mockSpin = createMockSpinner();
     let called = false;
 
@@ -125,7 +125,7 @@ describe("executeWithCliSca", () => {
   });
 
   it("stops spinner with error message on timeout", async () => {
-    fetchSpy.mockImplementation(() => jsonResponse({ sca_session: { status: "waiting" } }));
+    fetchSpy.mockImplementation(() => jsonResponse({ result: "waiting" }));
     const mockSpin = createMockSpinner();
     let called = false;
 
@@ -150,7 +150,7 @@ describe("executeWithCliSca", () => {
   });
 
   it("stops spinner with error message on denial", async () => {
-    fetchSpy.mockImplementation(() => jsonResponse({ sca_session: { status: "deny" } }));
+    fetchSpy.mockImplementation(() => jsonResponse({ result: "deny" }));
     const mockSpin = createMockSpinner();
     let called = false;
 
@@ -199,7 +199,7 @@ describe("executeWithCliSca", () => {
   });
 
   it("retries original operation with SCA token after approval", async () => {
-    fetchSpy.mockImplementation(() => jsonResponse({ sca_session: { status: "allow" } }));
+    fetchSpy.mockImplementation(() => jsonResponse({ result: "allow" }));
     const mockSpin = createMockSpinner();
     let callCount = 0;
 
@@ -219,7 +219,7 @@ describe("executeWithCliSca", () => {
   });
 
   it("forwards a stable idempotency key across both attempts", async () => {
-    fetchSpy.mockImplementation(() => jsonResponse({ sca_session: { status: "allow" } }));
+    fetchSpy.mockImplementation(() => jsonResponse({ result: "allow" }));
     const mockSpin = createMockSpinner();
     const seenKeys: string[] = [];
     let called = false;
@@ -265,7 +265,7 @@ describe("executeWithCliSca", () => {
   });
 
   it("forwards a supplied idempotency key to the operation", async () => {
-    fetchSpy.mockImplementation(() => jsonResponse({ sca_session: { status: "allow" } }));
+    fetchSpy.mockImplementation(() => jsonResponse({ result: "allow" }));
     const mockSpin = createMockSpinner();
     const seenKeys: string[] = [];
     let called = false;
@@ -426,7 +426,7 @@ describe("executeWithCliSca", () => {
       const mockSpin = createMockSpinner();
       let called = false;
 
-      fetchSpy.mockImplementation(() => jsonResponse({ sca_session: { status: "allow" } }));
+      fetchSpy.mockImplementation(() => jsonResponse({ result: "allow" }));
 
       await executeWithCliSca(
         productionWithMockMethod,
@@ -476,7 +476,7 @@ describe("executeWithCliSca", () => {
     it("keeps real-device spinner copy when isMockSca is false (regression guard)", async () => {
       // The existing real-device copy is the default for production and for
       // sandbox-routed-but-not-mock paths. Don't regress it.
-      fetchSpy.mockImplementation(() => jsonResponse({ sca_session: { status: "allow" } }));
+      fetchSpy.mockImplementation(() => jsonResponse({ result: "allow" }));
       const mockSpin = createMockSpinner();
       let called = false;
 

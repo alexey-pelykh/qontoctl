@@ -75,7 +75,7 @@ describe("executeWithSca", () => {
     let callCount = 0;
 
     // SCA poll returns allow immediately
-    fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "allow" } }));
+    fetchSpy.mockReturnValue(jsonResponse({ result: "allow" }));
 
     const result = await executeWithSca(
       client,
@@ -94,7 +94,7 @@ describe("executeWithSca", () => {
   });
 
   it("calls onScaRequired callback with token", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "allow" } }));
+    fetchSpy.mockReturnValue(jsonResponse({ result: "allow" }));
     const onScaRequired = vi.fn();
     let called = false;
 
@@ -115,8 +115,8 @@ describe("executeWithSca", () => {
 
   it("calls onPoll callback during polling", async () => {
     fetchSpy
-      .mockReturnValueOnce(jsonResponse({ sca_session: { status: "waiting" } }))
-      .mockReturnValue(jsonResponse({ sca_session: { status: "allow" } }));
+      .mockReturnValueOnce(jsonResponse({ result: "waiting" }))
+      .mockReturnValue(jsonResponse({ result: "allow" }));
 
     const onPoll = vi.fn();
     let called = false;
@@ -139,7 +139,7 @@ describe("executeWithSca", () => {
 
   it("wraps a polling-infrastructure failure (404 on the status GET) in ScaPollingFailedError, preserving token + cause", async () => {
     // Reproduces #669: the transfer POST returns 428 (SCA required, token
-    // extracted), then the SCA-session status GET (`/v2/sca/sessions/{token}`)
+    // extracted), then the SCA-session status GET (`/v2/sca_sessions/{token}`)
     // returns a gateway 404. A raw QontoApiError here would lose the token and
     // strand the user with an orphaned challenge; the handler must wrap it so
     // the token survives for actionable recovery.
@@ -163,7 +163,7 @@ describe("executeWithSca", () => {
     // Poll returns "waiting"; a zero timeout forces ScaTimeoutError on the first
     // iteration. It is a resolved poll outcome the caller already handles, so it
     // must NOT be re-wrapped as ScaPollingFailedError.
-    fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "waiting" } }));
+    fetchSpy.mockReturnValue(jsonResponse({ result: "waiting" }));
 
     const caught = await executeWithSca(
       client,
@@ -179,7 +179,7 @@ describe("executeWithSca", () => {
   });
 
   it("propagates QontoScaRequiredError if retry also triggers 428", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "allow" } }));
+    fetchSpy.mockReturnValue(jsonResponse({ result: "allow" }));
 
     const error = await executeWithSca(
       client,
@@ -194,7 +194,7 @@ describe("executeWithSca", () => {
   });
 
   it("calls onScaApproved callback before retry", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "allow" } }));
+    fetchSpy.mockReturnValue(jsonResponse({ result: "allow" }));
     const onScaApproved = vi.fn();
     const callOrder: string[] = [];
     let called = false;
@@ -220,7 +220,7 @@ describe("executeWithSca", () => {
   });
 
   it("threads the same idempotency key to both attempts when none is supplied", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "allow" } }));
+    fetchSpy.mockReturnValue(jsonResponse({ result: "allow" }));
     const seenKeys: string[] = [];
     let called = false;
 
@@ -243,7 +243,7 @@ describe("executeWithSca", () => {
   });
 
   it("uses the supplied idempotency key on both attempts", async () => {
-    fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "allow" } }));
+    fetchSpy.mockReturnValue(jsonResponse({ result: "allow" }));
     const seenKeys: string[] = [];
     let called = false;
 
@@ -276,7 +276,7 @@ describe("executeWithSca", () => {
           }),
         ),
       )
-      .mockImplementationOnce(() => jsonResponse({ sca_session: { status: "allow" } }))
+      .mockImplementationOnce(() => jsonResponse({ result: "allow" }))
       .mockImplementationOnce(() => jsonResponse({ id: "tx-1" }));
 
     await executeWithSca(
@@ -314,7 +314,7 @@ describe("executeWithSca", () => {
           }),
         ),
       )
-      .mockImplementationOnce(() => jsonResponse({ sca_session: { status: "allow" } }))
+      .mockImplementationOnce(() => jsonResponse({ result: "allow" }))
       .mockImplementationOnce(() => jsonResponse({ id: "tx-2" }));
 
     await executeWithSca(
@@ -355,7 +355,7 @@ describe("executeWithSca", () => {
         ),
       )
       .mockImplementationOnce(() => Promise.resolve(new Response(null, { status: 204 })))
-      .mockImplementationOnce(() => jsonResponse({ sca_session: { status: "allow" } }))
+      .mockImplementationOnce(() => jsonResponse({ result: "allow" }))
       .mockImplementationOnce(() => jsonResponse({ id: "tx-auto" }));
 
     await executeWithSca(
@@ -380,7 +380,7 @@ describe("executeWithSca", () => {
     expect((autoApproveInit.method ?? "GET").toUpperCase()).toBe("POST");
     // And the third is the poll, fourth is the retry.
     const [pollUrl] = fetchSpy.mock.calls[2] as [URL, RequestInit];
-    expect(pollUrl.pathname).toBe("/v2/sca/sessions/tok-auto-allow");
+    expect(pollUrl.pathname).toBe("/v2/sca_sessions/tok-auto-allow");
   });
 
   it("fires autoApprove mock-decision POST with 'deny' before polling, then propagates ScaDeniedError", async () => {
@@ -398,7 +398,7 @@ describe("executeWithSca", () => {
         ),
       )
       .mockImplementationOnce(() => Promise.resolve(new Response(null, { status: 204 })))
-      .mockImplementationOnce(() => jsonResponse({ sca_session: { status: "deny" } }));
+      .mockImplementationOnce(() => jsonResponse({ result: "deny" }));
 
     const caught = await executeWithSca(
       client,
@@ -435,7 +435,7 @@ describe("executeWithSca", () => {
           }),
         ),
       )
-      .mockImplementationOnce(() => jsonResponse({ sca_session: { status: "allow" } }))
+      .mockImplementationOnce(() => jsonResponse({ result: "allow" }))
       .mockImplementationOnce(() => jsonResponse({ id: "tx-no-auto" }));
 
     await executeWithSca(
@@ -455,7 +455,7 @@ describe("executeWithSca", () => {
     expect(fetchSpy).toHaveBeenCalledTimes(3);
     // Second call must be the poll, NOT a mock-decision POST.
     const [pollUrl] = fetchSpy.mock.calls[1] as [URL, RequestInit];
-    expect(pollUrl.pathname).toBe("/v2/sca/sessions/tok-no-auto");
+    expect(pollUrl.pathname).toBe("/v2/sca_sessions/tok-no-auto");
     // No mock-decision URL should appear anywhere.
     for (const call of fetchSpy.mock.calls) {
       const [url] = call as [URL, RequestInit];

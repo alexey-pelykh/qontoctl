@@ -16,10 +16,10 @@ const execFileAsync = promisify(execFile);
 /**
  * Pattern matching the SCA session polling URL the core HTTP client logs at
  * verbose level. Tokens are base64url. Matches both the production endpoint
- * (`/v2/sca/sessions/{token}`) and the sandbox-only mocked endpoint
+ * (`/v2/sca_sessions/{token}`) and the sandbox-only mocked endpoint
  * (`/v2/mocked_sca_sessions/{token}`) — the core picks per `client.isSandbox`.
  */
-const SCA_POLL_URL_RE = /\/v2\/(?:sca\/sessions|mocked_sca_sessions)\/([A-Za-z0-9_-]+)(?=\s|$|\/)/;
+const SCA_POLL_URL_RE = /\/v2\/(?:sca_sessions|mocked_sca_sessions)\/([A-Za-z0-9_-]+)(?=\s|$|\/)/;
 
 // Local response-shape interface. Named distinctly from the core export
 // `BulkTransferRecord`, which describes a single transfer item within a bulk
@@ -65,7 +65,7 @@ describe.skipIf(!hasOAuthCredentials())("bulk-transfer CLI commands (e2e)", () =
 
   // SCA orchestration is required for bulk-transfer create against the Qonto
   // sandbox: the API issues a 428 with an `sca_session_token`, the CLI polls
-  // `/v2/sca/sessions/{token}` waiting for `allow`/`deny`, and a separate
+  // `/v2/sca_sessions/{token}` waiting for `allow`/`deny`, and a separate
   // process must call `sca-session mock-decision <token> allow` to unblock
   // polling. Skip when the staging token (sandbox routing) is absent.
   describe.skipIf(!hasStagingToken())("bulk-transfer create (sandbox SCA)", () => {
