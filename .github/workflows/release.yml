@@ -85,7 +85,14 @@ jobs:
           NPM_CONFIG_NODE_LINKER: hoisted
         run: |
           pnpm deploy --filter=./packages/qontoctl --prod .tmp/qontoctl-deploy
+          # node-linker=hoisted lets pnpm pack read the materialized tree.
+          # git-checks=false is set here as .npmrc config rather than via the
+          # --no-git-checks CLI flag on `pnpm publish` below: the umbrella's
+          # bundleDependencies make `pnpm publish` delegate to `npm`, and npm >=12
+          # hard-errors (EUNKNOWNCONFIG) on the unknown --git-checks CLI flag while
+          # only warning on unknown .npmrc config. See docs/release-runbook.md.
           echo "node-linker=hoisted" > .tmp/qontoctl-deploy/.npmrc
+          echo "git-checks=false" >> .tmp/qontoctl-deploy/.npmrc
 
       # Asserts the umbrella tarball self-contains its full dependency closure
       # (internal @qontoctl/* + 3rd-party). Catches regressions where
@@ -117,11 +124,11 @@ jobs:
 
       - name: Verify umbrella publish (dry-run, provenance)
         working-directory: .tmp/qontoctl-deploy
-        run: pnpm publish --dry-run --provenance --access public --no-git-checks
+        run: pnpm publish --dry-run --provenance --access public
 
       - name: Publish sub-packages (@qontoctl/core, @qontoctl/cli, @qontoctl/mcp)
         run: pnpm -r publish --filter='!qontoctl' --access public --no-git-checks --report-summary --provenance
 
       - name: Publish umbrella (qontoctl, self-contained tarball)
         working-directory: .tmp/qontoctl-deploy
-        run: pnpm publish --access public --no-git-checks --provenance
+        run: pnpm publish --access public --provenance
