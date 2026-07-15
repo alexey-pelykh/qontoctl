@@ -11,6 +11,7 @@ import {
   QontoRateLimitError,
   QontoScaNotEnrolledError,
   QontoScaRequiredError,
+  ScaPollingFailedError,
   HttpClient,
 } from "@qontoctl/core";
 import { withClient } from "./errors.js";
@@ -237,6 +238,22 @@ describe("withClient", () => {
 
       expect(result.content).toHaveLength(1);
       expect((result.content[0] as { type: string }).type).toBe("text");
+    });
+  });
+
+  describe("ScaPollingFailedError (#669 — defense-in-depth fallback)", () => {
+    it("returns the actionable polling-failed response with isError: true, preserved token, and pinned cause", async () => {
+      const cause = new QontoApiError(404, [{ code: "not_found", detail: "Not found" }]);
+      const result = await withClient(succeedingFactory, async () => {
+        throw new ScaPollingFailedError("sca-tok-poll", cause);
+      });
+
+      expect(result.isError).toBe(true);
+      const text = (result.content[0] as { type: "text"; text: string }).text;
+      expect(text).toContain("could not confirm the approval");
+      expect(text).toContain("duplicate payment");
+      expect(text).toContain("HTTP 404");
+      expect(text).toContain("sca-tok-poll");
     });
   });
 

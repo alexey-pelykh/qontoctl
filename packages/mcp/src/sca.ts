@@ -5,8 +5,10 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import {
   executeWithSca,
+  QontoApiError,
   QontoScaRequiredError,
   ScaDeniedError,
+  ScaPollingFailedError,
   ScaTimeoutError,
   type ExecuteWithScaContext,
   type HttpClient,
@@ -178,6 +180,9 @@ export async function executeWithMcpSca<T>(
     if (error instanceof ScaDeniedError) {
       return formatScaDeniedResponse();
     }
+    if (error instanceof ScaPollingFailedError) {
+      return formatScaPollingFailedResponse(error.scaSessionToken, error.cause);
+    }
     if (error instanceof QontoScaRequiredError) {
       return formatScaPendingResponse(error.scaSessionToken, false);
     }
@@ -261,5 +266,73 @@ function formatScaDeniedResponse(): CallToolResult {
       },
     ],
     isError: false,
+  };
+}
+
+/**
+ * Describe the underlying failure that broke SCA-session polling, for the
+ * diagnostic line of {@link formatScaPollingFailedResponse}. A
+ * {@link QontoApiError} is rendered with its HTTP status and JSON:API
+ * `code: detail` entries (e.g. the `HTTP 404 — not_found: Not found` at the
+ * heart of #669); anything else falls back to its message.
+ */
+function describeScaPollCause(cause: unknown): string {
+  if (cause instanceof QontoApiError) {
+    const details = cause.errors.map((e) => `${e.code}: ${e.detail}`).join("; ");
+    return `Qonto API error (HTTP ${String(cause.status)})${details.length > 0 ? ` — ${details}` : ""}`;
+  }
+  if (cause instanceof Error) {
+    return cause.message;
+  }
+  return String(cause);
+}
+
+/**
+ * Build the structured "SCA polling failed" MCP response.
+ *
+ * Distinct from {@link formatScaPendingResponse}: there, polling ran cleanly
+ * but the user has not decided yet (retrying with a longer `wait` will help).
+ * Here the poll itself FAILED — the SCA challenge was created (a push reached
+ * the user's device) but its resolution could not be retrieved, so retrying
+ * with a longer `wait` will not help. `isError: true` signals the malfunction
+ * honestly; the text carries the money-safe recovery path.
+ *
+ * The response leads with a duplicate-payment safeguard because the operation's
+ * outcome is genuinely unknown at this point: it was not confirmed created, but
+ * it also did not fail cleanly. The token is preserved so an approved challenge
+ * can still be bound to a retry (which skips the broken poll entirely).
+ */
+export function formatScaPollingFailedResponse(token: string, cause: unknown): CallToolResult {
+  return {
+    content: [
+      {
+        type: "text",
+        text: [
+          "SCA required, but qontoctl could not confirm the approval: polling the SCA session",
+          "status failed. The challenge WAS created — a push was delivered to the user's Qonto",
+          "mobile app — but its outcome could not be retrieved, so this operation did NOT",
+          "complete.",
+          "",
+          `Underlying failure: ${describeScaPollCause(cause)}`,
+          "",
+          "IMPORTANT — avoid a duplicate payment. This operation's outcome is unknown: it was",
+          "NOT confirmed completed, but it may not have failed cleanly either. Before retrying,",
+          "verify whether it already went through (e.g. list the relevant transfers filtered by",
+          "the payee, or check the Qonto app). Do not blindly retry a money movement.",
+          "",
+          "To continue once you have verified it did NOT go through:",
+          "  1. Approve the pending challenge on the Qonto mobile app.",
+          `  2. Retry this tool with the same parameters PLUS \`sca_session_token: "${token}"\` to`,
+          "     bind that approval to this operation (this skips the failing status poll).",
+          "",
+          `Session token: ${token}`,
+          `Token validity: ${String(SCA_TOKEN_VALIDITY_MINUTES)} minutes from issuance.`,
+          "",
+          "Note: PSD2 dynamic linking binds the session token to the original request",
+          "parameters (amount, payee). It cannot be reused for a different operation.",
+        ].join("\n"),
+      },
+    ],
+    isError: true,
   };
 }

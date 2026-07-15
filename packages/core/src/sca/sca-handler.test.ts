@@ -2,8 +2,9 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { HttpClient, QontoScaNotEnrolledError, QontoScaRequiredError } from "../http-client.js";
+import { HttpClient, QontoApiError, QontoScaNotEnrolledError, QontoScaRequiredError } from "../http-client.js";
 import { jsonResponse } from "../testing/json-response.js";
+import { ScaPollingFailedError, ScaTimeoutError } from "./errors.js";
 import { executeWithSca } from "./sca-handler.js";
 
 class TestableHttpClient extends HttpClient {
@@ -134,6 +135,47 @@ describe("executeWithSca", () => {
 
     expect(onPoll).toHaveBeenCalled();
     expect(onPoll.mock.calls[0]?.[0]).toBe(1);
+  });
+
+  it("wraps a polling-infrastructure failure (404 on the status GET) in ScaPollingFailedError, preserving token + cause", async () => {
+    // Reproduces #669: the transfer POST returns 428 (SCA required, token
+    // extracted), then the SCA-session status GET (`/v2/sca/sessions/{token}`)
+    // returns a gateway 404. A raw QontoApiError here would lose the token and
+    // strand the user with an orphaned challenge; the handler must wrap it so
+    // the token survives for actionable recovery.
+    fetchSpy.mockReturnValue(jsonResponse({ errors: [{ code: "not_found", detail: "Not found" }] }, { status: 404 }));
+
+    const caught = await executeWithSca(
+      client,
+      async () => {
+        throw new QontoScaRequiredError("tok-poll-404");
+      },
+      { poll: { sleep: noopSleep } },
+    ).catch((e: unknown) => e);
+
+    expect(caught).toBeInstanceOf(ScaPollingFailedError);
+    expect((caught as ScaPollingFailedError).scaSessionToken).toBe("tok-poll-404");
+    expect((caught as ScaPollingFailedError).cause).toBeInstanceOf(QontoApiError);
+    expect(((caught as ScaPollingFailedError).cause as QontoApiError).status).toBe(404);
+  });
+
+  it("does NOT wrap ScaTimeoutError from polling (propagates unchanged for existing handling)", async () => {
+    // Poll returns "waiting"; a zero timeout forces ScaTimeoutError on the first
+    // iteration. It is a resolved poll outcome the caller already handles, so it
+    // must NOT be re-wrapped as ScaPollingFailedError.
+    fetchSpy.mockReturnValue(jsonResponse({ sca_session: { status: "waiting" } }));
+
+    const caught = await executeWithSca(
+      client,
+      async () => {
+        throw new QontoScaRequiredError("tok-timeout");
+      },
+      { poll: { sleep: noopSleep, timeoutMs: 0 } },
+    ).catch((e: unknown) => e);
+
+    expect(caught).toBeInstanceOf(ScaTimeoutError);
+    expect(caught).not.toBeInstanceOf(ScaPollingFailedError);
+    expect((caught as ScaTimeoutError).scaSessionToken).toBe("tok-timeout");
   });
 
   it("propagates QontoScaRequiredError if retry also triggers 428", async () => {

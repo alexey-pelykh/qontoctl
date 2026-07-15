@@ -2,7 +2,13 @@
 // Copyright (C) 2026 Oleksii PELYKH
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { HttpClient, QontoScaNotEnrolledError, QontoScaRequiredError, ScaTimeoutError } from "@qontoctl/core";
+import {
+  HttpClient,
+  QontoScaNotEnrolledError,
+  QontoScaRequiredError,
+  ScaPollingFailedError,
+  ScaTimeoutError,
+} from "@qontoctl/core";
 import { jsonResponse } from "@qontoctl/core/testing";
 import { executeWithCliSca } from "./sca.js";
 
@@ -163,6 +169,33 @@ describe("executeWithCliSca", () => {
     ).rejects.toThrow();
 
     expect(mockSpin.error).toHaveBeenCalledWith("SCA approval failed");
+  });
+
+  it("stops spinner with the status-retrieval-failed message when SCA-session polling fails (#669)", async () => {
+    // Poll GET returns a 404 (the gateway-404 shape): executeWithSca throws
+    // ScaPollingFailedError. The spinner must pin the poll-retrieval failure —
+    // NOT "SCA approval failed", which would misread as a user denial.
+    fetchSpy.mockImplementation(() =>
+      jsonResponse({ errors: [{ code: "not_found", detail: "Not found" }] }, { status: 404 }),
+    );
+    const mockSpin = createMockSpinner();
+    let called = false;
+
+    const caught = await executeWithCliSca(
+      client,
+      async () => {
+        if (!called) {
+          called = true;
+          throw new QontoScaRequiredError("tok-cli-poll-fail");
+        }
+        return "ok";
+      },
+      { poll: { sleep: noopSleep }, createSpinner: () => mockSpin },
+    ).catch((e: unknown) => e);
+
+    expect(caught).toBeInstanceOf(ScaPollingFailedError);
+    expect(mockSpin.error).toHaveBeenCalledWith("SCA session status could not be retrieved");
+    expect(mockSpin.error).not.toHaveBeenCalledWith("SCA approval failed");
   });
 
   it("retries original operation with SCA token after approval", async () => {
