@@ -589,6 +589,7 @@ export type {
 
 export {
   ScaDeniedError,
+  ScaPollingFailedError,
   ScaTimeoutError,
   ScaSessionSchema,
   ScaSessionStatusSchema,

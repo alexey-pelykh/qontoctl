@@ -71,6 +71,7 @@ const org = await getOrganization(client);
 - **`mockScaDecision(client, scaId, decision)`** — mock an SCA decision (sandbox only)
 - **`ScaDeniedError`** — error when SCA is denied by the user
 - **`ScaTimeoutError`** — error when SCA polling times out
+- **`ScaPollingFailedError`** — error when the SCA session status could not be retrieved (the poll itself failed, e.g. a 404 / network error — as opposed to a clean deny/timeout). Preserves `.scaSessionToken` and the originating `.cause` so callers can surface actionable recovery instead of a bare API error
 
 ### Constants
 

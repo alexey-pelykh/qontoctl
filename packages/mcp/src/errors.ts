@@ -11,10 +11,11 @@ import {
   QontoRateLimitError,
   QontoScaNotEnrolledError,
   QontoScaRequiredError,
+  ScaPollingFailedError,
 } from "@qontoctl/core";
 
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { formatScaPendingResponse } from "./sca.js";
+import { formatScaPendingResponse, formatScaPollingFailedResponse } from "./sca.js";
 
 function textError(message: string): CallToolResult {
   return {
@@ -160,6 +161,8 @@ export async function withClient(
     if (error instanceof OAuthNoTokenError) return formatOAuthNoTokenError(error);
     if (error instanceof AuthError) return formatAuthError(error);
     if (error instanceof QontoScaRequiredError) return formatScaPendingResponse(error.scaSessionToken, false);
+    if (error instanceof ScaPollingFailedError)
+      return formatScaPollingFailedResponse(error.scaSessionToken, error.cause);
     if (error instanceof QontoScaNotEnrolledError) return formatScaNotEnrolledError(error);
     if (error instanceof QontoOAuthScopeError) return formatOAuthScopeError(error);
     if (error instanceof QontoApiError) return formatApiError(error);

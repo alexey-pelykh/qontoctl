@@ -106,6 +106,34 @@ describe("executeWithMcpSca", () => {
       expect(text).toContain("rejected the approval");
       expect(result.isError).toBe(false);
     });
+
+    it("returns an actionable, duplicate-payment-safe response when SCA-session polling fails (#669)", async () => {
+      // Transfer POST → 428 (SCA required, token extracted). Poll GET → 404
+      // (the gateway-404 shape). The wrapper must surface actionable recovery
+      // and preserve the token — NOT propagate a bare "Not found".
+      fetchSpy.mockReturnValue(jsonResponse({ errors: [{ code: "not_found", detail: "Not found" }] }, { status: 404 }));
+      let callCount = 0;
+
+      const result = await executeWithMcpSca(
+        client,
+        async () => {
+          callCount++;
+          throw new QontoScaRequiredError("tok-mcp-poll-fail");
+        },
+        formatStringSuccess,
+        { wait: 10, poll: { sleep: noopSleep } },
+      );
+
+      // Operation invoked once (428); the retry is never reached because the
+      // poll failed first.
+      expect(callCount).toBe(1);
+      expect(result.isError).toBe(true);
+      const text = getText(result);
+      expect(text).toContain("tok-mcp-poll-fail"); // token preserved for recovery
+      expect(text).toContain("duplicate payment"); // money-safety warning leads
+      expect(text).toContain("HTTP 404"); // underlying cause pinned
+      expect(text).toContain("sca_session_token"); // token-retry recovery path documented
+    });
   });
 
   describe("with wait = 0 (pure two-step, no polling)", () => {

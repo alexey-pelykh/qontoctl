@@ -11,6 +11,7 @@ import {
   QontoRateLimitError,
   QontoScaNotEnrolledError,
   QontoScaRequiredError,
+  ScaPollingFailedError,
   ScaTimeoutError,
   ScaDeniedError,
 } from "@qontoctl/core";
@@ -233,6 +234,27 @@ describe("handleCliError", () => {
       const output = stderrSpy.mock.calls[0]?.[0] as string;
       expect(output).toContain("SCA authentication was denied");
       expect(output).toContain("cancelled");
+      expect(process.exitCode).toBe(1);
+    });
+  });
+
+  describe("ScaPollingFailedError", () => {
+    it("shows actionable, duplicate-payment-safe guidance with the preserved token and pinned cause (#669)", () => {
+      const cause = new QontoApiError(404, [{ code: "not_found", detail: "Not found" }]);
+      const error = new ScaPollingFailedError("tok-poll-failed", cause);
+
+      handleCliError(error, false);
+
+      const output = stderrSpy.mock.calls[0]?.[0] as string;
+      // Does not misframe the malfunction as a denial or a clean failure.
+      expect(output).not.toContain("denied");
+      expect(output).toContain("could not be confirmed");
+      // Money-safety: warn before any retry.
+      expect(output).toContain("duplicate");
+      // Underlying cause pinned to the polling step, not a bare "Not found".
+      expect(output).toContain("HTTP 404");
+      // Token preserved for diagnostics/recovery.
+      expect(output).toContain("tok-poll-failed");
       expect(process.exitCode).toBe(1);
     });
   });

@@ -4,6 +4,7 @@
 import { randomUUID } from "node:crypto";
 import { QontoScaRequiredError } from "../http-client.js";
 import type { HttpClient } from "../http-client.js";
+import { ScaDeniedError, ScaPollingFailedError, ScaTimeoutError } from "./errors.js";
 import { mockScaDecision, pollScaSession, type PollScaSessionOptions } from "./sca-service.js";
 
 export interface ExecuteWithScaCallbacks {
@@ -95,10 +96,28 @@ export async function executeWithSca<T>(
       await mockScaDecision(client, scaSessionToken, options.autoApprove);
     }
 
-    await pollScaSession(client, scaSessionToken, {
-      ...options?.poll,
-      onPoll: options?.onPoll ?? options?.poll?.onPoll,
-    });
+    try {
+      await pollScaSession(client, scaSessionToken, {
+        ...options?.poll,
+        onPoll: options?.onPoll ?? options?.poll?.onPoll,
+      });
+    } catch (pollError: unknown) {
+      // `deny` and `timeout` are *resolved* poll outcomes callers already
+      // handle (final user choice / exhausted wait budget) — propagate them
+      // unchanged.
+      if (pollError instanceof ScaDeniedError || pollError instanceof ScaTimeoutError) {
+        throw pollError;
+      }
+      // Anything else means the poll itself broke — e.g. the production
+      // SCA-session status endpoint (`GET /v2/sca/sessions/{token}`) returning
+      // a gateway 404 (see #669). The SCA challenge was already created and a
+      // push delivered to the user's device, so a raw failure here loses the
+      // token and strands them with an orphaned challenge behind a bare
+      // "not_found". Preserve the token + cause so callers can surface
+      // actionable recovery. Does NOT touch the polling URL / retry itself —
+      // this only makes the failure recoverable, not the poll succeed.
+      throw new ScaPollingFailedError(scaSessionToken, pollError);
+    }
 
     options?.onScaApproved?.();
 

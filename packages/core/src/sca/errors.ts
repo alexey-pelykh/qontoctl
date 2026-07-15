@@ -31,3 +31,31 @@ export class ScaDeniedError extends Error {
     this.name = "ScaDeniedError";
   }
 }
+
+/**
+ * Error thrown when the SCA challenge was created but its resolution could
+ * NOT be confirmed because polling the SCA-session status endpoint itself
+ * failed (e.g. a 404 / 5xx / network error while requesting the session
+ * status) — as opposed to the poll running to a clean `deny`
+ * ({@link ScaDeniedError}) or exhausting its budget ({@link ScaTimeoutError}).
+ *
+ * This distinction matters for callers: an infrastructure failure of the poll
+ * is not fixed by waiting longer, and — critically for money-movement paths —
+ * it strands the user with an *orphaned* challenge (a push was delivered to
+ * their device, but approving it completes nothing). Preserving the
+ * {@link scaSessionToken} here is what lets a caller surface actionable
+ * recovery (approve on device, then retry binding the token) instead of a bare
+ * "not_found". The originating error is kept in {@link cause} for diagnostics.
+ *
+ * The session token is intentionally omitted from `.message` to avoid leaking
+ * it through generic error logging; callers read `.scaSessionToken` directly.
+ */
+export class ScaPollingFailedError extends Error {
+  constructor(
+    public readonly scaSessionToken: string,
+    public override readonly cause: unknown,
+  ) {
+    super(`SCA session status could not be retrieved`);
+    this.name = "ScaPollingFailedError";
+  }
+}

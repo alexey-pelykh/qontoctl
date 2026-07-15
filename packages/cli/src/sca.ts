@@ -4,6 +4,7 @@
 import { spinner, type SpinnerResult } from "@clack/prompts";
 import {
   executeWithSca,
+  ScaPollingFailedError,
   ScaTimeoutError,
   type ExecuteWithScaContext,
   type HttpClient,
@@ -129,6 +130,11 @@ export async function executeWithCliSca<T>(
     if (s !== undefined) {
       if (error instanceof ScaTimeoutError) {
         s.error("SCA approval timed out");
+      } else if (error instanceof ScaPollingFailedError) {
+        // The challenge was created but its status could not be polled (#669);
+        // "approval failed" would misread as a denial. handleCliError renders
+        // the actionable, duplicate-payment-safe guidance below.
+        s.error("SCA session status could not be retrieved");
       } else {
         s.error("SCA approval failed");
       }

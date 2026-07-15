@@ -10,6 +10,7 @@ import {
   QontoRateLimitError,
   QontoScaNotEnrolledError,
   QontoScaRequiredError,
+  ScaPollingFailedError,
   ScaTimeoutError,
   ScaDeniedError,
 } from "@qontoctl/core";
@@ -132,6 +133,31 @@ export function handleCliError(error: unknown, debug: boolean): void {
     return;
   }
 
+  if (error instanceof ScaPollingFailedError) {
+    // The SCA challenge was created but its status could not be polled (#669) —
+    // distinct from a timeout (poll ran, no decision) or denial (user said no).
+    // Lead with the duplicate-payment safeguard: the operation's outcome is
+    // genuinely unknown, so we must not imply it plainly failed.
+    process.stderr.write(
+      [
+        "SCA (Strong Customer Authentication) required, but the approval could not be confirmed:",
+        "polling the SCA session status failed. The challenge was created (a push was sent to your",
+        "Qonto mobile app), but its outcome could not be retrieved, so the operation did NOT complete.",
+        "",
+        `Underlying failure: ${describeScaPollCause(error.cause)}`,
+        "",
+        "IMPORTANT — avoid a duplicate payment. This operation's outcome is unknown: it was not",
+        "confirmed completed, but it may not have failed cleanly either. Before retrying, verify",
+        "whether it already went through (check the Qonto app, or list the relevant transfers) to",
+        "avoid a duplicate money movement.",
+        "",
+        `SCA session token (for diagnostics): ${error.scaSessionToken}`,
+      ].join("\n") + "\n",
+    );
+    process.exitCode = 1;
+    return;
+  }
+
   // Unknown errors: show stack trace in debug mode, message only otherwise
   if (debug && error instanceof Error && error.stack !== undefined) {
     process.stderr.write(`${error.stack}\n`);
@@ -140,6 +166,24 @@ export function handleCliError(error: unknown, debug: boolean): void {
     process.stderr.write(`Error: ${message}\n`);
   }
   process.exitCode = 1;
+}
+
+/**
+ * Describe the underlying failure that broke SCA-session polling, for the
+ * diagnostic line of the {@link ScaPollingFailedError} branch. A
+ * {@link QontoApiError} is rendered with its HTTP status and JSON:API
+ * `code: detail` entries (e.g. the `HTTP 404 — not_found: Not found` of #669);
+ * anything else falls back to its message.
+ */
+function describeScaPollCause(cause: unknown): string {
+  if (cause instanceof QontoApiError) {
+    const details = cause.errors.map((e) => `${e.code}: ${e.detail}`).join("; ");
+    return `Qonto API error (HTTP ${String(cause.status)})${details.length > 0 ? ` — ${details}` : ""}`;
+  }
+  if (cause instanceof Error) {
+    return cause.message;
+  }
+  return String(cause);
 }
 
 /**
