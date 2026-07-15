@@ -36,6 +36,11 @@ export function createProgram(): Command {
 
   program.name("qontoctl").description("The complete CLI & MCP for Qonto").version(packageJson.version);
 
+  program.addHelpText(
+    "after",
+    "\nQontoCtl is an independent, unofficial project and is not affiliated with, endorsed by, or supported by Qonto.\n",
+  );
+
   program
     .addOption(
       new Option("--config <path>", "path to configuration file (overrides --profile and QONTOCTL_CONFIG_FILE)"),

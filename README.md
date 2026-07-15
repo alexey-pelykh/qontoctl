@@ -26,8 +26,14 @@ QontoCtl lets AI assistants (Claude, etc.) interact with Qonto through the [Mode
 - **SEPA Beneficiaries** — list, add, update, trust/untrust SEPA beneficiaries
 - **SEPA Transfers** — list, create, cancel transfers; download proofs; verify payees
 - **Internal Transfers** — create transfers between accounts in the same organization
-- **Bulk Transfers** — list and view bulk transfer batches
-- **Recurring Transfers** — list and view recurring transfers
+- **Bulk Transfers** — list, view, and create bulk SEPA transfer batches
+- **Recurring Transfers** — list, view, create, cancel recurring transfers
+- **International Transfers (SWIFT)** — create SWIFT transfers and manage international beneficiaries
+- **Cards** — list, create, update, lock/unlock, report lost/stolen, discard cards
+- **Teams** — list and create teams
+- **Webhooks** — create and manage webhook subscriptions
+- **Payment Links** — create, deactivate, and manage Stripe-backed payment links
+- **Insurance** — show, create, update insurance contracts and manage documents
 - **Terminals (POS)** — list Qonto Terminals and initiate terminal payments
 - **Products** — list catalogue products
 - **Clients** — list, create, update, delete clients
