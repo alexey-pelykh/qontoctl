@@ -2,10 +2,10 @@ packages:
   - "packages/*"
 
 catalog:
-  typescript: "^6.0.3"
+  typescript: "^7.0.2"
   "@types/node": "^26"
-  vitest: "^4.1.6"
-  "@vitest/coverage-v8": "^4.1.6"
+  vitest: "^5.0.0"
+  "@vitest/coverage-v8": "^5.0.0"
   "@eslint/js": "^10.0.1"
   eslint: "^10.6.0"
   prettier: "^3.8.3"
